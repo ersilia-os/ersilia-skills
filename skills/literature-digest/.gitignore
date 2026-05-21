@@ -1,0 +1,8 @@
+# Generated digest output — kept local as a working copy. The canonical home for
+# digests is the remote repo `ersilia-os/digests` (uploaded by scripts/upload_digest.py).
+# Re-commit a specific week locally only if you have a reason:
+#   git add -f digests/26-05-21-literature-digest.md
+digests/
+
+# Python bytecode from the fetcher/ranker scripts.
+scripts/__pycache__/

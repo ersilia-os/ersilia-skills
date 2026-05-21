@@ -1,0 +1,16 @@
+{
+  "last_refresh_date": "2026-05-21",
+  "refresh_interval_days": 90,
+  "next_refresh_due": "2026-08-19",
+  "refreshed_files": [
+    "search-landscape.md",
+    "hub-incorporation-criteria.md",
+    "lmic-countries.md"
+  ],
+  "refresh_log": [
+    {
+      "date": "2026-05-21",
+      "notes": "Initial buildout. Hub catalogue analysed (254 entries, 189 Ready); Slack #literature history inspected (~100 messages, Feb–May 2026); seed lists merged from Gmail + Drive grants."
+    }
+  ]
+}
