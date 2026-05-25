@@ -22,10 +22,10 @@ All Python figures at Ersilia are created with the **stylia** package, which wra
 - **Never** set axis labels, titles, or panel letters with `ax.set_xlabel()`, `ax.set_ylabel()`, `ax.set_title()`, or similar. Always use `stylia.label(ax, ...)` — it handles font sizes, colors, and panel letter formatting consistently.
 - **Always pass `xlabel` and `ylabel` to `stylia.label()`**, even when no label is needed — pass `xlabel=""` and `ylabel=""`. Omitting them causes stylia to insert a placeholder text.
 - When writing helper functions for a specific plot type, **always accept `ax` as an argument** rather than creating a figure inside the function. The caller owns the figure; the function only draws into the axis it receives.
-- **Set width and height automatically** based on the plot type — do not ask the user unless they want something specific:
+- **Set width and height only for single square panels** — omit both for all other plot types:
   - Single panel, square data space (ROC curve, scatter, confusion matrix, heatmap): `width=0.5, height=0.5`
   - Single panel, wide data (bar chart, line plot, histogram, time series): default (omit both)
-  - Multi-panel figures: `width=0.5`, omit height (keep default)
+  - Multi-panel figures: default (omit both)
 - **Do not set marker sizes, line widths, or font sizes** unless the user explicitly asks. Stylia's defaults are already calibrated — leave them alone.
 
 ```python
@@ -91,7 +91,7 @@ Choose width and height based on plot type:
 |---|---|---|
 | Single panel, square data (ROC, scatter, heatmap, confusion matrix) | `0.5` | `0.5` |
 | Single panel, wide data (bar chart, line, histogram, time series) | default | default |
-| Multi-panel | `0.5` | default |
+| Multi-panel | default | default |
 
 ```python
 # Single square panel (e.g. ROC curve)
@@ -99,7 +99,7 @@ fig, axs = stylia.create_figure(1, 1, width=0.5, height=0.5)
 ax = axs.next()
 
 # Multi-panel
-fig, axs = stylia.create_figure(2, 2, width=0.5)
+fig, axs = stylia.create_figure(2, 2)
 ax = axs.next()   # first subplot
 ax = axs.next()   # second subplot
 stylia.save_figure("figure.png")
@@ -289,6 +289,6 @@ stylia.save_figure("figure.png")
 - `plt.show()` — use `stylia.save_figure()` instead
 - Creating figures inside helper functions — accept `ax` as an argument instead
 - Hardcoded hex colors — use `stylia.NamedColors()` or a palette/colormap
-- Setting `width` or `height` in `create_figure()` unless the user asks
+- Setting `width` or `height` in `create_figure()` unless the plot requires a square data space (ROC curve, scatter, heatmap, confusion matrix) — in that case use `width=0.5, height=0.5`
 - Setting `s=`, `linewidth=`, `fontsize=` or any size/width parameter unless the user asks — stylia's defaults are correct
 - Calling `stylia.label(ax)` without `xlabel` and `ylabel` — always pass them explicitly, using `""` if no label is needed
