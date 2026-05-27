@@ -13,9 +13,11 @@ blocks.
 ```
 
 That's it for the header. **Do not** add a "Covers the 7 days ending..." line, a
-"Sources scanned..." line, or any other intro paragraph. The file proceeds directly
-to the connector semaphore below. The date in the H1 is the **end** of the date
-range.
+"Sources scanned..." line, methodology callouts about how 🤖 is applied, or
+any other intro paragraph. The file proceeds directly to the connector
+semaphore and legend below. The date in the H1 is the **end** of the date
+range. Don't restate marker rules in-document — the legend line says enough
+and the reference files carry the detail.
 
 ## Connector status (semaphore)
 

@@ -255,13 +255,28 @@ This produces a top-~50 pool with score breakdowns. The pool is what you triage 
 
 Read `/tmp/pool.json`. For each item:
 
-- **Apply Hub-incorporability as the primary lens.** Re-read
+- **Filter to scope first.** An item must fit one of three buckets to belong
+  in the digest:
+  1. **Antibiotic / antimicrobial / AMR drug discovery** — including TB, NTD
+     antibacterials, AMP / peptide-antibiotic work, AMR surveillance with an
+     ML hook.
+  2. **Global health / LMIC drug discovery / open-science capacity-building**
+     — NTDs (malaria, leishmaniasis, HAT, schistosomiasis, etc.), Africa /
+     LMIC-led work, public datasets / open infrastructure releases.
+  3. **General-purpose AI methods for drug discovery** — featurizers, ADMET
+     and toxicity predictors, generative chemistry, CPI / docking surrogates,
+     synthesis planning, retrosynthesis, multi-task chemistry foundation
+     models, open chemistry datasets, methodology reviews that map the field.
+  Disease-specific cancer / cardiology / diabetes / RNA-only / protein-only
+  papers do **not** qualify unless they are *highly* relevant (e.g. an open
+  general-purpose dataset that happens to be exemplified on oncology). Default
+  to omitting borderline items rather than padding the digest.
+- **Apply Hub-incorporability as the primary lens within scope.** Re-read
   `references/hub-incorporation-criteria.md` before triaging. The single most
-  important question for each item is: "could this become an Ersilia Model Hub
-  entry?" Activity prediction, featurization, and property prediction together
-  account for 86 % of Ready Hub models — weight items in those subtasks heavier
-  than everything else. Generic AI/health policy and biology-only items are
-  legitimate digest material but should not crowd out 🤖 candidates.
+  important question for in-scope items is: "could this become an Ersilia
+  Model Hub entry?" Activity prediction, featurization, and property
+  prediction together account for 86 % of Ready Hub models — weight items in
+  those subtasks heavier than everything else.
 - **Small-molecule input is the gate for 🤖.** The Hub's current incorporation
   surface only accepts small-molecule input (SMILES / InChI / molfile). A
   model with protein-sequence, RNA, peptide, gene, transcriptomic, image, or
