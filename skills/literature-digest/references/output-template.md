@@ -100,6 +100,17 @@ chapter 4 (global health) depending on whether the contribution is the
 method or the disease focus — pick whichever the body sentence emphasises. When
 in doubt, prefer the chapter that gives the reader the most context.
 
+### Ordering within a chapter
+
+Entries inside a chapter are sorted **🤖 candidate models first**, then the
+rest. A reader scanning the digest for Hub-incorporable work should see those
+items before reviews, perspectives, and context pieces.
+
+Inside the 🤖 block, sort by venue tier (NMI / JCIM / J Cheminform / Nat
+Comms / NAR before bioRxiv / chemRxiv / arXiv preprints), then by recency. The
+hub-incorporation prior in `hub-incorporation-criteria.md` is the reference for
+which venues count as "Hub-feeder" — apply that list, not personal taste.
+
 ### Trailing task emoji on 🤖 and 🗃️ entries
 
 Every entry that carries 🤖 (candidate model) **must** end its body sentence
@@ -127,8 +138,10 @@ sentence to capture nuance.
 | 🔍 | Similarity search — ligand-based VS, k-NN, docking surrogates. | Reference libraries for retrieval. |
 | 🎨 | Generative — de novo design, scaffold hopping, VAE / diffusion. | Curated chemistry corpora that drive generative training. |
 
-Total items per digest: aim for **20–35** across all chapters. Density is the
-goal; the format below is one line per item.
+Total items per digest: aim for **25–40** across all chapters, with at least a
+third carrying 🤖 in a healthy week. Density is the goal; the format below is
+one line per item. If 🤖 candidates fall well below a third, that is a signal
+to widen the Gmail / Slack net rather than to pad the digest.
 
 ## Per-item template (one line per article)
 
@@ -172,8 +185,8 @@ order: **⭐ 🌍 🤖 🗃️ 💻** (impact → equity → model → dataset �
 | ⭐ | Very-high-impact journal | Venue is in the "Starred journals" list in `search-landscape.md`. Preprints never warrant ⭐ on their own. |
 | 🌍 | LMIC-led work | First OR senior author at a World Bank low/lower-middle-income institution (see `lmic-countries.md`). |
 | 🤖 | Model/tool potentially incorporable into the Ersilia Model Hub | Open-source or openly distributable model with a clear inference interface; task fits the Hub taxonomy. Skip if closed, irreproducible, or commercial-only. |
-| 🗃️ | Dataset useful for training or evaluating Hub models | Openly downloadable; covers a Hub-relevant endpoint; large/labelled enough to train or benchmark. Skip purely descriptive datasets. |
-| 💻 | Open code linked from the paper | The paper links to a public, runnable code repository (GitHub, GitLab, Codeberg, etc.). 💻 is applied when the existence of code is established; if a URL is also surfaced, append `[code](...)` to the trailing extras as well. |
+| 🗃️ | Dataset useful for training or evaluating Hub models | Openly downloadable; covers a Hub-relevant endpoint; large/labelled enough to train or benchmark. **Prefer big, well-established corpora** (tens of thousands of compounds upwards; clear public release; venue with citation traction). Examples this week: COMPASS (75k AMPs, *npj AMR*), QuantumPioneer (Coley/Kraft reaction QM corpus). Small, single-target or single-paper datasets rarely warrant 🗃️ on their own. Skip purely descriptive (non-ML-trainable) datasets. |
+| 💻 | Open code linked from the paper | The paper links to a public, runnable code repository (GitHub, GitLab, Codeberg, etc.). 💻 is applied **only when code existence is verified** — i.e. the abstract or paper text explicitly mentions a repo URL, or Crossref/OpenAlex metadata flags an open code object. Crossref abstracts often omit code mentions, so when the abstract is silent, fetch the paper page (or `data availability` block) before applying 💻. **Default-off**: if you cannot point at a specific URL, do not apply 💻 — false positives are worse than omission. When a URL *is* surfaced, also append `[code](...)` to the trailing extras. |
 
 Markers are editorial — apply them only when they're load-bearing. Do not sprinkle.
 A *Nature Methods* paper that releases an open Plasmodium ADMET model trained on a new

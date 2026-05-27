@@ -5,9 +5,10 @@ catalogue, 254 entries; 189 "Ready") and `ErsiliaModelsDOI.csv` (per-model
 publication metadata, 207 entries). Snapshot date: 2026-05-21. Refresh
 quarterly.
 
-These are **empirical priors** for assigning the 🤖 marker and for placing items
-in the "Potential models for the Ersilia Model Hub" chapter. A paper that "looks
-like the Hub" is a paper that resembles what has historically made it in.
+These are **empirical priors** for assigning the 🤖 marker and for ranking
+candidates inside their chapter (see `output-template.md` for chapter layout
+and 🤖-first ordering rules). A paper that "looks like the Hub" is a paper
+that resembles what has historically made it in.
 
 ## Subtask distribution (Ready models)
 
@@ -91,18 +92,46 @@ high-impact venue when the work is foundational.
 
 Apply 🤖 when **all of the following hold**:
 
-1. The paper introduces or releases a model / tool, not just an analysis.
-2. The model performs one of the six Hub subtasks (use this file as the
+1. **The model takes small molecules as its primary input.** The Hub's current
+   incorporation surface is small-molecule-only: SMILES / InChI / molfile.
+   That means the following are explicitly **not** 🤖-eligible, no matter how
+   relevant they look otherwise:
+   - protein-sequence input (e.g. solubility, secondary structure, pLM
+     interpretability)
+   - RNA-sequence or RNA-structure input
+   - peptide-sequence input (AMP optimisers, peptide generators)
+   - gene / genome input (resistance-gene annotators)
+   - bulk or single-cell transcriptomic input (signature-based prioritisers)
+   - cell-image / phenotypic-image input
+   - pocket-tensor or protein-pocket conditioning
+   - multi-omics target-ID pipelines
+
+   Compound–protein interaction models are 🤖-eligible because the *primary*
+   user-facing input is the small molecule; the protein is a condition the Hub
+   handles as a fixed target argument. Generative models that emit small
+   molecules are 🤖-eligible even when they have no molecule input, *provided*
+   they do not require a non-molecule conditioning input (e.g. a pocket
+   tensor) the Hub's generator interface cannot currently supply.
+
+   For models that are clearly important but fall outside this surface — surface
+   them as context items without 🤖, with a one-liner stating "Out of the
+   current Hub small-molecule-input surface" so the team knows to revisit when
+   the Hub interface expands.
+
+2. The paper introduces or releases a model / tool, not just an analysis.
+3. The model performs one of the six Hub subtasks (use this file as the
    reference taxonomy). Map ambiguous tasks to the most specific subtask, and
    only call it "Generation" if the headline contribution is generative.
-3. The model is **openly available** — code or weights or web server. Mark 🤖
+4. The model is **openly available** — code or weights or web server. Mark 🤖
    even for online-only services (ADMETLab-style entries are a Hub pattern), but
    prefer code-bearing entries when triaging.
-4. The endpoint or input space is plausibly Hub-relevant. Cardiology-only or
-   plant-only models, for instance, do not fit unless they generalise.
+5. The endpoint is plausibly Hub-relevant. Cardiology-only or plant-only
+   models, for instance, do not fit unless they generalise.
 
-When 🤖 is applied, the item goes into chapter 5 (Potential models for the
-Ersilia Model Hub), under its specific subtask `###` heading.
+When 🤖 is applied, the item stays in the topical chapter it would have
+landed in anyway (per `output-template.md` placement rules), but is sorted
+above non-🤖 entries inside that chapter so candidate Hub models are visible
+at a glance.
 
 ## How this translates to the 🗃️ marker
 
@@ -112,7 +141,7 @@ the dataset is bigger / cleaner / more diverse than what the paper's own model
 was trained on. The presence of bioactivity (IC50/MIC), ADMET, or phenotypic
 endpoint data on Hub-priority pathogens is the strongest signal.
 
-When 🗃️ is the *only* marker (no 🤖), the item goes into chapter 6 (Interesting
-datasets for Ersilia modelling). When a paper carries **both** 🤖 and 🗃️, place
-it in chapter 5 — the model is the primary contribution; the dataset gets
-mentioned in the body sentence.
+When 🗃️ is the *only* marker (no 🤖), the item still stays in its topical
+chapter — the marker alone tells the reader the dataset is Hub-trainable.
+When a paper carries **both** 🤖 and 🗃️, the model is the primary contribution
+and the dataset gets a mention in the body sentence.

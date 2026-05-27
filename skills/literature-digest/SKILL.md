@@ -179,22 +179,36 @@ python scripts/fetch_europepmc.py  --from {start} --to {end} --out /tmp/epmc.jso
 python scripts/fetch_slack.py --raw /tmp/slack_raw.json --out /tmp/slack.json
 ```
 
-**Gmail** — high-signal source: Google Scholar alerts, curated newsletters, and
-collaborator emails that share links. **Do not include the user's email address
-anywhere in the digest** — label the connector by what it covers, never by the inbox
-it reads.
+**Gmail** — high-signal source: Google Scholar alerts, curated newsletters,
+publisher table-of-contents emails, and collaborator threads sharing links.
+**Do not include the user's email address anywhere in the digest** — label the
+connector by what it covers, never by the inbox it reads.
 
 1. Use the Gmail MCP yourself, scoped to the user's inbox (the harness already knows
-   which account). Pull three buckets in parallel:
-   - **Scholar alerts**: `from:scholaralerts-noreply@google.com newer_than:7d`
-     (also `scholarcitations-noreply@google.com`).
-   - **Newsletters**: search for senders matching the curated list — Substack,
-     Asimov Press, Pat Walters, Owl Posting, Decoding Bio, etc.
-     (e.g. `from:substack.com newer_than:7d`).
+   which account). **The single highest-recall query is the user-maintained
+   `Research-Updates` Gmail label** — they tag everything literature-relevant under
+   it. Pull from it exhaustively first, then top up with the per-sender buckets if
+   anything looks missing:
+   - **Whole `Research-Updates` label**:
+     `label:Research-Updates after:YYYY/MM/DD` (use the window start date). This
+     subsumes the Scholar alerts, journal ToC ealerts (Nature/NMI/Nat Comms/Comm
+     Chem/Comm Med/Comm Bio, Cell Press, eLife, Wiley/ChemMedChem, ACS journal
+     alerts for JCIM/J Med Chem/ACS Med Chem Lett/ACS Infect Dis/ACS Omega,
+     Lancet, BMJ, npj Digital Medicine), and the curated weekly digests
+     (Semantic Scholar, The Academic Digest, *Nature Briefing*).
+   - **Scholar alert fallback**: `from:scholaralerts-noreply@google.com
+     newer_than:7d` (also `scholarcitations-noreply@google.com`) — use only if
+     the label query returns nothing or is unavailable.
    - **Collaborator mentions**: any other thread in the window where a paper or
      code link was shared. Be conservative — only include threads whose body
      contains a DOI, arXiv ID, bioRxiv/chemRxiv URL, GitHub repo URL, or
      Hugging Face URL.
+
+   **ToC alerts are dense.** A single NMI/JCIM/Nat Comms email contains 10–30
+   paper links and may bust the MCP's per-thread output limit. When that happens
+   the `get_thread` tool error message gives you the path to the on-disk dump —
+   parse it with `python3` + a regex on the HTML, then verify the resulting
+   DOIs/first-authors via Crossref (see step 6 below).
 2. For each thread, call `get_thread` to get the body text. Assemble a JSON list
    `/tmp/gmail_raw.json` with one object per thread:
    ```json
@@ -237,16 +251,45 @@ python scripts/dedup_and_rank.py \
 This produces a top-~50 pool with score breakdowns. The pool is what you triage in Step 5
 — do not fall back to the raw fetched data.
 
-### Step 5 — LLM triage to the final 20–30
+### Step 5 — LLM triage to the final 25–35
 
 Read `/tmp/pool.json`. For each item:
 
+- **Apply Hub-incorporability as the primary lens.** Re-read
+  `references/hub-incorporation-criteria.md` before triaging. The single most
+  important question for each item is: "could this become an Ersilia Model Hub
+  entry?" Activity prediction, featurization, and property prediction together
+  account for 86 % of Ready Hub models — weight items in those subtasks heavier
+  than everything else. Generic AI/health policy and biology-only items are
+  legitimate digest material but should not crowd out 🤖 candidates.
+- **Small-molecule input is the gate for 🤖.** The Hub's current incorporation
+  surface only accepts small-molecule input (SMILES / InChI / molfile). A
+  model with protein-sequence, RNA, peptide, gene, transcriptomic, image, or
+  pocket-tensor input is **not** 🤖-eligible no matter how impressive — surface
+  it as a context item without 🤖 and call out the input modality so the team
+  knows why. Same for generators that require non-molecule conditioning
+  (pocket-conditioned, RNA-target-conditioned). Reciprocally, compound-protein
+  interaction models *are* 🤖-eligible because the primary user-facing input
+  is the small molecule.
+- **Be conservative with 💻.** Only apply 💻 when the abstract or paper page
+  explicitly names a public repo URL. Crossref/EuropePMC abstracts often omit
+  code mentions; do not infer code presence from "this work is open" or "code
+  available upon request". Default-off when uncertain.
+- **🗃️ is for big, highly-published corpora.** Prefer datasets of tens of
+  thousands of compounds upwards with clear open release and a venue that
+  generates citations (e.g. COMPASS in *npj AMR*, QuantumPioneer from
+  Coley/Kraft groups). Small per-paper training sets do not warrant 🗃️.
 - Discard if you cannot write a credible "Why it matters for Ersilia" one-liner. If you
   cannot, the item does not belong in the digest — say so to yourself and skip.
-- Assign each survivor to one of the five sections (`AI/ML methods`, `Antibiotic / AMR`,
-  `NTDs / global health`, `Datasets / code`, `Open science`).
-- Apply target section sizes from `references/output-template.md`. Adjust to what the
-  week actually delivered — do not pad.
+- Assign each survivor to one of the four chapters in
+  `references/output-template.md`. The 🤖 marker and trailing task emoji do the
+  Hub-flagging work inline; there is no dedicated chapter.
+- **Within each chapter, order entries 🤖-first.** A reader scanning the digest
+  for incorporable models should see them before reviews, perspectives, or
+  context items. Inside the 🤖 block, sort by venue tier (NMI/JCIM/JCheminform/
+  NAR/Nat Comms before bioRxiv/chemRxiv), then by recency.
+- Apply target item count from `references/output-template.md` (aim 25–35).
+  Adjust to what the week actually delivered — do not pad.
 - Apply the equity lens last: check that LMIC-led work is surfaced where it exists; if a
   paper about LMIC pathogens has no LMIC authorship, note it under "Known gaps" rather
   than promoting it.
@@ -256,6 +299,17 @@ Read `/tmp/pool.json`. For each item:
 For every chosen item, write the entry following `references/output-template.md` exactly.
 Specifically:
 
+- **Verify the first-author surname and the publication date via Crossref before
+  composing.** Gmail Scholar alerts and publisher ToC HTML often truncate or
+  reorder author lists, and inferring "First et al." from a snippet is how the
+  v1/v2 of this digest leaked fabricated names like "Smith et al." into entries
+  that should have read "Augustine et al." Run a quick
+  `https://api.crossref.org/works/<doi>` lookup (or
+  `https://api.crossref.org/works?query.title=...&filter=container-title:<journal>`
+  when only the title is known) and use `message.author[0].family` and
+  `message.published.date-parts[0]`. Same rule for arXiv IDs (resolve via
+  Crossref or arXiv's own API). If lookup fails, omit the author rather than
+  guessing.
 - Entries are **one bullet line each** in the format defined by
   `references/output-template.md`: `[Author et al., *Venue*, YYYY](url) {ribbon}
   — **Title.** Combined why-matters + TL;DR.`

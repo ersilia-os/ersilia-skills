@@ -502,6 +502,14 @@ def score_item(
     lmic_bonus, matched_countries = _lmic_bonus(item, lmic)
     recency = _recency_bonus(item.get("date") or "", window_start, window_end)
 
+    # Community-curated bonus: Slack shares and Gmail Scholar/newsletter picks are
+    # editorially pre-filtered by the team. Their items often have no abstract, so
+    # topic-keyword matching scores zero and they drop out of the top-N. Give them
+    # a fixed floor so they survive into the triage pool. The LLM triage step
+    # decides whether to keep them in the digest, not the ranker.
+    source = (item.get("source") or "").lower()
+    community_bonus = 3 if source in {"slack", "gmail", "newsletter"} else 0
+
     # Seen check.
     seen_flag = False
     for key in filter(None, (
@@ -518,9 +526,13 @@ def score_item(
         "journal_tier": journal_bonus,
         "topic_hits": topic_bonus,
         "lmic_bonus": lmic_bonus,
+        "community_curated": community_bonus,
         "recency": round(recency, 3),
     }
-    total = author_bonus + journal_bonus + topic_bonus + lmic_bonus + recency
+    total = (
+        author_bonus + journal_bonus + topic_bonus + lmic_bonus
+        + community_bonus + recency
+    )
     if seen_flag:
         total -= 999
 

@@ -79,9 +79,9 @@ fetcher) via affiliation parsing against `lmic-countries.md`.
 
 ### Gmail — `scripts/fetch_gmail.py`
 
-High-signal source — covers Google Scholar alerts (pre-tuned to the user's research
-interests), curated newsletters, and any thread where a collaborator shared a paper or
-code link.
+High-signal source — covers Google Scholar alerts (pre-tuned to the user's
+research interests), publisher table-of-contents emails, curated newsletters,
+and any thread where a collaborator shared a paper or code link.
 
 - **Source**: claude.ai Gmail MCP — `search_threads`, `get_thread`,
   `list_labels`.
@@ -90,18 +90,55 @@ code link.
 - **Privacy rule**: the digest **never** names the inbox being read. The normaliser
   drops the raw sender email address from output items and labels the connector by
   what it covers (Scholar alerts, newsletters, collaborator mentions). The semaphore
-  row reads `"Gmail (Scholar alerts + newsletters)"`, not the email address.
-- **Three buckets** the MCP query covers:
-  - `from:scholaralerts-noreply@google.com newer_than:7d` (also
-    `scholarcitations-noreply@google.com`)
-  - Newsletter senders — curated allow-list in `fetch_gmail.py`:
-    Substack-hosted newsletters, Asimov Press, Pat Walters, Owl Posting,
-    Decoding Bio. Extend the allow-list when new newsletters come on.
-  - Collaborator mentions — only include threads whose body contains at least one
-    DOI / arXiv ID / bioRxiv-or-chemRxiv URL / GitHub repo URL / Hugging Face URL.
+  row reads `Alerts and Newsletters` (per `output-template.md`), not the email
+  address.
+- **Primary collection target — the user-maintained `Research-Updates` label.**
+  The user files everything literature-relevant under one Gmail label. The
+  single query `label:Research-Updates after:YYYY/MM/DD` returns the entire
+  in-window stream and subsumes the per-sender buckets below. Always run it
+  first; treat the per-sender queries as a fallback when the label is
+  unavailable or empty.
+- **Expected sender families inside the label** (use this list to know what to
+  expect, not as a separate collection plan):
+  - **Scholar alerts**: `scholaralerts-noreply@google.com`,
+    `scholarcitations-noreply@google.com` — one paper or short list per email.
+  - **Publisher ToC ealerts**: `ealert@nature.com` and `alerts@nature.com`
+    (Nature, NMI, Nat Comms, Comm Chem, Comm Med, Comm Bio, npj * — including
+    *npj Digital Medicine*); `journalalerts@acs.org` (JCIM, J Med Chem, ACS Med
+    Chem Lett, ACS Infect Dis, ACS Omega, J Nat Prod); `updates@acspubs.org`
+    (ACS most-read highlights); `WileyOnlineLibrary@wiley.com` (ChemMedChem,
+    Clinical Pharmacology & Therapeutics); `cellpress@notification.elsevier.com`
+    (Cell Reports, Cell, Cell Reports Medicine); `alerts@elifesciences.org`;
+    `briefing@nature.com` and `scienceadviser@aaas.sciencepubs.org` for
+    cross-domain news framing; `thelancet@notification.elsevier.com`;
+    `email@emails.bmj.com`.
+  - **Curated weekly digests**: `do-not-reply@semanticscholar.org` (5–10 papers
+    matched to user feeds, with TLDRs); `digest@theacademicdigest.app`
+    (5 papers per project keyword stack).
+  - **Topical newsletters**: Substack-hosted newsletters (Asimov Press, Pat
+    Walters, Owl Posting, Decoding Bio, etc. — extend the allow-list when new
+    senders come on).
+  - **Collaborator mentions** — only include threads whose body contains at
+    least one DOI / arXiv ID / bioRxiv-or-chemRxiv URL / GitHub repo URL /
+    Hugging Face URL.
+- **ToC emails are dense and often blow the MCP per-thread output limit.** A
+  single NMI Vol N No M or JCIM ASAP email can carry 20–30 paper links. When
+  `get_thread` errors with "exceeds maximum allowed tokens", the response
+  surfaces the on-disk path where the full HTML was saved — parse it with a
+  short Python + regex snippet (Nature DOIs follow `s\d{5}-\d+-\d+-\w+`; ACS
+  follow `10\.1021/acs\.<journal>\.[0-9a-z]+`). Then **always verify
+  title → first author → DOI mapping via Crossref** before composing entries;
+  the link order inside ACS ToC HTML does not reliably match the title order,
+  and trusting the inline ordering is how v1/v2 of this digest fabricated
+  several first-author names.
 - **Scholar redirect unwrapping**: Scholar alert links are wrapped in
   `scholar.google.com/scholar_url?url=...`. The script unwraps them so dedup sees
   the canonical paper URL.
+- **Ranker handling**: Slack and Gmail items often arrive with no abstract
+  (Scholar/ToC snippets are very short). `scripts/dedup_and_rank.py` applies a
+  +3 `community_curated` bonus to compensate so these items are not pruned by
+  the keyword-only top-N cut. The LLM triage step is still the gate — the
+  bonus only guarantees these items reach triage.
 - **Rate limit**: governed by the MCP layer.
 
 ---
