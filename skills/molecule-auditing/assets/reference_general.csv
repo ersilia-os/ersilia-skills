@@ -1,0 +1,30 @@
+class,name,smiles
+beta_lactam,Penicillin G,CC1(C)SC2C(NC(=O)Cc3ccccc3)C(=O)N2C1C(=O)O
+beta_lactam,Amoxicillin,CC1(C)SC2C(NC(=O)C(N)c3ccc(O)cc3)C(=O)N2C1C(=O)O
+cephalosporin,Ceftriaxone,CON=C(C(=O)NC1C(=O)N2C(C(=O)O)=C(CSc3nc(=O)c(=O)[nH]n3C)CSC12)c1csc(N)n1
+carbapenem,Meropenem,CC(O)C1C2CC(SC3CNC(C(=O)N(C)C)C3)=C(C(=O)O)N2C1=O
+fluoroquinolone,Ciprofloxacin,OC(=O)c1cn(C2CC2)c2cc(N3CCNCC3)c(F)cc2c1=O
+fluoroquinolone,Moxifloxacin,COc1c(N2CC3CCCCC3C2)c(F)cc2c(=O)c(C(=O)O)cn(C3CC3)c12
+aminoglycoside,Gentamicin,CNC(C)C1CCC(N)C(O)C1OC1OCC(C)(O)C(NC)C1OC1OC(CN)CCC1N
+polymyxin,Colistin,CCC(C)CCCC(=O)NC(CCN)C(=O)NC1CCNC(=O)C(CCN)NC(=O)C(CCN)NC(=O)C(Cc2ccc(O)cc2)NC(=O)C(CCN)NC(=O)C(CC(C)C)NC(=O)C(CCN)NC(=O)C(CC(C)C)NC1=O
+macrolide,Azithromycin,CCC1OC(=O)C(C)C(OC2CC(C)(OC)C(O)C(C)O2)C(C)C(O)C(C)(O)CC(C)C(OC2OC(C)CC(N(C)C)C2O)C(C)CN1C
+oxazolidinone,Linezolid,CC(=O)NCC1CN(c2ccc(N3CCOCC3)c(F)c2)C(=O)O1
+tetracycline,Doxycycline,CC1C2C(O)C3C(N(C)C)C(=O)C(C(N)=O)=C(O)C3(O)C(=O)C2=C(O)c2c1cccc2O
+sulfonamide,Sulfamethoxazole,Cc1cc(NS(=O)(=O)c2ccc(N)cc2)no1
+diaminopyrimidine,Trimethoprim,COc1cc(Cc2cnc(N)nc2N)cc(OC)c1OC
+nitroimidazole,Metronidazole,Cc1ncc([N+](=O)[O-])n1CCO
+rifamycin,Rifampicin,CC1C=CC=C(C)C(=O)NC2=C(O)C3=C(C(=O)C(C)=C(NN4CCN(C)CC4)C3=O)C(C)=C2OC=CC(OC)C(C)C(OC(C)=O)C(C)C(O)C(C)C(O)C1C
+isoniazid,Isoniazid,NNC(=O)c1ccncc1
+diarylquinoline,Bedaquiline,COc1ccc2nc(-c3ccc(Br)cc3)c(C(O)(CCN(C)C)c3ccc4ccccc4c3)cc2c1
+quinoline,Chloroquine,CCN(CC)CCCC(C)Nc1ccnc2cc(Cl)ccc12
+endoperoxide,Artemisinin,CC1CCC2C(C)C(=O)OC3OC4(C)CCC1C23OO4
+ubiquinone_analog,Atovaquone,O=C1c2ccccc2C(=O)C(C2CCC(c3ccc(Cl)cc3)CC2)=C1O
+nitroimidazole,Benznidazole,O=C(Cn1cnc([N+](=O)[O-])c1)NCc1ccccc1
+nitroimidazole,Fexinidazole,Cc1ncc([N+](=O)[O-])n1CCOc1ccc(SC)cc1
+polyene,Amphotericin B,CC1OC(CC(O)C(N)C1O)OC1CC(O)CC(O)CCCC(O)CC(O)CC(O)CC(O)C(C)C(O)C(C)C=CC=CC=CC=CC=CC=CC=CC(C)CC(C)C(=O)OC1C(O)C(=O)O
+isoquinoline,Praziquantel,O=C(C1CCCCC1)N1CCN2c3ccccc3CC(=O)C2C1
+macrocyclic_lactone,Ivermectin,CCC(C)C1OC(C)C2(OC(CC=C(C)C(OC3CC(OC)C(OC4CC(OC)C(O)C(C)O4)C(C)O3)C(C)C=CC34CC(O)C(C)C(C3OC4=O)O1)CC2)O
+benzimidazole,Albendazole,CCCSc1ccc2[nH]c(NC(=O)OC)nc2c1
+triazole,Fluconazole,OC(Cn1cncn1)(Cn1cncn1)c1ccc(F)cc1F
+triazole,Voriconazole,CC(c1ncncc1F)C(O)(Cn1cncn1)c1ccc(F)cc1F
+echinocandin,Caspofungin,CCCCCCCCC(O)C(O)CCCCCCC(=O)NC1CC(O)C(O)NC(=O)C2C(O)CCN2C(=O)C(NC(=O)C2CC(O)CN2C(=O)C(NC1=O)C(O)C(O)c1ccc(O)cc1)C(C)O

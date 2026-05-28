@@ -1,0 +1,14 @@
+class,name,smiles
+quinoline,Chloroquine,CCN(CC)CCCC(C)Nc1ccnc2cc(Cl)ccc12
+quinoline,Hydroxychloroquine,CCN(CCO)CCCC(C)Nc1ccnc2cc(Cl)ccc12
+quinoline,Primaquine,COc1cc2nccc(C)c2cc1NC(C)CCCN
+quinoline,Mefloquine,OC(C(N1CCCCC1)C(F)(F)F)c1cc(C(F)(F)F)nc2c1cccc2
+quinoline,Amodiaquine,CCN(CC)Cc1cc(Nc2ccnc3cc(Cl)ccc23)ccc1O
+quinoline,Lumefantrine,CCCCN(CCCC)CC(O)C(=Cc1cc(Cl)ccc1-c1ccc(Cl)cc1)c1ccc(Cl)cc1
+endoperoxide,Artemisinin,CC1CCC2C(C)C(=O)OC3OC4(C)CCC1C23OO4
+endoperoxide,Dihydroartemisinin,CC1CCC2C(C)C(O)OC3OC4(C)CCC1C23OO4
+endoperoxide,Artesunate,CC1CCC2C(C)C(OC(=O)CCC(=O)O)OC3OC4(C)CCC1C23OO4
+endoperoxide,Artemether,CC1CCC2C(C)C(OC)OC3OC4(C)CCC1C23OO4
+ubiquinone_analog,Atovaquone,O=C1c2ccccc2C(=O)C(C2CCC(c3ccc(Cl)cc3)CC2)=C1O
+antifolate,Pyrimethamine,CCc1nc(N)nc(N)c1-c1ccc(Cl)cc1
+spiroindolone,Cipargamin,O=C1NC2C3(CC(F)c4cc(Cl)ccc4N3)c3ccc(Cl)cc3C12

@@ -1,0 +1,13 @@
+class,name,smiles
+beta_lactam,Penicillin G,CC1(C)SC2C(NC(=O)Cc3ccccc3)C(=O)N2C1C(=O)O
+beta_lactam,Amoxicillin,CC1(C)SC2C(NC(=O)C(N)c3ccc(O)cc3)C(=O)N2C1C(=O)O
+beta_lactam,Ampicillin,CC1(C)SC2C(NC(=O)C(N)c3ccccc3)C(=O)N2C1C(=O)O
+cephalosporin,Cephalexin,CC1=C(C(=O)O)N2C(=O)C(NC(=O)C(N)c3ccccc3)C2SC1
+glycopeptide,Teicoplanin,CCCCCCCC(C)CCC(=O)NC1C(O)C(CO)OC1Oc1ccc2cc1Oc1cc3cc(c1O)Oc1ccc(cc1Cl)C(c1cc(O)cc(O)c1-c1c(O)cc(O)cc1C(NC(=O)C2NC(=O)C(N)c2ccc(O)cc2)C(=O)O)NC(=O)C3NC(=O)C1NC(=O)C(NC(C)=O)c2ccc(Oc3cc(C(=O)NC1c1ccc(O)c(c1)-c1cc(O)cc(c1)Cl)cc(O)c3Cl)cc2
+oxazolidinone,Linezolid,CC(=O)NCC1CN(c2ccc(N3CCOCC3)c(F)c2)C(=O)O1
+oxazolidinone,Tedizolid,Cn1cc(-c2cnc(-c3ccc(N4CC(COC(=O)Nc5cnc(F)cn5)O4)cc3F)nn2)nn1
+macrolide,Erythromycin,CCC1OC(=O)C(C)C(OC2CC(C)(OC)C(O)C(C)O2)C(C)C(O)C(C)(O)C(=O)C(C)C(OC2OC(C)CC(N(C)C)C2O)C1C
+macrolide,Azithromycin,CCC1OC(=O)C(C)C(OC2CC(C)(OC)C(O)C(C)O2)C(C)C(O)C(C)(O)CC(C)C(OC2OC(C)CC(N(C)C)C2O)C(C)CN1C
+macrolide,Clarithromycin,CCC1OC(=O)C(C)C(OC2CC(C)(OC)C(O)C(C)O2)C(C)C(OC)C(C)(O)C(=O)C(C)C(OC2OC(C)CC(N(C)C)C2O)C1C
+lincosamide,Clindamycin,CCCC1CC(C(=O)NC(C(C)Cl)C2OC(SC)C(O)C(O)C2O)N(C)C1
+lipopeptide,Daptomycin,CCCCCCCCCC(=O)NC(Cc1c[nH]c2ccccc12)C(=O)NC(CC(N)=O)C(=O)NC1C(=O)NC(CC(=O)O)C(=O)NC(C)C(=O)NC(CC(=O)O)C(=O)NCC(=O)NC(CC(C)C)C(=O)NC(CO)C(=O)NC(CC(=O)O)C(=O)NC(=O)C(C(C)CC)NC(=O)CNC(=O)C(N)CC(=O)NC1Cc1c[nH]c2ccccc12

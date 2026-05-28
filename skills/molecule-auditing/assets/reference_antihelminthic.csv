@@ -1,0 +1,12 @@
+class,name,smiles
+isoquinoline,Praziquantel,O=C(C1CCCCC1)N1CCN2c3ccccc3CC(=O)C2C1
+macrocyclic_lactone,Ivermectin,CCC(C)C1OC(C)C2(OC(CC=C(C)C(OC3CC(OC)C(OC4CC(OC)C(O)C(C)O4)C(C)O3)C(C)C=CC34CC(O)C(C)C(C3OC4=O)O1)CC2)O
+benzimidazole,Albendazole,CCCSc1ccc2[nH]c(NC(=O)OC)nc2c1
+benzimidazole,Mebendazole,O=C(OC)Nc1nc2ccc(C(=O)c3ccccc3)cc2[nH]1
+benzimidazole,Triclabendazole,CSc1nc2cc(Cl)c(Oc3ccccc3Cl)cc2[nH]1
+imidazothiazole,Levamisole,c1ccc(C2CN3CCSC3=N2)cc1
+tetrahydropyrimidine,Pyrantel,CN1CCCN=C1/C=C/c1cccs1
+salicylanilide,Niclosamide,O=C(Nc1ccc([N+](=O)[O-])cc1Cl)c1cc(Cl)ccc1O
+piperazine,Diethylcarbamazine,CCN(CC)C(=O)N1CCN(C)CC1
+nitazoxanide,Nitazoxanide,CC(=O)Oc1ccccc1C(=O)Nc1ncc(s1)[N+](=O)[O-]
+emodepside,Emodepside,CC1OC(=O)C(c2ccc(OC)cc2)N(C)C(=O)CN(C)C(=O)C(C(C)C)OC(=O)C(c2ccc(OC)cc2)N(C)C(=O)CN(C)C(=O)C(C(C)C)O1

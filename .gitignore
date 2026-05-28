@@ -1,0 +1,12 @@
+# Local Claude Code runtime state
+.claude/
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/

@@ -1,0 +1,13 @@
+class,name,smiles
+nitrofuran,Nifurtimox,Cc1csc(/N=N/c2ccc([N+](=O)[O-])o2)n1
+nitroimidazole,Benznidazole,O=C(Cn1cnc([N+](=O)[O-])c1)NCc1ccccc1
+nitroimidazole,Fexinidazole,Cc1ncc([N+](=O)[O-])n1CCOc1ccc(SC)cc1
+alkylphosphocholine,Miltefosine,CCCCCCCCCCCCCCCCOP(=O)([O-])OCC[N+](C)(C)C
+polyene,Amphotericin B,CC1OC(CC(O)C(N)C1O)OC1CC(O)CC(O)CCCC(O)CC(O)CC(O)CC(O)C(C)C(O)C(C)C=CC=CC=CC=CC=CC=CC=CC(C)CC(C)C(=O)OC1C(O)C(=O)O
+diamidine,Pentamidine,NC(=N)c1ccc(OCCCCCOc2ccc(C(N)=N)cc2)cc1
+ornithine_analog,Eflornithine,NCCCC(N)(C(F)F)C(=O)O
+suramin,Suramin,Cc1cc(NC(=O)c2ccc(NC(=O)Nc3ccc(C(=O)Nc4ccc5cc(S(=O)(=O)O)cc(S(=O)(=O)O)c5c4S(=O)(=O)O)c(C)c3)c(C)c2)cc(C(=O)Nc2ccc3cc(S(=O)(=O)O)cc(S(=O)(=O)O)c3c2S(=O)(=O)O)c1
+arsenical,Melarsoprol,Nc1nc(Nc2ccc([As]3SCC(CO)S3)cc2)nc(N)n1
+antimony,SodiumStibogluconate,O=C(O)C(O)C(O)C(O[Sb]1OC(C(=O)O)C(O)C(O[Sb](O)(O)O1)C(=O)O)C(=O)O
+azole,Posaconazole,CCC(C)N1N=CN(c2ccc(N3CCN(c4ccc(OCC5CN(c6ncccn6)CO5)cc4)CC3)cc2)C1=O
+aminoquinoline,Sitamaquine,CCN(CC)CCCCNc1cc(C)c2cccc(OC)c2n1

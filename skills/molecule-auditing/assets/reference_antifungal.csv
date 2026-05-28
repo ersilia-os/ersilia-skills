@@ -1,0 +1,13 @@
+class,name,smiles
+triazole,Fluconazole,OC(Cn1cncn1)(Cn1cncn1)c1ccc(F)cc1F
+triazole,Voriconazole,CC(c1ncncc1F)C(O)(Cn1cncn1)c1ccc(F)cc1F
+triazole,Posaconazole,CCC(C)N1N=CN(c2ccc(N3CCN(c4ccc(OCC5CN(c6ncccn6)CO5)cc4)CC3)cc2)C1=O
+triazole,Itraconazole,CCC(C)N1N=CN(c2ccc(N3CCN(c4ccc(OCC5COC(Cn6cncn6)(c6ccc(Cl)cc6Cl)O5)cc4)CC3)cc2)C1=O
+imidazole,Ketoconazole,CC(=O)N1CCN(c2ccc(OCC3COC(Cn4ccnc4)(c4ccc(Cl)cc4Cl)O3)cc2)CC1
+polyene,AmphotericinB,CC1OC(CC(O)C(N)C1O)OC1CC(O)CC(O)CCCC(O)CC(O)CC(O)CC(O)C(C)C(O)C(C)C=CC=CC=CC=CC=CC=CC=CC(C)CC(C)C(=O)OC1C(O)C(=O)O
+polyene,Nystatin,CC1OC(CC(O)C(N)C1O)OC1CC(O)CC(O)CCCCC(O)CC(O)CC(O)CC(O)C(C)C(O)C(C)C=CC=CC=CCCC=CC=CC=CC(C)CC(C)C(=O)OC1C(O)C(=O)O
+echinocandin,Caspofungin,CCCCCCCCC(O)C(O)CCCCCCC(=O)NC1CC(O)C(O)NC(=O)C2C(O)CCN2C(=O)C(NC(=O)C2CC(O)CN2C(=O)C(NC1=O)C(O)C(O)c1ccc(O)cc1)C(C)O
+echinocandin,Micafungin,CCCCCOc1ccc(-c2cc(-c3ccc(C(=O)NC4CC(O)C(O)NC(=O)C5C(O)CCN5C(=O)C(NC(=O)C5CC(O)CN5C(=O)C(NC4=O)C(O)C(O)c4ccc(OS(=O)(=O)O)cc4)C(C)O)cc3)on2)cc1
+fluoropyrimidine,Flucytosine,Nc1nc(=O)[nH]cc1F
+allylamine,Terbinafine,CC(C)(C)C#CCN(C)C/C=C/c1ccc2ccccc2c1
+benzofuran,Griseofulvin,COC1=CC(=O)CC(C)C12Oc1c(Cl)c(OC)cc(OC)c1C2=O

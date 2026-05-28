@@ -1,0 +1,13 @@
+class,name,smiles
+rifamycin,Rifampicin,CC1C=CC=C(C)C(=O)NC2=C(O)C3=C(C(=O)C(C)=C(NN4CCN(C)CC4)C3=O)C(C)=C2OC=CC(OC)C(C)C(OC(C)=O)C(C)C(O)C(C)C(O)C1C
+isoniazid,Isoniazid,NNC(=O)c1ccncc1
+ethambutol,Ethambutol,CCC(CO)NCCNC(CC)CO
+pyrazinamide,Pyrazinamide,NC(=O)c1cnccn1
+aminoglycoside,Streptomycin,CNC1C(O)C(O)C(OC2C(N=C(N)N)OC(CO)C(O)C2O)OC1C(O)C(O)CO
+diarylquinoline,Bedaquiline,COc1ccc2nc(-c3ccc(Br)cc3)c(C(O)(CCN(C)C)c3ccc4ccccc4c3)cc2c1
+nitroimidazole,Delamanid,O=[N+]([O-])c1cn2CC(COc3ccc(N4CCN(c5ccc(OC(F)(F)F)cc5)CC4)cc3)Oc2n1
+nitroimidazole,Pretomanid,[O-][N+](=O)c1cn2CC(COc3ccc(OC(F)(F)F)cc3)OCC2N1
+fluoroquinolone,Moxifloxacin,COc1c(N2CC3CCCCC3C2)c(F)cc2c(=O)c(C(=O)O)cn(C3CC3)c12
+riminophenazine,Clofazimine,CC(C)N=C1C=C(Nc2ccc(Cl)cc2)c2ccccc2N1c1ccc(Cl)cc1
+cycloserine,Cycloserine,NC1CONC1=O
+ethionamide,Ethionamide,CCc1cc(C(N)=S)ccn1

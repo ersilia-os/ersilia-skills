@@ -1,0 +1,191 @@
+# Curated tier-2 Ersilia models for molecule auditing.
+#
+# Source of truth for the curated suggestion set. The agent reads this file
+# directly (no script needed) and recommends from here BEFORE escalating to
+# the full Ersilia Model Hub Airtable (tier 3).
+#
+# Each entry:
+#   id:        eos[0-9a-z]{4} identifier
+#   title:     human-readable model title (matches Airtable / metadata.json)
+#   predicts:  one-line description of the model's primary output
+#   want_high: true | false | null | "context-dependent" | "per-column"
+#   pathogen:  (antimicrobial only) organism scope
+#   fit:       one-line rationale for when to recommend it
+#
+# Curation criterion: a model belongs here if it is known to be useful for a
+# typical molecule-auditing scenario (drug-discovery hit triage in ADMET,
+# antimicrobial activity, or safety) and would be worth running when absent
+# from the dataset. Not every Ready model in the hub qualifies.
+#
+# Initial snapshot date: 2026-05-14. Update freely — this file is the
+# canonical list; the markdown guide only links to it.
+
+admet:
+  - id: eos7m30
+    title: ADMET properties prediction
+    predicts: Multi-endpoint ADMET — physicochemical properties plus classification tasks
+    want_high: per-column
+    fit: One-stop ADMET coverage when the dataset has none
+
+  - id: eos2lqb
+    title: Human oral bioavailability prediction
+    predicts: Probability of high oral bioavailability (HOB > 20% / > 50%)
+    want_high: true
+    fit: Prioritise orally-deliverable hits
+
+  - id: eos1amr
+    title: Blood-brain barrier penetration
+    predicts: Probability that a molecule crosses the blood-brain barrier
+    want_high: context-dependent
+    fit: Required for CNS targets; a red flag in non-CNS programmes
+
+  - id: eos9tyg
+    title: PAMPA permeability (PAMPA 7)
+    predicts: Probability of being **poorly** permeable (logPeff < 1)
+    want_high: false
+    fit: Membrane-permeability triage — note inverted desirability
+
+  - id: eos31ve
+    title: Human Liver Microsomal Stability
+    predicts: Probability of being unstable in HLM (half-life ≤ 30 min)
+    want_high: false
+    fit: Metabolic-stability filter
+
+  - id: eos22io
+    title: Human Plasma Protein Binding
+    predicts: Fraction PPB 0-1; high (> 0.8) reduces free drug
+    want_high: false
+    fit: PK-relevance check
+
+  - id: eos9ym3
+    title: MRlogP
+    predicts: Predicted LogP of small molecules
+    want_high: null
+    fit: Range-filtered via Lipinski (≤ 5); not directionally scored
+
+safety:
+  - id: eos4tcc
+    title: BayeshERG — hERG channel blockade
+    predicts: Probability of hERG channel blockade (IC50 ≤ 10 µM cut-off)
+    want_high: false
+    fit: Cardiac-safety triage — hard gate before progressing any hit
+
+  - id: eos1pu1
+    title: Cardiotoxicity Classifier
+    predicts: Probability that a compound is cardiotoxic
+    want_high: false
+    fit: Complements hERG for broader cardiac-risk coverage
+
+  - id: eos5gge
+    title: Drug-Induced Liver Injury (early prediction)
+    predicts: 10 DILI-related endpoints; threshold 0.16 for DILI-active
+    want_high: false
+    fit: Liver-injury triage
+
+  - id: eos21q7
+    title: InterDILI
+    predicts: Probability of drug-induced liver injury (higher = riskier)
+    want_high: false
+    fit: Second-opinion DILI scorer — pair with eos5gge for agreement
+
+  - id: eos69p9
+    title: Tox21 panel toxicity
+    predicts: Probability of toxicity across the 12 Tox21 tasks
+    want_high: false
+    fit: Broad nuclear-receptor / stress-response screen
+
+  - id: eos481p
+    title: ToxCast toxicity panel
+    predicts: Probability of activity across 617 toxicity-relevant biological targets
+    want_high: false
+    fit: Deep panel screen for late-stage hit triage
+
+  - id: eos6fza
+    title: Toxicity at clinical-trial stage
+    predicts: FDA-approval probability and clinical-trial toxicity probability
+    want_high: false
+    fit: Clintox-style hit triage
+
+  - id: eos77w8
+    title: Adverse Drug Reactions
+    predicts: Predicted ADRs across 27 groups
+    want_high: false
+    fit: ADR forecasting for advanced hits
+
+antimicrobial:
+  - id: eos4e40
+    title: Broad spectrum antibiotic activity
+    predicts: Probability of E. coli growth inhibition at 50 µM (80% threshold)
+    pathogen: Escherichia coli
+    want_high: true
+    fit: Baseline antibacterial activity probe for any antibacterial screen
+
+  - id: eos18ie
+    title: Antibiotic activity against Staphylococcus aureus
+    predicts: Probability of S. aureus growth inhibition (80% at 50 µM)
+    pathogen: Staphylococcus aureus
+    want_high: true
+    fit: Gram-positive ESKAPE pathogen coverage
+
+  - id: eos3804
+    title: Inhibition of Acinetobacter baumannii growth
+    predicts: Probability of A. baumannii growth inhibition (> 80%)
+    pathogen: Acinetobacter baumannii
+    want_high: true
+    fit: Critical-priority ESKAPE pathogen
+
+  - id: eos5xng
+    title: Burkholderia cenocepacia inhibition
+    predicts: Probability of growth-inhibitory activity against B. cenocepacia
+    pathogen: Burkholderia cenocepacia
+    want_high: true
+    fit: Cystic-fibrosis-relevant drug-resistant pathogen
+
+  - id: eos9ivc
+    title: Antituberculosis activity prediction
+    predicts: Probability of M. tuberculosis inhibition (MIC50 / MIC90 at 10 µM / 70%)
+    pathogen: Mycobacterium tuberculosis
+    want_high: true
+    fit: TB campaigns — primary activity scorer
+
+  - id: eos46ev
+    title: Mycobacterium tuberculosis inhibitor prediction
+    predicts: Probability of M. tuberculosis inhibition (IC50 < 5 µM)
+    pathogen: Mycobacterium tuberculosis
+    want_high: true
+    fit: Complementary TB activity model — pair with eos9ivc for orthogonal evidence
+
+  - id: eos4rta
+    title: Antimalarial activity (MMV)
+    predicts: Probability of P. falciparum NF54 inhibition (IC50 < 1 µM; 50% single-point)
+    pathogen: Plasmodium falciparum
+    want_high: true
+    fit: Malaria campaigns — primary antimalarial scorer
+
+  - id: eos2gth
+    title: MAIP distillation — antimalarial potential
+    predicts: Distilled antimalarial potential score
+    pathogen: Plasmodium falciparum
+    want_high: true
+    fit: Broader antimalarial scoring; complements eos4rta on novel chemotypes
+
+  - id: eos3lyd
+    title: Efflux pump avoidance in gram-negative bacteria
+    predicts: Probability of being an efflux evader
+    pathogen: Gram-negative bacteria
+    want_high: true
+    fit: Secondary filter alongside a primary antibacterial activity model for gram-negatives
+
+  - id: eos7ike
+    title: eNTRy rules (gram-negative)
+    predicts: Three binary flags — low globularity, low rotatable bonds, primary amine
+    pathogen: Gram-negative bacteria
+    want_high: true
+    fit: Cell-entry heuristic for gram-negative drug design
+
+  - id: eos2xeq
+    title: Similarity to known antibiotics
+    predicts: Tanimoto similarity to known antibiotics plus presence of antibiotic motifs
+    pathogen: agnostic
+    want_high: context-dependent
+    fit: Pair with --mode similar / --mode novel to bias toward known-like or first-in-class chemotypes

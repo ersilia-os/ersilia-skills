@@ -1,0 +1,13 @@
+class,name,smiles
+fluoroquinolone,Ciprofloxacin,OC(=O)c1cn(C2CC2)c2cc(N3CCNCC3)c(F)cc2c1=O
+fluoroquinolone,Levofloxacin,CC1COc2c(N3CCN(C)CC3)c(F)cc3c(=O)c(C(=O)O)cn1c23
+cephalosporin,Ceftriaxone,CON=C(C(=O)NC1C(=O)N2C(C(=O)O)=C(CSc3nc(=O)c(=O)[nH]n3C)CSC12)c1csc(N)n1
+cephalosporin,Ceftazidime,CC(C)(ON=C(C(=O)NC1C(=O)N2C(C(=O)[O-])=C(C[n+]3ccccc3)CSC12)c1csc(N)n1)C(=O)O
+carbapenem,Meropenem,CC(O)C1C2CC(SC3CNC(C(=O)N(C)C)C3)=C(C(=O)O)N2C1=O
+carbapenem,Imipenem,CC(O)C1C2CC(SCCN=CN)=C(C(=O)O)N2C1=O
+monobactam,Aztreonam,CC(C)(ON=C(C(=O)NC1C(=O)N1S(=O)(=O)O)c1csc(N)n1)C(=O)O
+aminoglycoside,Gentamicin,CNC(C)C1CCC(N)C(O)C1OC1OCC(C)(O)C(NC)C1OC1OC(CN)CCC1N
+aminoglycoside,Amikacin,NCCC(=O)NC1CC(N)C(OC2OC(CO)C(O)C(N)C2O)C(OC2OC(CN)C(O)C(O)C2N)C1O
+nitrofuran,Nitrofurantoin,O=C1NC(=O)C(N=Nc2ccc([N+](=O)[O-])o2)O1
+polymyxin,Colistin,CCC(C)CCCC(=O)NC(CCN)C(=O)NC1CCNC(=O)C(CCN)NC(=O)C(CCN)NC(=O)C(Cc2ccc(O)cc2)NC(=O)C(CCN)NC(=O)C(CC(C)C)NC(=O)C(CCN)NC(=O)C(CC(C)C)NC1=O
+tetracycline,Tigecycline,CN(C)C1C(=O)C(C(N)=O)=C(O)C2(O)C(=O)C3=C(O)c4c(NC(=O)CNC(C)(C)C)cc(N(C)C)cc4C(C)C3CC12

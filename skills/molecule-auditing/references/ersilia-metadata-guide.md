@@ -2,6 +2,8 @@
 
 This file documents how to fetch and interpret metadata for Ersilia models directly from GitHub, with no CLI installation required.
 
+> **Helper script.** For a batch fetch in one call, use `scripts/fetch_model_metadata.py <eos_id> [<eos_id> ...] --output <path>`. It implements the URL patterns below, including the `metadata.json` → `metadata.yml` fallback, and returns per-model `metadata` + `columns` + `source` + `errors` in a single JSON. The URL patterns in this file remain authoritative — the script just automates them.
+
 ---
 
 ## URL Patterns
@@ -198,3 +200,43 @@ When in doubt, read the column description and the model's `Interpretation` fiel
 The `Task`/`Subtask` from `metadata.json` helps:
 - `"Activity prediction"` → most columns are `"efficacy"`
 - `"Property calculation"` → columns are `"physicochemical"`, `"safety_flag"`, or `"beneficial_admet"` depending on the concept
+
+---
+
+## Common Ersilia ADMET column patterns
+
+The table above is the *concept-type* mapping — use it when you have to reason from scratch about a column you have not seen before. The table below is the *column-name pattern* lookup — use it when a column matches a common ADMET feature naming. The two are complementary; cross-check both when in doubt.
+
+Always confirm `direction` against the actual `run_columns.csv`; the values here are a guide for the common cases.
+
+| Feature name pattern | `direction` | `scoring_role` | `want_high` | What it measures |
+|---|---|---|---|---|
+| `inhibition_50um` | `high` | `efficacy` | `true` | Probability of inhibiting a target at 50 µM — primary activity signal |
+| `bioavailability_ma` | `high` | `beneficial_admet` | `true` | Oral bioavailability probability |
+| `hia_hou` | `high` | `beneficial_admet` | `true` | Human intestinal absorption probability |
+| `pampa_ncats` | `high` | `beneficial_admet` | `true` | PAMPA membrane permeability |
+| `caco2_wang` | `high` | `beneficial_admet` | `true` | Caco-2 permeability (log cm/s) |
+| `bbb_martins` | `high` | `beneficial_admet` | `true` | Blood-brain barrier penetration (CNS targets) |
+| `solubility_aqsoldb` | `high` | `beneficial_admet` | `true` | Aqueous solubility (log mol/L) |
+| `ames` | `high` | `safety_flag` | `false` | Ames mutagenicity probability — high is a red flag |
+| `herg` / `activity_80` | `high` | `safety_flag` | `false` | hERG channel blockade (cardiac risk) — flag > 0.5 |
+| `dili` | `high` | `safety_flag` | `false` | Drug-induced liver injury probability |
+| `clintox` | `high` | `safety_flag` | `false` | Clinical toxicity probability |
+| `carcinogens_lagunin` | `high` | `safety_flag` | `false` | Carcinogenicity probability |
+| `nr_*` / `sr_*` | `high` | `safety_flag` | `false` | Tox21 nuclear receptor / stress response endpoints |
+| `skin_reaction` | `high` | `safety_flag` | `false` | Skin sensitisation probability |
+| `pgp_broccatelli` | `high` | `safety_flag` | `false` | P-gp inhibition / efflux risk |
+| `cyp*_veith` | `high` | `safety_flag` | `false` | CYP inhibition (drug-drug interaction risk) |
+| `clearance_*` | `high` | `beneficial_admet` | `false` | Metabolic clearance — lower is better (more stable) |
+| `half_life_obach` | `high` | `beneficial_admet` | `true` | Half-life — longer is generally better |
+| `molecular_weight` | `high` | `physicochemical` | `null` | MW — filter via Lipinski (≤500) |
+| `logp` / `lipophilicity_*` | varies | `physicochemical` | `null` | LogP — filter via Lipinski (≤5) |
+| `tpsa` | `high` | `physicochemical` | `null` | TPSA — filter via Veber (≤140) |
+| `hydrogen_bond_*` | `high` | `physicochemical` | `null` | HBD/HBA — Lipinski filters |
+| `qed` | `high` | `beneficial_admet` | `true` | Quantitative drug-likeness (0–1, higher = more drug-like) |
+
+> **Key distinction**: `direction` and `want_high` are not the same. `direction=high` for `ames` means higher value = more mutagenicity. `want_high=false` means we don't want mutagenicity. Always reason from the concept, not from `direction` alone.
+
+### hERG interpretation note
+
+hERG blockade is a cardiac safety concern regardless of how it is encoded. Flag any molecule with hERG probability > 0.5 as a `safety_flag`. This applies whether the column is `herg`, `activity_80`, or a similarly named variant — the script enforces this fallback when no explicit `safety_flag` metadata is present.
