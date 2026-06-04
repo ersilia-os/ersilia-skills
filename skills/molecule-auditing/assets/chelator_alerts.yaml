@@ -1,0 +1,172 @@
+# Chelator (metal-coordinating group) alert catalog
+#
+# PROVENANCE — every SMARTS below is copied verbatim from the published,
+# peer-reviewed dataset of Schuck & Brenk (2024), not authored here.
+#   Paper : Schuck B, Brenk R. "On the hunt for metalloenzyme inhibitors:
+#           Investigating the presence of metal-coordinating compounds in
+#           screening libraries and chemical spaces." Arch Pharm. 2024;357:e2300648.
+#           https://doi.org/10.1002/ardp.202300648
+#   Data  : Supporting Information S6 (searchable SMARTS + metal tags) and
+#           S3/S4 (full group list + PDB frequencies); hierarchy in S5.
+#   Code  : https://github.com/ruthbrenk/Metal-chelating-groups (v1.1)
+#           Zenodo https://doi.org/10.5281/zenodo.10079154
+#
+# HOW THIS SUBSET WAS DERIVED (fully traceable, see chelator-alerts-grounding.md):
+#   1,223 PDB-derived metal-coordinating groups (Mg2+/Mn2+/Zn2+)
+#   - drop 521 phosphorus groups (authors note these are non-drug-like)
+#   - drop the over-general parents (bare carbonyl/alcohol/ether/phenol/amide)
+#   - keep the chemically specific, recurring motifs that are recognised
+#     metal-binding groups in the medicinal-chemistry literature
+#   => 16 families below (10 high-specificity "keep" + 6 "borderline").
+#
+# FIELD MEANINGS
+#   smarts            : verbatim S6 SMARTS (authors' searchable form; [OD1]/[ND1]
+#                       /[ND2] mark coordinating atoms that were unsubstituted)
+#   metals            : metal ion(s) the group coordinated in PDB structures (S6)
+#   pdb_ligands       : # PDB ligands the group was extracted from (S4); null if not captured
+#   lib_LC / lib_OTAVA: matches in the Life Chemicals / Otava chelator libraries (S6)
+#   tier              : keep = specific, 0 false-positives on the drug panel;
+#                       borderline = a recognised donor but more promiscuous
+#   rationale         : ADDED CONTEXT (not from the paper) — the recognised ZBG/
+#                       chelator class and a drug exemplar, for interpretability
+#
+# IMPORTANT SCOPE CAVEATS (see grounding doc):
+#   - This set is derived from Mg/Mn/Zn metalloenzymes. It is NOT an Fe/Cu
+#     iron-sequestration set. True 8-hydroxyQUINOLINE (clioquinol) is NOT matched;
+#     the related published motif is a hydroxyQUINAZOLINE. For Fe/Cu chelators use
+#     a different source (e.g. MeDBA).
+#   - A chelator hit is a flag for review (possible metalloenzyme promiscuity /
+#     assay interference), NOT a toxicity verdict. Many legitimate drugs chelate.
+
+source:
+  name: Schuck & Brenk 2024
+  doi: 10.1002/ardp.202300648
+  data_files: [S3, S4, S6]
+  code: https://github.com/ruthbrenk/Metal-chelating-groups
+  metals_scope: [Mg2+, Mn2+, Zn2+]
+
+families:
+  # ---------------- KEEP: specific, high-value ZBGs (0/8 panel false-positives) ----------------
+  - name: sulfonamide_metal_binding
+    smarts: ["[ND1]S(=O)(=O)c1ccccc1", "[ND1]S(=O)=O"]
+    metals: [Zn]
+    pdb_ligands: 339
+    lib_LC: 13
+    tier: keep
+    rationale: "Primary (hetero)aryl sulfonamide — the carbonic-anhydrase Zn-binding group. Exemplars: acetazolamide, dorzolamide."
+
+  - name: hydroxamic_acid
+    smarts: ["[OD1]NC=O"]
+    metals: [Mg, Mn, Zn]
+    pdb_ligands: 62
+    lib_LC: 10
+    tier: keep
+    rationale: "N-hydroxy amide — classic ZBG for HDAC and matrix metalloproteinases. Exemplar: vorinostat."
+
+  - name: catechol
+    smarts: ["[OD1]c1ccccc1[OD1]"]
+    metals: [Mg, Mn, Zn]
+    pdb_ligands: 49
+    lib_LC: 3
+    tier: keep
+    rationale: "1,2-dihydroxybenzene — Fe(III) siderophore motif; also a Brenk/PAINS alert (redox cycling). Exemplars: entacapone, L-DOPA."
+
+  - name: thiol
+    smarts: ["[SD1]C"]
+    metals: [Zn]
+    pdb_ligands: 42
+    lib_LC: 0
+    tier: keep
+    rationale: "Free thiol/thiolate — soft-metal ZBG (Zn, Cu, Hg). Exemplars: captopril, dimercaprol."
+
+  - name: hydroxypyrimidinone
+    smarts: ["[OD1]c1cncnc1=O", "[ND2]C(=O)c1cncnc1[OD1]"]
+    metals: [Mg, Mn, Zn]
+    pdb_ligands: 30
+    lib_LC: 23
+    tier: keep
+    rationale: "Hydroxypyrimidinone / dihydroxypyrimidine — two-metal (Mg) chelation in HIV integrase and influenza endonuclease. Exemplars: raltegravir, dolutegravir, baloxavir."
+
+  - name: hydroxyquinazoline
+    smarts: ["[OD1]c1cccc2cncnc12"]
+    metals: [Mg]
+    pdb_ligands: 12
+    lib_LC: 0
+    tier: keep
+    rationale: "Fused N,O-heteroaromatic-ol (hydroxyquinazoline). Structural cousin of 8-hydroxyquinoline; NOTE it does NOT match true 8-HQ (one ring N) — see caveat."
+
+  - name: boronic_acid
+    smarts: ["[OD1]B(O)O", "[OD1]B(O)c1ccccc1"]
+    metals: [Zn, Mg]
+    pdb_ligands: 25
+    lib_LC: 0
+    tier: keep
+    rationale: "Boronic acid — Zn/serine-hydrolase warhead. Exemplars: bortezomib, vaborbactam (note: cyclic boronate ESTERS may evade this free-acid pattern)."
+
+  - name: benzoxaborole
+    smarts: ["[OD1]B1ccCO1"]
+    metals: [Mg, Zn]
+    pdb_ligands: null
+    lib_LC: 0
+    tier: keep
+    rationale: "Benzoxaborole — boron chelation scaffold; directly anti-infective. Exemplars: tavaborole (antifungal), crisaborole."
+
+  - name: tropolone
+    smarts: ["[OD1]c1cccccc1=O"]
+    metals: [Mn, Zn]
+    pdb_ligands: null
+    lib_LC: 1
+    tier: keep
+    rationale: "2-hydroxy-cyclohepta-trienone — Fe/Cu/Zn bidentate O,O chelation. Exemplar: hinokitiol."
+
+  - name: pyranone_4
+    smarts: ["O=c1ccocc1"]
+    metals: [Zn]
+    pdb_ligands: null
+    lib_LC: 113
+    lib_OTAVA: 37
+    tier: keep
+    rationale: "4-pyranone (hydroxy variants) — Fe/Cu chelation. Exemplars: maltol, kojic acid. High library prevalence — common in natural-product-like compounds."
+
+  # ---------------- BORDERLINE: recognised donors, more promiscuous ----------------
+  - name: imidazole
+    smarts: ["c1cncn1"]
+    metals: [Zn]
+    pdb_ligands: 22
+    tier: borderline
+    rationale: "Imidazole — histidine-mimetic N-donor. Promiscuous (flags caffeine, metronidazole). Many legitimate drugs contain it."
+
+  - name: pyridine
+    smarts: ["c1ccncc1"]
+    metals: [Mn, Zn]
+    pdb_ligands: 29
+    tier: borderline
+    rationale: "Pyridine — common monodentate N-donor; very frequent in drugs, weak signal alone."
+
+  - name: tetrazole
+    smarts: ["c1nnnn1"]
+    metals: [Zn]
+    pdb_ligands: null
+    tier: borderline
+    rationale: "Tetrazole — carboxylate bioisostere, can coordinate metals; common in sartans."
+
+  - name: oxime
+    smarts: ["[OD1]N=C"]
+    metals: [Mg, Mn]
+    pdb_ligands: 3
+    tier: borderline
+    rationale: "Oxime / hydroxyimino — N,O donor. Exemplars: pralidoxime."
+
+  - name: alpha_hydroxy_acid
+    smarts: ["[OD1]CC(=O)[OD1]"]
+    metals: [Mg]
+    pdb_ligands: 38
+    tier: borderline
+    rationale: "alpha-hydroxy carboxylic acid — Ca/Mg/Fe bidentate O,O chelation. Exemplars: citrate, malate."
+
+  - name: amino_carboxylate
+    smarts: ["[OD1]C(=O)CN"]
+    metals: [Mg, Mn, Zn]
+    pdb_ligands: 54
+    tier: borderline
+    rationale: "Amino-carboxylate (glycine/iminodiacetate-like) — aminopolycarboxylate chelation. Exemplar: EDTA. Flags amino-acid-bearing drugs (e.g. amoxicillin)."
