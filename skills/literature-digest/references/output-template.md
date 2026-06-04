@@ -22,16 +22,20 @@ and the reference files carry the detail.
 ## Connector status (semaphore)
 
 Immediately after the H1, render a single one-line connector semaphore. Use 🟢 for
-"fetched data successfully", 🔴 for "failed or skipped". Format — connector name
-followed by its emoji, separated by ` · `, with **community-curated sources first**:
+"fetched data successfully", 🔴 for "failed or skipped", ⚪ for "not triggered"
+(only the web-hunt slot uses ⚪). Format — connector name followed by its emoji,
+separated by ` · `, with **community-curated sources first**, then literature
+APIs, then the supplementary web hunt:
 
 ```markdown
-**Connectors:** Alerts and Newsletters 🟢 · Slack 🟢 · Europe PMC 🟢 · bioRxiv 🟢
+**Connectors:** Alerts and Newsletters 🟢 · Slack 🟢 · Europe PMC 🟢 · bioRxiv 🟢 · Web hunt ⚪
 ```
 
-- Always render all four MVP connectors, even if one was 🔴. Order is fixed:
-  **Alerts and Newsletters → Slack → Europe PMC → bioRxiv** (community-curated
-  signal first, then the literature APIs).
+- Always render all five connector slots in this exact order:
+  **Alerts and Newsletters → Slack → Europe PMC → bioRxiv → Web hunt**.
+- The four MVP connectors are 🟢 / 🔴 (success / failed-or-skipped); the
+  **Web hunt** slot is 🟢 (ran and added items), 🔴 (ran and failed), or ⚪ (not
+  triggered — the pool already met the 🤖/🗃️ minima in Step 4.5).
 - Use these exact short names. Do not name the Slack workspace/channel, do not name
   the user's email address. The Gmail connector is always labelled
   **"Alerts and Newsletters"**.
@@ -43,7 +47,7 @@ trailing spaces** so Markdown renders a hard line break and the three lines sit
 visually adjacent (no extra vertical gap).
 
 ```markdown
-**Connectors:** Alerts and Newsletters 🟢 · Slack 🟢 · Europe PMC 🟢 · bioRxiv 🟢
+**Connectors:** Alerts and Newsletters 🟢 · Slack 🟢 · Europe PMC 🟢 · bioRxiv 🟢 · Web hunt ⚪
 **Markers:** ⭐ High impact · 🌍 LMIC · 🤖 Candidate model · 🗃️ Interesting dataset · 💻 Code available
 **Tasks:** 🧪 Property · 🎯 Activity · 🧩 Featurization · 🗺️ Projection · 🔍 Similarity · 🎨 Generative
 ```
@@ -66,52 +70,155 @@ Label rules:
 
 ## Section structure
 
-Group items into a small number of **theme chapters**, one `##` heading each.
-Use the chapter list below verbatim, in this fixed display order. Skip empty
-chapters — **do not** write a placeholder ("nothing this week") and **do not**
-write a framing sentence under the heading. Go straight from `##` to the
-bulleted entry list.
+The digest opens with **two dedicated Hub chapters** (Models, Datasets) followed
+by **four theme chapters** for context items. Six chapters total, fixed order:
 
-1. `## AI agents and foundation models for science`
-2. `## AI/ML methods for drug discovery`
-3. `## Antibiotic and antimicrobial discovery`
-4. `## Global health and open science`
+1. `## 🤖 Models that could join the Hub` ← **always first**
+2. `## 🗃️ Datasets that could join the Hub` ← **always second**
+3. `## AI/ML methods for drug discovery`
+4. `## Antibiotic and antimicrobial discovery`
+5. `## AI agents and foundation models for science`
+6. `## Global health and open science`
 
-### Placement rules
+Go straight from each `##` heading to its bulleted entries — no framing
+sentence under the heading, no "intro paragraph". The exception is the
+empty-chapter rule for chapters 1 and 2 (see below).
 
-Items are placed **only by theme**. The 🤖 marker and the inline task label do
-the work of flagging Hub-relevance; there is **no dedicated chapter** for
-candidate models or datasets — they are distributed across the four theme
-chapters wherever they topically fit.
+### De-duplication rule (important)
 
-- Agentic AI, AI-for-science, scientific co-pilots, foundation models for
-  science → **chapter 1**.
-- Method advances in drug discovery — cofolding benchmarks, generative chemistry,
-  ADMET prediction, virtual-screening tools, featurizers, foundation models for
-  small molecules. **🤖 items most often land here** when the model is a generic
-  drug-discovery method. → **chapter 2**.
-- Antibacterial / antimicrobial chemistry, AMR target biology, structural biology
-  of pathogen proteins, ESKAPE / *Klebsiella* / *Acinetobacter* etc. →
-  **chapter 3**.
-- LMIC-led work, NTDs, capacity-building, AMR policy, open-science
-  infrastructure, decolonisation, equity. 🌍 items most often land here. →
-  **chapter 4**.
+Every 🤖 item lives **only** in chapter 1. Every 🗃️ item lives **only** in
+chapter 2. Do **not** duplicate them into chapters 3–6. The reader's mental
+model is: *chapters 1–2 = Hub candidates; chapters 3–6 = context.*
 
-A 🤖 paper on an antimalarial activity model goes in chapter 2 (method) or
-chapter 4 (global health) depending on whether the contribution is the
-method or the disease focus — pick whichever the body sentence emphasises. When
-in doubt, prefer the chapter that gives the reader the most context.
+A Hub-incorporable model that is *also* a major antimalarial work still goes
+**only** in chapter 1 — the body sentence in chapter 1 names the antimalarial
+context, but the entry does not appear in chapter 4.
 
-### Ordering within a chapter
+### Empty-chapter rule for chapters 1 and 2
 
-Entries inside a chapter are sorted **🤖 candidate models first**, then the
-rest. A reader scanning the digest for Hub-incorporable work should see those
-items before reviews, perspectives, and context pieces.
+If chapter 1 has zero 🤖 entries after both Step 5 triage and Step 4.5 web hunt,
+render the heading anyway with a single-line italic placeholder so the reader
+knows the absence is intentional:
 
-Inside the 🤖 block, sort by venue tier (NMI / JCIM / J Cheminform / Nat
-Comms / NAR before bioRxiv / chemRxiv / arXiv preprints), then by recency. The
-hub-incorporation prior in `hub-incorporation-criteria.md` is the reference for
-which venues count as "Hub-feeder" — apply that list, not personal taste.
+```markdown
+## 🤖 Models that could join the Hub
+
+_Nothing this week — the pool and the supplementary web hunt did not surface a Hub-incorporable model. Treat as a signal to widen the Gmail / Slack net._
+```
+
+Same for chapter 2:
+
+```markdown
+## 🗃️ Datasets that could join the Hub
+
+_Nothing this week — no openly-released ≥10k-row datasets cleared the dataset checklist._
+```
+
+This is the **only** place in the digest where an empty section is rendered.
+Theme chapters 3–6 still follow the "skip if empty" rule — no heading, nothing.
+
+### Chapter 1 internal structure — group 🤖 by Hub task
+
+Group entries under chapter 1 by Hub task family using `###` subheadings, in the
+fixed order **Activity → Property → Featurization → Generation → Similarity →
+Projection** (descending Hub share). Skip empty subheadings. Within each
+subheading, sort by venue tier (NMI / JCIM / J Cheminform / Nat Comms / NAR
+before bioRxiv / chemRxiv / arXiv preprints), then by recency.
+
+```markdown
+## 🤖 Models that could join the Hub
+
+### 🎯 Activity prediction
+
+- [Bullet …]
+- [Bullet …]
+
+### 🧪 Property prediction
+
+- [Bullet …]
+
+### 🧩 Featurization
+
+- [Bullet …]
+
+### 🎨 Generative
+
+- [Bullet …]
+```
+
+Use the **task emoji + name** as the `###` subheading so the reader sees both
+the icon and the word, matching the legend at the top.
+
+Each 🤖 entry must use the structured body-sentence pattern from `SKILL.md`
+Step 5a: **Open-source {task} model taking {input} → {output}; released with
+{weights/code} under {license}. Plausible Hub addition because {hook}.** Add
+`(weights: pending)` or `(infra: heavy)` qualifiers when applicable.
+
+### Chapter 2 internal structure — group 🗃️ by endpoint family
+
+Group entries under chapter 2 by endpoint family using `###` subheadings:
+
+```markdown
+## 🗃️ Datasets that could join the Hub
+
+### Bioactivity datasets
+
+- [Bullet …]
+
+### ADMET / property datasets
+
+- [Bullet …]
+
+### Generative training corpora
+
+- [Bullet …]
+
+### Featurization / multi-task benchmarks
+
+- [Bullet …]
+
+### Other Hub-relevant datasets
+
+- [Bullet …]
+```
+
+Each 🗃️ entry must use the structured body-sentence pattern from `SKILL.md`
+Step 5b: **{N} compounds / rows · {endpoint} · {license} · {download host}.
+Plausible Hub input because {hook}.**
+
+### Theme-chapter placement rules (chapters 3–6)
+
+Items that did **not** earn 🤖 or 🗃️ are placed in chapters 3–6 by theme. No
+subheadings inside these chapters — single bullet list per chapter.
+
+- **Chapter 3 (AI/ML methods for drug discovery)** — methodology papers,
+  benchmarks, reviews, perspectives, **gated-out models** (protein-conditioned
+  generators, structure-only models, non-permissive-license releases,
+  image-input models), AI-for-chemistry surveys, retrosynthesis advances,
+  virtual-screening protocol papers. The body sentence on a gated-out model
+  should name the gating dimension explicitly
+  (`(input: protein sequence)`, `(license: CC-BY-NC)`, etc.).
+- **Chapter 4 (Antibiotic and antimicrobial discovery)** — disease biology of
+  bacterial / mycobacterial / fungal / parasitic / viral pathogens, AMR
+  surveillance, AMR policy, pathogen target-structure papers, medicinal-
+  chemistry SAR campaigns. Antimicrobial / antipathogen items get an editorial
+  bump: rank them above same-tier non-antimicrobial items inside any context
+  chapter.
+- **Chapter 5 (AI agents and foundation models for science)** — multi-agent
+  research systems (Sakana AI Scientist, Co-Scientist, FutureHouse, ChemCrow,
+  PaperQA, BioPlanner), scientific copilots, self-driving labs, autonomous
+  synthesis, robotic chemistry, closed-loop optimisation, autonomous drug
+  discovery. Surface even when not antimicrobial-specific.
+- **Chapter 6 (Global health and open science)** — LMIC-led work that doesn't
+  belong in chapter 1 or 2, NTDs, capacity-building, AMR/NTD funding/policy,
+  open-science infrastructure releases, decolonisation pieces, DNDi / MMV /
+  GHIT / GARDP / CARB-X / Schmidt / AI2050 / EDCTP3 outputs.
+
+### Ordering within chapters 3–6
+
+Sort by venue tier (NMI / JCIM / J Cheminform / Nat Comms / NAR / *Nature*
+family before bioRxiv / chemRxiv / arXiv preprints), then by recency. Within a
+tier, rank antimicrobial / antipathogen items above non-antimicrobial items.
 
 ### Trailing task emoji on 🤖 and 🗃️ entries
 
@@ -140,10 +247,11 @@ sentence to capture nuance.
 | 🔍 | Similarity search — ligand-based VS, k-NN, docking surrogates. | Reference libraries for retrieval. |
 | 🎨 | Generative — de novo design, scaffold hopping, VAE / diffusion. | Curated chemistry corpora that drive generative training. |
 
-Total items per digest: aim for **25–40** across all chapters, with at least a
-third carrying 🤖 in a healthy week. Density is the goal; the format below is
-one line per item. If 🤖 candidates fall well below a third, that is a signal
-to widen the Gmail / Slack net rather than to pad the digest.
+Total items per digest: aim for **25–40** across all chapters, with **≥8 🤖**
+in chapter 1 and **≥2 🗃️** in chapter 2 as the minimum healthy week. Density is
+the goal; the format below is one line per item. If 🤖 candidates fall below 8
+even after the Step 4.5 web hunt, render the empty-chapter placeholder rather
+than padding chapter 1 with weak candidates.
 
 ## Per-item template (one line per article)
 
@@ -168,6 +276,15 @@ Components:
 4. **One-or-two-sentence body** combining *why it matters for Ersilia* with a tiny
    TL;DR. Required. Be specific (name the Hub model, NTD pipeline, partner
    institution). If you cannot write a credible one-liner, drop the item.
+   - **🤖 entries** use the structured Step 5a pattern: *Open-source {task}
+     model taking {input} → {output}; released with {weights/code} under
+     {license}. Plausible Hub addition because {hook}.*
+   - **🗃️ entries** use the structured Step 5b pattern: *{N} compounds / rows ·
+     {endpoint} · {license} · {download host}. Plausible Hub input because
+     {hook}.*
+   - **Context entries** (chapters 3–6) keep a free-form one-or-two-sentence
+     body. For gated-out models, name the gating dimension in parentheses
+     (e.g. `(input: protein sequence)`, `(license: CC-BY-NC)`).
 5. **Trailing extras** (optional, appended after the body sentence, separated by `·`):
    - `[code]({code_url})` when an open-source repo is linked from the paper.
    - `[preprint]({preprint_url})` when the entry is the published version and a
@@ -197,12 +314,48 @@ Hub-ready dataset, led by a Cameroonian lab, with code on GitHub, would carry
 
 ## Worked examples
 
+**A 🤖 entry in chapter 1 → Featurization subheading:**
+
 ```markdown
-- [Gottweis et al., *Nature*, 2026](https://www.nature.com/articles/s41586-026-10644-y) ⭐ — **Accelerating scientific discovery with Co-Scientist.** Multi-agent research assistant validated on drug repurposing and AMR case studies that overlap the Ersilia AMR pipelines directly; the workflow is worth dissecting for an open-source reimplementation.
+## 🤖 Models that could join the Hub
 
-- [Wadell et al., *arXiv*, 2025](https://arxiv.org/abs/2510.18900) 🤖💻 — **Foundation Models for Discovery and Exploration in Chemical Space (MIST).** Open molecular foundation model benchmarked on 400+ tasks — a credible drop-in featurizer for the Ersilia Model Hub. · [code](https://github.com/example/mist)
+### 🧩 Featurization
 
-- [Mottin et al., *ACS Med Chem Lett*, 2026](https://doi.org/example) 🌍🤖 — **Antimalarial pyrazole optimization with AI-aided SAR.** LMIC-led work on a scaffold adjacent to MMV1794; the released surrogate model is small enough to import into the Hub as a Plasmodium-prioritisation classifier.
+- [Wadell et al., *arXiv*, 2025-10-23](https://arxiv.org/abs/2510.18900) 🤖💻 — **Foundation Models for Discovery and Exploration in Chemical Space (MIST).** Open-source featurization model taking SMILES → 512-d embedding; released with weights on HuggingFace and inference code on GitHub under Apache-2.0. Plausible Hub addition because it benchmarks above ChemBERTa-2 on 400+ tasks, including MIC against ESKAPE pathogens. · [code](https://github.com/example/mist) · 🧩
+```
+
+**A 🤖 entry in chapter 1 → Activity subheading (LMIC-led):**
+
+```markdown
+### 🎯 Activity prediction
+
+- [Mottin et al., *ACS Med Chem Lett*, 2026-04-18](https://doi.org/example) 🌍🤖 — **Antimalarial pyrazole optimisation with AI-aided SAR.** Open-source activity-prediction model taking SMILES → *Plasmodium falciparum* 3D7 EC50; released with weights and training code under MIT. Plausible Hub addition because it covers an MMV1794-adjacent scaffold and complements existing antimalarial Hub coverage. · [code](https://github.com/example/pf-pyrazole) · 🎯
+```
+
+**A 🗃️ entry in chapter 2 → Bioactivity datasets subheading:**
+
+```markdown
+## 🗃️ Datasets that could join the Hub
+
+### Bioactivity datasets
+
+- [Augustine et al., *npj AMR*, 2026-03-12](https://doi.org/example) 🗃️💻 — **COMPASS: a curated antimicrobial-peptide bioactivity corpus.** 75,000 rows · MIC against ESKAPE panel · CC-BY-4.0 · Zenodo. Plausible Hub input because AMP-MIC datasets at this scale are rare and the panel matches the active Ersilia AMR pipeline. · [code](https://github.com/example/compass) · 🎯
+```
+
+**A context entry in chapter 5 (no 🤖):**
+
+```markdown
+## AI agents and foundation models for science
+
+- [Gottweis et al., *Nature*, 2026-02-19](https://www.nature.com/articles/s41586-026-10644-y) ⭐ — **Accelerating scientific discovery with Co-Scientist.** Multi-agent research assistant validated on drug-repurposing and AMR case studies that overlap the Ersilia AMR pipelines directly; the workflow is worth dissecting for an open-source reimplementation.
+```
+
+**A gated-out model in chapter 3 (chapter 3, not chapter 1):**
+
+```markdown
+## AI/ML methods for drug discovery
+
+- [Liu et al., *Nature Methods*, 2026-04-02](https://doi.org/example) ⭐💻 — **TargetDiff-2: pocket-conditioned diffusion for ligand design.** State-of-the-art structure-based generator producing competitive *in silico* hit rates against *Mtb* InhA; weights under Apache-2.0. (Input: pocket point-cloud — Hub-eligible once protein-input support lands.) · [code](https://github.com/example/targetdiff-2)
 ```
 
 ## Field rules

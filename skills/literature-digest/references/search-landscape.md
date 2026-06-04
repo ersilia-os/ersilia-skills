@@ -135,7 +135,12 @@ generation · de novo design · Diffusion · GFlowNet · Reinforcement learning 
 Foundation model · TabPFN · Similarity · Bioactivity profile · Natural product · Synthetic
 accessibility · Drug-likeness · Quantum properties · Target identification · Therapeutic
 indication · Co-folding · Deep docking · Active learning · Bayesian optimization · Multi-task
-learning · Transfer learning · Knowledge graph · Graph neural network.
+learning · Transfer learning · Knowledge graph · Graph neural network · Contrastive learning ·
+Self-supervised pretraining · Equivariant network · SE(3) · 3D molecular representation ·
+Conformer ensemble · Multimodal chemistry · Cross-modal alignment · Active-learning loop ·
+Surrogate model · Bandit · Mixture of experts · State-space model · Mamba · Retrieval-augmented
+generation · LoRA fine-tuning · Domain adaptation · Pretrained encoder · Chemical foundation
+model · Molecular language model · 3D point cloud · Voxel grid · Geometric deep learning.
 
 ### Endpoints (what the model predicts)
 
@@ -161,15 +166,112 @@ Molecular glue · PROTAC · BacPROTAC · Targeted protein degradation · E3 liga
 proteasome · Apicoplast · MEP / DOXP pathway · Kelch13 · Ring-stage · Hemozoin · Phosphatidyl-
 inositol kinase · Chymotrypsin-like protease.
 
-### Dataset / benchmark anchors (useful standalone terms)
+### Hub-priority model release anchors
 
-ChEMBL · MoleculeNet · DrugBank · Co-ADD · Spark · MMV (box / Pathogen / Pandemic Response) ·
-Enamine REAL · ZINC22 · Therapeutics Data Commons · Polaris · PDBbind.
+Named open-source small-molecule models the digest should always flag when they
+appear (new version, benchmark update, follow-up paper, or any application). These
+are the kind of releases that pass the 🤖 checklist out of the box — when a query
+hits one of these names, treat it as a strong 🤖 candidate and confirm via the
+checklist in `SKILL.md` Step 5a.
 
-### Open-science anchors
+**Featurization / foundation models for molecules:**
+ChemBERTa · ChemBERTa-2 · ChemBERTa-3 · MolFormer · MoLFormer-XL · Uni-Mol ·
+Uni-Mol2 · GROVER · MAT · MolE · MIST · ChemGPT · Galactica · GalacticaMol · MolGPT ·
+SELFIES-VAE · Chemformer · Molecular STM · ChemBFN · ChemLLM · SAFE-GPT · Gemma-Mol ·
+MolBERT · MolE · KPGT · BARTSmiles.
 
-Digital Public Goods · Open-source AI · Decolonisation · GC-ADDA · H3D Foundation · EDCTP3 ·
-Schmidt Sciences · AI2050 · MMV · GHIT · GARDP · DNDi · CARB-X.
+**Activity / property predictors with open weights:**
+ADMET-AI · ADMETLab · OpenADMET ensemble · DeepPurpose · DeepChem hub models ·
+MoleculeNet baselines · ChemProp / Chemprop-RDKit · ImageMol · AttentiveFP ·
+MPNN-Transformer · DMPNN · KANO · Skipgram-Mol · DenseNet-Mol.
+
+**Generators (small-molecule input or unconditional — Hub-eligible):**
+REINVENT · REINVENT4 · MolBO · ETFlow · SyntheMol · MolDQN · MoLeR · GraphAF ·
+GraphDF · ScaffoldVAE · LIMO · DiffSBDD-unconditional · BindingVAE ·
+SBDD-Unconditional · MOSES · GuacaMol · MolGAN · ScaffoldGen.
+
+**Generators (protein/pocket-conditioned — gated-out for 🤖 but surface as context):**
+DiffDock · DiffDock-Pocket · TargetDiff · Pocket2Mol · PocketGen · ShEPhERD ·
+RFdiffusion · RFdiffusion-AA · AlphaFlow · GenMol · LinkerNet · Chai-1 · Chai-2 ·
+Boltz-1 · Boltz-2.
+
+**Representation, projection, similarity:**
+PocketVec · Bioteque · Chemical Checker · ChemSpace · USRCAT · DOPE-similarity ·
+JTVAE-embedding · Graph2Vec-Mol · Mol2Vec.
+
+When the abstract or paper mentions any name above plus a release verb ("we
+present", "we release", "we open-source", "publicly available", "model weights",
+"trained model", "pretrained checkpoint"), treat as 🤖-candidate and walk the
+checklist.
+
+### Hub-priority dataset release anchors
+
+Big, open, Hub-relevant datasets the digest should always flag — both already-known
+corpora (when their next version drops) and the *kind of name* that signals a new
+release worth catching.
+
+**Bioactivity / phenotypic screens (≥10k compounds):**
+ChEMBL (every release) · BindingDB · Co-ADD release notes · MMV Pathogen Box ·
+MMV Malaria Box · MMV Pandemic Response Box · MMV Stewardship Box · GSK NTD box ·
+GSK Tres Cantos · OSM (Open Source Malaria) datasets · COMPASS (AMP) · DBAASP ·
+ADAM / AMPlify training sets · CO-ADD AMR · GHIT / DNDi screen publications ·
+PubChem BioAssay snapshots · CARB-X 2,4-DAQ release · Papyrus · PostEra Receptor25 ·
+SAVES-screen.
+
+**ADMET / property:**
+Therapeutics Data Commons / TDC-2 · MoleculeNet 2 · ADMET-AI benchmark · BBBP-2 ·
+ToxCast / Tox21 expansions · PAMPA-permeability sets · CYP-Mendel · Drug Design
+Data Resource (D3R) · ChEMBL ADMET subsets · OpenADMET dataset drops.
+
+**Generative training / chemical space:**
+ZINC22 · ZINC25 · Enamine REAL diversity sets · Enamine HTS · ChemSpace ·
+Mcule · DrugBank releases · GDB-17 · GDB-Med · GuacaMol · MOSES · PubChemQC ·
+Open Reaction Database (ORD) · USPTO grants set · USPTO-MIT · TS3D-Generative.
+
+**Foundation-model pretraining / multi-task benchmarks:**
+PubChem snapshots · ChEMBL bioactivity dumps · OGB-LSC PCQM4Mv2 · QM9 / QM9-Extended ·
+QM7 · QuantumPioneer · ANI-1x / ANI-2x · ChEMBL-AMR · BindingDB-2026 ·
+GeometricMol · DeepChem MoleculeNet successors.
+
+**Structural / cofolding:**
+AlphaFold DB releases · PDBbind 2026 · CrossDocked2024 · Binding MOAD updates ·
+PoseBusters benchmark · Posebench.
+
+When the abstract or paper mentions any name above with a release verb ("we curate",
+"we release a dataset of N", "new benchmark", "dataset of NN,NNN compounds",
+"publicly available dataset", "annotated dataset", "available at Zenodo / HuggingFace
+/ figshare"), treat as 🗃️-candidate and walk the dataset checklist.
+
+### Agentic AI and automation in science
+
+The user explicitly wants agentic-AI and automation papers surfaced even when not
+antimicrobial-specific. Treat any item matching these as a chapter-5 candidate.
+
+**Multi-agent science systems / scientific copilots:**
+AI Scientist · Sakana AI Scientist · Co-Scientist · DeepMind Co-Scientist ·
+FutureHouse · PaperQA · BioPlanner · ChemCrow · Crispe · ResearcherGPT · GPT-4
+Lab · BioGPT-Agent · MolGPT-Agent · multi-agent chemistry · agentic LLM ·
+scientific copilot · research agent · LLM scientist · autonomous hypothesis
+generation · self-improving scientific agent.
+
+**Self-driving labs / autonomous chemistry:**
+self-driving lab · SDL · autonomous laboratory · autonomous chemistry · robotic
+chemistry · autonomous synthesis · closed-loop optimisation · closed-loop
+Bayesian optimisation · active-learning synthesis · autonomous drug discovery ·
+high-throughput autonomous screen · Chemputer · MERLIN platform · A-Lab ·
+ChemSpyd · RoboRXN.
+
+**Retrosynthesis & lab automation:**
+retrosynthesis agent · IBM RXN · AiZynthFinder · LinChemIn · ASKCOS ·
+forward-prediction agent · reaction prediction LLM · automated route design.
+
+### Open-source drug discovery and global-health anchors
+
+Digital Public Goods · Open-source AI · Decolonisation · GC-ADDA · H3D Foundation ·
+EDCTP3 · Schmidt Sciences · AI2050 · MMV · GHIT · GARDP · DNDi · CARB-X · OSM (Open
+Source Malaria) · OSP (Open Source Pharma) · openRxiv · Polaris · Therapeutics Data
+Commons · OpenMined · Wellcome Leap · BMGF Global Health · UNITAID · The Global
+Fund · WHO PQ programme · WHO BPP · Africa CDC · HIPC / AAS / SciDevNet · 5BiC.
 
 ---
 
@@ -379,8 +481,8 @@ Activity prediction + featurization + property prediction together account for
 **86 %** of all Ready Hub models. Weight papers in those three subtasks heavier
 than the other three when triaging.
 
-When chapter 5 of the digest groups items by subtask, use these exact subtask
-names as `###` subheadings, in the order above.
+When chapter 1 of the digest ("Models that could join the Hub") groups items by
+subtask, use these exact subtask names as `###` subheadings, in the order above.
 
 ---
 
@@ -394,9 +496,18 @@ names as `###` subheadings, in the order above.
 | Journal Tier 1 | +3 |
 | Journal Tier 2 | +2 |
 | Journal Tier 3 | +1 |
-| Topic-keyword hit (per match, cap at +4) | +1 each |
+| Topic-keyword hit (per match, cap at +6) | +1 each |
+| Model-release verb in title/abstract ("we present / we introduce / we release / open-source / publicly available code / trained model / pretrained checkpoint / model weights") AND a Hub-eligible task keyword | +3 |
+| Dataset-release verb in title/abstract ("we curate / we release a dataset of N / new benchmark / dataset of NN,NNN compounds / publicly available dataset / annotated dataset") | +3 |
+| Mentions one of the Hub-priority model-release anchors above (ChemBERTa / MolFormer / Uni-Mol / GROVER / MIST / REINVENT / ETFlow / DiffDock / Boltz / Chai / Bioteque / Chemical Checker / etc.) | +2 |
+| Mentions one of the Hub-priority dataset-release anchors above (ChEMBL release / TDC / ADMET-AI / COMPASS / QuantumPioneer / Papyrus / etc.) | +2 |
+| Antimicrobial / antipathogen content match (antimicrobial · antibacterial · antibiotic · antiviral · antiparasitic · antifungal · AMR · ESKAPE · malaria · tuberculosis · NTD) | +2 editorial bump |
+| Agentic AI / automation keyword match (AI Scientist · Co-Scientist · FutureHouse · ChemCrow · self-driving lab · autonomous laboratory · scientific copilot · multi-agent chemistry) | +2 |
+| HuggingFace / GitHub / Zenodo / figshare URL detected in abstract | +1 |
 | LMIC affiliation (WB low/lower-middle) on first or senior author | +2 |
 | Recency (linear from old to new across window) | +1 max |
 | Already in a prior digest | −999 (exclude) |
 
-Take the top ~50 by score into the LLM-triage step.
+Take the top ~80 by score into the LLM-triage step. The pool size was widened
+from 50 → 80 to give Step 5 more raw material when hunting for Hub candidates;
+the LLM triage is the bottleneck, not the ranker.
