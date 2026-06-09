@@ -22,33 +22,8 @@ Ersilia's work spans science, technology, communications, and operations. Much o
 
 ## Skill Catalogue
 
-| Category | Skill | Description | Status |
-|----------|-------|-------------|--------|
-| **Programmes** | [grant-tracking](grant-tracking/) | Track existing grants, discover new opportunities, and highlight key timelines | `scaffold` |
-| **Programmes** | [partner-profiling](partner-profiling/) | Profile people and organisations based on Ersilia's parameters of interest | `scaffold` |
-| **Programmes** | [grant-form-filling](grant-form-filling/) | Fill in a grant application form using Ersilia context documents and the provided form | `scaffold` |
-| **Programmes** | [event-discovery](event-discovery/) | Discover relevant events for Ersilia and produce a classified summary report | `scaffold` |
-| **Programmes** | [swot-analysis](swot-analysis/) | Perform a SWOT analysis of a grant opportunity, prospect, or strategic initiative | `scaffold` |
-| **Visibility** | [social-media-post-drafting](social-media-post-drafting/) | Draft social media posts based on the content schedule and available material | `scaffold` |
-| **Visibility** | [newsletter-drafting](newsletter-drafting/) | Draft Ersilia's monthly newsletter from recent updates, publications, and activities | `scaffold` |
-| **Visibility** | [topic-suggestion](topic-suggestion/) | Suggest content topics for Ersilia's social media, blog, and newsletter | `scaffold` |
-| **Visibility** | [impact-tracking](impact-tracking/) | Summarise Ersilia's impact across social media, website, and model hub metrics | `scaffold` |
-| **Visibility** | [branding](branding/) | Convert documents, slides, or posters into Ersilia-branded formats | `scaffold` |
-| **Platform** | [model-incorporation](model-incorporation/) | Incorporate a published ML model into the Ersilia Model Hub | `scaffold` |
-| **Platform** | [model-discovery](model-discovery/) | Review scientific literature to find AI/ML models and datasets relevant to Ersilia's mission | `scaffold` |
-| **Platform** | [compute-usage](compute-usage/) | Track usage and costs of compute resources across Ersilia's network | `scaffold` |
-| **Platform** | [issue-tracking](issue-tracking/) | Track and summarise open issues across Ersilia's GitHub repositories for tech meetings | `scaffold` |
-| **Platform** | [model-monitoring](model-monitoring/) | Monitor the Ersilia Model Hub for unused models, stored data, and maintenance needs | `scaffold` |
-| **Science** | [literature-review](literature-review/) | Produce a structured literature review on a topic relevant to Ersilia's research interests | `scaffold` |
-| **Science** | [paper-summary](paper-summary/) | Summarise a scientific paper and contextualise it within Ersilia's interests | `scaffold` |
-| **Science** | [peer-reviewing](peer-reviewing/) | Emulate a peer review of a manuscript and suggest how to address reviewer-style changes | `scaffold` |
-| **Science** | [article-formatting](article-formatting/) | Reformat a manuscript to match a target journal's figure and section requirements | `scaffold` |
-| **Science** | [molecule-auditing](molecule-auditing/) | Audit small molecules from an Ersilia screening and score them according to drug discovery parameters | `scaffold` |
-| **Day-to-day** | [slack-summaries](slack-summaries/) | Summarise recent Slack activity and surface prioritised action items | `draft` |
-| **Day-to-day** | [calendars](calendars/) | Check availability, suggest timeslots, and create calendar events or meeting invites | `scaffold` |
-| **Day-to-day** | [time-tracking](time-tracking/) | Analyse how team members have been spending time and assess alignment with objectives | `scaffold` |
-| **Day-to-day** | [meeting-minutes](meeting-minutes/) | Take structured meeting minutes dynamically, aware of the agenda and action items | `scaffold` |
-| **Day-to-day** | [email-drafting](email-drafting/) | Draft emails on behalf of Ersilia, including pitches, introductions, and follow-ups | `scaffold` |
+At Ersilia, we have divided the skills we are developing and using into several categories, according to what we use them for. 
+They are still being developed and tested by the Ersilia team, and once they are ready they will be listed and available
 
 **Status definitions**:
 - `scaffold` — structure and arguments defined; workflow written but not tested or validated
