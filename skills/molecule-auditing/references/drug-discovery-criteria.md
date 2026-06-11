@@ -115,7 +115,8 @@ These are the catalogs exposed by `FilterCatalogParams.FilterCatalogs` in stock 
 
 ## 6. Context → ruleset mapping
 
-Trigger keywords from the `--context` argument switch which ruleset(s) apply. Match case-insensitively as substrings.
+Trigger keywords from the therapeutic context (stated by the user, or inferred from the model
+metadata's target organism / biomedical area) switch which ruleset(s) apply. Match case-insensitively as substrings.
 
 | Keyword class | Examples | Apply | Comment |
 |---|---|---|---|
@@ -153,7 +154,7 @@ report = evaluate("CCN(CC)CCNC(=O)c1cc(Cl)c(N)cc1OC", pIC50=7.2,
 # report["alerts"]              = {}  # nothing fired
 ```
 
-The molecule-auditing script (`process_molecules.py`) currently enforces Lipinski and PAINS directly; the other rules in this module are available for reports that need broader coverage (bRo5, fragments, structural-alert panels beyond PAINS) without re-implementing.
+`build_table.py` uses `drug_criteria.py` for the structure-quality filters (PAINS/Brenk alerts) and `swot_facts.py` uses it to surface structural-alert liabilities; the other rules in this module (bRo5, fragments, Veber/Egan/Muegge, QED) are available if a session wants broader coverage without re-implementing.
 
 ---
 

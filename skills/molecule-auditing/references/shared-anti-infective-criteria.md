@@ -7,7 +7,7 @@
 - **Anti-infectives often violate Ro5** legitimately (macrolides, glycopeptides, polymyxins, polyenes, ivermectin). Do not auto-disqualify based on Lipinski alone — check the bucket-specific property windows first.
 - **AMES-positive ≠ disqualifying for anti-infectives**: nitroimidazole and nitrofuran clinical drugs (metronidazole, nifurtimox, benznidazole, fexinidazole, delamanid, pretomanid, nitrofurantoin) are mechanism-of-action AMES positives. Flag but contextualise.
 - **hERG is still relevant** for most anti-infective candidates — fluoroquinolones and macrolides have documented cardiac risk. Apply a hERG probability threshold of 0.5 regardless of bucket.
-- **Resistance-class proxy**: a hit that strongly resembles a known clinical antibiotic (Tanimoto ≥ 0.5 to bucket reference) is more likely to share class-level resistance — relevant when `--mode novel` is requested.
+- **Resistance-class proxy**: a hit that closely resembles a known clinical antibiotic class is more likely to share class-level resistance — worth flagging in a SWOT one-liner (and conversely, a genuinely novel scaffold is a strength worth calling out).
 - **Lead-likeness, not drug-likeness, at hit triage**: keep MW ≤ 350, ClogP ≤ 3 as a *soft* preference for lead-stage hits to leave room for optimisation. Mature clinical molecules will obviously exceed these.
 - **Different pathogen groups require different physchem profiles** — gram-negatives demand small + polar + amine-bearing, mycobacteria reward lipophilic, antimalarials accept higher LogP. Apply the bucket's window, not a generic one.
 - **Long-treatment indications (TB, leishmaniasis) need cleaner safety profiles** than short-course therapy. Weight hepatotox / cardiotox signals more heavily.
@@ -95,7 +95,7 @@ The full table of Ersilia output column patterns and their recommended `scoring_
 
 ## Major antibacterial classes at a glance
 
-Compact reference for scaffold recognition. Bucket-specific files cover mechanism, resistance, and SAR depth; this table is for fast pattern matching when reading a hit's structure or scoring a Tanimoto similarity.
+Compact reference for scaffold recognition. Bucket-specific files cover mechanism, resistance, and SAR depth; this table is for fast pattern matching when reading a hit's structure (e.g. when naming the scaffold class in its SWOT one-liner).
 
 | Class | Mechanism | Typical MW (Da) | LogP range | Key structural features | Primary bucket |
 |---|---|---|---|---|---|
@@ -120,19 +120,9 @@ Compact reference for scaffold recognition. Bucket-specific files cover mechanis
 | Streptogramins | Ribosome (50S, synergistic pair) | 500–900 | 1 to 4 | Two-component (A + B) macrocyclic | gram-positive |
 | Diarylquinolines | ATP synthase (TB-specific) | 500–600 | 5 to 7 | Quinoline + naphthalene + amine | antimycobacterial |
 
-## Tanimoto threshold guidance
-
-When `--mode similar` or `--mode novel` is set, the script computes Morgan fingerprint (radius=2, 2048 bits) Tanimoto similarity against the active bucket's reference SMILES file. The bands below are the standard interpretation:
-
-- **≥ 0.5** — likely same or closely related scaffold (analog). Inherits class-level resistance risk; preferred under `--mode similar` for lead-optimisation campaigns.
-- **0.3–0.5** — broadly class-related, shares key pharmacophore elements. Could still face partial cross-resistance.
-- **< 0.3** — structurally distinct → `novelty_flag = True`. Preferred under `--mode novel`; scientifically valuable for resistance-breaking and first-in-class campaigns.
-
-The 0.3 novelty cutoff is conservative (generous about calling something novel). Treat Tanimoto as a continuous signal in narrative — a compound at 0.28 may still share a partial scaffold worth noting. The hard cutoff is only used for the classification penalty under `--mode novel`.
-
-## Reference SMILES sources
-
-Per-bucket reference compound lists live in `assets/reference_<bucket>.csv` (one file per `--type` value, excluding `agnostic`). SMILES are drawn from PubChem canonical forms; some complex natural products (macrolides, glycopeptides, aminoglycosides, lipopeptides) use simplified stereochemistry — they serve for scaffold-level similarity, not exact 3D matching. The lists are intentionally short (8–14 compounds per bucket) to cover the major chemical classes without becoming burdensome to maintain; Ersilia or users may extend them via `--skill-dir` and a custom asset directory. Property windows in each per-bucket criteria file are regenerated from these CSVs by `scripts/compute_reference_properties.py`.
+Use this table to recognise a hit's scaffold class and judge whether it resembles a known
+antibiotic class (a resistance-risk note) or is structurally novel (a strength) — phrase that
+qualitatively in the SWOT one-liner.
 
 ## References
 
