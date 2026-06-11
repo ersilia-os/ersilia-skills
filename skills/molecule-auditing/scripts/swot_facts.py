@@ -48,6 +48,27 @@ def detect_motifs(mol):
     return found
 
 
+# metal-chelation alerts (Schuck & Brenk 2024) — see references/chelator-alerts-grounding.md.
+# Only the high-specificity "keep" families are loaded (the "borderline" donors like imidazole /
+# pyridine flag too many ordinary drugs to be a useful liability signal).
+_CHELATORS = []
+try:
+    import yaml  # PyYAML
+    _chel = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "chelator_alerts.yaml")
+    if os.path.exists(_chel):
+        for fam in (yaml.safe_load(open(_chel)) or {}).get("families", []):
+            if fam.get("tier") == "keep":
+                pats = [p for p in (Chem.MolFromSmarts(s) for s in fam.get("smarts", [])) if p]
+                if pats:
+                    _CHELATORS.append((fam["name"], pats))
+except Exception:
+    _CHELATORS = []
+
+
+def detect_chelators(mol):
+    return [name for name, pats in _CHELATORS if any(mol.HasSubstructMatch(p) for p in pats)]
+
+
 def classify(mol):
     nitro = mol.HasSubstructMatch(_AROM_NITRO)
     if nitro and mol.HasSubstructMatch(_ANILINE):
@@ -105,6 +126,7 @@ def main():
             "primary": round(float(r[pscore]), 3), "primary_rank": int(prank[i]), "n_total": n,
             "struct_class": classify(mol) if mol else "",
             "motifs": "|".join(detect_motifs(mol)) if mol else "",
+            "chelators": "|".join(detect_chelators(mol)) if mol else "",
             "mw": round(rdMD.CalcExactMolWt(mol), 0) if mol else None,
             "logp": round(Crippen.MolLogP(mol), 2) if mol else None,
             "liability_cols": "|".join(flagged) or "none",

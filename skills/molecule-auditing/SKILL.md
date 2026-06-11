@@ -53,6 +53,9 @@ Read **only the header** and a few rows (never load the whole file into context)
     Use `references/ersilia-metadata-guide.md` for URL/field details.
   - **Non-Ersilia columns** (custom scores, vendor flags, assay readouts, etc.): **ask the user**
     what they mean and which direction is good — do not guess. Use AskUserQuestion.
+- If a **functional-group census** model is already among the inputs (e.g. checkmol / `eos5f0j`,
+  ~204 group-count columns), treat those columns as interpretable structural context for the
+  Legend/SWOT — **do not run checkmol yourself**; only use it if it is already present as output.
 - Present a concise column inventory back to the user (column → plain meaning → higher/lower is
   better) and confirm before proceeding.
 
@@ -112,7 +115,9 @@ with it. Style: qualitative (no raw numbers), no model names, lead with a confid
 class when sure, "strength — but weakness" with one em-dash. Procedure:
 1. Run `python scripts/swot_facts.py --config <dir>/config.json` → `swot_facts.csv` (per-compound
    facts: primary score/rank, badge counts, detected structural class & motifs, MW/logP, flagged
-   liability columns, and PAINS/Brenk structural alerts). It prints a **size warning** for large
+   liability columns, PAINS/Brenk structural alerts, and keep-tier metal-chelation motifs from the
+   Schuck-Brenk catalog — a possible metalloenzyme-promiscuity / assay-interference flag worth a
+   SWOT mention). It prints a **size warning** for large
    sets — relay it; large sets mean many lines to author, so consider tightening filters first.
 2. **Author a few examples first** (read `swot_facts.csv` for ~5 diverse compounds, read their
    SMILES, write bespoke one-liners) and show them to the user. Refine the style with them. **Do
@@ -208,8 +213,11 @@ Legend tab.
 - `scripts/drug_criteria.py` — RDKit MedChem rules/alerts (used by filters + SWOT facts).
 - `references/` — domain knowledge: `ersilia-metadata-guide.md` (Step 1 metadata fetch),
   `drug-discovery-criteria.md` + the pathogen `*-criteria.md` + `shared-anti-infective-criteria.md`
-  (scaffold recognition, frequent-hitter/alert context, pathogen physchem) — read these when
-  interpreting columns and writing SWOT one-liners.
+  (scaffold recognition, frequent-hitter/alert context, pathogen physchem), plus
+  `structural-liabilities-summary.md` (the four alert lenses) and `chelator-alerts-grounding.md`
+  (provenance for `assets/chelator_alerts.yaml`, which `swot_facts.py` uses) — read these when
+  interpreting columns and writing SWOT one-liners. `TODO.md` is a maintainer roadmap for
+  expanding the structural-alert catalogs (not part of the runtime workflow).
 
 ## Handling change requests without corrupting the skill
 Users will often ask for tweaks to the explorer — that's expected. Keep the skill's `scripts/`
