@@ -31,9 +31,11 @@ The user will invoke this skill with:
 
 - A research topic (required): disease, target, method, or compound class.
 - (optional) A date range, e.g. `--from 2020-01-01 --to 2025-12-31`. Default: last 5 years.
+  Foundational / landmark papers (original target structure, seminal resistance mechanism,
+  field-defining method) are **exempt** from this window — include them regardless of age and
+  mark them as seminal.
 - (optional) `--depth focused` to cap at 8–15 papers and run faster (default is comprehensive: 20–40 papers).
 - (optional) `--out <path>` to override the default output file location.
-- (optional) `--hub` to apply Hub-incorporability as the *exclusive* filter (no context papers).
 
 If the topic is ambiguous, ask one focused question before searching. Never invent missing inputs.
 
@@ -59,10 +61,11 @@ Identify:
   compound class (AMPs, antimalarials, nitroaromatics), or ML method (GNN, ChemBERTa, REINVENT).
 - **Research angle**: biology/mechanism, drug discovery assays, AI/ML models, clinical findings,
   open datasets, ADMET.
-- **Scope signals**: does the user want Hub candidates only (`--hub`)? LMIC-first framing?
-  A comparison of methods? A target-specific deep dive?
+- **Scope signals**: LMIC-first framing? A comparison of methods? A target-specific deep dive?
+  A biology/mechanism focus vs. a computational-methods focus?
 
-Map the entity to Ersilia disease priorities and Hub subtasks (see reference files).
+Map the entity to Ersilia disease priorities (see reference files); note Hub subtasks where
+relevant, but treat them as a tag, not the organising principle of the review.
 
 ---
 
@@ -75,21 +78,32 @@ exact endpoint formats.
 | Source | web_search prefix | Best for |
 |---|---|---|
 | **Nature / Nature family** | `site:nature.com` | High-impact biology, chemistry, AI — search first |
+| **Science / Science family** | `site:science.org` | High-impact biology, chemistry, AI — search first |
 | **Cell / Cell Press** | `site:cell.com` | High-impact biology, disease mechanisms — search first |
 | **PubMed / MEDLINE** | `site:pubmed.ncbi.nlm.nih.gov` | Peer-reviewed biology, pharmacology, clinical |
 | **Europe PMC** | `site:europepmc.org` | Open-access full text, preprints + journals |
+| **PLOS** | `site:journals.plos.org` | NTDs (PLOS Negl. Trop. Dis.), pathogens, global-health medicine |
 | **bioRxiv** | `site:biorxiv.org` | AI/ML preprints, computational biology |
 | **ChemRxiv** | `site:chemrxiv.org` | Chemistry and ADMET preprints |
+| **arXiv** | `site:arxiv.org` | ML-method preprints (cs.LG) — new architectures not on bioRxiv |
 
-Search **Nature and Cell first** — landmark papers here set the framing for the rest of the review.
+Search **Nature, Science, and Cell first** — landmark papers here set the framing for the rest of the review.
 
 **Minimum search coverage:**
 
-Run at least **3 query variants per source** (18 searches total). Mix:
+Run at least **4 query variants across the sources** (~30 searches total). Mix — and keep the
+balance, do not let the computational variants crowd out the biology/clinical layer that
+anchors a literature review:
 
-1. **Narrow**: `<target/disease> <specific subtask> drug discovery`
-2. **Broad**: `<disease family> AI machine learning compound`
-3. **Method-facing**: `<method type> ADMET activity prediction <disease>`
+1. **Biology / mechanism**: `<disease/target> mechanism resistance pathogenesis review`
+2. **Narrow**: `<target/disease> <specific subtask> drug discovery`
+3. **Broad**: `<disease family> AI machine learning compound`
+4. **Method-facing**: `<method type> ADMET activity prediction <disease>`
+
+Run every variant against the general sources (Nature, Science, Cell, PubMed, Europe PMC). Route
+the specialized sources to where they pay off: **PLOS** for variants 1–2 (NTD biology / drug
+discovery), **arXiv** for variants 3–4 (ML methods), **bioRxiv/ChemRxiv** for the computational
+and chemistry variants.
 
 **Example queries for PfDHFR:**
 ```
@@ -107,6 +121,12 @@ when snippets are too short. Also use `web_fetch` on Europe PMC / PubMed landing
 to get complete metadata (authors, journal, year, DOI).
 
 **Target raw pool**: 40–80 raw results before screening.
+
+**Citation snowballing.** Database keyword search alone misses foundational work. After the
+initial searches, take the 2–3 strongest reviews or landmark papers in the pool and scan their
+reference lists for works that are repeatedly cited but not yet in your pool — fetch the review
+page (or its references via Crossref `is-referenced-by-count` / the reference list) and add the
+recurring citations. This backward search is the main way seminal older papers enter the review.
 
 ---
 
@@ -138,7 +158,12 @@ pages, PubMed search URLs, or any URL that does not resolve directly to the pape
 
 ### Step 4 — Screen and tier
 
-Apply filters in order:
+**Deduplicate first.** The same work often appears multiple times in the raw pool — most
+commonly a preprint (bioRxiv/ChemRxiv) and its later journal version. Collapse these to a
+single entry, preferring the peer-reviewed published version (and its DOI); keep the preprint
+only if no published version exists. Also merge near-identical titles from different sources.
+
+Then apply filters in order:
 
 **Filter A — scope.** An item must fit at least one of three buckets:
 1. **Antibiotic / antimicrobial / AMR drug discovery** — TB, NTD antibacterials, AMP / peptide
@@ -149,19 +174,25 @@ Apply filters in order:
 3. **General-purpose AI methods for drug discovery** — featurizers, ADMET and toxicity
    predictors, generative chemistry, CPI/docking surrogates, synthesis planning, multi-task
    chemistry foundation models, open chemistry datasets, methodology reviews.
+4. **Foundational biology / mechanism / epidemiology of a priority pathogen or target** —
+   target structure and druggability, resistance mechanisms, host–pathogen biology, disease
+   burden and epidemiology. These anchor the review even without a drug-discovery or ML hook,
+   provided the pathogen or target is an Ersilia priority.
 
-Borderline cancer / cardiology / diabetes / RNA-only / protein-only papers do **not**
-qualify unless they introduce a general-purpose tool with clear applicability to Ersilia targets.
+Borderline cancer / cardiology / diabetes papers do **not** qualify unless they introduce a
+general-purpose tool with clear applicability to Ersilia targets, or concern a priority
+pathogen/target under bucket 4.
 
-**Filter B — Hub-incorporability lens.** Re-read `references/hub-incorporation-criteria.md`.
+**Filter B — Hub-incorporability tag.** Re-read `references/hub-incorporation-criteria.md`.
 Apply the 🤖 marker using its exact rules (small-molecule-input gate, six subtask taxonomy,
-open code/weights requirement). This is the most important lens for items that pass scope.
+open code/weights requirement). This is a useful relevance signal for items that pass scope,
+not a curation gate — a paper does not need to be Hub-incorporable to belong in the review.
 
 **Tier each survivor:**
 
 | Tier | Criteria | Include? |
 |---|---|---|
-| **1** | Directly addresses the query entity with experimental or model validation data; or releases an open model/dataset on a Hub-priority endpoint | Always |
+| **1** | Directly addresses the query entity with experimental or model validation data (an open model/dataset release is one such case, not a privileged one) | Always |
 | **2** | Reviews, methodology papers, or datasets with strong relevance to Ersilia's work | Include if space (after Tier 1) |
 | **3** | Tangential, low quality, or duplicate | Skip |
 
@@ -173,6 +204,15 @@ open code/weights requirement). This is the most important lens for items that p
 - Give 🌍 items a ranking bonus when near tie-breaks.
 - If a paper addresses LMIC pathogens but has no LMIC authorship, note it under
   "Known gaps" rather than promoting it.
+
+**Coverage self-check.** Before writing, verify the final set isn't lopsided. Ask:
+- Are both layers represented — foundational biology/mechanism *and* drug-discovery/methods?
+- Are the major sub-areas of the topic covered, or is one angle over-represented?
+- Are the main research groups / labs working on this target or disease present?
+- Is anything obviously missing (a known landmark paper, a key method, a recent breakthrough)?
+
+If a gap shows up, run targeted follow-up searches to fill it before proceeding. Note any gap
+you cannot fill under "Known gaps" rather than papering over it.
 
 ---
 
@@ -223,14 +263,19 @@ Structure the synthesis around these sections (adapt to the specific query):
 4. **Drug Discovery Approaches** — Assays, screening campaigns, known scaffolds / lead
    series.
 5. **AI/ML Methods** — Models applied to this target or disease, key datasets, benchmark
-   results. Focus on Hub-relevant tools.
-6. **Open Datasets** — Public compound sets with bioactivity or ADMET data relevant to
-   the topic.
-7. **Research Gaps** — What is missing, understudied, or contradicted in the literature.
+   results. Cover the methods landscape broadly; note where a tool is Hub-relevant (🤖) but
+   don't restrict the section to Hub candidates. Mention any notable open dataset (🗃️) inline
+   here rather than in a dedicated section.
+6. **Research Gaps** — What is missing, understudied, or contradicted in the literature.
    Call out LMIC authorship gaps explicitly.
 
 Write in clear scientific prose. Every factual claim carries an inline citation:
 `(Author et al., Year, PMID/DOI)`.
+
+**Surface consensus vs. disagreement.** A good review does not just list findings — it states
+where the literature *agrees* and where it *conflicts*. Where you find contested mechanisms,
+inconsistent activity/potency data, or failed replications, say so explicitly and cite the
+competing papers side by side, rather than presenting one side as settled.
 
 ---
 
@@ -246,10 +291,10 @@ For every paper in the final set, compose a one-line entry in this format:
 
 | Marker | When to apply |
 |---|---|
-| ⭐ | Very-high-impact venue: Nature, Science, Cell, NMI, NEJM, Lancet, Nature family |
+| ⭐ | Very-high-impact venue: Nature, Science, Cell, PNAS, NMI, NEJM, Lancet, JACS, Angewandte Chemie, Nature/Science/Cell family |
 | 🌍 | First or last author at an LMIC institution (see `references/lmic-countries.md`) |
 | 🤖 | Hub-incorporable model — small-molecule input, one of six subtasks, openly available (see `references/hub-incorporation-criteria.md`) |
-| 🗃️ | Releases a large open dataset usable to train Hub models; tens of thousands of compounds minimum |
+| 🗃️ | Releases a notable open dataset relevant to Ersilia targets (bioactivity/ADMET). Secondary signal — apply when clear, don't hunt for it |
 | 💻 | Abstract or paper page explicitly names a public repo URL — do not infer |
 
 **Entry rules:**
@@ -263,7 +308,7 @@ For every paper in the final set, compose a one-line entry in this format:
   for preprints. Never link to a search result page, a PubMed search URL, or any intermediary
   that is not the paper itself. If no verified URL exists, omit the hyperlink entirely rather
   than linking to the wrong page.
-- Within each section, sort 🤖-first, then by venue tier, then by recency.
+- Within each section, sort by relevance to the query, then by venue tier, then by recency.
 - Only apply a marker when the criterion is load-bearing. Absent is better than wrong.
 
 ---
@@ -280,7 +325,7 @@ Use the output template:
 
 ```markdown
 # Literature Research: [Topic]
-*Generated: [Date] | Sources: Nature, Cell, PubMed, Europe PMC, bioRxiv, ChemRxiv | Papers: N*
+*Generated: [Date] | Sources: Nature, Science, Cell, PubMed, Europe PMC, PLOS, bioRxiv, ChemRxiv, arXiv | Papers: N*
 
 ---
 
@@ -307,10 +352,7 @@ Use the output template:
 [With citations]
 
 ## AI/ML Methods
-[With citations — 🤖-first within this section]
-
-## Open Datasets
-[With citations — 🗃️ items]
+[With citations — broad methods coverage; tag Hub-relevant tools 🤖; mention 🗃️ datasets inline]
 
 ## Research Gaps
 [Including LMIC authorship gaps]
@@ -334,21 +376,25 @@ Use the output template:
 | Source | Query | Results retrieved |
 |---|---|---|
 | Nature | ... | N |
+| Science | ... | N |
 | Cell | ... | N |
 | PubMed | ... | N |
 | Europe PMC | ... | N |
+| PLOS | ... | N |
 | bioRxiv | ... | N |
 | ChemRxiv | ... | N |
+| arXiv | ... | N |
 ```
 
 Call `present_files` immediately after writing to surface the download link.
 
 **In-chat summary** — after presenting the file, write a concise in-chat block with:
 
-1. A one-paragraph synthesis (the "so what" for Ersilia).
-2. Hub candidates (🤖 items) in a short bulleted list.
-3. LMIC-led papers (🌍) called out if any.
-4. One sentence on the most important gap.
+1. A one-paragraph synthesis (the "so what" for Ersilia) — the key findings of the review.
+2. The 2–3 most important papers (any tier) with one line each on why.
+3. The most important gap, in one sentence.
+4. Secondary callouts, only if present: Hub candidates (🤖) and LMIC-led papers (🌍), each as
+   a short bulleted list.
 
 ---
 
