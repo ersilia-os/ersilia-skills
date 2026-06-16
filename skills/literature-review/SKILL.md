@@ -216,57 +216,21 @@ you cannot fill under "Known gaps" rather than papering over it.
 
 ---
 
-### Step 4.5 — Find a lifecycle or pathway diagram
-
-Before writing the synthesis, search for an open-access image that shows the disease
-lifecycle, infection pathway, or target mechanism — and annotate which stages active
-compound classes act on.
-
-**Search strategy (in order of preference):**
-
-1. **Wikimedia Commons** — `site:commons.wikimedia.org <disease> lifecycle` or
-   `site:commons.wikimedia.org <disease> pathway`. Prefer SVG or high-res PNG files
-   with a CC or public-domain licence.
-2. **CDC / WHO public image libraries** — `site:cdc.gov <disease> life cycle`,
-   `site:who.int <disease> diagram`.
-3. **KEGG / WikiPathways** — for target-level pathway diagrams when the query is a
-   specific protein or metabolic pathway.
-
-**URL validation** — use `web_fetch` on the candidate image URL to confirm it resolves
-to an actual image file (ends in `.png`, `.svg`, `.jpg`, or `.gif`). Never link to a
-page that displays an image; link only to the raw image file URL. If no verified direct
-image URL is found, fall back to a text-based stage table (see below) rather than
-using an unverified link.
-
-**Compound-stage annotation** — regardless of whether an image is found, produce a
-markdown table mapping each lifecycle or pathway stage to the compound classes known
-to act there. Derive this from the curated papers and established pharmacology:
-
-| Stage | Description | Active compound classes | Example drugs / leads |
-|---|---|---|---|
-| ... | ... | ... | ... |
-
-Include this table below the image (or in place of it if no image is available).
-
----
-
 ### Step 5 — Synthesise the report
 
 Structure the synthesis around these sections (adapt to the specific query):
 
-1. **Lifecycle / Pathway Diagram** — embed the verified image (or stage table) from
-   Step 4.5. Include the source attribution on the line below the image.
-2. **Overview** — High-level picture, key open questions, why this topic matters for
+1. **Overview** — High-level picture, key open questions, why this topic matters for
    global health and Ersilia specifically.
-3. **Disease / Target Biology** — Mechanism of action, druggability, known resistance
+2. **Disease / Target Biology** — Mechanism of action, druggability, known resistance
    issues. Cite landmark papers.
-4. **Drug Discovery Approaches** — Assays, screening campaigns, known scaffolds / lead
+3. **Drug Discovery Approaches** — Assays, screening campaigns, known scaffolds / lead
    series.
-5. **AI/ML Methods** — Models applied to this target or disease, key datasets, benchmark
+4. **AI/ML Methods** — Models applied to this target or disease, key datasets, benchmark
    results. Cover the methods landscape broadly; note where a tool is Hub-relevant (🤖) but
    don't restrict the section to Hub candidates. Mention any notable open dataset (🗃️) inline
    here rather than in a dedicated section.
-6. **Research Gaps** — What is missing, understudied, or contradicted in the literature.
+5. **Research Gaps** — What is missing, understudied, or contradicted in the literature.
    Call out LMIC authorship gaps explicitly.
 
 Write in clear scientific prose. Every factual claim carries an inline citation:
@@ -328,19 +292,6 @@ Use the output template:
 *Generated: [Date] | Sources: Nature, Science, Cell, PubMed, Europe PMC, PLOS, bioRxiv, ChemRxiv, arXiv | Papers: N*
 
 ---
-
-## Lifecycle / Pathway Diagram
-
-![Disease lifecycle](image_url)
-*Source: [Title / licence](source_url)*
-
-**Compound action by stage:**
-
-| Stage | Description | Active compound classes | Example drugs / leads |
-|---|---|---|---|
-| ... | ... | ... | ... |
-
-> If no verified direct image URL was found, omit the `![]()` line and keep only the table.
 
 ## Overview
 [2–3 paragraphs]
@@ -444,9 +395,6 @@ ChEMBL · BindingDB · ZINC · PubChem · Open Targets · MMV/DNDi compound sets
   image, pocket-tensor). Surface them as context items instead.
 - Do not apply 💻 without an explicit public repo URL from the paper.
 - Do not pad to hit the 20–40 target — if the week or topic is sparse, say so.
-- Do not embed a diagram image URL that has not been verified to resolve to a raw image file
-  (`.png`, `.svg`, `.jpg`, `.gif`). If the URL resolves to an HTML page, use the stage table
-  instead.
 - Do not link to search-result pages, PubMed search URLs, or any URL that is not the paper
   itself. Every link must resolve directly to the paper's landing page — use `https://doi.org/<doi>`
   for published work, or the direct preprint URL for preprints. If no verified direct URL is
