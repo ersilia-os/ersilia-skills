@@ -1,56 +1,80 @@
 # Slack alert template — published digest notification
 
-Sent to `#literature` (workspace `ersilia-workspace`, channel ID `C010067BP2Q`)
-after a successful push to `ersilia-os/digests`. The skill only sends this when
-`scripts/upload_digest.py` exits 0 — never on dry-run, never on failure, never on
-the `--no-readme` path mid-step.
+Posted to `#literature` (workspace `ersilia-workspace`, channel ID
+`C010067BP2Q`) after `scripts/upload_digest.py` exits 0 — never on dry-run,
+never on failure.
+
+The Slack post is **a thematic summary, not a preview.** It tells the team
+what is in the digest at a chapter level and points at GitHub. The team scans
+this; they click through for the detail.
 
 ## Template
 
-```markdown
-📚 *New literature digest — week of {YYYY-MM-DD}*
+```text
+📚 *Ersilia Literature Digest — week of {YYYY-MM-DD}*
 
-{N} items across {N_chapters} chapters: {chapter_names_short_list}.
+*{N_total} items* · *{N_models}* Hub-candidate models 🤖 · *{N_datasets}* datasets 🗃️ · *{N_lmic}* LMIC-led 🌍 · *{N_high_impact}* high-impact ⭐
 
-Read it on GitHub: {html_url}
+• *Hub candidates*: {one Slack line — task families and standout names/venues, no per-paper title quotes}.
+• *Datasets*: {one line, or "nothing met the ≥10k-row Hub threshold this week"}.
+• *Methods*: {one line on chapter 3 — high-impact reviews and methodology}.
+• *Antimicrobial discovery*: {one line on chapter 4 — pathogens, LMIC concentration, notable hits}.
+• *Agents & automation*: {one line on chapter 5 — omit bullet if chapter 5 is empty}.
+• *Global health*: {one line on chapter 6 — omit bullet if chapter 6 is empty}.
+
+📖 *Read the full digest →* {html_url}
 ```
 
-## Field rules
+## Composition rules
 
-- **Date** is the ISO-format end date of the digest window.
-- **N items** is the total number of bullets across all chapters in the digest.
-- **N_chapters** counts non-empty chapters only. Skip the empty ones.
-- **chapter_names_short_list** is a comma-separated list of the chapter
-  headings the digest actually rendered, in display order. Drop the long
-  prefix; use the short forms below.
+The composer (Step 9 of `SKILL.md`) reads the just-uploaded digest from disk
+and fills the template.
 
-### Chapter short forms
+- **One bullet per chapter, in chapter order.** Each bullet describes the
+  chapter at a thematic level. Name task families, venue clusters, and LMIC
+  countries; do **not** quote per-paper titles. Generalities like "a few
+  interesting papers" defeat the purpose — be specific or omit the bullet.
+- **Chapters 1 and 2 always render** (use the empty-handling phrasing if
+  zero). Chapters 5 and 6 are **omitted entirely** when empty.
+- **Counts strip** uses the digest's actual bullet counts. Empty chapter 1 or
+  2 → `*0*`.
 
-Use these inside the chapter-name list so the message stays compact:
+## Ersilia style — non-negotiable
 
-| Full heading | Short form for Slack |
-|---|---|
-| AI agents and foundation models for science | AI agents & foundation models |
-| AI/ML methods for drug discovery | AI/ML methods |
-| Antibiotic and antimicrobial discovery | Antibiotics & AMR |
-| Global health and open science | Global health & open science |
+- **No italics.** Slack `_underscore_` is banned in this post; species names,
+  journal names, emphasis all go in bold or plain text. (The GitHub digest
+  itself still italicises venue names — that is a separate surface.)
+- **Bold** uses Slack `*single-asterisk*`.
+- **Bullets** start with `•` (U+2022).
+- **Impersonal.** No first-person plural ("our pipeline" → "the Ersilia Model
+  Hub"); no team-member names; no internal channels named.
+- **LMIC and decolonisation lens.** When LMIC-led work is present, name the
+  countries — not as flavour, as signal.
+- **Curation emojis only.** 🤖 🗃️ 🌍 ⭐ + the six task emojis (the digest
+  legend's vocabulary). 📚 prefix on the header is the only extra.
+- **No dividers**, no per-section headers beyond the bold caption inside each
+  bullet, no preamble, no sign-off. The footer is the link.
+
+## Posting rules
+
+- **Post once per push.** `--force` overwrite still triggers a single post.
+- **Do not post** on a failed upload, on `--dry-run`, or on a generated-but-
+  not-pushed digest.
+- The footer `📖 *Read the full digest →* {html_url}` is **always** present —
+  it is the call to action.
 
 ## Worked example
 
 ```text
-📚 *New literature digest — week of 2026-05-21*
+📚 *Ersilia Literature Digest — week of 2026-06-04*
 
-17 items across 4 chapters: AI agents & foundation models, AI/ML methods, Antibiotics & AMR, Global health & open science.
+*23 items* · *10* Hub-candidate models 🤖 · *0* datasets 🗃️ · *6* LMIC-led 🌍 · *3* high-impact ⭐
 
-Read it on GitHub: https://github.com/ersilia-os/digests/blob/main/literature/26-05-21-literature-digest.md
+• *Hub candidates*: QSAR, peptide bioactivity, CPI binding-affinity, GNN-based drug repurposing, an NIST antimicrobial-peptide featurizer, and five generative releases — HELM macrocyclic peptides (TU Berlin), MMP expansion (Chemotargets Barcelona), geometric-diffusion 3D generation, and two AMP generators.
+• *Datasets*: nothing met the ≥10k-row Hub threshold this week.
+• *Methods*: Nat Rev Drug Discov on AI for target identification (Insilico Medicine), Nat Mach Intell peptide MS foundation model, Nat Chem Biol on PTM ligandability.
+• *Antimicrobial discovery*: five mostly LMIC-led papers covering MRSA, malaria, MERS-CoV, and AgNP green synthesis — from India, Algeria, Nigeria, and Morocco.
+• *Global health*: Commun Med ML-for-NTD scoping review led from Uganda and Kenya.
+
+📖 *Read the full digest →* https://github.com/ersilia-os/digests/blob/main/literature/26-06-04-literature-digest.md
 ```
-
-## Rules of decorum
-
-- The 📚 prefix is the only allowed emoji. Do not add others.
-- Do not name team members, do not mention internal channels other than what
-  Slack will surface itself by routing the post.
-- Do not include the digest summary or any cherry-picked highlights — the
-  message is a pointer, not a substitute for the digest. People click through.
-- Do not post if the upload failed or was a dry-run; **only** on a confirmed
-  successful push.

@@ -7,21 +7,28 @@ Inputs:
     --landscape PATH path to references/search-landscape.md
     --lmic PATH      path to references/lmic-countries.md
     --out PATH       where to write the ranked pool
-    --top-n N        how many items to keep (default 50)
+    --top-n N        how many items to keep (default 80; raised from 50 in 2026-06)
 
 Each output item has the same schema as input, plus a `score` field:
 
     "score": {
-        "total": 9,
+        "total": 14,
         "breakdown": {
             "author_match": 4,
             "journal_tier": 3,
-            "topic_hits": 2,
+            "topic_hits": 4,
             "lmic_bonus": 0,
-            "recency": 0
+            "community_curated": 0,
+            "model_release": 3,
+            "dataset_release": 0,
+            "antimicrobial_bump": 0,
+            "agentic_bump": 0,
+            "repo_url": 0,
+            "recency": 0.5
         },
         "matched_authors": ["Kelly Chibale"],
         "matched_keywords": ["antimalarial", "machine learning"],
+        "matched_release_signals": ["we present", "trained model"],
         "matched_journal_tier": 1,
         "seen": false
     }
@@ -447,9 +454,132 @@ def _topic_hits(item: dict[str, Any], landscape: Landscape) -> tuple[int, list[s
             continue
         if re.search(r"(?<![a-z])" + re.escape(kw_norm) + r"(?![a-z])", text):
             matches.append(kw)
-    # Score capped at +4 per the ranking table.
-    bonus = min(len(matches), 4)
+    # Score capped at +6 (raised from +4 in 2026-06 to give Hub-keyword-heavy
+    # items more headroom; the ranker is no longer the bottleneck on
+    # surfacing Hub candidates).
+    bonus = min(len(matches), 6)
     return bonus, matches[:10]  # keep the top 10 in the explanation
+
+
+# Compiled regexes for release-verb and adjacent-signal detection (case-insensitive).
+_MODEL_RELEASE_VERBS_RE = re.compile(
+    r"\b("
+    r"we (?:present|introduce|release|propose|publish|open[- ]source|make available)|"
+    r"open[- ]source(?:d)?|"
+    r"publicly available code|"
+    r"trained model|pre[- ]?trained model|model weights|"
+    r"pretrained checkpoint|released checkpoint|"
+    r"open weights|open[- ]source(?:d)? (?:model|implementation)"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_DATASET_RELEASE_VERBS_RE = re.compile(
+    r"\b("
+    r"we (?:curate|release|publish|share|provide) (?:a )?(?:new )?(?:benchmark|dataset|corpus|collection)|"
+    r"new benchmark|new dataset|"
+    r"(?:dataset|corpus|library) of \d{3,}|"
+    r"(?:annotated|curated|public(?:ly available)?) dataset|"
+    r"open[- ]source(?:d)? dataset"
+    r")\b",
+    re.IGNORECASE,
+)
+
+# Hub-eligible task keywords used to gate the model-release-verb bonus: a release
+# verb alone is not enough; the paper must also describe a Hub-eligible task.
+_HUB_TASK_KEYWORDS = (
+    "smiles", "molecule", "molecular", "compound", "chemical",
+    "qsar", "admet", "bioactivity", "activity prediction",
+    "featurization", "featuriser", "featurizer", "embedding", "fingerprint",
+    "representation", "encoder", "pretrained encoder",
+    "generative", "de novo", "scaffold", "molecular generation",
+    "similarity", "projection", "umap",
+    "property prediction", "ic50", "mic", "ki ", "ec50",
+    "drug discovery", "drug-like",
+)
+_HUB_TASK_RE = re.compile(
+    r"(?<![a-z])(" + "|".join(re.escape(k) for k in _HUB_TASK_KEYWORDS) + r")(?![a-z])",
+    re.IGNORECASE,
+)
+
+# Antimicrobial / antipathogen editorial bump.
+_ANTIMICROBIAL_RE = re.compile(
+    r"\b("
+    r"antimicrobial|antibacterial|antibiotic|antiviral|antiparasitic|antifungal|"
+    r"amr|eskape|malaria|plasmodium|tuberculosis|mycobacter|"
+    r"ntd|neglected tropical|leishman|schistosom|trypanosom|"
+    r"klebsiella|acinetobacter|pseudomonas|gram[- ]negative"
+    r")\b",
+    re.IGNORECASE,
+)
+
+# Agentic AI / automation editorial bump.
+_AGENTIC_RE = re.compile(
+    r"\b("
+    r"ai scientist|co[- ]scientist|futurehouse|chemcrow|paperqa|bioplanner|"
+    r"self[- ]driving lab|autonomous laborator|autonomous synthesis|"
+    r"closed[- ]loop optimi[sz]|robotic chemistry|scientific copilot|"
+    r"multi[- ]agent (?:chemistry|drug|research|science)|"
+    r"retrosynthesis agent|research agent|autonomous (?:drug discovery|hypothesis)"
+    r")\b",
+    re.IGNORECASE,
+)
+
+# Open code/weights hosts mentioned anywhere in the title/abstract.
+_REPO_HOST_RE = re.compile(
+    r"\b(?:"
+    r"github\.com|gitlab\.com|codeberg\.org|"
+    r"huggingface\.co|hf\.co/|"
+    r"zenodo\.org|figshare\.com"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def _release_signal(item: dict[str, Any]) -> dict[str, Any]:
+    """Detect model-release and dataset-release signals in title + abstract.
+
+    A model-release bonus only fires when the release verb co-occurs with a
+    Hub-eligible task keyword — this prevents "we present new clinical
+    guidelines" from earning the model-release +3.
+    """
+    text = " ".join([item.get("title") or "", item.get("abstract") or ""])
+    model_hits = [m.group(0) for m in _MODEL_RELEASE_VERBS_RE.finditer(text)]
+    dataset_hits = [m.group(0) for m in _DATASET_RELEASE_VERBS_RE.finditer(text)]
+    has_hub_task = bool(_HUB_TASK_RE.search(text))
+
+    model_bonus = 3 if (model_hits and has_hub_task) else 0
+    dataset_bonus = 3 if dataset_hits else 0
+
+    return {
+        "model_release_bonus": model_bonus,
+        "dataset_release_bonus": dataset_bonus,
+        "matched_release_signals": sorted(set(model_hits + dataset_hits))[:10],
+    }
+
+
+def _antimicrobial_bump(item: dict[str, Any]) -> int:
+    text = " ".join([item.get("title") or "", item.get("abstract") or ""])
+    return 2 if _ANTIMICROBIAL_RE.search(text) else 0
+
+
+def _agentic_bump(item: dict[str, Any]) -> int:
+    text = " ".join([item.get("title") or "", item.get("abstract") or ""])
+    return 2 if _AGENTIC_RE.search(text) else 0
+
+
+def _repo_url_bonus(item: dict[str, Any]) -> int:
+    """+1 when title/abstract/url field mentions a code-hosting URL.
+
+    This is a *cheap* proxy for 💻-eligibility. The LLM still verifies code
+    presence in Step 5 — this is purely a ranking nudge.
+    """
+    text = " ".join([
+        item.get("title") or "",
+        item.get("abstract") or "",
+        item.get("url") or "",
+    ])
+    return 1 if _REPO_HOST_RE.search(text) else 0
 
 
 def _lmic_bonus(item: dict[str, Any], lmic: LMICTable) -> tuple[int, list[str]]:
@@ -510,6 +640,16 @@ def score_item(
     source = (item.get("source") or "").lower()
     community_bonus = 3 if source in {"slack", "gmail", "newsletter"} else 0
 
+    # Hub-mission signals (added 2026-06-04 to surface Hub candidates more
+    # aggressively). The model-release bonus is gated by a Hub-eligible task
+    # keyword so generic "we present new clinical guidelines" can't earn it.
+    release = _release_signal(item)
+    model_release_bonus = release["model_release_bonus"]
+    dataset_release_bonus = release["dataset_release_bonus"]
+    antimicrobial_bonus = _antimicrobial_bump(item)
+    agentic_bonus = _agentic_bump(item)
+    repo_url_bonus = _repo_url_bonus(item)
+
     # Seen check.
     seen_flag = False
     for key in filter(None, (
@@ -527,11 +667,17 @@ def score_item(
         "topic_hits": topic_bonus,
         "lmic_bonus": lmic_bonus,
         "community_curated": community_bonus,
+        "model_release": model_release_bonus,
+        "dataset_release": dataset_release_bonus,
+        "antimicrobial_bump": antimicrobial_bonus,
+        "agentic_bump": agentic_bonus,
+        "repo_url": repo_url_bonus,
         "recency": round(recency, 3),
     }
     total = (
         author_bonus + journal_bonus + topic_bonus + lmic_bonus
-        + community_bonus + recency
+        + community_bonus + model_release_bonus + dataset_release_bonus
+        + antimicrobial_bonus + agentic_bonus + repo_url_bonus + recency
     )
     if seen_flag:
         total -= 999
@@ -541,6 +687,7 @@ def score_item(
         "breakdown": breakdown,
         "matched_authors": matched_authors,
         "matched_keywords": matched_kw,
+        "matched_release_signals": release["matched_release_signals"],
         "matched_countries": matched_countries,
         "matched_journal_tier": journal_tier,
         "seen": seen_flag,
@@ -569,7 +716,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--landscape", required=True, help="references/search-landscape.md")
     p.add_argument("--lmic", required=True, help="references/lmic-countries.md")
     p.add_argument("--out", required=True, help="Output JSON.")
-    p.add_argument("--top-n", type=int, default=50, help="Pool size to keep (default 50).")
+    p.add_argument("--top-n", type=int, default=80, help="Pool size to keep (default 80; raised from 50 in 2026-06 to give the Step-5 triage more raw material when hunting Hub candidates).")
     p.add_argument("--window-from", help="Date window start YYYY-MM-DD for recency score; default = earliest item date.")
     p.add_argument("--window-to", help="Date window end YYYY-MM-DD for recency score; default = today.")
     args = p.parse_args(argv)

@@ -1,16 +1,20 @@
 {
-  "last_refresh_date": "2026-05-21",
+  "last_refresh_date": "2026-06-04",
   "refresh_interval_days": 90,
-  "next_refresh_due": "2026-08-19",
+  "next_refresh_due": "2026-09-02",
   "refreshed_files": [
     "search-landscape.md",
-    "hub-incorporation-criteria.md",
-    "lmic-countries.md"
+    "output-template.md",
+    "slack-alert-template.md"
   ],
   "refresh_log": [
     {
       "date": "2026-05-21",
       "notes": "Initial buildout. Hub catalogue analysed (254 entries, 189 Ready); Slack #literature history inspected (~100 messages, Feb–May 2026); seed lists merged from Gmail + Drive grants."
+    },
+    {
+      "date": "2026-06-04",
+      "notes": "Editorial widening: Hub-incorporability promoted to the digest's primary mission. Added explicit 🤖 model checklist (7 rows) and 🗃️ dataset checklist (5 rows) in SKILL.md Step 5. Restructured output-template.md so chapter 1 ('Models that could join the Hub') and chapter 2 ('Datasets that could join the Hub') lead the digest, each with task/endpoint subheadings. Expanded search-landscape.md with model-release anchors, dataset-release anchors, and agentic-AI/automation keyword sections. Rewrote slack-alert-template.md as a multi-section preview (counts strip, 🤖 models, 🗃️ datasets, ⭐ big picture, 🌍 LMIC) instead of a 3-line pointer. Added Step 4.5 supplementary web hunt (WebSearch/WebFetch) when pool is thin on Hub candidates; semaphore extended with 'Web hunt' slot. Raised dedup_and_rank.py topic-keyword cap +4 → +6, pool size 50 → 80, and added new signals: model-release-verb (+3, gated on Hub-task keyword), dataset-release-verb (+3), antimicrobial editorial bump (+2), agentic-AI keyword bump (+2), repo-URL signal (+1)."
     }
   ]
 }

@@ -1,28 +1,50 @@
 ---
 name: literature-digest
 description: >
-  Produce the weekly Ersilia literature digest covering AI/ML for drug discovery,
-  antibiotic and antimicrobial discovery, NTDs and AMR, and open science for global
-  health — through an explicit LMIC and decolonisation lens. Use this skill whenever
-  the user asks to prepare, run, or refresh the literature digest. Triggers include:
-  "weekly literature digest", "literature digest for Ersilia", "/literature-digest",
-  "lit digest this week", "what did we miss last week", "digest the literature".
-  Always use this skill for digest requests even if the ask seems simple.
+  Produce the weekly Ersilia literature digest. Primary mission: surface every model
+  and dataset that could plausibly join the Ersilia Model Hub — across all six Hub
+  task families (Property prediction, Activity prediction, Featurization, Projection,
+  Similarity search, Generation), with antimicrobial / antipathogen drug discovery as
+  the most-prioritised disease lens. Secondary mission: keep the team current on
+  agentic AI for science, automation in chemistry, open-source drug discovery, and
+  global health. Apply an explicit LMIC and decolonisation lens throughout. Use this
+  skill whenever the user asks to prepare, run, or refresh the literature digest.
+  Triggers include: "weekly literature digest", "literature digest for Ersilia",
+  "/literature-digest", "lit digest this week", "what did we miss last week", "digest
+  the literature". Always use this skill for digest requests even if the ask seems
+  simple.
 ---
 
 # Ersilia Literature Digest
 
-You produce the weekly literature digest for **Ersilia Open Source Initiative** — a curated
-markdown file covering AI/ML for drug discovery, antibiotic and antimicrobial discovery, NTDs
-and AMR, and open science for global health.
+You produce the weekly literature digest for **Ersilia Open Source Initiative** — a
+curated markdown file whose primary job is to **hunt for models and datasets the
+Ersilia Model Hub could incorporate**, and whose secondary job is to give the team
+contextual reading on antimicrobial / antipathogen drug discovery, agentic AI for
+science, automation in chemistry, open-source drug discovery, and global health.
 
-The digest is read by the whole Ersilia team. Assume shared internal context (Hub, H3D,
-GC-ADDA, Chemical Checker, Boltz-2, etc.) but write so a new team scientist can follow.
+The digest is read by the whole Ersilia team. Assume shared internal context (Hub,
+H3D, GC-ADDA, Chemical Checker, Boltz-2, etc.) but write so a new team scientist can
+follow.
 
-The relevance bar is **three-pillar**: an item qualifies if it touches *either* an AI/ML
-method plausibly applicable to drug discovery, *or* an Ersilia-relevant disease, *or* an
-open-science / capacity-building / LMIC-policy story. Apply the equity lens throughout —
-LMIC-led work (per `references/lmic-countries.md`) gets the 🌍 marker and a ranking bonus.
+The relevance bar has **two missions**, both required reading every week:
+
+- **Mission A — Hub candidates.** Find every paper, preprint, repo, or release in the
+  window that could become an Ersilia Model Hub entry: an open small-molecule-input
+  model (Property / Activity / Featurization / Projection / Similarity / Generation),
+  or an openly-released large dataset that the Hub could train or benchmark on.
+  Antimicrobial / antipathogen / AMR / NTD work earns an editorial bump but is *not*
+  required — generic chemistry foundation models, ADMET predictors, generative
+  systems, and chemical-space tools belong here too.
+- **Mission B — Context.** Cover the week's signal on antimicrobial / antipathogen
+  drug discovery (disease biology, AMR policy, target work), agentic AI for science
+  (multi-agent research systems, scientific copilots, AI Scientist lineage),
+  automation in chemistry (self-driving labs, autonomous synthesis, robotic
+  chemistry), open-source drug discovery (DNDi, MMV, OSM, GC-ADDA, H3D outputs), and
+  global health.
+
+Apply an equity lens cross-cutting both missions — LMIC-led work (per
+`references/lmic-countries.md`) gets the 🌍 marker and a ranking bonus.
 
 ---
 
@@ -241,73 +263,232 @@ unless they actually exist as MVP connectors.
 
 ```bash
 python scripts/dedup_and_rank.py \
-  --in /tmp/bx.json --in /tmp/epmc.json --in /tmp/slack.json \
+  --in /tmp/bx.json --in /tmp/epmc.json --in /tmp/slack.json --in /tmp/gmail.json \
   --seen /tmp/seen.txt \
   --landscape references/search-landscape.md \
   --lmic references/lmic-countries.md \
   --out /tmp/pool.json
 ```
 
-This produces a top-~50 pool with score breakdowns. The pool is what you triage in Step 5
+This produces a top-~80 pool with score breakdowns. The pool is what you triage in Step 5
 — do not fall back to the raw fetched data.
 
-### Step 5 — LLM triage to the final 25–35
+### Step 4.5 — Supplementary web hunt (only if the pool is thin on Hub candidates)
 
-Read `/tmp/pool.json`. For each item:
+This step is the safety net for Mission A. After `dedup_and_rank.py` writes
+`/tmp/pool.json`, scan the pool and count items that look like 🤖 candidates (open
+small-molecule model with code or weights, fits a Hub task) and 🗃️ candidates
+(openly-released dataset, ≥10k rows, Hub-relevant endpoint). Use the
+model-release-verb and dataset-release-verb signals already added by
+`dedup_and_rank.py` as the cheap proxy.
 
-- **Filter to scope first.** An item must fit one of three buckets to belong
-  in the digest:
-  1. **Antibiotic / antimicrobial / AMR drug discovery** — including TB, NTD
-     antibacterials, AMP / peptide-antibiotic work, AMR surveillance with an
-     ML hook.
-  2. **Global health / LMIC drug discovery / open-science capacity-building**
-     — NTDs (malaria, leishmaniasis, HAT, schistosomiasis, etc.), Africa /
-     LMIC-led work, public datasets / open infrastructure releases.
-  3. **General-purpose AI methods for drug discovery** — featurizers, ADMET
-     and toxicity predictors, generative chemistry, CPI / docking surrogates,
-     synthesis planning, retrosynthesis, multi-task chemistry foundation
-     models, open chemistry datasets, methodology reviews that map the field.
-  Disease-specific cancer / cardiology / diabetes / RNA-only / protein-only
-  papers do **not** qualify unless they are *highly* relevant (e.g. an open
-  general-purpose dataset that happens to be exemplified on oncology). Default
-  to omitting borderline items rather than padding the digest.
-- **Apply Hub-incorporability as the primary lens within scope.** Re-read
-  `references/hub-incorporation-criteria.md` before triaging. The single most
-  important question for in-scope items is: "could this become an Ersilia
-  Model Hub entry?" Activity prediction, featurization, and property
-  prediction together account for 86 % of Ready Hub models — weight items in
-  those subtasks heavier than everything else.
-- **Small-molecule input is the gate for 🤖.** The Hub's current incorporation
-  surface only accepts small-molecule input (SMILES / InChI / molfile). A
-  model with protein-sequence, RNA, peptide, gene, transcriptomic, image, or
-  pocket-tensor input is **not** 🤖-eligible no matter how impressive — surface
-  it as a context item without 🤖 and call out the input modality so the team
-  knows why. Same for generators that require non-molecule conditioning
-  (pocket-conditioned, RNA-target-conditioned). Reciprocally, compound-protein
-  interaction models *are* 🤖-eligible because the primary user-facing input
-  is the small molecule.
-- **Be conservative with 💻.** Only apply 💻 when the abstract or paper page
-  explicitly names a public repo URL. Crossref/EuropePMC abstracts often omit
+If the pool has **fewer than 8 🤖 candidates** OR **fewer than 2 🗃️ candidates**,
+run a bounded supplementary search using the `WebSearch` and `WebFetch` tools the
+harness provides. Targets, in priority order:
+
+1. **HuggingFace recent uploads** — `WebSearch` queries scoped to
+   `site:huggingface.co/models` with tags `molecule`, `cheminformatics`,
+   `chemistry`, `drug-discovery`, `protein-language-model`,
+   `molecular-property-prediction`. Look for upload dates inside the digest window.
+2. **GitHub trending in the last 7 days** — `WebSearch` for
+   `site:github.com` + `trending` + (`cheminformatics` OR `drug-discovery` OR
+   `qsar` OR `molecular-property-prediction` OR `de-novo-design` OR
+   `antimicrobial`). Confirm the repo's most-recent commit is inside the window.
+3. **arXiv recent submissions** — `WebSearch` for `arxiv.org` recent in
+   `cs.LG` / `q-bio.BM` / `q-bio.QM` / `cs.AI` with chemistry / drug-discovery
+   keywords from `search-landscape.md`'s Methods × Diseases axes.
+4. **Targeted DOI / arXiv ID lookups** — if a Slack or Gmail message in the window
+   mentioned a paper but the connector dropped the metadata, search the
+   title/snippet via WebSearch to recover the DOI or arXiv ID, then `WebFetch` the
+   abstract.
+
+Hard caps:
+
+- **At most 10 supplementary items** added to the pool. The web hunt is a top-up,
+  not a primary source.
+- **At most 6 minutes** of wall time across all web hunt queries. Budget aggressively.
+- Each supplementary item must carry a verifiable URL (paper, preprint, model card,
+  or repo) before being added.
+
+For each kept item, normalise into the standard schema (`title`, `authors`, `venue`,
+`date`, `doi` or `arxiv_id` or `url`, `abstract`, `source: "web_hunt"`,
+`source_subtype: "huggingface" | "github" | "arxiv" | "doi_lookup"`) and append to
+the pool. Then re-run the ranking pass:
+
+```bash
+python scripts/dedup_and_rank.py \
+  --in /tmp/pool.json --in /tmp/web_hunt.json \
+  --seen /tmp/seen.txt \
+  --landscape references/search-landscape.md \
+  --lmic references/lmic-countries.md \
+  --out /tmp/pool.json
+```
+
+Record the outcome for the connector semaphore (Step 7):
+
+- `Web hunt ⚪` — not triggered (pool already had ≥8 🤖 and ≥2 🗃️).
+- `Web hunt 🟢` — triggered and added at least one new item.
+- `Web hunt 🔴` — triggered, all sub-searches failed or returned nothing usable.
+
+If the web hunt fails entirely, that is **not a hard failure** — proceed to Step 5
+with whatever the pool contains. The empty-chapter rule in
+`references/output-template.md` handles thin weeks gracefully.
+
+### Step 5 — LLM triage to the final 25–40
+
+Read `/tmp/pool.json`. **Your default posture is "find more models and datasets",
+not fewer.** Aim for **≥8 🤖 candidates and ≥2 🗃️ datasets in the final digest**.
+If the pool yields fewer, do not pad with off-mission items — instead loop back to
+Step 4.5 (web hunt) once more, then accept the lower count and render the
+empty-chapter placeholder rather than promoting weak candidates.
+
+Triage in three passes: (5a) Mission A — Hub candidates, (5b) Mission B — context,
+(5c) chapter assignment + ordering.
+
+#### Step 5a — Mission A: identify Hub candidates
+
+For every item in the pool, evaluate against the **Hub-incorporability checklist
+for models** below. Take notes (mental or scratch) on each row — the body sentence
+in Step 6 must speak to these answers.
+
+**Hub-incorporability checklist (🤖)**:
+
+| # | Question | Pass criterion | If fail |
+|---|---|---|---|
+| 1 | **Input modality** | Accepts SMILES / InChI / molfile / SDF as the primary input. CPI (compound–protein interaction) models pass — the molecule is the primary input. | No 🤖. Surface as context with `(input: {modality})` annotation, in chapter 3 (methods) or wherever topical. |
+| 2 | **Output** | Produces a numeric score, vector, label, or molecule(s) — i.e. something the Hub `predict` / `featurize` / `generate` interface can return. | No 🤖. |
+| 3 | **Task fit** | Slots into one of: Property prediction, Activity prediction, Featurization, Projection, Similarity search, Generation. | No 🤖; mention task mismatch. |
+| 4 | **Code availability** | A public repo URL (GitHub / GitLab / Codeberg / HuggingFace Space) is named in the paper or in the model/dataset release page. | No 🤖. (Independent of 💻 — see below.) |
+| 5 | **Weights availability** | Trained weights are released (HuggingFace, Zenodo, repo release, or supplementary). | 🤖 with `(weights: pending)` qualifier; flag for follow-up. |
+| 6 | **License** | Permissive enough for Ersilia redistribution — MIT, Apache-2.0, BSD-2/3-Clause, CC-BY, CC-BY-SA, MPL-2.0. CC-NC, GPL/AGPL-only, "research-only" or "non-commercial" all fail. | No 🤖. Note the license blocker in the body sentence and surface as context. |
+| 7 | **Inference reproducibility** | Dependencies are tractable — no proprietary library, no hardware lock-in beyond a single GPU, no cloud-API call required for inference — i.e. plausibly runnable inside an Ersilia model container. | 🤖 with `(infra: heavy)` qualifier; flag for follow-up. |
+
+Decision:
+
+- Items passing **1–4 and 6** unconditionally get 🤖.
+- Items passing **1–4 + 6** but failing 5 or 7 still get 🤖 (still a candidate),
+  and the body sentence must say so concretely
+  (e.g. "weights not yet released" or "requires a 4×A100 inference budget").
+- Items failing any of 1–3 or 6 do **not** get 🤖. They may still appear as
+  context in chapter 3 (methods) with the failing dimension named.
+- 💻 is **independent** of 🤖. 💻 applies only when the abstract or paper page
+  explicitly names a public repo URL — Crossref/EuropePMC abstracts often omit
   code mentions; do not infer code presence from "this work is open" or "code
-  available upon request". Default-off when uncertain.
-- **🗃️ is for big, highly-published corpora.** Prefer datasets of tens of
-  thousands of compounds upwards with clear open release and a venue that
-  generates citations (e.g. COMPASS in *npj AMR*, QuantumPioneer from
-  Coley/Kraft groups). Small per-paper training sets do not warrant 🗃️.
-- Discard if you cannot write a credible "Why it matters for Ersilia" one-liner. If you
-  cannot, the item does not belong in the digest — say so to yourself and skip.
-- Assign each survivor to one of the four chapters in
-  `references/output-template.md`. The 🤖 marker and trailing task emoji do the
-  Hub-flagging work inline; there is no dedicated chapter.
-- **Within each chapter, order entries 🤖-first.** A reader scanning the digest
-  for incorporable models should see them before reviews, perspectives, or
-  context items. Inside the 🤖 block, sort by venue tier (NMI/JCIM/JCheminform/
-  NAR/Nat Comms before bioRxiv/chemRxiv), then by recency.
-- Apply target item count from `references/output-template.md` (aim 25–35).
-  Adjust to what the week actually delivered — do not pad.
-- Apply the equity lens last: check that LMIC-led work is surfaced where it exists; if a
-  paper about LMIC pathogens has no LMIC authorship, note it under "Known gaps" rather
-  than promoting it.
+  available upon request". Default-off when uncertain. An item can carry 🤖
+  without 💻 (e.g. weights on HuggingFace, no repo) and vice versa.
+
+**Body-sentence pattern for 🤖 entries.** Replace generic "could be a drop-in
+featurizer" with a structured one-liner naming **(input → output / task / license /
+hook)**:
+
+```
+Open-source {task} model taking {input modality} → {output type};
+released with {weights/code} under {license}. Plausible Hub addition because {hook}.
+```
+
+Worked example:
+
+> Open-source activity-prediction model taking SMILES → IC50 (regression);
+> released with weights and inference code on GitHub under Apache-2.0.
+> Plausible Hub addition because it covers *M. tuberculosis* H37Rv whole-cell,
+> a Hub gap.
+
+**Dataset-incorporability checklist (🗃️)**:
+
+| # | Question | Pass criterion |
+|---|---|---|
+| 1 | **Scale** | ≥10,000 compounds (or rows in a Hub-relevant table). Smaller per-paper training sets do **not** warrant 🗃️. |
+| 2 | **Endpoint** | Bioactivity (IC50/MIC/Ki/EC50), ADMET property, toxicity, generative target distribution, or embedding/representation benchmark. |
+| 3 | **Public download** | A direct download URL is named in the paper (Zenodo / HF / repo / journal supplementary). |
+| 4 | **License** | CC-BY, CC-BY-SA, CC0, ODC-By, ODbL, MIT / Apache-2.0 (for code-shipped datasets), or equivalent. CC-NC / academic-only fail. |
+| 5 | **Format** | SMILES (or convertible from InChI / SDF / molfile / 2D structure file) is in the file. Images-only or figures-only datasets fail. |
+
+Items passing all five rows get 🗃️. Borderline cases (e.g. 5,000 compounds but on
+a Hub-priority endpoint with no equivalent existing) may be promoted at editorial
+discretion — note the size in the body sentence.
+
+**Body-sentence pattern for 🗃️ entries**:
+
+```
+{N} compounds / rows · {endpoint} · {license} · {download host}.
+Plausible Hub input because {hook}.
+```
+
+**Gated-out but interesting (no 🤖, surface as context).** Some models are too
+interesting to drop but fail the small-molecule input gate or the license gate.
+Surface them in **chapter 3** (AI/ML methods) without 🤖, with the gating
+dimension named:
+
+- Protein-conditioned / pocket-conditioned generators (DiffDock-Pocket,
+  Pocket2Mol, TargetDiff, RFdiffusion-AA, ShEPhERD-pocket).
+- Protein-sequence-only / structure-only models (Boltz-2, Chai-1, ESM-style).
+- Multi-omics or transcriptomics-input models.
+- Image-input phenotypic models.
+- Commercial-license-only releases (note the license in the body).
+
+These do not block the 🤖 quota — they are *additive* context.
+
+#### Step 5b — Mission B: context items
+
+For items that are *not* Hub candidates, decide whether they belong in chapters
+3–6 (the context chapters). Acceptance criteria:
+
+- **Chapter 3 (AI/ML methods for drug discovery)** — methodology papers,
+  benchmarks, reviews, perspectives, gated-out models from 5a, AI-for-chemistry
+  surveys, retrosynthesis advances, virtual-screening protocol papers. Lean
+  inclusive on representation / projection / similarity papers — these task
+  families are under-represented in the Hub (3–6 % each) and the user explicitly
+  wants them surfaced even when modest.
+- **Chapter 4 (Antibiotic and antimicrobial discovery)** — disease biology of
+  bacterial / mycobacterial / fungal / parasitic / viral pathogens, AMR
+  surveillance, AMR policy, target-structure papers on pathogen proteins,
+  medicinal-chemistry SAR campaigns. Antimicrobial / antipathogen items get an
+  editorial bump: rank them above same-tier non-antimicrobial items inside any
+  context chapter.
+- **Chapter 5 (AI agents and foundation models for science)** — multi-agent
+  research systems (Sakana AI Scientist, Co-Scientist, FutureHouse, ChemCrow,
+  PaperQA, BioPlanner), scientific copilots, self-driving labs, autonomous
+  synthesis, robotic chemistry, closed-loop optimisation, autonomous drug
+  discovery papers. Surface even when not antimicrobial-specific — the user
+  explicitly wants these.
+- **Chapter 6 (Global health and open science)** — LMIC-led work, NTDs,
+  capacity-building, AMR/NTD funding/policy, open-science infrastructure
+  releases, decolonisation pieces, DNDi / MMV / GHIT / GARDP / CARB-X /
+  Schmidt / AI2050 / EDCTP3 outputs.
+
+Discard items you cannot link to a primary source, items where you cannot write
+a credible "why it matters for Ersilia" one-liner, and disease-specific cancer /
+cardiology / diabetes / RNA-only papers unless they are *highly* relevant (e.g.
+a generic chemistry-foundation model exemplified on oncology). Default to
+omitting borderline items rather than padding the digest.
+
+#### Step 5c — Chapter assignment and ordering
+
+**De-duplication rule (important):** every 🤖 item lives **only** in chapter 1
+("Models that could join the Hub"). Every 🗃️ item lives **only** in chapter 2
+("Datasets that could join the Hub"). Do **not** also place them in chapters 3–6.
+This guarantees the reader sees Hub candidates in one place, and context items in
+one place.
+
+Within chapter 1, group by task family using `###` subheadings (Activity →
+Property → Featurization → Generation → Similarity → Projection — descending Hub
+share). Within each subheading, sort by venue tier (NMI / JCIM / J Cheminform /
+Nat Comms / NAR before bioRxiv / chemRxiv / arXiv), then by recency.
+
+Within chapter 2, group by endpoint family using `###` subheadings (Bioactivity →
+ADMET / Property → Generative training corpora → Featurization / multi-task
+benchmarks → Other).
+
+Within chapters 3–6, no subheadings. Sort by venue tier then recency; rank
+antimicrobial / antipathogen items above same-tier non-antimicrobial items.
+
+Apply the equity lens last: check that LMIC-led work is surfaced where it exists
+(🌍 marker per `references/lmic-countries.md`). If a paper about LMIC pathogens
+has no LMIC authorship, note the gap rather than promoting it.
+
+Target total item count: **25–40 across all chapters**, with at least 8 🤖 and 2
+🗃️ as the minimum healthy week. Density is the goal; the format is one bullet per
+item.
 
 ### Step 6 — Compose each entry
 
@@ -393,10 +574,14 @@ If the upload fails for a recoverable reason (network blip, gh auth lapsed), kee
 the local file intact and tell the user how to re-run just the upload step. Never
 delete the local file before a successful upload.
 
-### Step 9 — Post the Slack alert (only on successful push)
+### Step 9 — Post the rich Slack alert (only on successful push)
 
-After (and **only** after) `upload_digest.py` exits 0, post a single notification
-to `#literature` so the team sees the new digest. Use the Slack MCP directly:
+After (and **only** after) `upload_digest.py` exits 0, post a single rich,
+multi-section notification to `#literature` so the team sees what is in the digest
+without having to click through. The Slack alert is **not** a pointer — it is the
+preview that earns the click.
+
+Use the Slack MCP directly:
 
 ```text
 slack_send_message(
@@ -405,13 +590,32 @@ slack_send_message(
 )
 ```
 
-- Render the template per `references/slack-alert-template.md`. Use the chapter
-  short-forms. Compose the chapter list from chapters that actually appeared in
-  the digest (skip empty ones).
+**Composition.** Re-read the digest you just uploaded. Render the template at
+`references/slack-alert-template.md` by extracting:
+
+- Top ~5 entries from **chapter 1** (🤖 models) in venue-tier + recency order.
+  Preserve each entry's structured "input → output / task / license + code" body
+  framing — condense to one Slack line each but do not lose the key facts.
+- Top ~3 entries from **chapter 2** (🗃️ datasets) using the structured `N ·
+  endpoint · license · host` framing.
+- Top ~3 ⭐-marked entries from anywhere in the digest (big-picture / must-reads,
+  typically agentic AI or major reviews).
+- Top ~3 🌍-marked entries (LMIC-led) from anywhere in the digest.
+- Total counts strip (N items / 🤖 / 🗃️ / 🌍 / ⭐).
+
+See `references/slack-alert-template.md` for the exact section order, field rules,
+and Slack-markdown conventions. The template requires the *bold title* of each
+selected bullet to match the digest verbatim — no fresh paraphrase — so a clicking
+reader sees the same headline twice.
+
+**Posting rules**:
+
 - **Do not** post if the upload failed (any non-zero exit from `upload_digest.py`),
   if `--dry-run` was set, or if the digest was generated but not actually pushed.
-- **Do not** mention team members by name in the Slack post (the template forbids
-  it). The post is a pointer to the digest, not a summary.
+- **Do not** mention team members by name. **Do not** name internal channels
+  beyond what Slack itself routes.
+- The 📚 prefix on the header is the only allowed extra emoji beyond the digest's
+  curation markers (⭐ 🌍 🤖 🗃️ 💻 + the six task emojis).
 - Post once per push. If the upload was a `--force` overwrite, still post once —
   the team should know the digest has been updated.
 
