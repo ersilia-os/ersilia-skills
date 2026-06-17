@@ -3,41 +3,39 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "I have results from an Ersilia screening run: `/Users/mduranfrigola/Documents/GitHub/claude-ersilia-skills/skills/molecule-auditing/assets/drugbank_head_example.csv`. Can you audit these molecules and tell me which ones look most promising for antibiotic drug discovery?",
-      "expected_output": "A Markdown audit report with model metadata fetched from GitHub, molecules classified as Promising/Borderline/Deprioritise, a top candidates table, and a score distribution section. The report should cite eos4e40 (antibiotic model) and eos7m30 (ADMET) metadata including their Interpretation field.",
+      "prompt": "I have results from an Ersilia screening run: `/Users/mduranfrigola/Documents/GitHub/ersilia-skills/skills/molecule-auditing/assets/drugbank_head_example.csv`. Can you audit these molecules and build me an interactive explorer of the most promising antibiotic candidates?",
+      "expected_output": "An interactive session that: makes sense of the columns (fetching eos4e40/eos7m30 metadata from GitHub), builds a condensed deliverable (selection_table.csv) with the user's chosen columns/filters, and produces a self-contained selection_visualizer.html in an output folder beside the input. The FIRST visualizer is built WITHOUT the SWOT one-liners.",
       "files": ["assets/drugbank_head_example.csv"],
       "assertions": [
-        "The report contains a table of top candidate molecules with key/SMILES identifiers and activity scores",
-        "Molecules are classified into Promising, Borderline, and Deprioritise categories with counts",
-        "The report cites metadata from eos4e40 including the model title or interpretation (e.g. E.coli growth inhibition)",
-        "The processing script (process_molecules.py) was executed via Bash to produce audit_summary.json",
-        "The report includes a Score Distribution section describing the spread of values"
+        "Model metadata for eos4e40 and eos7m30 is fetched from GitHub (fetch_model_metadata.py) and used to explain the columns",
+        "A config.json is written and scripts/build_table.py is run to produce selection_table.csv with CPD-XXX ids and consensus badge columns",
+        "scripts/make_visualizer.py is run to produce a self-contained selection_visualizer.html",
+        "The first visualizer is produced WITHOUT SWOT one-liners, and the agent asks the user to confirm before doing the (expensive) SWOT step",
+        "Outputs are written to a folder beside the input (e.g. drugbank_head_example_explorer/), not a markdown audit report"
       ]
     },
     {
       "id": 2,
-      "prompt": "Run the molecule auditing skill on `/Users/mduranfrigola/Documents/GitHub/claude-ersilia-skills/skills/molecule-auditing/assets/drugbank_head_example.csv --context 'E. coli antibiotics' --output /tmp/audit_ec.md`. I want the top hits from this E.coli inhibition screen.",
-      "expected_output": "A Markdown audit report saved to /tmp/audit_ec.md, using the E.coli antibiotics context. The report should prioritise molecules by their eos4e40 (antibiotic activity) score, and explicitly mention the therapeutic context in the report header.",
+      "prompt": "Run molecule auditing on `/Users/mduranfrigola/Documents/GitHub/ersilia-skills/skills/molecule-auditing/assets/drugbank_head_example.csv`. I care most about E. coli activity — rank by that, and drop anything heavier than 450 Da or with PAINS alerts.",
+      "expected_output": "The skill treats the eos4e40 inhibition column as the primary activity score (ranking + CPD ids), applies the user's on-the-fly structure filters (MW <= 450, drop PAINS) in build_table.py, reports what each filter dropped, and builds the explorer.",
       "files": ["assets/drugbank_head_example.csv"],
       "assertions": [
-        "The report is written to /tmp/audit_ec.md (or the agent produces a file at that path)",
-        "The context 'E. coli antibiotics' (or equivalent) is reflected in the report header or Overview section",
-        "The top candidates section identifies specific molecules by key or SMILES with their antibiotic activity scores",
-        "The processing script (process_molecules.py) was run with --context and --output flags",
-        "The report contains a Caveats section"
+        "The eos4e40 inhibition_50um column is set as the primary score and drives CPD-XXX ranking and the primary badge",
+        "The config's filters include max_mw 450 and drop_pains true, and build_table.py reports the number of compounds dropped by each",
+        "selection_table.csv and selection_visualizer.html are produced in the output folder",
+        "The agent confirms the deliverable with the user and offers SWOT one-liners only as an explicit, separate follow-up step"
       ]
     },
     {
       "id": 3,
-      "prompt": "I just ran Ersilia on a compound library and got this file: `/Users/mduranfrigola/Documents/GitHub/claude-ersilia-skills/skills/molecule-auditing/assets/drugbank_head_example.csv`. Can you look at these molecules and help me figure out which ones to prioritize and which ones to drop? Not sure what all the columns mean.",
-      "expected_output": "A Markdown audit report that decodes the Ersilia model column names into human-readable descriptions, explains what the scores mean, and provides actionable prioritisation (which molecules to advance vs. deprioritise). Should not leave raw column names unexplained.",
+      "prompt": "I ran a model panel on a compound library and got this file: `/Users/mduranfrigola/Documents/GitHub/ersilia-skills/skills/molecule-auditing/assets/drugbank_head_example.csv`. I'm not sure what all the columns mean — help me make sense of it and pick which to keep.",
+      "expected_output": "The skill reads only the header, decodes the Ersilia model columns into plain-English meanings (fetching metadata), asks the user about any non-Ersilia columns, presents a column inventory, and helps the user choose which columns/roles to keep before building the condensed deliverable and explorer.",
       "files": ["assets/drugbank_head_example.csv"],
       "assertions": [
-        "The report explains what the model score columns mean in plain language (not just raw column names like 'inhibition_50um.eos4e40')",
-        "The report provides a clear recommendation of which molecules to prioritize and which to drop",
-        "Model metadata is fetched from GitHub to populate explanations (not just guessed)",
-        "The top candidates table includes at least 5 molecules with scores and classification",
-        "The skill is properly triggered and the full auditing workflow is followed (not just a brief summary)"
+        "The agent decodes raw column names like 'inhibition_50um.eos4e40' and 'ames.eos7m30' into plain-language meanings using fetched metadata (not guesses)",
+        "The agent presents a column inventory (column -> meaning -> direction) and asks the user which to keep and their roles",
+        "The agent only loads the header/a few rows, never the full CSV, into context",
+        "The workflow produces a condensed selection_table.csv and an interactive selection_visualizer.html"
       ]
     }
   ]
