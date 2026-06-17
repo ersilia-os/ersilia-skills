@@ -82,13 +82,32 @@ the wiring before writing anything.
    but linked externally (Zenodo, Figshare, HuggingFace, Google Drive, direct URL),
    download them using `wget`, `curl`, or the appropriate Python client
    (e.g. `huggingface_hub`, `gdown`).
-3. For each checkpoint file **≥ 100 MB**, ensure it is tracked by Git LFS:
+3. For each checkpoint file **≥ 100 MB**, ask the user how they want to store it:
+   - **Git LFS** — file stays in the repository, tracked via Git LFS.
+   - **eosvc** — file is hosted externally on the Ersilia volume cloud storage; do not
+     commit it to the repository.
+
+   Wait for the user's answer before proceeding. If the user chooses **Git LFS**:
    - Run `git lfs install` once if not already done.
    - Add a tracking line to `.gitattributes` (e.g. `*.pt filter=lfs diff=lfs merge=lfs -text`).
    - Run `git lfs track "<pattern>"` or manually add the entry.
    - Stage `.gitattributes` with `git add .gitattributes`.
+
+   If the user chooses **eosvc**, do not add the file to git at all — note that it will
+   be fetched at runtime from eosvc and document this in the code comments of `main.py`.
+
 4. If no checkpoints are needed (pure algorithmic model), note this explicitly and
    leave the directory empty.
+5. **Cleanup — always run these two commands regardless of which storage option was chosen:**
+   ```bash
+   rm -f <template-repo-path>/mock.txt
+   ```
+   Then, if **no files are tracked by Git LFS** (either no large checkpoints, or all
+   large checkpoints are stored on eosvc), also delete:
+   ```bash
+   rm -f <template-repo-path>/.gitattributes
+   ```
+   Keep `.gitattributes` only when at least one file is actually tracked by Git LFS.
 
 ---
 
@@ -275,8 +294,10 @@ before writing the file. DO NOT FABRICATE OUTPUT VALUES.
 
 Before declaring the work done, verify:
 
-- [ ] `model/checkpoints/` contains all required files; large files tracked by git-lfs
-- [ ] `.gitattributes` updated if git-lfs tracking was needed
+- [ ] `model/checkpoints/` contains all required files; large files (≥ 100 MB) stored via Git LFS or eosvc per user choice
+- [ ] `mock.txt` deleted from the template root in all cases
+- [ ] If any file is tracked by Git LFS: `.gitattributes` updated and staged
+- [ ] If no files are tracked by Git LFS: `.gitattributes` deleted from the template root
 - [ ] `model/framework/code/main.py` runs end-to-end without errors
 - [ ] `model/framework/columns/run_columns.csv` has correct headers and follows naming rules
 - [ ] `install.yml` has all dependencies pinned to exact versions

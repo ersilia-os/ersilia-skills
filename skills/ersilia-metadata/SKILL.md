@@ -28,15 +28,29 @@ Fill **only** these fields — leave everything else exactly as it is:
 | `Output` | list | `Score`, `Value`, `Compound`, `Text` |
 | `Output Dimension` | integer | number of output values per input compound |
 | `Output Consistency` | string | `Fixed`, `Variable` |
-| `Interpretation` | string | free text |
-| `Biomedical Area` | list | free text (disease areas, application areas) |
-| `Target Organism` | list | scientific names or `Any` |
+| `Interpretation` | string | one sentence, max 20 words |
+| `Tag` | list | see allowed values below |
+| `Biomedical Area` | list | see allowed values below |
+| `Target Organism` | list | see allowed values below |
+| `Publication` | string | must be a DOI URL: `https://doi.org/...` |
 | `Publication Type` | string | `Peer reviewed`, `Preprint`, `Other` |
 | `Publication Year` | integer | year |
 
-**Never modify**: Identifier, Slug, Status, Title, Description, Tag, Publication, Source Code, License, Contributor, and any auto-populated fields (Incorporation Date, S3, DockerHub, Model Size, etc.)
+**Never modify**: Identifier, Slug, Status, Title, Description, Source Code, License, Contributor, and any auto-populated fields (Incorporation Date, S3, DockerHub, Model Size, etc.)
 
 ## Step-by-step workflow
+
+### 0. Load allowed values from the ersilia repository
+
+Before filling anything, read the three controlled-vocabulary files from the local ersilia repository. They live at:
+
+```
+ersilia-os/ersilia/ersilia/hub/content/metadata/tag.txt
+ersilia-os/ersilia/ersilia/hub/content/metadata/biomedical_area.txt
+ersilia-os/ersilia/ersilia/hub/content/metadata/target_organism.txt
+```
+
+Each file is newline-separated. Read all three now and keep the lists in memory — you will validate every value you write against them. If you cannot locate the files, ask the user for the path before proceeding.
 
 ### 1. Read the existing metadata.yml
 
@@ -106,26 +120,30 @@ This is often explicit in the paper ("6 endpoints", "512-dimensional vector"). I
 - `Variable`: the model is stochastic and may return different outputs on repeated runs (generative models, models with dropout at inference, sampling-based methods)
 
 **Interpretation**
-Write **one short sentence** describing what the output means and how to read it. Keep it under ~20 words.
+Write **exactly one sentence**. Hard limit: 20 words. Do not write two sentences. Do not start with "The model" — start with the output itself.
 
 Good examples:
 - `Higher score indicates greater predicted probability of anti-malarial activity.`
 - `100 features encoding molecular structure from a pretrained MACAW autoencoder.`
 - `Predicted probability of AMES mutagenicity; values closer to 1 indicate higher risk.`
+- `Binary indicators (1 = substructure present, 0 = absent) and total hit count.`
+
+**Tag**
+Choose one or more values from the list you read in Step 0 (`tag.txt`). Every value you write must appear verbatim in that file. If no tag fits well, pick the closest match — do not invent new tags.
 
 **Biomedical Area**
-List the relevant therapeutic or research areas. Use specific disease names or application areas rather than generic terms. Examples: `Malaria`, `Tuberculosis`, `ADMET`, `COVID-19`, `Solubility`, `Toxicity`. Use `Any` only if the model is truly domain-agnostic (e.g., a general-purpose molecular featurizer with no disease focus).
+Choose one or more values from the list you read in Step 0 (`biomedical_area.txt`). Every value must appear verbatim in that file. Use `Any` only if the model is truly domain-agnostic (e.g., a general-purpose molecular featurizer with no disease focus).
 
 **Target Organism**
-Use full scientific names where applicable:
-- Pathogens: *Plasmodium falciparum*, *Mycobacterium tuberculosis*, *SARS-CoV-2*, etc.
-- Human studies: *Homo sapiens*
-- Animal models: *Mus musculus*, *Rattus norvegicus*
-- Use `Any` if the model is not organism-specific
+Choose one or more values from the list you read in Step 0 (`target_organism.txt`). Every value must appear verbatim in that file. Use `Any` if the model is not organism-specific.
+
+**Publication**
+The `Publication` field must be a DOI URL in the format `https://doi.org/...`. This applies to both peer-reviewed articles and preprints (bioRxiv, ChemRxiv, and arXiv all issue DOIs). If the existing metadata contains a PubMed URL, abstract page, or journal landing page, locate and substitute the DOI. If genuinely no DOI exists, use the most stable URL available and note this to the user.
 
 **Publication Type**
-- Check the Publication URL in the metadata: journal DOIs → `Peer reviewed`; bioRxiv/ChemRxiv/arXiv links → `Preprint`
-- Use `Other` only in exceptional cases (thesis, technical report)
+- `Peer reviewed` for articles published in journals (DOI typically starts with `10.1`, `10.3`, `10.7`, etc.)
+- `Preprint` for bioRxiv (`10.1101/`), ChemRxiv (`10.26434/`), arXiv (`10.48550/`)
+- `Other` only in exceptional cases (thesis, technical report, no publication)
 
 **Publication Year**
 Extract the year of publication from the paper or publication URL.
