@@ -1,52 +1,20 @@
 # Claude Code Skills for Ersilia
 
-A curated collection of Claude Code skills to help the Ersilia team work more effectively across programmes, science, visibility, platform, and day-to-day operations.
+A curated collection of Claude Code skills to help the Ersilia team work more effectively at three levels: technically, scientifically and operationally.
 
-> **Early-stage repository (v0)**
->
-> This is Ersilia's first attempt to build a systematic library of Claude Code skills. The structure and categories are intentional, but most skills are currently **scaffolded** — they define the workflow and accept the right arguments, but have not yet been fully developed, tested, or validated for production use.
->
-> Skills are being built incrementally. Each skill will be reviewed and promoted through the maturity stages (`scaffold → draft → ready`) before it is relied upon. Please check the status column in the catalogue below before using a skill in critical workflows.
-
----
-
-## What are Claude Code skills?
-
-Claude Code skills are reusable workflow definitions stored as `SKILL.md` files. When this repository is installed as a Claude Code plugin, each skill becomes a slash command available in any Claude Code session. Skills encode step-by-step instructions, argument handling, and references to supporting knowledge-base documents — teaching Claude how to perform a specific Ersilia workflow reliably and consistently.
-
-## Why Ersilia is building skills
-
-Ersilia's work spans science, technology, communications, and operations. Much of the team's expertise lives in people's heads or in scattered documents. Skills are a way to encode that institutional knowledge into reusable AI workflows — making expert-level processes accessible to every contributor, reducing onboarding friction, and ensuring consistent quality across the organisation.
+At a technical level we are using Claude to have a better maintenance of the Ersilia Model Hub, incorporating new models, fixing them, and tracking issues. At a scientific level it allows us to improve scientific literacy, helping us find relevant papers and summarizing them. At an organizational level it helps us improve our visibility and measure our impact on social media and also it is a support for finding new collaboration opportunities, and better tracking our partner collaborators and funders
 
 ---
 
 ## Skill Catalogue
 
-At Ersilia, we have divided the skills we are developing and using into several categories, according to what we use them for. 
-They are still being developed and tested by the Ersilia team, and once they are ready they will be listed and available
+At Ersilia, we have divided the skills we are developing according to four goals we want to achieve:
+1. New connection with funders
+2. Better public reach
+3. Ersilia Model Hub Growth
+4. Improve scientific literacy
 
-**Status definitions**:
-- `scaffold` — structure and arguments defined; workflow written but not tested or validated
-- `draft` — skill has been used and iterated on; mostly reliable but still evolving
-- `ready` — skill has been reviewed, tested, and is considered reliable for regular use
-
----
-
-## Repository Structure
-
-```
-claude-ersilia-skills/
-├── .claude-plugin/
-│   └── plugin.json                     # Plugin manifest
-├── skills/
-│   ├── slack-summaries/
-│   │   ├── SKILL.md                    # Skill definition
-│   │   └── references/                 # Supporting knowledge-base files
-│   ├── grant-tracking/
-│   ├── model-incorporation/
-│   └── ... (25 skills total)
-└── README.md
-```
+Each set of skills is designed to help us achieve one of these four goals. Some skills are still being developed and tested by the Ersilia team, and once they are ready they will be listed and made available.
 
 Each skill follows the same layout: a `SKILL.md` file containing the workflow definition, and a `references/` folder for any supporting documents the skill reads at runtime (e.g., brand guidelines, metadata vocabularies, knowledge bases).
 
