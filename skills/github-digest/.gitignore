@@ -1,0 +1,11 @@
+# Generated digest output — ephemeral local staging only. The canonical home for digests is
+# the remote repo `ersilia-os/digests` (uploaded by scripts/upload_digest.py); the skill
+# deletes the local file after a successful push (SKILL.md Step 9), so nothing here is kept.
+# A file only lingers from a --dry-run preview or a failed/un-pushed upload.
+digests/
+
+# Python bytecode from the fetch/reconcile scripts.
+scripts/__pycache__/
+
+# Scratch JSON the scripts write to /tmp by default, but if redirected here:
+*.tmp.json
