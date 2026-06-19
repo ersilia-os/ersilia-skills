@@ -18,8 +18,12 @@ engineering team watches GitHub activity. (For reference, the literature digest 
 Activity: {prs_merged} PRs merged · {prs_opened} opened · {issues_closed} issues closed · {issues_opened} opened (non-model repos).
 Attention: {n_stale_prs} stale PRs · {n_open_issues} open issues. Registry: {n_missing} missing · {n_status_mm}+{n_type_mm} misaligned · {n_curation} need curation.
 
-Read it on GitHub: {html_url}
+Read it: {pages_url}
 ```
+
+`{pages_url}` is the rendered GitHub **Pages** URL — the **first** line printed by
+`upload_digest.py` (`https://ersilia-os.github.io/digests/github/{YY-MM-DD}-github-digest.html`).
+Use it, not the github.com blob URL — it's the reader-friendly page.
 
 ## Field rules
 
@@ -38,7 +42,7 @@ Read it on GitHub: {html_url}
 Activity: 0 PRs merged · 4 opened · 8 issues closed · 1 opened (non-model repos).
 Attention: 5 stale PRs · 349 open issues. Registry: 2 missing · 1+1 misaligned · 6 need curation.
 
-Read it on GitHub: https://github.com/ersilia-os/digests/blob/main/github/26-06-16-github-digest.md
+Read it: https://ersilia-os.github.io/digests/github/26-06-16-github-digest.html
 ```
 
 ## Rules of decorum

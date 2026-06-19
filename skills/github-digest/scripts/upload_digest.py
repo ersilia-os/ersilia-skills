@@ -21,8 +21,10 @@ already copies every top-level category folder into the site, so no workflow cha
 needed. See the skill's SKILL.md "One-time setup" note.
 
 Exit codes:
-- 0 on successful upload + README update; the GitHub `html_url` of the digest and the
-  README are printed to stdout, one per line, so the skill can hand the user links.
+- 0 on successful upload + README update. URLs are printed to stdout, one per line, so the
+  skill can hand the user links: line 1 is the canonical GitHub **Pages** URL (the rendered
+  page — use this for Slack and for the user), line 2 the github.com source blob, then the
+  download URL (if any) and the README URL.
 - 2 if the remote digest file already exists and `--force` was not passed.
 - 1 on any other error (auth, network, malformed input). If the file upload succeeded
   but the README update failed, exit code is also 1 and the failure reason is on stderr
@@ -301,7 +303,19 @@ def main(argv: list[str] | None = None) -> int:
     content = response.get("content") or {}
     html_url = content.get("html_url") or f"https://github.com/{args.repo}/blob/{args.branch}/{remote_path}"
     download_url = content.get("download_url") or ""
-    print(html_url)
+
+    # Canonical read URL = the rendered GitHub Pages page (project site at
+    # <owner>.github.io/<repo>). Default Jekyll permalinks turn <dir>/<name>.md into
+    # <dir>/<name>.html. This is the link to hand to the user and post to Slack.
+    owner_repo = args.repo.split("/", 1)
+    if len(owner_repo) == 2:
+        owner, reponame = owner_repo
+        pages_url = f"https://{owner}.github.io/{reponame}/{args.remote_dir.strip('/')}/{local.stem}.html"
+    else:
+        pages_url = html_url
+
+    print(pages_url)   # line 1: canonical Pages URL (hand to user, post to Slack)
+    print(html_url)    # line 2: github.com source blob
     if download_url:
         print(download_url)
 

@@ -12,8 +12,12 @@ the `--no-readme` path mid-step.
 
 {N} items across {N_chapters} chapters: {chapter_names_short_list}.
 
-Read it on GitHub: {html_url}
+Read it: {pages_url}
 ```
+
+`{pages_url}` is the rendered GitHub **Pages** URL — the **first** line printed by
+`upload_digest.py` (`https://ersilia-os.github.io/digests/literature/{YY-MM-DD}-literature-digest.html`).
+Use it, not the github.com blob URL — it's the reader-friendly page.
 
 ## Field rules
 
@@ -42,7 +46,7 @@ Use these inside the chapter-name list so the message stays compact:
 
 17 items across 4 chapters: AI agents & foundation models, AI/ML methods, Antibiotics & AMR, Global health & open science.
 
-Read it on GitHub: https://github.com/ersilia-os/digests/blob/main/literature/26-05-21-literature-digest.md
+Read it: https://ersilia-os.github.io/digests/literature/26-05-21-literature-digest.html
 ```
 
 ## Rules of decorum

@@ -237,8 +237,10 @@ python scripts/upload_digest.py --digest digests/{YY}-{MM}-{DD}-github-digest.md
   updates the repo `README.md` under `## GitHub digests` (idempotent, date-descending).
 - **Refuses to overwrite** an existing remote file unless `--force` (belt-and-braces with
   Gate C). On exit code 2 (already exists), surface the message and ask before `--force`.
-- On success it prints the digest `html_url` (and README `html_url`) on stdout. Hand those to
-  the user as the digest location — the **remote is canonical**, not the local path.
+- On success it prints URLs on stdout, one per line: **line 1 is the canonical GitHub Pages
+  URL** (`https://ersilia-os.github.io/digests/github/{YY-MM-DD}-github-digest.html`), line 2
+  the github.com source blob, then download/README URLs. Hand the **Pages URL** to the user and
+  use it in the Slack alert — the **remote is canonical**, not the local path.
 - If upload fails for a recoverable reason (network, gh auth lapsed), keep the local file and
   tell the user how to re-run just the upload. Never delete the local file before success.
 
