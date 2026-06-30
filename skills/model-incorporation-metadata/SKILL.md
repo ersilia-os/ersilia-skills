@@ -69,7 +69,12 @@ Use the PDF reading tools to extract:
 
 ### 3. Fetch the source code repository
 
-Use WebFetch on the repository URL (and its README, and key code files if needed) to understand:
+Use WebFetch on the **remote GitHub repository** (the `Source Code` URL from `metadata.yml`). Do not read any local template files — `run_output.csv`, `run_columns.csv`, and `model/framework/` do not exist yet at this stage of the pipeline. Fetch only remote content:
+- The repository README
+- The repository file tree (to understand project structure)
+- Specific remote source files only if needed to clarify output dimension or deployment type
+
+From this, determine:
 - Number of model endpoints / output columns (cross-check with paper)
 - Whether the model calls an external API or runs locally
 - Whether the license/code is from external authors, the Ersilia team, or re-trained
