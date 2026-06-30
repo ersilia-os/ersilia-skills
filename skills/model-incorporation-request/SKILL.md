@@ -145,5 +145,5 @@ After the issue is opened, print the issue URL and explain the next steps:
 3. Fork that repository and clone it locally
 4. Run `/model-incorporation-metadata` to fill in the metadata
 5. Run `/model-incorporation-code` to wire up the model code
-6. Run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
-7. Run `/ersilia-model-test` to validate before submitting a PR
+6. Run `/ersilia-model-test` to validate the model runs correctly before submitting a PR
+7. Run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
