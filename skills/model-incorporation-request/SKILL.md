@@ -72,13 +72,13 @@ Field rules:
 `<Name>` should be concise (2–5 words), title-case, describing what the model does. The Name field is the same `<Name>` without the emoji prefix.
 
 **Slug**
-Lowercase, hyphens only, 3–6 words. Propose a single best option (e.g. `hyper-dimensional-fingerprints`).
+Lowercase, hyphens only, **2–4 words maximum**. Keep it short and memorable — it becomes part of the model's permanent identifier. Propose a single best option (e.g. `mt-gnn-adme`, `morgan-fingerprints`). If you find yourself using more than 4 words, trim ruthlessly.
 
 **Description**
 200–600 characters (hard limits from the GitHub form). Plain English, focused on what a user gets from running this model on a molecule. Do not start with "This model...". Do not include a character count in the table — just show the description text.
 
 **Tags**
-Pick only from the tag list fetched in Phase 1c. Choose all that apply; at least one is required.
+Pick only from the tag list fetched in Phase 1c. Choose **2–4 tags maximum** — only the most directly relevant ones. Do not tag everything that loosely applies; prefer precision over coverage. At least one is required.
 
 **License**
 Match exactly to one of: `MIT`, `GPL-3.0-only`, `GPL-3.0-or-later`, `LGPL-3.0-only`, `LGPL-3.0-or-later`, `AGPL-3.0-only`, `AGPL-3.0-or-later`, `Apache-2.0`, `BSD-2-Clause`, `BSD-3-Clause`, `MPL-2.0`, `CC-BY-3.0`, `CC-BY-4.0`, `Proprietary`, `Non-commercial`, `No-license`. Use `No-license` if no LICENSE file is found.
