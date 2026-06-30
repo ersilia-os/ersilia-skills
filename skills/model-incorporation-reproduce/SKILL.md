@@ -105,6 +105,21 @@ If the dataset cannot be downloaded automatically, tell the user explicitly:
 > "I could not automatically retrieve the [dataset name] dataset. Please provide the test set as
 > a CSV with columns `smiles` and `<label_column>`, or skip this metric."
 
+**Fallback — eosbench:** When a dataset overlaps with eosbench's catalog (ames, herg, hia_hou,
+dili, bbb_martins, clintox, cyp* variants, bioavailability_ma, carcinogens_lagunin,
+pgp_broccatelli, skin_reaction, chembl4649948, chembl4659961), eosbench can supply SMILES +
+labels even when no official split is available. Before proceeding, inform the user:
+
+> "The [dataset] is available via eosbench, but eosbench uses arbitrary CV splits that differ
+> from the paper's protocol. I can run the model on an eosbench fold and give you an indicative
+> result, but the status will be capped at **APPROXIMATE†** regardless of how close the numbers
+> are. Proceed?"
+
+Only proceed if the user confirms. See `references/common-datasets.md` for the eosbench install
+and API. Write the test fold to `/tmp/<model_id>_eosbench_<dataset>.csv` (smiles + label
+columns) and continue to Phase 4 as normal. Track internally that eosbench was used for this
+metric — you will need this in Phase 6.
+
 If N > 1000 molecules, warn the user and offer to sample (suggest n = 500 for speed):
 
 > "This dataset has N molecules — running the model will take several minutes. Proceed with the
@@ -181,9 +196,16 @@ Metric   | Dataset | Reported | Reproduced | Delta   | Status
 ---------|---------|----------|------------|---------|-------
 AUC-ROC  | BACE    | 0.867    | 0.854      | −0.013  | REPRODUCED
 RMSE     | ESOL    | 0.58     | 0.63       | +0.050  | APPROXIMATE
+AUC-ROC  | ames    | 0.901    | 0.887      | −0.014  | APPROXIMATE†
 Accuracy | HIV     | 0.976    | 0.891      | −0.085  | DIVERGENT
 AUC-ROC  | Tox21   | 0.849    | —          | —       | NOT REPRODUCIBLE
+
+† eosbench split used — not the paper's original split; result is indicative only
 ```
+
+If any metric used eosbench as the data source, always include the `†` marker on its status and
+the footnote line at the bottom of the table — even if the status would otherwise be REPRODUCED.
+The cap is unconditional: eosbench splits cannot confirm reproduction.
 
 For each **DIVERGENT** metric, add a short note on likely causes:
 - Different train/test split or scaffold vs random split

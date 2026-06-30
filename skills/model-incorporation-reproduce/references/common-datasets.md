@@ -242,20 +242,97 @@ note in the report that the split may differ from the paper's.
 
 ---
 
+## Ersilia eosbench
+
+eosbench is Ersilia's own standardised benchmark suite. It covers 20 molecular activity datasets
+(18 TDC ADMET + 2 ChEMBL), fetches data from S3 on first use, and caches at `~/.cache/eosbench/`.
+
+> **⚠ Critical caveat:** eosbench splits are **arbitrary** and were explicitly designed to NOT
+> reproduce published benchmarks (TDC, MoleculeNet, or paper-specific protocols). Never use
+> eosbench results to claim REPRODUCED. Any metric computed on eosbench splits is at best
+> **APPROXIMATE** and must be labelled "eosbench split — not paper's original split" in the report.
+
+### Install
+
+```bash
+pip install git+https://github.com/ersilia-os/eosbench.git
+```
+
+### Check available datasets
+
+```bash
+eosbench catalog --source tdc
+```
+
+### Extract raw SMILES + labels
+
+Use `featurization=None` to get SMILES strings instead of fingerprints:
+
+```python
+from eosbench import load_dataset
+import pandas as pd
+
+dataset = load_dataset("tdc", "ames", featurization=None)
+# dataset.X → list of SMILES strings
+# dataset.y → numpy array of binary labels (0/1 for classification)
+
+# Export one fold's test set as a CSV
+train_idx, test_idx = dataset.split[0]
+df = pd.DataFrame({
+    "smiles": [dataset.X[i] for i in test_idx],
+    "label": dataset.y[test_idx]
+})
+df.to_csv("/tmp/eosbench_test.csv", index=False)
+```
+
+### Available TDC datasets (classification)
+
+| Dataset | Description |
+|---|---|
+| ames | Mutagenicity (Ames test) |
+| bbb_martins | Blood-brain barrier permeability |
+| bioavailability_ma | Oral bioavailability |
+| carcinogens_lagunin | Carcinogenicity |
+| clintox | Clinical trial toxicity |
+| cyp1a2_veith | CYP1A2 inhibition |
+| cyp2c19_veith | CYP2C19 inhibition |
+| cyp2c9_substrate_carbonmangels | CYP2C9 substrate |
+| cyp2c9_veith | CYP2C9 inhibition |
+| cyp2d6_substrate_carbonmangels | CYP2D6 substrate |
+| cyp2d6_veith | CYP2D6 inhibition |
+| cyp3a4_substrate_carbonmangels | CYP3A4 substrate |
+| cyp3a4_veith | CYP3A4 inhibition |
+| dili | Drug-induced liver injury |
+| herg | hERG channel blockade |
+| hia_hou | Human intestinal absorption |
+| pgp_broccatelli | P-glycoprotein inhibition |
+| skin_reaction | Skin sensitisation |
+
+### Available ChEMBL datasets
+
+| Dataset | Notes |
+|---|---|
+| chembl4649948 | Large-scale bioactivity |
+| chembl4659961 | Large-scale bioactivity |
+
+---
+
 ## Quick Reference
 
-| Dataset | Task | Size | Download |
-|---|---|---|---|
-| ESOL | Regression | 1128 | S3 direct |
-| FreeSolv | Regression | 642 | S3 direct |
-| Lipophilicity | Regression | 4200 | S3 direct |
-| BACE | Class/Reg | 1513 | S3 direct |
-| BBBP | Classification | 2039 | S3 direct |
-| HIV | Classification | 41127 | S3 direct |
-| Tox21 | Multi-label | ~7831/assay | S3 gz |
-| ClinTox | Classification | 1478 | S3 gz |
-| SIDER | Multi-label | 1427 | S3 gz |
-| ZINC-250k | Property | 250000 | GitHub |
-| ChEMBL assay | Class/Reg | varies | REST API |
-| BindingDB | Regression | varies | Bulk download |
-| PubChem BioAssay | Classification | varies | PUG REST |
+| Dataset | Task | Size | Download | Split warning |
+|---|---|---|---|---|
+| ESOL | Regression | 1128 | S3 direct | |
+| FreeSolv | Regression | 642 | S3 direct | |
+| Lipophilicity | Regression | 4200 | S3 direct | |
+| BACE | Class/Reg | 1513 | S3 direct | |
+| BBBP | Classification | 2039 | S3 direct | |
+| HIV | Classification | 41127 | S3 direct | |
+| Tox21 | Multi-label | ~7831/assay | S3 gz | |
+| ClinTox | Classification | 1478 | S3 gz | |
+| SIDER | Multi-label | 1427 | S3 gz | |
+| ZINC-250k | Property | 250000 | GitHub | |
+| ChEMBL assay | Class/Reg | varies | REST API | |
+| BindingDB | Regression | varies | Bulk download | |
+| PubChem BioAssay | Classification | varies | PUG REST | |
+| eosbench (TDC) | Classification | 18 datasets | pip install | ⚠ arbitrary splits |
+| eosbench (ChEMBL) | Classification | 2 datasets | pip install | ⚠ arbitrary splits |
