@@ -230,3 +230,10 @@ The overall verdict goes at the top of the report, followed by the per-metric ta
 
 - `scripts/compute_metrics.py` — standalone metric computation script. Run via `python
   <path>/compute_metrics.py --help` to see all options.
+
+---
+
+## Next steps
+
+> **Remaining step:**
+> 1. Push and open a pull request from your fork to `ersilia-os/eosXXXX`

@@ -369,3 +369,12 @@ Before declaring the work done, verify:
 - [ ] No hardcoded absolute paths anywhere in the code
 - [ ] `metadata.yml` is consistent with the files produced: model type (Task field)
   matches the outputs and output column names match what is declared
+
+---
+
+## Next steps
+
+> **Remaining steps:**
+> 1. Run `/ersilia-model-test` to validate the model runs correctly
+> 2. Run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
+> 3. Push and open a pull request from your fork to `ersilia-os/eosXXXX`

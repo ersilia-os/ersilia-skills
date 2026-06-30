@@ -93,3 +93,11 @@ Only apply fixes if the user says yes. If the user asks you to apply, make the c
 ├── metadata.yml
 └── install.yml
 ```
+
+---
+
+## Next steps
+
+> **Remaining steps:**
+> 1. Run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
+> 2. Push and open a pull request from your fork to `ersilia-os/eosXXXX`

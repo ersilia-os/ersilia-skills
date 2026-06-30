@@ -181,9 +181,17 @@ Edit the file in place, replacing only the confirmed fields. Keep the YAML forma
 
 **YAML safety**: any string value that contains a colon (`:`) must be wrapped in double quotes, e.g. `Interpretation: "Predicted log solubility: higher values indicate better solubility."` — otherwise the YAML is invalid. Before writing, check every string field you are changing for colons and quote it if needed.
 
-### 7. Confirm
+### 7. Confirm and hand off
 
 Print a one-line confirmation: "Done — N fields updated in `<path>/metadata.yml`."
+
+Then list the remaining pipeline steps:
+
+> **Remaining steps:**
+> 1. Run `/model-incorporation-code` to wire up the model code into the template repository
+> 2. Run `/ersilia-model-test` to validate the model runs correctly
+> 3. Run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
+> 4. Push and open a pull request from your fork to `ersilia-os/eosXXXX`
 
 ## When you cannot determine a value
 
