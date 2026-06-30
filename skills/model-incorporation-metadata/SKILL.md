@@ -128,6 +128,8 @@ This is often explicit in the paper ("6 endpoints", "512-dimensional vector"). I
 **Interpretation**
 Write **exactly one sentence**. Hard limit: 20 words. Do not write two sentences. Do not start with "The model" — start with the output itself.
 
+**Never use a colon (`:`) in the interpretation text** — colons break YAML parsing. Use a semicolon (`;`) or rephrase instead.
+
 Good examples:
 - `Higher score indicates greater predicted probability of anti-malarial activity.`
 - `100 features encoding molecular structure from a pretrained MACAW autoencoder.`
@@ -175,7 +177,9 @@ Only proceed to Step 6 once the user confirms. If the user corrects a value, upd
 
 ### 6. Write the updated metadata.yml
 
-Edit the file in place, replacing only the confirmed fields. Keep the YAML formatting consistent with the rest of the file (use list syntax for list fields, plain string for string fields, integer for integer fields). Do not add quotes unless the original file uses them for that field.
+Edit the file in place, replacing only the confirmed fields. Keep the YAML formatting consistent with the rest of the file (use list syntax for list fields, plain string for string fields, integer for integer fields).
+
+**YAML safety**: any string value that contains a colon (`:`) must be wrapped in double quotes, e.g. `Interpretation: "Predicted log solubility: higher values indicate better solubility."` — otherwise the YAML is invalid. Before writing, check every string field you are changing for colons and quote it if needed.
 
 ### 7. Confirm
 
