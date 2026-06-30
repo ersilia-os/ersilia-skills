@@ -149,13 +149,32 @@ The `Publication` field must be a DOI URL in the format `https://doi.org/...`. T
 **Publication Year**
 Extract the year of publication from the paper or publication URL.
 
-### 5. Write the updated metadata.yml
+### 5. Propose all changes and ask for confirmation
 
-Edit the file in place, replacing only the fields listed above. Keep the YAML formatting consistent with the rest of the file (use list syntax for list fields, plain string for string fields, integer for integer fields). Do not add quotes unless the original file uses them for that field.
+Before writing anything, present every proposed value in a table:
 
-### 6. Show the user what you changed
+| Field | Current value | Proposed value | Source |
+|---|---|---|---|
+| Deployment | … | [Local] | default |
+| Source | … | Local | default |
+| Task | … | Annotation | paper §2 |
+| … | … | … | … |
 
-Print a brief summary of the fields you filled in and the values chosen. If any field required a judgment call or the evidence was ambiguous, say so clearly and invite the user to verify.
+The "Source" column should briefly indicate where the value came from (e.g. "paper §2", "repo README", "default", "user input"). Flag any field where the evidence was ambiguous with a note in the Source column (e.g. "paper unclear — assumed 512").
+
+Then ask:
+
+> "These are the values I propose to write to `metadata.yml`. Please confirm or correct any field before I update the file."
+
+Only proceed to Step 6 once the user confirms. If the user corrects a value, update the table and re-show it before asking again.
+
+### 6. Write the updated metadata.yml
+
+Edit the file in place, replacing only the confirmed fields. Keep the YAML formatting consistent with the rest of the file (use list syntax for list fields, plain string for string fields, integer for integer fields). Do not add quotes unless the original file uses them for that field.
+
+### 7. Confirm
+
+Print a one-line confirmation: "Done — N fields updated in `<path>/metadata.yml`."
 
 ## When you cannot determine a value
 
