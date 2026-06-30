@@ -16,9 +16,14 @@
         │   └── *.py        # helper scripts copied from the source model
         ├── columns/
         │   └── run_columns.csv
-        └── examples/
-            ├── run_input.csv
-            └── run_output.csv
+        ├── examples/
+        │   ├── run_input.csv
+        │   └── run_output.csv
+        └── fit/            # training code — populated only when checkpoints are not
+            ├── README.md   #   publicly available and retraining is needed
+            ├── data/       # training data or download scripts
+            ├── results/    # output checkpoints from training (copy to model/checkpoints/)
+            └── src/        # training scripts copied from the source repo
 ```
 
 ---

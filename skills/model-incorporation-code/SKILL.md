@@ -77,12 +77,23 @@ the wiring before writing anything.
 
 ## Phase 2 – Handle Checkpoints
 
-1. Identify all checkpoint / weight files from the source model repo.
-2. Copy them into `<template-repo-path>/model/checkpoints/`. If they are not in the repo
-   but linked externally (Zenodo, Figshare, HuggingFace, Google Drive, direct URL),
-   download them using `wget`, `curl`, or the appropriate Python client
+### Step 1 — Detect whether checkpoints exist
+
+Search the source repo for checkpoint / weight files. Look for files with these extensions:
+`.pt`, `.pth`, `.ckpt`, `.pkl`, `.joblib`, `.h5`, `.hdf5`, `.bin`, `.npy`, `.npz`,
+`.safetensors`, `.weights`. Also check for external links (Zenodo, Figshare, HuggingFace,
+Google Drive, direct URL) in the README.
+
+**If checkpoints are found** → proceed to Step 2 (normal flow).
+
+**If no checkpoints are found** → proceed to the [Missing checkpoints](#missing-checkpoints) branch below, then return here to continue once the checkpoint is in place.
+
+### Step 2 — Copy / download checkpoints (normal flow)
+
+1. Copy checkpoint files into `<template-repo-path>/model/checkpoints/`. If they are linked
+   externally, download them using `wget`, `curl`, or the appropriate Python client
    (e.g. `huggingface_hub`, `gdown`).
-3. For each checkpoint file **≥ 100 MB**, ask the user how they want to store it:
+2. For each checkpoint file **≥ 100 MB**, ask the user how they want to store it:
    - **Git LFS** — file stays in the repository, tracked via Git LFS.
    - **eosvc** — file is hosted externally on the Ersilia volume cloud storage; do not
      commit it to the repository.
@@ -96,9 +107,9 @@ the wiring before writing anything.
    If the user chooses **eosvc**, do not add the file to git at all — note that it will
    be fetched at runtime from eosvc and document this in the code comments of `main.py`.
 
-4. If no checkpoints are needed (pure algorithmic model), note this explicitly and
+3. If no checkpoints are needed (pure algorithmic model), note this explicitly and
    leave the directory empty.
-5. **Cleanup — always run these two commands regardless of which storage option was chosen:**
+4. **Cleanup — always run these two commands regardless of which storage option was chosen:**
    ```bash
    rm -f <template-repo-path>/mock.txt
    ```
@@ -108,6 +119,57 @@ the wiring before writing anything.
    rm -f <template-repo-path>/.gitattributes
    ```
    Keep `.gitattributes` only when at least one file is actually tracked by Git LFS.
+
+---
+
+### Missing checkpoints
+
+Only enter this branch if Step 1 found no checkpoints. Search the source repo and paper for:
+- Training scripts (files named `train.py`, `fit.py`, `train_model.py`, or similar; scripts containing `model.fit(`, `trainer.train(`, or `train(` calls)
+- Dataset download scripts or links to publicly available training data (supplementary materials, Zenodo/Figshare DOIs, S3 links)
+- A README section describing how to reproduce training (hyperparameters, data sources)
+
+**Outcome A — Training code and data both available**
+
+The template already contains `model/framework/fit/` with three subdirectories: `src/` for
+training code, `data/` for training data, and `results/` for output checkpoints.
+
+1. Copy the training script(s) into `model/framework/fit/src/`.
+2. If a data download script exists in the source repo, copy it into `model/framework/fit/data/`.
+3. Write `model/framework/fit/README.md` with:
+   - Data source and exact download instructions
+   - Exact training command and hyperparameters (from paper / source repo)
+   - Expected output file(s) — note they should be saved to `model/framework/fit/results/`
+   - Instructions to copy the final checkpoint from `results/` to `model/checkpoints/`
+   - Estimated training time / hardware requirements if mentioned in the paper
+4. Tell the user:
+   > "No pre-trained checkpoints are available. I've populated `model/framework/fit/` with
+   > the training code and instructions. Run the training as described in
+   > `model/framework/fit/README.md`, copy the output checkpoint to `model/checkpoints/`,
+   > then let me know and I'll continue."
+5. **Pause here.** When the user confirms the checkpoint is in `model/checkpoints/`, return to Step 2 above.
+
+**Outcome B — Training code available but data is not public**
+
+1. Copy the training scripts into `model/framework/fit/src/`.
+2. Write `model/framework/fit/README.md` documenting the situation.
+3. Tell the user:
+   > "No checkpoints found. Training code is in `model/framework/fit/src/`, but the training
+   > dataset is not publicly accessible. Options: (1) contact the original authors for the
+   > dataset, (2) check whether a public proxy dataset could be used for retraining,
+   > (3) skip this model for now."
+4. **Stop** — do not proceed to Phase 3 until the user resolves the data access issue.
+
+**Outcome C — No checkpoints and no training code found**
+
+Tell the user openly and stop:
+> "No pre-trained checkpoints were found, and I could not locate training code or public
+> training data in the source repository. This model cannot be incorporated without further
+> investigation. Suggested next steps: (1) check the paper's supplementary materials for a
+> data/code deposit link, (2) contact the original authors to request the checkpoint,
+> (3) check HuggingFace or Zenodo for a related pre-trained model."
+
+Do not create any files. Do not proceed to Phase 3.
 
 ---
 
