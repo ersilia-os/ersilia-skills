@@ -41,17 +41,17 @@ Fill **only** these fields — leave everything else exactly as it is:
 
 ## Step-by-step workflow
 
-### 0. Load allowed values from the ersilia repository
+### 0. Load allowed values from GitHub
 
-Before filling anything, read the three controlled-vocabulary files from the local ersilia repository. They live at:
+Before filling anything, fetch the three controlled-vocabulary files directly from GitHub:
 
 ```
-ersilia-os/ersilia/ersilia/hub/content/metadata/tag.txt
-ersilia-os/ersilia/ersilia/hub/content/metadata/biomedical_area.txt
-ersilia-os/ersilia/ersilia/hub/content/metadata/target_organism.txt
+https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/tag.txt
+https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/biomedical_area.txt
+https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/target_organism.txt
 ```
 
-Each file is newline-separated. Read all three now and keep the lists in memory — you will validate every value you write against them. If you cannot locate the files, ask the user for the path before proceeding.
+Each file is newline-separated. Fetch all three now and keep the lists in memory — you will validate every value you write against them.
 
 ### 1. Read the existing metadata.yml
 
