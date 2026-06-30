@@ -131,8 +131,9 @@ _, smiles_list = read_smiles(input_file)
 write_out(outputs, headers, output_file, np.float32)
 ```
 
-Copy any additional helper `.py` files from the source model that are needed (e.g.
-preprocessing utilities, model class definitions) into
+**Keep `main.py` minimal.** It should contain only argument parsing, I/O, and a single call to `my_model()`. Any logic beyond a few lines — model class definitions, preprocessing, postprocessing, custom tokenisation — belongs in dedicated helper modules (e.g. `predict.py`, `preprocess.py`) in `model/framework/code/`, imported by `main.py`. Create these helper files yourself when needed; do not wait for them to exist in the source model.
+
+Copy any additional helper `.py` files from the source model that are needed into
 `<template-repo-path>/model/framework/code/`.
 
 See `references/main-py-patterns.md` for annotated patterns organised by model type.
