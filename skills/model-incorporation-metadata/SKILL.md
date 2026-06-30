@@ -1,6 +1,6 @@
 ---
 name: model-incorporation-metadata
-description: Fills in the required metadata fields for an Ersilia Model Hub model, given the original publication as a PDF and the link to the original code repository. Use this skill whenever a user wants to populate, complete, or update a metadata.yml file for an Ersilia model, mentions an Ersilia model contribution, or is working on model metadata for the Ersilia Model Hub. Trigger even if the user just says "fill in the metadata" or "help me with the metadata.yml" in any Ersilia context.
+description: Fills in the required metadata fields for an Ersilia Model Hub model, given the metadata.yml file and the original publication PDF. Reads the source code URL directly from the metadata file — no need to provide it separately. Use this skill whenever a user wants to populate, complete, or update a metadata.yml file for an Ersilia model, mentions an Ersilia model contribution, or is working on model metadata for the Ersilia Model Hub. Trigger even if the user just says "fill in the metadata" or "help me with the metadata.yml" in any Ersilia context.
 ---
 
 # Ersilia Model Metadata Filler
@@ -11,8 +11,9 @@ Your job is to fill in specific fields of an Ersilia model's `metadata.yml` file
 
 The user will provide:
 1. A path to the `metadata.yml` file (already partially filled from the model request)
-2. A path or URL to the original publication (PDF)
-3. A URL to the original source code repository (GitHub or similar)
+2. A path or URL to the original publication PDF
+
+The source code repository URL and publication URL are already in `metadata.yml` — read them from the file in Step 1 rather than asking the user. Only ask if those fields are empty or still contain placeholder text.
 
 ## What you must fill in
 
