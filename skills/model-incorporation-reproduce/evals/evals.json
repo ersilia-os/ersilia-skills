@@ -1,0 +1,23 @@
+{
+  "skill_name": "model-incorporation-reproduce",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I've just incorporated the BACE model (eos6oli) into the template at ~/models/eos6oli. The paper reports AUC-ROC of 0.867 on the BACE test set. Can you reproduce this? /model-incorporation-reproduce --template ~/models/eos6oli --paper ~/papers/bace_model.pdf",
+      "expected_output": "Skill extracts AUC-ROC=0.867 on BACE from the PDF. Identifies BACE as a MoleculeNet dataset (Reproducible). Downloads BACE CSV, validates it (1513 molecules), shows 5-row preview, asks for confirmation. Runs model, computes AUC-ROC with compute_metrics.py. Reports a summary table with REPRODUCED or APPROXIMATE status. Tolerances shown. Overall PASS verdict.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Please reproduce the results for the aqueous solubility model at ~/models/eos3b5e. The paper says RMSE = 0.58 mol/L on the ESOL dataset. --paper ~/papers/esol_model.pdf --template ~/models/eos3b5e /model-incorporation-reproduce",
+      "expected_output": "Skill extracts RMSE=0.58 on ESOL (regression). Classifies ESOL as Reproducible (MoleculeNet standard benchmark). Downloads delaney-processed.csv, applies random 80/10/10 split (notes split may differ from paper). Runs model. Computes RMSE via compute_metrics.py. Reports REPRODUCED or APPROXIMATE with ±10% relative tolerance clearly shown. Explains that small RMSE drift is expected from different random split seed.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I want to reproduce the results from the paper for model ~/models/eos4xyz. The paper reports 92% accuracy on a proprietary internal dataset from their company. PDF is at ~/papers/proprietary_model.pdf. /model-incorporation-reproduce --template ~/models/eos4xyz --paper ~/papers/proprietary_model.pdf",
+      "expected_output": "Skill extracts accuracy=0.92 on the internal proprietary dataset. Checks source repo, paper supplementary, and common-datasets.md — finds no public download. Classifies metric as Not Reproducible. Clearly states it cannot reproduce this metric because the dataset is proprietary and no public equivalent was found. Does NOT invent a dataset or silently skip. Asks if user wants to provide the test set manually as a CSV. If user says no, prints final report with NOT REPRODUCIBLE status and FAIL overall verdict.",
+      "files": []
+    }
+  ]
+}
