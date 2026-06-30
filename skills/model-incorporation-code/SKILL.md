@@ -288,7 +288,7 @@ Format:
 python: "3.10"   # match what the source model was tested on; minimum 3.8
 
 commands:
-  - ["pip", "torch", "2.0.1"]
+  - ["pip", "torch", "2.0.1+cpu", "--index-url", "https://download.pytorch.org/whl/cpu"]
   - ["conda", "rdkit", "2023.09.1", "conda-forge"]
   - ["pip", "git+https://github.com/org/repo.git@v1.2.3"]
   - "some-shell-command --if-needed"
@@ -297,7 +297,14 @@ commands:
 Rules:
 - Pin every version. Check the source model's requirements file for exact versions;
   if a range is given, use the upper bound or the version the model was tested on.
-- Use `conda` entries for packages best installed via conda (e.g. `rdkit`, `cudatoolkit`).
+- **CPU-only packages**: Ersilia models run on CPU. Always install CPU-only builds of
+  GPU packages — never include CUDA, GPU, or `cudatoolkit` entries:
+  - PyTorch: use the `+cpu` suffix and the CPU wheel index:
+    `["pip", "torch", "2.0.1+cpu", "--index-url", "https://download.pytorch.org/whl/cpu"]`
+  - TensorFlow: use `tensorflow-cpu` instead of `tensorflow`.
+  - JAX: use `jax[cpu]` instead of `jax`.
+  - Do not add any `cudatoolkit`, `cuda-toolkit`, or `nvidia-*` conda packages.
+- Use `conda` entries for packages best installed via conda (e.g. `rdkit`, `openbabel`).
 - Use `pip` entries for PyPI packages.
 - Use a git URL entry for packages not on PyPI.
 - Use a plain string for arbitrary shell commands (e.g. `pip install -e .`).
