@@ -1,5 +1,5 @@
 ---
-name: ersilia-metadata
+name: model-incorporation-metadata
 description: Fills in the required metadata fields for an Ersilia Model Hub model, given the original publication as a PDF and the link to the original code repository. Use this skill whenever a user wants to populate, complete, or update a metadata.yml file for an Ersilia model, mentions an Ersilia model contribution, or is working on model metadata for the Ersilia Model Hub. Trigger even if the user just says "fill in the metadata" or "help me with the metadata.yml" in any Ersilia context.
 ---
 
