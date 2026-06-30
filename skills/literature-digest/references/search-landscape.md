@@ -463,7 +463,7 @@ design: the marker reflects World Bank classification, not Ersilia's relationshi
 
 ## Task / Subtask taxonomy
 
-Canonical vocabulary from `skills/ersilia-metadata/SKILL.md`, validated against the
+Canonical vocabulary from `skills/model-incorporation-metadata/SKILL.md`, validated against the
 189 Ready models in the Hub (see `hub-incorporation-criteria.md` for the empirical
 distribution). The "Hub share" column shows what fraction of the Hub each subtask
 accounts for — use it as a prior when triaging.

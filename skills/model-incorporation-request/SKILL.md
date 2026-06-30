@@ -143,6 +143,7 @@ After the issue is opened, print the issue URL and explain the next steps:
 1. An Ersilia admin will review and approve the request
 2. Once approved, a new model repository (`eosXXXX`) is created under `ersilia-os`
 3. Fork that repository and clone it locally
-4. Run `/ersilia-metadata` to fill in the metadata
+4. Run `/model-incorporation-metadata` to fill in the metadata
 5. Run `/model-incorporation-code` to wire up the model code
-6. Run `/ersilia-model-test` to validate before submitting a PR
+6. Run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
+7. Run `/ersilia-model-test` to validate before submitting a PR
