@@ -75,6 +75,14 @@ Then ask: *"Would you like me to apply these fixes?"*
 
 Only apply fixes if the user says yes. If the user asks you to apply, make the changes and then re-run the test to confirm.
 
+## Cleanup
+
+After presenting findings (or after any re-run), delete the JSON report:
+
+```bash
+rm -f <model_path>/<model_id>-test.json
+```
+
 ## Model template structure (for reference)
 
 ```
