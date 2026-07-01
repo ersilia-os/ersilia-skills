@@ -18,6 +18,16 @@ Each set of skills is designed to help us achieve one of these four goals. Some 
 
 Each skill follows the same layout: a `SKILL.md` file containing the workflow definition, and a `references/` folder for any supporting documents the skill reads at runtime (e.g., brand guidelines, metadata vocabularies, knowledge bases).
 
+| Name | Skill |
+|------|-------|
+| model-incorporation-request | Open a model request issue on ersilia-os/ersilia. |
+| model-incorporation-metadata | Fill in metadata.yml from the paper and source repo. |
+| model-incorporation-code | Wire the model code into the Ersilia template. |
+| model-incorporation-reproduce | Verifies model outcomes/performance matches the original work. |
+| ersilia-model-test | Tests an Ersilia Model Hub model before hub incorporation. |
+| stylia-plotting | How to create Python plots using the stylia package — Ersilia's matplotlib wrapper for publication-ready figures. |
+| literature-review | Given a topic, offer a structured review from the literature. This review will provide you with relevant research/review papers, alongside potential ML models and datasets that can be included in Ersilia. |
+
 ---
 
 ## How Skills Are Structured
