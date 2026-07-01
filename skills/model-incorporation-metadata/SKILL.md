@@ -21,20 +21,20 @@ Fill **only** these fields — leave everything else exactly as it is:
 
 | Field | Type | Accepted values |
 |-------|------|-----------------|
-| `Deployment` | list | `Local`, `Online` |
-| `Source` | string | `Local`, `Online` |
-| `Source Type` | string | `External`, `Internal`, `Replicated` |
-| `Task` | string | `Annotation`, `Representation`, `Sampling` |
-| `Subtask` | string | `Property calculation or prediction`, `Activity prediction`, `Featurization`, `Projection`, `Similarity search`, `Generation` |
-| `Output` | list | `Score`, `Value`, `Compound`, `Text` |
+| `Deployment` | list | see `deployment.txt` |
+| `Source` | string | see `source.txt` |
+| `Source Type` | string | see `source_type.txt` |
+| `Task` | string | see `task.txt` |
+| `Subtask` | string | see `subtask.txt` |
+| `Output` | list | see `output.txt` |
 | `Output Dimension` | integer | number of output values per input compound |
-| `Output Consistency` | string | `Fixed`, `Variable` |
+| `Output Consistency` | string | see `output_consistency.txt` |
 | `Interpretation` | string | one sentence, max 20 words |
-| `Tag` | list | see allowed values below |
-| `Biomedical Area` | list | see allowed values below |
-| `Target Organism` | list | see allowed values below |
+| `Tag` | list | see `tag.txt` |
+| `Biomedical Area` | list | see `biomedical_area.txt` |
+| `Target Organism` | list | see `target_organism.txt` |
 | `Publication` | string | must be a DOI URL: `https://doi.org/...` |
-| `Publication Type` | string | `Peer reviewed`, `Preprint`, `Other` |
+| `Publication Type` | string | see `publication_type.txt` |
 | `Publication Year` | integer | year |
 
 **Never modify**: Identifier, Slug, Status, Title, Description, Source Code, License, Contributor, and any auto-populated fields (Incorporation Date, S3, DockerHub, Model Size, etc.)
@@ -43,15 +43,23 @@ Fill **only** these fields — leave everything else exactly as it is:
 
 ### 0. Load allowed values from GitHub
 
-Before filling anything, fetch the three controlled-vocabulary files directly from GitHub:
+Before filling anything, fetch all eleven controlled-vocabulary files directly from GitHub:
 
 ```
 https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/tag.txt
 https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/biomedical_area.txt
 https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/target_organism.txt
+https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/task.txt
+https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/subtask.txt
+https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/output.txt
+https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/output_consistency.txt
+https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/source.txt
+https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/source_type.txt
+https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/deployment.txt
+https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/publication_type.txt
 ```
 
-Each file is newline-separated. Fetch all three now and keep the lists in memory — you will validate every value you write against them.
+Each file is newline-separated. Fetch all eleven now and keep the lists in memory — you will validate every value you write against them.
 
 ### 1. Read the existing metadata.yml
 
@@ -84,17 +92,19 @@ From this, determine:
 Work through the fields systematically:
 
 **Deployment + Source**
+Use only values from the `deployment.txt` and `source.txt` lists fetched in Step 0.
 - `Deployment: [Local]` and `Source: Local` for the vast majority of models — the model runs in Ersilia's infrastructure.
 - Use `Online` only if the model posts predictions to an external third-party server/API that Ersilia does not control.
 - `Deployment` is a list; `Source` is a single string.
 
 **Source Type**
+Use only values from the `source_type.txt` list fetched in Step 0.
 - `External`: the model was developed by third-party authors (most models incorporated from published papers).
 - `Internal`: developed by the Ersilia team themselves.
 - `Replicated`: Ersilia re-trained the model following the original authors' methodology.
 
 **Task + Subtask**
-Choose Task first, then the corresponding Subtask:
+Use only values from the `task.txt` and `subtask.txt` lists fetched in Step 0. Choose Task first, then the corresponding Subtask:
 - `Annotation` → model assigns a label or score to a molecule
   - `Activity prediction` if the output is biological/pharmacological activity
   - `Property calculation or prediction` if the output is a physicochemical or ADMET property
@@ -106,11 +116,12 @@ Choose Task first, then the corresponding Subtask:
   - `Similarity search` if it retrieves similar molecules from a database
 
 **Output**
+Use only values from the `output.txt` list fetched in Step 0. Can be a list if the model has mixed output types.
 - `Score`: a probability or likelihood (0–1 range, binary classification output)
 - `Value`: a numerical measurement (IC50, logP, pKa, molecular weight, descriptors, embeddings…)
 - `Compound`: a generated or retrieved molecule (SMILES or InChI)
 - `Text`: natural language output
-- Can be a list if the model has mixed output types. Example: a model returning both a probability and an associated value would be `[Score, Value]`.
+- Example: a model returning both a probability and an associated value would be `[Score, Value]`.
 
 **Output Dimension**
 The number of output values produced per input compound. Only count continuous numeric outputs (scores, values) — do not count binary class labels separately. So a model with 6 endpoints each returning one probability score has Output Dimension 6, not 12.
@@ -122,6 +133,7 @@ This is often explicit in the paper ("6 endpoints", "512-dimensional vector"). I
 - If the vector size is configurable (e.g., `n_components` is a user parameter), **ask the user** — do not guess a default from examples in the docs
 
 **Output Consistency**
+Use only values from the `output_consistency.txt` list fetched in Step 0.
 - `Fixed`: the model always returns the same output for the same input (most QSAR models, classifiers, regression models)
 - `Variable`: the model is stochastic and may return different outputs on repeated runs (generative models, models with dropout at inference, sampling-based methods)
 
@@ -149,6 +161,7 @@ Choose one or more values from the list you read in Step 0 (`target_organism.txt
 The `Publication` field must be a DOI URL in the format `https://doi.org/...`. This applies to both peer-reviewed articles and preprints (bioRxiv, ChemRxiv, and arXiv all issue DOIs). If the existing metadata contains a PubMed URL, abstract page, or journal landing page, locate and substitute the DOI. If genuinely no DOI exists, use the most stable URL available and note this to the user.
 
 **Publication Type**
+Use only values from the `publication_type.txt` list fetched in Step 0.
 - `Peer reviewed` for articles published in journals (DOI typically starts with `10.1`, `10.3`, `10.7`, etc.)
 - `Preprint` for bioRxiv (`10.1101/`), ChemRxiv (`10.26434/`), arXiv (`10.48550/`)
 - `Other` only in exceptional cases (thesis, technical report, no publication)

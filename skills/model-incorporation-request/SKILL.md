@@ -41,13 +41,14 @@ Use WebFetch on the repository URL (README and root files) to extract:
 - License — look for a LICENSE file or license field in pyproject.toml / setup.py / package.json
 - Any additional context for the description or tags
 
-### 1c. Fetch the valid tag list
+### 1c. Fetch the valid tag and license lists
 
-Fetch the current tag list at runtime from:
+Fetch both files at runtime:
 ```
 https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/tag.txt
+https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/metadata/license.txt
 ```
-Use only tags from this list. Do not invent tags.
+Both are newline-separated. Keep both lists in memory — you will validate tags and the license against them.
 
 ---
 
@@ -81,7 +82,7 @@ Lowercase, hyphens only, **2–4 words maximum**. Keep it short and memorable �
 Pick only from the tag list fetched in Phase 1c. Choose **2–4 tags maximum** — only the most directly relevant ones. Do not tag everything that loosely applies; prefer precision over coverage. At least one is required.
 
 **License**
-Match exactly to one of: `MIT`, `GPL-3.0-only`, `GPL-3.0-or-later`, `LGPL-3.0-only`, `LGPL-3.0-or-later`, `AGPL-3.0-only`, `AGPL-3.0-or-later`, `Apache-2.0`, `BSD-2-Clause`, `BSD-3-Clause`, `MPL-2.0`, `CC-BY-3.0`, `CC-BY-4.0`, `Proprietary`, `Non-commercial`, `No-license`. Use `No-license` if no LICENSE file is found.
+Use only values from the `license.txt` list fetched in Phase 1c. Use `None` if no LICENSE file is found.
 
 After presenting the table, ask: *"Does this look correct? Let me know any changes and I'll open the issue."*
 
