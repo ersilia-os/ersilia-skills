@@ -104,8 +104,16 @@ Google Drive, direct URL) in the README.
    - Run `git lfs track "<pattern>"` or manually add the entry.
    - Stage `.gitattributes` with `git add .gitattributes`.
 
-   If the user chooses **eosvc**, do not add the file to git at all — note that it will
-   be fetched at runtime from eosvc and document this in the code comments of `main.py`.
+   If the user chooses **eosvc**:
+   - Do not add the checkpoint file to git.
+   - Upload it to eosvc from the model repo root (requires the `eosvc` conda environment
+     and AWS credentials configured in `.env` or `.config`):
+     ```bash
+     conda run -n eosvc eosvc upload --path .
+     ```
+     This uploads `model/checkpoints/` (and `model/framework/fit/` if present) to S3.
+   - Document in the code comments of `main.py` that the checkpoint is fetched at runtime
+     from eosvc.
 
 3. If no checkpoints are needed (pure algorithmic model), note this explicitly and
    leave the directory empty.
