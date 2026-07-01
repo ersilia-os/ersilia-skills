@@ -16,9 +16,14 @@
         │   └── *.py        # helper scripts copied from the source model
         ├── columns/
         │   └── run_columns.csv
-        └── examples/
-            ├── run_input.csv
-            └── run_output.csv
+        ├── examples/
+        │   ├── run_input.csv
+        │   └── run_output.csv
+        └── fit/            # training code — populated only when checkpoints are not
+            ├── README.md   #   publicly available and retraining is needed
+            ├── data/       # training data or download scripts
+            ├── results/    # output checkpoints from training (copy to model/checkpoints/)
+            └── src/        # training scripts copied from the source repo
 ```
 
 ---
@@ -116,8 +121,8 @@ commands:
   # conda package from conda-forge
   - ["conda", "rdkit", "2023.09.1", "conda-forge"]
 
-  # conda package from defaults channel (omit channel)
-  - ["conda", "cudatoolkit", "11.8.0"]
+  # PyTorch CPU-only build (always use this — Ersilia models run on CPU)
+  - ["pip", "torch", "2.0.1+cpu", "--index-url", "https://download.pytorch.org/whl/cpu"]
 
   # git URL (for packages not on PyPI or needing a specific commit)
   - ["pip", "git+https://github.com/org/repo.git@v1.2.3"]
@@ -129,8 +134,12 @@ commands:
 ### Tips
 - **Always pin exact versions.** Ranges like `>=1.0` are not allowed.
 - **Order matters**: install base libraries (numpy, torch) before downstream ones.
-- If the source model lists only `torch` without a CUDA suffix, default to the CPU
-  build unless the model requires GPU inference.
+- **CPU only — no CUDA packages.** Ersilia models run on CPU in production. Always
+  install CPU-only builds and never include `cudatoolkit`, `cuda-toolkit`, or any
+  `nvidia-*` packages:
+  - PyTorch: `["pip", "torch", "<version>+cpu", "--index-url", "https://download.pytorch.org/whl/cpu"]`
+  - TensorFlow: use `tensorflow-cpu` (not `tensorflow`)
+  - JAX: use `jax[cpu]` (not `jax`)
 - Use `conda` for packages with C extensions that conda ships better
   (e.g. `rdkit`, `openbabel`, `openmm`).
 
