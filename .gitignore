@@ -4,6 +4,9 @@
 # macOS
 .DS_Store
 
+# Personal notes
+_model_incorporation_docs.md
+
 # Python
 __pycache__/
 *.py[cod]

@@ -75,6 +75,14 @@ Then ask: *"Would you like me to apply these fixes?"*
 
 Only apply fixes if the user says yes. If the user asks you to apply, make the changes and then re-run the test to confirm.
 
+## Cleanup
+
+After presenting findings (or after any re-run), delete the JSON report:
+
+```bash
+rm -f <model_path>/<model_id>-test.json
+```
+
 ## Model template structure (for reference)
 
 ```
@@ -93,3 +101,11 @@ Only apply fixes if the user says yes. If the user asks you to apply, make the c
 ├── metadata.yml
 └── install.yml
 ```
+
+---
+
+## Next steps
+
+> **Remaining steps:**
+> 1. Run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
+> 2. Push and open a pull request from your fork to `ersilia-os/eosXXXX`

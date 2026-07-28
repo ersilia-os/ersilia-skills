@@ -9,7 +9,7 @@
 - **CNS penetration is non-negotiable for late-stage HAT (T2).** Fexinidazole replaced melarsoprol partly because it crosses the BBB; flag any candidate's `bbb_*` column accordingly.
 - **Intramacrophage activity matters for *L. donovani* and *T. cruzi*.** Cell-free trypomastigote/promastigote activity is a starting point; intracellular amastigote activity is the predictive assay.
 - **Chronic Chagas needs months of dosing** → strict tolerability + low DDI burden. Benznidazole's known hepatotox and skin reactions set the bar a new entity must clear.
-- **DNDi Target Product Profiles** ([DNDi TPPs](https://dndi.org/research-development/target-product-profile/)) codify the property windows per indication. Cross-reference when `--context` names HAT, Chagas, or leishmaniasis.
+- **DNDi Target Product Profiles** ([DNDi TPPs](https://dndi.org/research-development/target-product-profile/)) codify the property windows per indication. Cross-reference when the therapeutic context names HAT, Chagas, or leishmaniasis.
 - **Avoid amphotericin-class polyenes for novel-lead positioning.** Liposomal amphotericin B is the leishmaniasis gold standard but is IV-only, expensive, and chemically saturated as a class.
 
 ## Pathogen biology essentials

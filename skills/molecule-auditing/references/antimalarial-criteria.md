@@ -10,7 +10,7 @@
 - **Single-dose oral cure is the gold standard.** Half-life and absorption matter more than for chronic indications; flag any candidate with predicted poor `bioavailability` or `hia` against this goal.
 - **PfCRT / Kelch13 awareness.** A new chloroquine-like (4-aminoquinoline) or artemisinin-like (endoperoxide) chemotype will face pre-existing resistance markers; novel scaffolds against PfATP4, PI4K, or DHODH are scientifically preferred.
 - **Embryotoxicity / teratogenicity** matters because malaria affects pregnant women — flag any compound with a teratogen signal, and note that primaquine and tafenoquine are contraindicated in G6PD deficiency.
-- **MMV TCPs (Target Candidate Profiles)** codify the property windows for each indication ([Burrows 2017](https://doi.org/10.1186/s12936-017-1733-z)) — when a `--context` value names malaria or a parasite, cross-reference the TCPs in the report.
+- **MMV TCPs (Target Candidate Profiles)** codify the property windows for each indication ([Burrows 2017](https://doi.org/10.1186/s12936-017-1733-z)) — when the therapeutic context names malaria or a parasite, cross-reference the TCPs.
 
 ## Pathogen biology essentials
 
@@ -61,7 +61,7 @@ Target window for new leads: **MW 280–400, LogP 2.5–4.5, TPSA 40–70, HBD �
 
 ## Structural traits that lower activity or signal liabilities
 
-- **Pure 4-aminoquinolines closely resembling chloroquine** (Tanimoto ≥ 0.5) will inherit PfCRT-mediated resistance; novel scaffolds preferred.
+- **Pure 4-aminoquinolines closely resembling chloroquine** will inherit PfCRT-mediated resistance; novel scaffolds preferred.
 - **Pure artemisinin-like endoperoxides** are now compromised in Southeast Asia by Kelch13 mutations ([Witkowski 2013](https://doi.org/10.1016/S1473-3099(13)70252-4)). Combination therapy is mandatory; monotherapy in screening is the wrong frame.
 - **Highly polar / charged compounds** rarely accumulate in the digestive vacuole or cross multiple membranes (parasite, parasitophorous vacuole, erythrocyte).
 - **Pure antifolate scaffolds** (diaminopyrimidine + sulfonamide partner) face widespread DHFR/DHPS mutations.
@@ -94,7 +94,7 @@ The parasite lives inside an erythrocyte, inside a parasitophorous vacuole, with
 - **TCP-4** — transmission-blocking: kills gametocytes or interrupts mosquito-stage development.
 - **TCP-5** — *P. vivax* radical cure (blood + liver). Effectively TCP-1 + TCP-2.
 
-Each TCP has its own property and PK criteria. For an audit, the relevant TCP comes from `--context` ("blood-stage", "liver-stage", "transmission", etc.) or model-metadata target organism.
+Each TCP has its own property and PK criteria. For an audit, the relevant TCP comes from the stated therapeutic context ("blood-stage", "liver-stage", "transmission", etc.) or the model-metadata target organism.
 
 ## Mechanism-of-action shortcuts
 

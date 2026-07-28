@@ -1,10 +1,80 @@
 # Literature Search API Reference
 
-> **Environment note:** In Claude.ai, direct HTTP calls to PubMed and Europe PMC may be
-> blocked by the network egress policy. In that case, use `web_search` with `site:` prefixes
-> as described in SKILL.md. The API patterns below apply in Claude Code / Cowork environments
-> where the domains `eutils.ncbi.nlm.nih.gov` and `www.ebi.ac.uk` have been added to the
-> network allowlist.
+> **Environment note:** In Claude.ai, direct HTTP calls may be blocked by the network egress
+> policy. In that case, use `web_search` with `site:` prefixes as described in SKILL.md. The
+> API patterns below apply in Claude Code / Cowork environments where the relevant domains
+> (`api.semanticscholar.org`, `eutils.ncbi.nlm.nih.gov`, `www.ebi.ac.uk`, `api.crossref.org`)
+> are on the network allowlist.
+
+**Engine priority:** Semantic Scholar and Google Scholar are the two **primary** engines
+(§0). PubMed, Europe PMC, Crossref, and the preprint servers are supplements / verification.
+
+---
+
+## 0. Primary engines
+
+### 0a. Semantic Scholar Graph API
+
+One call returns everything needed to screen a hit: title, year, venue, DOI, citation count,
+and open-access PDF.
+
+> **Rate limit — read this.** The keyless endpoint shares one global pool and is in practice
+> heavily throttled: batches of queries mostly return `429` even with 10–12 s backoff. Treat
+> keyless S2 as best-effort, not reliable. For real throughput, request a **free API key**
+> (<https://www.semanticscholar.org/product/api#api-key-form>) and pass it as the
+> `x-api-key` header. **Without a key, lean on Google Scholar / `web_search` (§0b) as the
+> working primary engine** and use S2 opportunistically for the structured fields and
+> snowballing on hits that do come back.
+
+Base URL: `https://api.semanticscholar.org/graph/v1/`
+
+```bash
+curl -s "https://api.semanticscholar.org/graph/v1/paper/search?\
+query=<URL_ENCODED_QUERY>&limit=20&fields=title,year,venue,externalIds,citationCount,openAccessPdf,authors"
+```
+
+Response path: `data["data"]` → list of papers. Key fields per paper:
+- `title`, `year`, `venue`, `citationCount`
+- `externalIds.DOI` (use for the Hub-exclusion match and the canonical URL)
+- `externalIds.PubMed` (PMID)
+- `authors[0].name` (first author — split surname; still verify via Crossref if used in an entry)
+- `openAccessPdf.url` (free full text when present)
+
+**Snowballing** — pull the references / citing papers of a strong hit (needs the S2 paper ID,
+`externalIds.CorpusId`, or a DOI):
+
+```bash
+curl -s "https://api.semanticscholar.org/graph/v1/paper/DOI:<doi>/references?\
+fields=title,year,venue,externalIds&limit=50"
+# swap /references for /citations to walk forward (cited-by)
+```
+
+Python pattern:
+
+```python
+import subprocess, json, urllib.parse
+
+def s2_search(query, limit=20):
+    q = urllib.parse.quote(query)
+    fields = "title,year,venue,externalIds,citationCount,openAccessPdf,authors"
+    cmd = f'curl -s "https://api.semanticscholar.org/graph/v1/paper/search?query={q}&limit={limit}&fields={fields}"'
+    out = subprocess.run(cmd, shell=True, capture_output=True, text=True).stdout
+    return json.loads(out).get("data", [])
+```
+
+### 0b. Google Scholar
+
+No official API. Drive it through `web_search`:
+
+```
+web_search query: site:scholar.google.com <topic> drug discovery
+web_search query: <topic> <method> machine learning   # Scholar surfaces in general results too
+```
+
+Use Scholar primarily for **coverage and cited-by chains**: when a paper looks central,
+search its title to find the "Cited by N" cluster and pull recurring downstream works.
+Then `web_fetch` the publisher landing page for the abstract and verify the DOI via Crossref.
+Do not link to `scholar.google.com` result pages in entries — resolve to the paper's DOI.
 
 ---
 
@@ -91,6 +161,17 @@ Response path: `data["resultList"]["result"]` → list of article objects.
 
 Key fields per article: `pmid`, `title`, `authorString`, `pubYear`, `abstractText`,
 `doi`, `journalTitle`, `isOpenAccess`
+
+**Author affiliations (for the 🌍 marker).** Add `&resultType=core` to get full author
+records including affiliation strings — the most reliable affiliation source we have
+(Crossref usually omits them; publisher landing pages routinely `403` on fetch). First/last
+author affiliation is at
+`result["authorList"]["author"][i]["authorAffiliationDetailsList"]["authorAffiliation"]`.
+
+```bash
+curl -s "https://www.ebi.ac.uk/europepmc/webservices/rest/search?\
+query=AUTH:%22Oguike%22%20AND%20TITLE:%22quantitative%20structure%22&format=json&pageSize=1&resultType=core"
+```
 
 **Useful query operators:**
 ```
