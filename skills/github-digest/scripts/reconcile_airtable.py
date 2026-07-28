@@ -131,16 +131,16 @@ def main(argv: list[str] | None = None) -> int:
 
     for name in sorted(at_names):
         rec = at_by_name[name]
-        if not (rec.get("status") or "").strip():
+        if not _value_set(rec.get("status")):
             missing_status.append(name)
         if not _as_list(rec.get("type")):
             missing_type.append(name)
         if not _as_list(rec.get("projects")):
             missing_projects.append(name)
 
-        status = (rec.get("status") or "").strip()
-        if status in PARKED_STATUSES and name in active_repos:
-            active_but_parked.append({"name": name, "status": status})
+        status_set = _value_set(rec.get("status"))
+        if (status_set & PARKED_STATUSES) and name in active_repos:
+            active_but_parked.append({"name": name, "status": ", ".join(sorted(status_set))})
 
         # Alignment (strict compare) against the GitHub custom properties mirrored from
         # Airtable. Only for repos present on both sides, and only when *both* sides carry a
