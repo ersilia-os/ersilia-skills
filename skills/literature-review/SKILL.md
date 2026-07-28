@@ -158,7 +158,7 @@ In order:
    repo URL if any) and drop it if its DOI is in the **Hub** set **or** any key is in the
    **pipeline** set (see `hub-exclusion.md`). Record the two counts **separately** — Hub vs.
    pipeline. **Also record each dropped item** — title, DOI (linked), and reason (`Hub` or
-   `Pipeline`) — for the "Already covered" section (Step 6 / template). Only items dropped
+   `Pipeline`) — for the "Already covered" section (Step 8 template). Only items dropped
    *here* go in that section; scope- and venue-filtered items (steps 3–4 below) do not.
 3. **Scope filter** — keep only items in one of:
    - Antibiotic / antimicrobial / AMR drug discovery (TB, NTD antibacterials, AMPs, AMR+ML)

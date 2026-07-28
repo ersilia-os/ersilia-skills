@@ -2,7 +2,9 @@
 
 The review covers **novel** literature only. A candidate is dropped before screening (Step 5)
 if it is already **in the Hub** *or* already **in the incorporation pipeline**. There are two
-independent exclusion sets — build both in Step 2, merge them, and apply in Step 5.
+independent exclusion sets — build both in Step 2, then apply **both** in Step 5. Keep them
+separate: the Hub set is keyed by bare DOI, the pipeline set by prefixed keys (`doi:` / `arxiv:`
+/ `repo:`), and their drop counts are tracked separately (Hub vs. pipeline).
 
 1. **Hub set** — models already published to the Hub, keyed by DOI (`ErsiliaModelsDOI.csv`).
 2. **Pipeline set** — models already *requested* / in progress, keyed by DOI, arXiv ID, and
