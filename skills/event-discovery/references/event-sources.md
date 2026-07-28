@@ -32,6 +32,21 @@ applications is not.
 | ELRIG (drug discovery) | elrig.org | `ELRIG Drug Discovery <year>` |
 | NTD / AMR bodies | dndi.org, mmv.org, who.int/tdr, gardp.org | `DNDi OR MMV OR GARDP conference OR symposium <year>` |
 
+### Applied / industry ML drug discovery
+These are method-heavy, often vendor- or CRO-hosted meetings where applied AI-for-drug-discovery
+tooling, chemical-space design, and industry partnerships live. They are usually `International`,
+in-person and costly — but a strong fit to priority 1/2 earns them a place on strategic fit alone
+(action `scout` / `watch`; see `ersilia-priorities.md`). Don't let cost/distance alone drop them.
+| Source | Home | Query hint |
+|---|---|---|
+| Enamine Drug Discovery Conference | enamine.net | `Enamine Drug Discovery Conference <year> dates` |
+| CHI Drug Discovery Chemistry / Discovery on Target | drugdiscoverychemistry.com, discoveryontarget.com | `Drug Discovery Chemistry <year> San Diego`, `Discovery on Target <year> Boston` |
+| AI in Drug Discovery summits | oxfordglobal.com, hansonwade.com | `AI in Drug Discovery summit <year> dates`, `AI-driven drug discovery conference <year>` |
+| RSC "AI in Chemistry" (CICAG) | rsc.org | `RSC Artificial Intelligence in Chemistry <year>` |
+| ML-for-molecules workshops (LMRL, MoML, M2D2, AI4Science) | — | `Learning Meaningful Representations of Life <year>`, `Molecular ML MoML <year>`, `Molecular Machine Learning M2D2 <year>`, `AI for Science workshop <year>` |
+| ELLIS ML programmes / workshops | ellis.eu | `ELLIS machine learning molecules OR chemistry workshop <year>` |
+| SLAS / Bio-IT World / BioTechX (screening & informatics) | slas.org, bio-itworldexpo.com, biotechx.com | `SLAS <year> dates`, `Bio-IT World <year>`, `BioTechX <year>` |
+
 ### Workshops & training / capacity-building
 | Source | Home | Query hint |
 |---|---|---|
@@ -117,7 +132,7 @@ Write the classified pool to `/tmp/events_pool.json` as a JSON array of objects.
 | `markers` | string | emoji ribbon you set in fixed order `⭐🌍🎓💻`; the script appends 💰 (from `bursary`) and 🗓️ (from `deadlines`) |
 | `deadlines` | object | typed deadlines, each an ISO `YYYY-MM-DD` string (omit or `null` if unknown). Recognised keys: `abstract` (call for papers / posters), `early_bird` (early-bird registration), `registration` (standard/final registration or an application/interest deadline), `bursary` (financial-aid / scholarship application). Record every date the page states — **including past ones**; the script decides which land in-window (adds 🗓️), and a **past `registration` date on a still-upcoming event** moves it to the report's "registration closed" section. Use `registration` as the catch-all when the type is unclear. |
 | `priorities` | array[int] | which Ersilia strategic priorities (1–4) it maps to |
-| `action` | string | `attend` / `apply` / `partner` / `watch` |
+| `action` | string | `attend` / `apply` / `partner` / `scout` / `watch` (`scout` = a high-fit event worth sending someone to for methods/partner intel even though it's far/costly) |
 | `engagement` | string | the participation angle — a short phrase (≤6 words) for *what to do there* and, if clear, *who should go*: e.g. `Present Model Hub work`, `Recruit trainees; send a student`, `Meet African partners`, `Scout AI4Science talks`. `—` if there's no distinct angle beyond attending. |
 | `why_ersilia` | string | one line: why it matters (name the priority + action) |
 | `verified` | bool | `true` when you confirmed name/dates/URL on the **official page** via `WebFetch`; `false` for a strong candidate you could not page-verify (e.g. the site failed to load) but whose details agree across independent reputable sources. Defaults to `true` if omitted. Unverified events are kept but flagged with `†` in the report. |

@@ -282,7 +282,7 @@ def render(events, focus, date_from, date_to, swept, today=None, group_by="theme
         lines.append("")
 
     # Coverage-by-continent footer — makes it explicit which continents were searched,
-    # so an empty continent reads as "searched, none verified" rather than "forgotten".
+    # so an empty continent reads as "searched, nothing in report" rather than "forgotten".
     if continents_searched is not None:
         counts = {}
         for event in events:
@@ -295,7 +295,7 @@ def render(events, focus, date_from, date_to, swept, today=None, group_by="theme
             if n:
                 note = f"{n} event{'s' if n != 1 else ''}"
             elif c in searched:
-                note = "0 — searched, none verified"
+                note = "0 — searched, none in report"
             else:
                 note = "0 — not searched"
             lines.append(f"- **{c}**: {note}")

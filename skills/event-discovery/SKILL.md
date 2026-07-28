@@ -18,10 +18,11 @@ allowed-tools: [Read, Write, Bash, WebSearch, WebFetch, AskUserQuestion]
 
 Find the events worth Ersilia's time and turn them into a scannable, classified
 report. The lens is **action**: for each event, is it one to **attend**, **apply**
-to, **partner** on, or just **watch**? Coverage spans scientific conferences and
-symposia, workshops and training / capacity-building schools, and hackathons,
-datathons and fellowships — screened against Ersilia's four strategic priorities,
-with an explicit Global-South lens.
+to, **partner** on, **scout** (send someone to a high-fit but costly/far venue for
+methods or partnership intel), or just **watch**? Coverage spans scientific conferences
+and symposia, applied / industry ML drug-discovery meetings, workshops and training /
+capacity-building schools, and hackathons, datathons and fellowships — screened against
+Ersilia's four strategic priorities, with an explicit Global-South lens.
 
 **Discovery is web-driven** (`WebSearch` + `WebFetch`). Claude does the uncertain
 work — searching, verifying dates, judging relevance, classifying. Two stdlib-only
@@ -230,7 +231,11 @@ AMR pathogens.
 
 **Framing** — Ersilia is Barcelona-based; Europe is easy reach, the Global South is the
 mission. Prefer open, low-cost, and capacity-building events; weigh travel cost and
-bursary availability into priority.
+bursary availability into priority. **But strategic fit stands on its own:** a strong
+priority-1/2 methods or industry venue (applied AI/ML for drug discovery — e.g. Enamine,
+CHI, RSC "AI in Chemistry", the LMRL/MoML circuit) is kept and surfaced on fit alone even
+when costly and far — set its action to `scout`, don't drop it. The Global-South lens is
+the tie-breaker between *attend* and *scout*, not a filter that removes top method venues.
 
 ---
 

@@ -13,7 +13,10 @@ file changes.
    Grow the Ersilia Model Hub into the largest platform for AI-driven antibiotic
    discovery; run large-scale chemical-space pre-calculations.
    → *Events that fit:* cheminformatics, AI/ML for chemistry and drug discovery,
-   model/dataset/benchmark venues, open-source scientific tooling.
+   model/dataset/benchmark venues, open-source scientific tooling, and applied /
+   industry drug-discovery and ML-methods conferences (e.g. Enamine Drug Discovery
+   Conference, CHI Drug Discovery Chemistry, RSC "AI in Chemistry", the LMRL / MoML
+   ML-for-molecules workshop circuit) — surfaced on strategic fit even when costly/far.
 
 2. **Pursue novel therapeutic opportunities for understudied diseases.**
    New modalities (e.g. targeted protein degradation); AI-first target discovery for
@@ -56,10 +59,23 @@ Do not over-think it — pick the label the majority of signals support.
 | **Global-South relevance** | Hosted in or explicitly serving LMICs, or with travel-support / open access → higher (this is the 🌍 lens; see `lmic-countries.md`). |
 | **Reachability** | Free / virtual / low-cost / has a bursary, or in Europe (easy from Barcelona) → higher. Expensive and far with no support → lower. |
 
-- **High** — strong fit to a core priority *and* either Global-South relevance or clear
-  reachability; something the team should actively attend, apply to, or partner on.
-- **Medium** — a real fit but with a caveat (cost, distance, tangential theme).
+**Strategic fit and Global-South relevance are weighted equally — fit can stand on its
+own.** An event with a *strong* fit to a core priority (especially applied AI/ML for drug
+discovery under priority 1, or novel-therapeutics work under priority 2) can reach **Medium
+or High on strategic fit alone**, even when it is costly, far, and not LMIC-focused — e.g.
+an industry drug-discovery or ML-methods conference. Do **not** down-rank such an event to
+Low or drop it purely for cost/distance; instead keep it and set its **action** to `scout`
+(worth sending someone for methods/partner intel) or `watch`. Reachability and Global-South
+relevance then decide **how** to engage (attend/apply vs. scout/watch), not **whether** the
+event is relevant. Keep the 🌍 Global-South lens as the tie-breaker between attend and scout,
+so the digest surfaces top method venues without tilting into a US/EU industry feed.
+
+- **High** — strong fit to a core priority; either paired with Global-South relevance or
+  clear reachability (→ attend/apply/partner), **or** a squarely-on-priority-1/2 methods or
+  industry venue worth active effort even if far (→ scout).
+- **Medium** — a real fit with a caveat (cost, distance, tangential theme), or a good-fit
+  methods venue that's costly/far (→ scout / watch).
 - **Low** — relevant enough to note, but a "watch / maybe" rather than an action.
 
 State the mapped priority (by number) and a recommended **action** — *attend / apply /
-partner / watch* — in each event's one-line justification.
+partner / scout / watch* — in each event's one-line justification.

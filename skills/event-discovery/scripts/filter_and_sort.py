@@ -152,11 +152,17 @@ def main(argv=None):
         in_window_deadlines = collect_in_window_deadlines(event, window_start, window_end)
         event_in_window = in_window(start, window_start, window_end)
 
-        # Keep an event whose date is past the window ONLY if a deadline still lands
-        # inside it — otherwise a far-off event with an imminent deadline would vanish.
+        # Past events (start before the window) are always excluded, even if some
+        # deadline field is (spuriously) in-window. A future event beyond the window
+        # is kept ONLY if a deadline still lands inside it — otherwise a far-off event
+        # with an imminent deadline would vanish.
+        if start < window_start:
+            counts["out_of_window"] += 1
+            warn(f"dropping '{event['name']}': start_date {start} is before window start {window_start}")
+            continue
         if not event_in_window and not in_window_deadlines:
             counts["out_of_window"] += 1
-            warn(f"dropping '{event['name']}': start_date {start} outside window, no in-window deadline")
+            warn(f"dropping '{event['name']}': start_date {start} beyond window, no in-window deadline")
             continue
 
         key = normalise_series_key(event)

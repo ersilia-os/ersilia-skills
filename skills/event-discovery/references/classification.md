@@ -49,8 +49,11 @@ Use the event's own description. If a conference has a co-located hackathon, cla
 ### Priority — the action signal
 
 `High` / `Medium` / `Low`, scored with the rubric in `ersilia-priorities.md`
-(strategic fit × Global-South relevance × reachability). Every event also gets a
-recommended **action**: *attend / apply / partner / watch*.
+(strategic fit × Global-South relevance × reachability, with strategic fit weighted
+equally to Global-South relevance — a strong priority-1/2 methods or industry venue can
+score Medium/High on fit alone even if costly and far). Every event also gets a
+recommended **action**: *attend / apply / partner / scout / watch* (`scout` = a high-fit
+but costly/far event worth sending someone to for methods or partnership intel).
 
 ## Marker ribbon (fixed display order `⭐🌍🎓💻💰🗓️`)
 
@@ -77,8 +80,13 @@ decides the markers.
   `format: In-person`, `type: Conference`, `priority: High`; markers `⭐🌍🎓💻`; maps to
   priorities 3 & 4; action *attend*.
 - **Gordon Research Conference on Medicinal Chemistry (US)** — `scope: International`,
+  `theme: Science`, `format: In-person`, `type: Conference`, `priority: Medium`; no ⭐
+  unless High; maps to priority 2; action *scout* — costly and far, but a strong
+  priority-2 fit, so kept and flagged as intel-worthy rather than dropped.
+- **Enamine Drug Discovery Conference (Europe, industry)** — `scope: International`,
   `theme: Science`, `format: In-person`, `type: Conference`, `priority: Medium`; markers
-  `⭐`? only if High else none; maps to priority 2; action *watch* (costly, far).
+  `💻`; maps to priority 1 (applied ML / chemical-space design); action *scout* — carried
+  on strategic fit alone despite cost/distance; 🌍 reachability would only lift it to *attend*.
 - **A virtual RSC cheminformatics workshop with an abstract deadline next month** —
   `scope: International`, `theme: Science`, `format: Virtual`, `type: Workshop`,
   `priority: High`; markers `⭐🎓💻🗓️`; maps to priority 1; action *apply*.

@@ -87,13 +87,18 @@ CONTINENTS = {
 
 
 def continent_of(event):
-    """Map an event to a continent from its country; virtual/unknown -> Global / Other."""
+    """Map an event to a continent from its country.
+
+    Virtual/online events -> "Global / Virtual". ``country`` is optional, so an
+    in-person event that only carries a ``location`` (required) with no country
+    is classified as "Other" rather than being misfiled as virtual.
+    """
     country = str(event.get("country") or "").strip().lower()
     location = str(event.get("location") or "").strip().lower()
-    if not country or country in ("virtual", "online", "n/a"):
+    if country in ("virtual", "online", "n/a") or location in ("virtual", "online"):
         return "Global / Virtual"
-    if country in ("virtual", "online") or location in ("virtual", "online"):
-        return "Global / Virtual"
+    if not country:
+        return "Other"
     return CONTINENTS.get(country, "Other")
 
 
