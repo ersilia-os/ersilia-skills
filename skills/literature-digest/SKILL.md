@@ -563,9 +563,10 @@ python scripts/upload_digest.py --digest digests/{YY}-{MM}-{DD}-literature-diges
   `- [YYYY-MM-DD](literature/YY-MM-DD-literature-digest.md)`. Entries are kept
   in date-descending order; the operation is idempotent. Pass `--no-readme` to
   skip this step (rarely useful in production).
-- On success it prints the `html_url` of the new digest file (and, if the README
-  was updated, the README's `html_url`) on stdout. Hand those URLs to the user
-  as the digest location. Do **not** present the local path as the primary
+- On success it prints URLs on stdout, one per line: **line 1 is the canonical GitHub
+  Pages URL** (`https://ersilia-os.github.io/digests/literature/{YY-MM-DD}-literature-digest.html`),
+  line 2 the github.com source blob, then download/README URLs. Hand the **Pages URL** to
+  the user and use it in the Slack alert. Do **not** present the local path as the primary
   artefact — the remote is canonical.
 - On exit code 2 (remote file already exists), surface the message to the user and
   ask whether to re-run with `--force`. Do not retry silently.

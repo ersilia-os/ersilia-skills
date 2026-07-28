@@ -1,36 +1,39 @@
-"""Upload a generated literature digest to the canonical remote location.
+"""Upload a generated GitHub digest to the canonical remote location.
 
-Default destination: `ersilia-os/digests` repo, path
-`literature/YY-MM-DD-literature-digest.md`. Uses the GitHub contents API via `gh`
-so no `git clone` is needed.
+Default destination: `ersilia-os/digests` repo, path `github/YY-MM-DD-github-digest.md`.
+Uses the GitHub contents API via `gh` so no `git clone` is needed.
 
-After a successful upload, the script also updates the repo's `README.md` to add
-the new digest under the `## Literature digests` section, formatted as:
+After a successful upload, the script also updates the repo's `README.md` to add the
+new digest under the `## GitHub digests` section, formatted as:
 
-    - [YYYY-MM-DD](literature/YY-MM-DD-literature-digest.md)
+    - [YYYY-MM-DD](github/YY-MM-DD-github-digest.md)
 
-The README update is idempotent: if the entry is already present, it is left as
-is. Entries are kept in date-descending order (newest first).
+The README update is idempotent: if the entry is already present, it is left as is.
+Entries are kept in date-descending order (newest first). If the section heading does
+not exist yet (first-ever GitHub digest), it is appended to the end of the README.
 
-The script refuses to overwrite an existing digest file unless `--force` is
-passed.
+The script refuses to overwrite an existing digest file unless `--force` is passed.
+
+NOTE on the Jekyll site: the `github/` category must be registered once in
+`website/_config.yml` of the digests repo (a `- scope: {path: "github"}` mapping to the
+`digest` layout) for the page to render with the shared layout. The Pages workflow
+already copies every top-level category folder into the site, so no workflow change is
+needed. See the skill's SKILL.md "One-time setup" note.
 
 Exit codes:
-- 0 on successful upload + README update. URLs are printed to stdout, one per line, so
-  the skill can hand the user clickable links: line 1 is the canonical GitHub **Pages**
-  URL (the rendered page — use this for Slack and for the user), line 2 the github.com
-  source blob, then the download URL (if any) and the README URL.
+- 0 on successful upload + README update. URLs are printed to stdout, one per line, so the
+  skill can hand the user links: line 1 is the canonical GitHub **Pages** URL (the rendered
+  page — use this for Slack and for the user), line 2 the github.com source blob, then the
+  download URL (if any) and the README URL.
 - 2 if the remote digest file already exists and `--force` was not passed.
-- 1 on any other error (auth, network, malformed input). If the file upload
-  succeeded but the README update failed, exit code is also 1 and the failure
-  reason is on stderr — the digest will already be visible at its `html_url`.
+- 1 on any other error (auth, network, malformed input). If the file upload succeeded
+  but the README update failed, exit code is also 1 and the failure reason is on stderr
+  — the digest will already be visible at its `html_url`.
 
 Usage:
-    python upload_digest.py --digest digests/26-05-21-literature-digest.md
-    python upload_digest.py --digest digests/26-05-21-literature-digest.md \
-                            --message "literature digest for week ending 2026-05-21"
-    python upload_digest.py --digest digests/X-literature-digest.md --force
-    python upload_digest.py --digest digests/X-literature-digest.md --no-readme
+    python upload_digest.py --digest digests/26-06-16-github-digest.md
+    python upload_digest.py --digest digests/26-06-16-github-digest.md --force
+    python upload_digest.py --digest digests/26-06-16-github-digest.md --no-readme
 """
 
 from __future__ import annotations
@@ -48,27 +51,23 @@ from _common import warn
 
 
 FILENAME_RE = re.compile(
-    r"^(?P<yy>\d{2})-(?P<mm>\d{2})-(?P<dd>\d{2})-literature-digest\.md$"
+    r"^(?P<yy>\d{2})-(?P<mm>\d{2})-(?P<dd>\d{2})-github-digest\.md$"
 )
 
-# Heading inside the README under which literature-digest entries live.
-README_SECTION_HEADING = "## Literature digests"
+# Heading inside the README under which github-digest entries live.
+README_SECTION_HEADING = "## GitHub digests"
 
 # Existing list entries that look like one of our digests. Match the
-# `- [YYYY-MM-DD](literature/YY-MM-DD-literature-digest.md)` shape.
+# `- [YYYY-MM-DD](github/YY-MM-DD-github-digest.md)` shape.
 README_ENTRY_RE = re.compile(
-    r"^-\s*\[(?P<full>\d{4}-\d{2}-\d{2})\]\((?P<href>literature/[^)]+)\)\s*$"
+    r"^-\s*\[(?P<full>\d{4}-\d{2}-\d{2})\]\((?P<href>github/[^)]+)\)\s*$"
 )
 
 
 def gh(args: list[str], stdin: bytes | None = None) -> subprocess.CompletedProcess:
     if not shutil.which("gh"):
         raise RuntimeError("gh CLI is not on PATH; install it and authenticate")
-    return subprocess.run(
-        ["gh", *args],
-        input=stdin,
-        capture_output=True,
-    )
+    return subprocess.run(["gh", *args], input=stdin, capture_output=True)
 
 
 def get_existing_sha(repo: str, remote_path: str, ref: str) -> str | None:
@@ -85,8 +84,7 @@ def get_existing_sha(repo: str, remote_path: str, ref: str) -> str | None:
             data = json.loads(proc.stdout.decode("utf-8"))
         except json.JSONDecodeError as e:
             raise RuntimeError(f"gh returned non-JSON on existence check: {e}") from None
-        sha = data.get("sha") if isinstance(data, dict) else None
-        return sha
+        return data.get("sha") if isinstance(data, dict) else None
     stderr = (proc.stderr or b"").decode("utf-8", errors="replace")
     if "HTTP 404" in stderr or "Not Found" in stderr:
         return None
@@ -148,14 +146,8 @@ def update_readme_index(
 ) -> str | None:
     """Update the README so it lists the just-uploaded digest. Idempotent.
 
-    `remote_path` is the on-repo path of the digest (e.g.
-    `literature/26-05-21-literature-digest.md`); `filename` is just the basename
-    used to derive the human-friendly YYYY-MM-DD date.
-
-    Returns the README's html_url on success, or None if the README already
-    listed this digest (no commit was made).
-
-    Raises RuntimeError on any failure that should be surfaced to the caller.
+    Returns the README's html_url on success, or None if the README already listed
+    this digest (no commit was made). Raises RuntimeError on failures to surface.
     """
     m = FILENAME_RE.match(filename)
     if not m:
@@ -168,7 +160,6 @@ def update_readme_index(
 
     record = get_file(repo, "README.md", branch)
     if record is None:
-        # First-time setup: create a minimal README.
         readme_text = (
             "# Periodic Ersilia digests\n"
             "Digests of relevance to the Ersilia Open Source Initiative\n\n"
@@ -200,37 +191,30 @@ def _insert_or_skip_readme_entry(
 ) -> tuple[str, bool]:
     """Return (new_readme_text, changed).
 
-    Behaviour:
-    - If the README already has a `- [YYYY-MM-DD](literature/...)` line with the
-      same date, return (text, False) — nothing to change.
-    - Otherwise locate `## Literature digests`, insert the new entry in
-      date-descending order under it, and return (new_text, True).
-    - If the heading is absent, append it at the end of the file and add the
-      entry.
+    - If the README already has a `- [YYYY-MM-DD](github/...)` line with the same
+      date, return (text, False).
+    - Otherwise locate `## GitHub digests`, insert the new entry in date-descending
+      order under it, and return (new_text, True).
+    - If the heading is absent, append it at the end of the file and add the entry.
     """
     lines = readme_text.split("\n")
-    # Idempotency check.
     for ln in lines:
         m = README_ENTRY_RE.match(ln.strip())
         if m and m.group("full") == iso_date:
             return readme_text, False
 
-    # Find the heading.
     try:
         heading_idx = next(
             i for i, ln in enumerate(lines)
             if ln.strip() == README_SECTION_HEADING
         )
     except StopIteration:
-        # Append a new section at the end.
         appended = readme_text.rstrip() + (
             f"\n\n{README_SECTION_HEADING}\n\n{new_entry}\n"
         )
         return appended, True
 
-    # Walk forward from the heading to find the end of its bullet list.
     i = heading_idx + 1
-    # Skip blank lines immediately after the heading.
     while i < len(lines) and lines[i].strip() == "":
         i += 1
     block_start = i
@@ -238,10 +222,8 @@ def _insert_or_skip_readme_entry(
     while i < len(lines):
         s = lines[i].strip()
         if not s:
-            # blank line ends the block
             break
         if s.startswith("#"):
-            # next heading ends the block
             break
         m = README_ENTRY_RE.match(s)
         if m:
@@ -250,7 +232,6 @@ def _insert_or_skip_readme_entry(
     block_end = i  # exclusive
 
     if existing_dates:
-        # Insert before the first existing entry whose date < iso_date
         insert_at = block_end
         for d, idx in existing_dates:
             if iso_date > d:
@@ -258,8 +239,6 @@ def _insert_or_skip_readme_entry(
                 break
         lines.insert(insert_at, new_entry)
     else:
-        # Empty section — insert right at block_start, ensuring a blank line
-        # after the heading is preserved.
         lines.insert(block_start, new_entry)
 
     return "\n".join(lines), True
@@ -271,8 +250,8 @@ def main(argv: list[str] | None = None) -> int:
                    help="Local path to the digest markdown file to upload.")
     p.add_argument("--repo", default="ersilia-os/digests",
                    help="Remote repository (owner/name).")
-    p.add_argument("--remote-dir", default="literature",
-                   help="Path inside the repo where digests live.")
+    p.add_argument("--remote-dir", default="github",
+                   help="Path inside the repo where github digests live.")
     p.add_argument("--branch", default="main",
                    help="Branch to commit to. Default: main.")
     p.add_argument("--message", default=None,
@@ -290,13 +269,13 @@ def main(argv: list[str] | None = None) -> int:
     if not FILENAME_RE.match(local.name):
         warn(
             f"digest filename {local.name!r} does not match "
-            f"YY-MM-DD-literature-digest.md — refusing to upload to a non-canonical name"
+            f"YY-MM-DD-github-digest.md — refusing to upload to a non-canonical name"
         )
         return 1
 
     content_bytes = local.read_bytes()
     remote_path = f"{args.remote_dir.strip('/')}/{local.name}"
-    commit_message = args.message or f"Add {local.name} (literature digest)"
+    commit_message = args.message or f"Add {local.name} (GitHub digest)"
 
     try:
         existing_sha = get_existing_sha(args.repo, remote_path, args.branch)
@@ -321,7 +300,6 @@ def main(argv: list[str] | None = None) -> int:
         warn(str(e))
         return 1
 
-    # The contents API returns content.html_url and content.download_url.
     content = response.get("content") or {}
     html_url = content.get("html_url") or f"https://github.com/{args.repo}/blob/{args.branch}/{remote_path}"
     download_url = content.get("download_url") or ""

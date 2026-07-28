@@ -8,10 +8,14 @@ The Slack post is **a thematic summary, not a preview.** It tells the team
 what is in the digest at a chapter level and points at GitHub. The team scans
 this; they click through for the detail.
 
-## Template
+Read it: {pages_url}
+```
 
-```text
-📚 *Ersilia Literature Digest — week of {YYYY-MM-DD}*
+`{pages_url}` is the rendered GitHub **Pages** URL — the **first** line printed by
+`upload_digest.py` (`https://ersilia-os.github.io/digests/literature/{YY-MM-DD}-literature-digest.html`).
+Use it, not the github.com blob URL — it's the reader-friendly page.
+
+## Field rules
 
 *{N_total} items* · *{N_models}* Hub-candidate models 🤖 · *{N_datasets}* datasets 🗃️ · *{N_lmic}* LMIC-led 🌍 · *{N_high_impact}* high-impact ⭐
 
@@ -70,11 +74,8 @@ and fills the template.
 
 *23 items* · *10* Hub-candidate models 🤖 · *0* datasets 🗃️ · *6* LMIC-led 🌍 · *3* high-impact ⭐
 
-• *Hub candidates*: QSAR, peptide bioactivity, CPI binding-affinity, GNN-based drug repurposing, an NIST antimicrobial-peptide featurizer, and five generative releases — HELM macrocyclic peptides (TU Berlin), MMP expansion (Chemotargets Barcelona), geometric-diffusion 3D generation, and two AMP generators.
-• *Datasets*: nothing met the ≥10k-row Hub threshold this week.
-• *Methods*: Nat Rev Drug Discov on AI for target identification (Insilico Medicine), Nat Mach Intell peptide MS foundation model, Nat Chem Biol on PTM ligandability.
-• *Antimicrobial discovery*: five mostly LMIC-led papers covering MRSA, malaria, MERS-CoV, and AgNP green synthesis — from India, Algeria, Nigeria, and Morocco.
-• *Global health*: Commun Med ML-for-NTD scoping review led from Uganda and Kenya.
+Read it: https://ersilia-os.github.io/digests/literature/26-05-21-literature-digest.html
+```
 
 📖 *Read the full digest →* https://github.com/ersilia-os/digests/blob/main/literature/26-06-04-literature-digest.md
 ```
