@@ -1,0 +1,6 @@
+# Python bytecode from the transform scripts.
+scripts/__pycache__/
+
+# Seen-events ledger (run state, if kept inside the skill folder).
+*events_seen.json
+seen_events.json
