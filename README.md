@@ -34,8 +34,7 @@ Several of these skills are designed to be chained together as part of a larger 
 | model-incorporation-metadata | Fills in `metadata.yml` from the paper and source repo. |
 | model-incorporation-code | Wires the model code into the Ersilia template. |
 | repository-auditing | Audits a repository to make sure it abides by Ersilia's standards. |
-| ersilia-model-test | Tests an Ersilia Model Hub model before hub incorporation. |
-| model-monitoring | Tracks pending models, stored data, and related pipeline status. |
+| ersilia-model-test | Tests an Ersilia Model Hub model before hub incorporation. 
 | model-fixing | When a model fails a test, reviews where it failed and fixes it automatically. |
 | github-digest | Tracks open issues and produces summaries for tech-tracking meetings. |
 | repository-auditing | Audits a repository to make sure it abides by Ersilia's standards. |
@@ -45,7 +44,6 @@ Several of these skills are designed to be chained together as part of a larger 
 | Name | Skill |
 |------|-------|
 | literature-review | Given a topic, offers a structured review of the literature, surfacing relevant research/review papers alongside potential ML models and datasets that could be included in Ersilia. |
-| peer-reviewing | Emulates a peer review and suggests how to address the reviewers' changes. |
 | literature-digest | Produces a weekly literature digest for Ersilia. |
 | molecule-auditing | Audits small molecules suggested in Ersilia's screening and scores them according to parameters of interest. |
 ---
