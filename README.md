@@ -27,6 +27,10 @@ Each skill follows the same layout: a `SKILL.md` file containing the workflow de
 | ersilia-model-test | Tests an Ersilia Model Hub model before hub incorporation. |
 | stylia-plotting | How to create Python plots using the stylia package — Ersilia's matplotlib wrapper for publication-ready figures. |
 | literature-review | Given a topic, offer a structured review from the literature. This review will provide you with relevant research/review papers, alongside potential ML models and datasets that can be included in Ersilia. |
+| literature-digest | Produce the weekly literature digest, prioritising models and datasets that could join the Model Hub. |
+| github-digest | Produce the periodic GitHub digest of issue and PR activity across ersilia-os, plus a health check of the Airtable registry. |
+| molecule-auditing | Turn a table of candidate compounds into a curated, interactive HTML explorer. |
+| repository-auditing | Audit an ersilia-os repository against the house standard — docs, code quality, hygiene, metadata — and write a severity-tiered `AUDIT.md` with suggested fixes. Two worked examples in `skills/repository-auditing/examples/`. |
 
 ---
 
@@ -34,10 +38,14 @@ Each skill follows the same layout: a `SKILL.md` file containing the workflow de
 
 Every `SKILL.md` file has two parts:
 
-**Frontmatter** — machine-readable metadata:
+**Frontmatter** — machine-readable metadata. `name` must match the skill's folder name, and is
+what you type as the slash command:
 ```markdown
 ---
-description: One-line description of what the skill does
+name: skill-name
+description: >
+  What the skill does and when to use it. Write it in the third person and end with an
+  explicit list of trigger phrases — this text is what Claude matches against a request.
 argument-hint: <required-arg> [--optional <value>]
 allowed-tools: [Read, Write, WebFetch, Bash, ...]
 ---
@@ -87,8 +95,8 @@ Once installed, skills are available as slash commands in any Claude Code sessio
 
 Skills are added and improved through pull requests. To contribute:
 
-1. Create a folder at `skills/<category>/<skill-name>/`
-2. Add a `SKILL.md` with valid frontmatter (`description`, `argument-hint`, `allowed-tools`) and a step-by-step workflow body
+1. Create a folder at `skills/<skill-name>/` — skills sit directly under `skills/`, with no category level
+2. Add a `SKILL.md` with valid frontmatter (`name`, `description`, and optionally `argument-hint` and `allowed-tools`) and a step-by-step workflow body
 3. Add a `references/` subfolder (can be empty initially, with a placeholder `README.md`)
 4. Open a pull request — new skills start at `scaffold` status
 5. Skills are promoted to `draft` once they have been used and iterated on, and to `ready` once reviewed and validated
