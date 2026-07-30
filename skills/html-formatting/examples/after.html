@@ -105,14 +105,14 @@ h1 em { font-style:italic; color:var(--brand); }           /* accent word in a w
 h2 { font-size:16px; font-weight:600; }
 h3 { font-size:13px; font-weight:600; }
 
-/* Uppercase, letter-spaced mono micro-label — the signature Ersilia "eyebrow". */
+/* Quiet sentence-case micro-label — the Ersilia "eyebrow". Sans, not mono; not
+   uppercase. Neutral by default; the .brand variant carries the one accent. */
 .eyebrow, .section > h2.label {
-  font-family:var(--mono);
-  font-size:10.5px;
+  font-family:var(--sans);
+  font-size:11.5px;
   font-weight:600;
-  letter-spacing:.12em;
-  text-transform:uppercase;
-  color:var(--faint);
+  letter-spacing:.01em;
+  color:var(--muted);
 }
 .eyebrow.brand { color:var(--brand); }
 
@@ -186,16 +186,16 @@ h3 { font-size:13px; font-weight:600; }
 }
 .section { margin-top:22px; }
 .section > h2 {
-  font-family:var(--mono);
-  font-size:11px; font-weight:600;
-  letter-spacing:.12em; text-transform:uppercase;
-  color:var(--faint);
+  font-family:var(--sans);
+  font-size:13px; font-weight:600;
+  letter-spacing:0;
+  color:var(--ink);
   margin:0 0 10px;
 }
 
 /* --- Stat tiles (KPI row) ---------------------------------------------- */
 .stat { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
-.stat .k { font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); }
+.stat .k { font-family:var(--sans); font-size:11px; font-weight:500; letter-spacing:.01em; color:var(--muted); }
 .stat .v { font-family:var(--mono); font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); margin-top:2px; }
 .stat .d { font-size:11.5px; color:var(--muted); margin-top:2px; }
 
@@ -220,8 +220,8 @@ input[type=range] { accent-color:var(--brand); }
 /* Pills / chips (fully rounded). */
 .pill, .chip {
   display:inline-flex; align-items:center; gap:6px;
-  font-family:var(--mono); font-size:10.5px; letter-spacing:.04em;
-  border-radius:999px; padding:3px 10px;
+  font-family:var(--sans); font-size:11.5px; font-weight:500; letter-spacing:0;
+  border-radius:999px; padding:3px 11px;
   border:1px solid var(--border); background:var(--surface-2); color:var(--muted);
 }
 .chip[aria-pressed="true"], .chip.active { background:color-mix(in srgb, var(--brand) 15%, var(--surface)); border-color:var(--brand); color:var(--brand); }
@@ -249,8 +249,8 @@ input[type=range] { accent-color:var(--brand); }
 table.data { width:100%; border-collapse:collapse; font-size:12px; }
 table.data th {
   position:sticky; top:0; z-index:1;
-  font-family:var(--mono); font-size:10px; font-weight:600;
-  letter-spacing:.08em; text-transform:uppercase; color:var(--faint);
+  font-family:var(--sans); font-size:11px; font-weight:600;
+  letter-spacing:0; color:var(--muted);
   text-align:left; padding:8px 10px; background:var(--surface);
   border-bottom:1px solid var(--border);
 }
@@ -274,11 +274,12 @@ table.data tbody tr:hover { background:color-mix(in srgb, var(--brand) 6%, var(-
 /* --- Honesty pill: flag provisional / prototype data ------------------- */
 .wip {
   display:inline-flex; align-items:center; gap:6px;
-  font-family:var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase;
+  width:fit-content; align-self:flex-start;   /* hug the text, never stretch in a flex column */
+  font-family:var(--sans); font-size:11px; font-weight:500; letter-spacing:0;
   color:color-mix(in srgb, var(--warn) 80%, #000);
   background:color-mix(in srgb, var(--warn) 16%, #fff);
   border:1px solid color-mix(in srgb, var(--warn) 34%, #fff);
-  border-radius:999px; padding:3px 10px;
+  border-radius:999px; padding:3px 11px;
 }
 /* Hatched fill for provisional cells/regions. */
 .provisional { background:repeating-linear-gradient(45deg, transparent, transparent 5px, color-mix(in srgb, var(--warn) 12%, transparent) 5px, color-mix(in srgb, var(--warn) 12%, transparent) 10px); }

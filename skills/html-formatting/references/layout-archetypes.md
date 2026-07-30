@@ -28,7 +28,7 @@ the user *works* with the data on one screen.
 - Centered single column, `.document` (`max-width:980px; margin:0 auto`), generous vertical
   padding. The page scrolls normally.
 - Header = `.brandhead` (eyebrow + wordmark + one-line lede).
-- Body = `.section` blocks (mono uppercase `<h2>` label + content). Lead with the takeaway,
+- Body = `.section` blocks (quiet sentence-case `<h2>` label + content). Lead with the takeaway,
   keep prose tight, put data in `table.data`, tuck methodology behind a `<details>` or modal.
 - Ends with the `.credit` footer.
 

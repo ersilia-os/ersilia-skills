@@ -29,7 +29,8 @@ font set), it goes to the report's **Checks not run** section — silence must n
 
 | id | severity | fires when | fix |
 |---|---|---|---|
-| `T2-EMOJI-HEADINGS` | Nice-to-have | a heading contains decorative emoji | Drop it; emoji are status markers only. Tag sections with the mono eyebrow. |
+| `T2-EMOJI-HEADINGS` | Nice-to-have | a heading contains decorative emoji | Drop it; emoji are status markers only. Tag sections with the eyebrow label. |
+| `T2-UPPERCASE` | Nice-to-have | more than **2** `text-transform:uppercase` rules (medium confidence) | Prefer quiet sentence-case sans labels; reserve uppercase for a single deliberate accent, not every micro-label. |
 | `T2-WALL-OF-TEXT` | Nice-to-have | > **6000** chars of prose **and** no `<details>` / `data-tip` / `.hovertip` / `.modal` (medium confidence) | Layer the detail behind a disclosure device. |
 | `T2-ACCENT-SPRAWL` | Nice-to-have | more than **4** distinct data-hue vars used (medium confidence) | Let one accent (periwinkle) carry interaction; use hues only to encode a variable. |
 | `T2-IMG-ALT` | Nice-to-have | an `<img>` has no `alt=` | Add descriptive `alt` (empty `alt=""` only for decoration). |
@@ -38,7 +39,8 @@ font set), it goes to the report's **Checks not run** section — silence must n
 ## Thresholds
 
 The numeric thresholds live at the top of `check_html.py` (`MAX_TOP_HEADINGS=8`,
-`WALL_OF_TEXT_CHARS=6000`, `MAX_FLAT_ACCENTS=4`). They are deliberately loose — the goal is to
+`WALL_OF_TEXT_CHARS=6000`, `MAX_FLAT_ACCENTS=4`, `MAX_UPPERCASE_RULES=2`). They are deliberately
+loose — the goal is to
 catch "populated, not sleek", not to nitpick a dense-but-intentional data page. Tune them there,
 and keep this table in sync.
 

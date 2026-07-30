@@ -39,6 +39,7 @@ from _common import (
 MAX_TOP_HEADINGS = 8      # more than this many h2s reads as an over-stuffed page
 WALL_OF_TEXT_CHARS = 6000  # prose past this with no disclosure device is a wall
 MAX_FLAT_ACCENTS = 4       # distinct accent hues used flat before it looks noisy
+MAX_UPPERCASE_RULES = 2    # more text-transform:uppercase rules than this reads as shouty
 
 _IMG_RE = re.compile(r"<img\b[^>]*>", re.I)
 _ALT_RE = re.compile(r"\balt\s*=", re.I)
@@ -162,6 +163,17 @@ def run_checks(html: str) -> tuple[list[dict], list[dict]]:
                 detail=", ".join(sorted(hues)),
                 confidence="medium",
             ))
+
+    # -- T2: uppercase abuse ----------------------------------------------
+    upper = len(re.findall(r"text-transform\s*:\s*uppercase", css, re.I))
+    if upper > MAX_UPPERCASE_RULES:
+        findings.append(finding(
+            "T2-UPPERCASE", "T2", "Nice-to-have",
+            f"{upper} uppercase rules — stacked uppercase labels read techy, not neutral.",
+            "Prefer quiet sentence-case sans labels (the Ersilia eyebrow/section/table style). "
+            "Reserve any uppercase for a single deliberate accent, not every micro-label.",
+            confidence="medium",
+        ))
 
     # -- T2: images without alt text --------------------------------------
     imgs = _IMG_RE.findall(html)

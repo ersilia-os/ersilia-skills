@@ -48,11 +48,14 @@ Shadows are **plum-tinted** (`rgba(80,40,90,.07)`), not neutral gray — a subtl
 - `--sans` = **Inter** → system-ui fallback. Inter is *named but not loaded* (external fonts are
   blocked by the Artifact CSP); the system fallback is 95% of the look. Embed Inter as a base64
   `@font-face` only when pixel-perfect type is essential.
-- `--mono` = a `ui-monospace` stack. **Mono is a core device, not just for code:**
-  - **Every number** uses mono + `font-variant-numeric:tabular-nums` (class `.num` / `.mono`).
-  - **Micro-labels** — section headings, the eyebrow, table column heads — are **uppercase,
-    letter-spaced (`.12em`), mono, `--faint`** (see `.eyebrow`, `.section > h2`). This quiet
-    label style is the most recognisably-Ersilia typographic move.
+- `--mono` = a `ui-monospace` stack, reserved for **data**: every number uses mono +
+  `font-variant-numeric:tabular-nums` (class `.num` / `.mono` / `.stat .v`), so digits line up in
+  columns. IDs and accessions too. **Mono earns its place on numbers, not on chrome.**
+- **Labels are quiet, not shouty.** The eyebrow, section headings, stat labels and table column
+  heads are **sentence-case sans, `--muted`, weight 500–600, no letter-spacing** (see `.eyebrow`,
+  `.section > h2`, `.stat .k`, `table.data th`). **Do not use `text-transform:uppercase` for
+  chrome** — stacked uppercase micro-labels read as techy and undercut the neutral, sleek feel we
+  want. (The checker flags uppercase overuse as `T2-UPPERCASE`.)
 - **Italic carries meaning:** organism and gene names are always italic (`.gene`, `i.sci`),
   per biological nomenclature.
 - **Weights:** 400 body; **540/560** for buttons and labels (a deliberate semi-bold); 600 for
@@ -65,8 +68,8 @@ Shadows are **plum-tinted** (`rgba(80,40,90,.07)`), not neutral gray — a subtl
 - **Wordmark header** — `.brandhead` = an `.eyebrow.brand` line (`… · Ersilia Open Source
   Initiative`, mono periwinkle) above an `<h1 class="wordmark">` whose accent word is
   `<em>` (italic periwinkle). No logo image; a typographic wordmark is the default.
-- **Eyebrow** `.eyebrow` — the uppercase mono micro-label. Use it to tag sections instead of
-  decorative emoji.
+- **Eyebrow** `.eyebrow` — the quiet sentence-case sans micro-label (muted; `.brand` variant is
+  periwinkle). Use it to tag a section or set context, instead of decorative emoji.
 - **Cards / panels** `.card`, `.panel` — white, hairline border, `--radius` 14px, soft shadow.
 - **Stat tiles** `.stat` (`.k` label / `.v` mono value / `.d` sub) — the KPI row.
 - **Buttons** — quiet by default; `.primary` is periwinkle. **Pills/chips** `.pill`/`.chip`
@@ -74,9 +77,9 @@ Shadows are **plum-tinted** (`rgba(80,40,90,.07)`), not neutral gray — a subtl
   when on).
 - **Badges** `.badge` — pastel, derived from a hue via `--c` (`style="--c:var(--mint)"`), with
   `.good/.warn/.bad` shortcuts. Text is a darker mix of the same hue.
-- **Data tables** `table.data` — mono uppercase sticky headers, zebra rows via `color-mix`,
-  right-aligned mono numeric cells. Wrap wide tables in `.scrollwrap` so the region scrolls, not
-  the page.
+- **Data tables** `table.data` — quiet sentence-case sticky headers, zebra rows via `color-mix`,
+  right-aligned mono numeric cells (`td.num`). Wrap wide tables in `.scrollwrap` so the region
+  scrolls, not the page.
 - **Composite bar** `.cbar > .fill` — the plum→periwinkle identity gradient, for a 0–1 score.
 - **Honesty pill** `.wip` + `.provisional` hatch — see `ux-and-verbosity.md`.
 - **Footer credit** `.credit` — the attribution block; see `ersilia-content.md`.

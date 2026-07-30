@@ -15,8 +15,8 @@ away. When in doubt, cut a section from the main view and move it behind disclos
 
 Deliver help and detail in escalating tiers, never all at once:
 
-1. **Surface** — terse labels, abbreviations, a single number. Mono micro-labels, not sentences.
-   (gradi shortens "essential" → "Es" on the surface.)
+1. **Surface** — terse labels, abbreviations, a single number. Quiet sentence-case labels, not
+   sentences. (gradi shortens "essential" → "Es" on the surface.)
 2. **`title=` / `data-tip` hover** — a one-line explanation on the control itself. Native
    `title=` for the cheap case; the styled `.hovertip[data-tip]` (dark bubble) for a richer
    sentence. Put the "what does this column mean" here.
@@ -35,7 +35,7 @@ flags `T2-WALL-OF-TEXT`). Use `<details>` at minimum.
 - **One calm accent.** Let periwinkle carry interaction. Reserve the data hues for *encoding a
   variable*; a page splashed with 6 flat colours looks noisy. (`T2-ACCENT-SPRAWL`)
 - **No decorative emoji.** Emoji are **status markers only** (🟢/🔴 as data) — never section
-  chrome. Tag sections with the mono eyebrow. (Same stance as `repository-auditing`;
+  chrome. Tag sections with the eyebrow label. (Same stance as `repository-auditing`;
   `T2-EMOJI-HEADINGS`.)
 - **Whitespace is a feature.** Use the spacing rhythm in `ersilia.css`; don't pack panels
   edge to edge. Dense *data* is fine; dense *chrome* is not.
