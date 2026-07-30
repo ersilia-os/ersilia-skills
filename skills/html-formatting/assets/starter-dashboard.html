@@ -1,0 +1,30 @@
+<!-- Archetype: dashboard / landing. Hero wordmark + KPI row + responsive card grid.
+     Body fragment — apply_theme.py wraps it with the canonical head + footer.
+     Tokens: __TITLE__, __EYEBROW__, __LEDE__. -->
+<main class="dashboard">
+  <header class="brandhead" style="margin-bottom:24px;">
+    <span class="eyebrow brand">__EYEBROW__ · Ersilia Open Source Initiative</span>
+    <h1 class="wordmark">__TITLE__ <em>overview</em></h1>
+    <p class="muted" style="margin:.4em 0 0; max-width:62ch;">__LEDE__</p>
+  </header>
+
+  <section class="grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); margin-bottom:20px;">
+    <div class="stat"><div class="k">Models</div><div class="v">237</div><div class="d">in the Hub</div></div>
+    <div class="stat"><div class="k">Coverage</div><div class="v">82%</div><div class="d">of target set</div></div>
+    <div class="stat"><div class="k">Updated</div><div class="v">7d</div><div class="d">ago</div></div>
+  </section>
+
+  <section class="grid">
+    <article class="card">
+      <span class="eyebrow">Panel</span>
+      <h2 style="margin:.3em 0;">A card</h2>
+      <p class="muted">One calm accent, quiet chrome. Let whitespace and the mono labels do the work.</p>
+    </article>
+    <article class="card">
+      <span class="eyebrow">Panel</span>
+      <h2 style="margin:.3em 0;">Another</h2>
+      <div class="cbar" style="margin:8px 0;"><div class="fill" style="width:64%;"></div></div>
+      <p class="muted">Composite bars use the plum→periwinkle identity gradient.</p>
+    </article>
+  </section>
+</main>

@@ -1,0 +1,53 @@
+{
+  "skill_name": "html-formatting",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Build me a little dashboard web page summarising this screening run.",
+      "expected_output": "The html-formatting skill triggers (consult-first). It picks the dashboard archetype, scaffolds via apply_theme.py, fills it with real content using the Ersilia components, and produces a self-contained page in the plum/periwinkle house style with the wordmark header and credit footer.",
+      "assertions": [
+        "The html-formatting skill is invoked without the user saying 'Ersilia' or 'style'",
+        "The output is self-contained (inline CSS, no external CDN/font/image links)",
+        "check_html.py is run and Blockers/Should-fixes are resolved"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Can you make this HTML page look nicer and less cluttered? It feels too busy.",
+      "expected_output": "The skill triggers in retrofit mode: apply_theme.py themes the existing page, then the structure is mapped onto Ersilia components, off-brand colours/fonts are swapped for tokens, and the sleek-not-populated pass trims sections and adds progressive disclosure.",
+      "assertions": [
+        "Retrofit mode is used on the provided file",
+        "The ux-and-verbosity 'trim the clutter' rules are applied (fewer sections, disclosure, one accent)",
+        "External references are inlined or flagged; the result is self-contained"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Make an Ersilia-styled artifact showing our model coverage.",
+      "expected_output": "The skill builds a self-contained, light-committed page, then defers to artifact-design for the publish step. It does not add a dark theme.",
+      "assertions": [
+        "The page commits to a single light theme (no dark variant added)",
+        "artifact-design is used for the actual publish",
+        "The favicon is the inline-SVG Ersilia target mark"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Check whether this page follows our house style.",
+      "expected_output": "Check mode: check_html.py runs and returns a tiered, report-only findings document. No edits are made unless the user asks.",
+      "assertions": [
+        "check_html.py is run",
+        "The report is tiered (T0/T1/T2) and report-only",
+        "Skipped checks are listed, never counted as passes"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Summarise the last three commits in this repo.",
+      "expected_output": "The html-formatting skill does NOT trigger — there is no HTML being produced or styled.",
+      "assertions": [
+        "The html-formatting skill is not invoked for a non-HTML request"
+      ]
+    }
+  ]
+}
