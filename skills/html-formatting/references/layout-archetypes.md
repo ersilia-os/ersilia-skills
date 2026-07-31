@@ -21,6 +21,19 @@ the user *works* with the data on one screen.
 - Main holds: a `.toolbar` control row → the data region.
 - Collapses to one column at the 900px breakpoint (built into `ersilia.css`).
 
+**Variant — fixed sidebar, page scrolls.** For a dashboard people *scan* rather than
+operate, the strict never-scrolling shell fights the content. Keep the sidebar
+`position:fixed` and let the content column scroll normally with a `margin-left` equal
+to the sidebar width, capped at ~1080px so wide cards stop stretching their charts.
+Sidebar holds: wordmark → section nav (hue dot + label per section) → snapshot,
+Methods and source pinned to the bottom with `margin-top:auto`.
+
+At the 900px breakpoint the sidebar becomes a horizontal strip — and it must
+**`flex-wrap:wrap` with the nav on its own full-width line** (`flex:1 0 100%` plus an
+`order`). Without the wrap, the footer links claim the row and push the section nav off
+screen entirely: the nav becomes unreachable on a phone, which is easy to miss because
+the desktop layout is fine.
+
 ## 2. `document` — report / article
 
 **Use for:** digests, write-ups, single-page reports, methodology docs. Something you *read*.

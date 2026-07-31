@@ -186,12 +186,16 @@ h3 { font-size:13px; font-weight:600; }
 /* --- Stat tiles (KPI row) ---------------------------------------------- */
 .stat { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
 .stat .k { font-family:var(--sans); font-size:11px; font-weight:500; letter-spacing:.01em; color:var(--muted); }
-.stat .v { font-family:var(--mono); font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); margin-top:2px; }
+/* Proportional figures, not tabular: equal-width digits make a large standalone
+   number look loose. tabular-nums is for values that line up vertically. */
+.stat .v { font-family:var(--mono); font-size:26px; font-weight:700; font-variant-numeric:normal; color:var(--ink); margin-top:2px; }
 .stat .d { font-size:11.5px; color:var(--muted); margin-top:2px; }
 
 /* --- Buttons & controls ------------------------------------------------ */
+/* Chrome stays light: weight belongs on data, not on furniture. A semi-bold button
+   reads as shouting. Colour carries state instead. */
 button, .btn {
-  font-family:var(--sans); font-size:12px; font-weight:540;
+  font-family:var(--sans); font-size:12px; font-weight:450;
   color:var(--ink);
   background:var(--surface);
   border:1px solid var(--border);
@@ -210,7 +214,7 @@ input[type=range] { accent-color:var(--brand); }
 /* Pills / chips (fully rounded). */
 .pill, .chip {
   display:inline-flex; align-items:center; gap:6px;
-  font-family:var(--sans); font-size:11.5px; font-weight:500; letter-spacing:0;
+  font-family:var(--sans); font-size:11.5px; font-weight:450; letter-spacing:0;
   border-radius:999px; padding:3px 11px;
   border:1px solid var(--border); background:var(--surface-2); color:var(--muted);
 }
@@ -271,6 +275,15 @@ table.data tbody tr:hover { background:color-mix(in srgb, var(--brand) 6%, var(-
   border:1px solid color-mix(in srgb, var(--warn) 34%, #fff);
   border-radius:999px; padding:3px 11px;
 }
+/* Neutral metadata pill — a snapshot date, a row count, a "not loaded yet" note.
+   Deliberately NOT .wip: that one is amber and reads as a warning. */
+.meta {
+  display:inline-flex; align-items:center; gap:6px; width:fit-content;
+  font-family:var(--sans); font-size:11px; font-weight:450; letter-spacing:0;
+  color:var(--muted); background:var(--surface-2);
+  border:1px solid var(--border); border-radius:999px; padding:3px 11px;
+}
+
 /* Hatched fill for provisional cells/regions. */
 .provisional { background:repeating-linear-gradient(45deg, transparent, transparent 5px, color-mix(in srgb, var(--warn) 12%, transparent) 5px, color-mix(in srgb, var(--warn) 12%, transparent) 10px); }
 
@@ -290,7 +303,7 @@ table.data tbody tr:hover { background:color-mix(in srgb, var(--brand) 6%, var(-
   margin-top:32px; padding-top:14px;
   font-size:11.5px; color:var(--muted);
 }
-.credit a { color:var(--brand); font-weight:540; }
+.credit a { color:var(--brand); font-weight:450; }
 
 /* --- Composite score bar (plum → periwinkle), an identity flourish ----- */
 .cbar { height:8px; border-radius:999px; background:var(--surface-2); overflow:hidden; }

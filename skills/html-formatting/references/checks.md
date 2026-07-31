@@ -44,9 +44,33 @@ loose — the goal is to
 catch "populated, not sleek", not to nitpick a dense-but-intentional data page. Tune them there,
 and keep this table in sync.
 
+## Checking a JavaScript-rendered page
+
+`check_html.py` parses the HTML as served. If the page builds its body at run time
+(any dashboard that fetches JSON and renders charts), the checker sees an almost-empty
+document, reports nothing, and **silence reads as a pass**. Snapshot the rendered DOM
+first, then check the snapshot:
+
+1. Serve the page and drive a headless browser to the route you want.
+2. Inline the same-origin stylesheets into the clone (fetch each `<link rel=stylesheet>`
+   and append a `<style>`), or every CSS-based check silently skips.
+3. Write `document.documentElement.outerHTML` to a file and run the checker on it.
+4. Repeat per route — a routed site has a different body per view.
+
+**Disable the HTTP cache when you do this.** A cached stylesheet will happily serve the
+*previous* design to your screenshots and your checks, which invalidates the result
+without any error. `Page.navigate` does not take `ignoreCache`; use
+`Network.setCacheDisabled` or `Page.reload({ignoreCache:true})`.
+
 ## What the checker does *not* do
 
 It does not judge whether the *content* is good, whether the layout archetype was the right
 choice, or whether the interaction actually works. Those are your judgement (see
 `ux-and-verbosity.md`). The checker is a floor for brand + self-containment + obvious clutter,
 not a substitute for design sense.
+
+Above all it cannot see the things that actually make a page look bad: a card orphaned
+beside a void, a truncated label, a clipped sparkline, a white tile with white text on
+it, seven bars adrift in whitespace, or the same chart type twenty-six times. **Render
+every view and look at it.** Every one of those examples is a real defect found by
+looking at a screenshot after the checker had reported clean.

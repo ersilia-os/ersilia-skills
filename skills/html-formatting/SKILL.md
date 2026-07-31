@@ -92,17 +92,32 @@ interactions). The script gets you a themed shell; you make it actually Ersilia.
 
 ### Step 3 — Apply the sleek-not-populated pass
 
-Work `ux-and-verbosity.md` as a checklist: one `<h1>`; ≤ ~8 sections; one calm accent; no
-decorative emoji; whitespace; mono tabular numbers; three greys max; provisional flagging; the
-credit footer with source link. **Improve the UX, don't just paint** — collapse redundant
-controls, add search/filter to long tables, add a Methods modal if the page makes scientific
-claims, split overloaded views into tabs.
+Work `ux-and-verbosity.md` as a checklist: one `<h1>`; ≤ ~8 sections; no decorative
+emoji; whitespace; light chrome (450, colour carries state); three greys max;
+provisional flagging; the credit footer with source link. **Improve the UX, don't just
+paint** — collapse redundant controls, add search/filter to long tables, add a Methods
+modal if the page makes scientific claims, split overloaded views into tabs.
+
+**If the page has charts, count the forms.** A wall of one chart type is the commonest
+way a data page fails, and it looks fine chart-by-chart — see the form-variety section
+in `ux-and-verbosity.md`. On a multi-section dashboard, give each section its own hue
+(`design-system.md`) rather than making everything the one accent.
 
 ### Step 4 — Check and fix
 
 ```bash
 python scripts/check_html.py <path> --date <YYYY-MM-DD>
 ```
+
+For a **JavaScript-rendered** page this must run against a snapshot of the rendered DOM,
+with the HTTP cache disabled — otherwise the checker inspects an empty body, or a stale
+stylesheet, and reports clean either way. See `checks.md`.
+
+Then **render every view and look at it.** The checker validates colour and
+self-containment; it cannot see an orphaned card, a clipped label, a white-on-white
+tile, or the same chart repeated twenty times. Those are the defects that make a page
+look bad, and looking is the only way to find them.
+
 Read the report. Fix every **Blocker** (self-containment) and **Should-fix** (off-brand
 colours/fonts, missing attribution, clutter). Weigh the **Nice-to-have** heuristics with
 judgement — a dense data page may legitimately trip `T1-CLUTTER-SECTIONS`; say so rather than
@@ -117,6 +132,18 @@ that it commits to a **single light theme** on purpose (the Artifact "deliberate
 look" exception) — do not bolt on a dark theme; the Ersilia brand is light.
 
 ---
+
+## Artifact or hosted site? The inlining rule depends on it
+
+`T0-SELF-CONTAINED` fires on assets from an **off-document host**. Same-origin files are
+not a violation, and the two targets want different things:
+
+- **Artifact** — inline everything. External hosts are blocked by CSP, so a CDN
+  stylesheet or a remote image silently fails. Embed images and fonts as `data:` URIs.
+- **Hosted site** (GitHub Pages and similar) — same-origin `<link>` and `<script src>`
+  are correct. Inlining a megabyte of chart library and a megabyte of map geometry into
+  the HTML trades real page weight for portability you do not need. Note the choice in
+  the page and the README so it does not read as an oversight.
 
 ## Things to avoid
 
