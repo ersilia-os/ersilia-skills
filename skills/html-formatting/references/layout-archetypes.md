@@ -67,3 +67,56 @@ When unsure between `document` and `dashboard`: is the primary content **prose**
 **metrics/cards** (→ dashboard)? For a retrofit, match the archetype to the page's existing
 structure rather than forcing a re-layout — `apply_theme.py --mode retrofit` keeps the page's
 body and just applies the theme; the deeper structural mapping is your judgement call.
+
+## Dashboard grids: two layout traps that make panels balloon
+
+Both of these were real bugs on a real dashboard, both looked like styling glitches, and
+both were structural.
+
+**1. A flexing chart must have `flex-basis: 0`, never `auto`.**
+
+```css
+.chart { flex: 1 1 0%; min-height: 110px; }   /* correct   */
+.chart { flex: 1 1 auto; }                    /* unbounded */
+```
+
+With `auto`, the chart's *rendered* height counts as its own flex basis. A charting library
+that resizes its canvas to fit therefore grows the card, which grows the grid row, which
+grows the chart again — panels expand without bound. Any per-element `ResizeObserver` that
+calls `resize()` also needs to be idempotent: compare against the last applied box, bail if
+unchanged, and coalesce with one `requestAnimationFrame`, or the observer re-enters itself
+forever.
+
+**2. Nothing that expands in place may live in a grid row.**
+
+Cards in a row share one height (`align-items: stretch`), so a `<details>` that adds 240px
+of table to *one* card grows the row and stretches **every chart beside it**. Asking to see
+one chart's numbers visibly ballooned its neighbours. Progressive disclosure inside a
+tessellated grid belongs in a **dialog**, not an accordion: a dialog cannot move the page,
+and a wide table finally gets room to be read. Keep the affordance a fixed-height button so
+the card is exactly as tall whether or not the data is showing.
+
+Regression-test it by measuring the row and every chart in it before and after the click and
+asserting the two are identical. "It looks fine now" does not survive the next layout change.
+
+## Rows must sum, and short lists must not spread
+
+Group cards into explicit rows whose spans sum to the grid width, give each row a height
+class, and let the cards stretch. That is what makes a page read as a dashboard rather than a
+pile of cards — and it is worth a machine check, since a row summing to 11 fails silently.
+
+The counterpart trap: a **category axis spreads its rows over the whole plot height**, so a
+three-row ranking in a tall card comes out as dots marooned ~90px apart, reading as a broken
+chart rather than a short list. Pad the plot area when the row count is low so the list
+clusters at a sane pitch. And when you do, **pin the axis to label every row**
+(`interval: 0` in ECharts): a shorter plot area makes the library decide the axis is crowded
+and silently drop alternate labels, which deleted two of four income bands and left four
+dots with two labels between them.
+
+## The one-line caption budget is a function of card width
+
+If captions are clamped to one line (`white-space: nowrap; text-overflow: ellipsis`), the
+clamp does not save you — it truncates. A card three of twelve columns wide fits roughly
+**40 characters**; five columns about 70. Write the caption for the card it lands in, at the
+source, and assert `scrollWidth <= clientWidth` on every caption on every route. A complete
+short sentence beats an elegant one cut off mid-word.

@@ -98,3 +98,67 @@ Ersilia pages are transparent about data maturity — it builds trust and it's t
   add a search/filter if a table is long, add the Methods modal if the page makes scientific
   claims, split an overloaded view into tabs. The skill's job is "as good as possible", not a
   reskin.
+
+## Framing: a correct number can still ask the wrong question
+
+The sharpest content note from a real review was not about a wrong figure. It was that a
+Community section led with a churn ledger (joiners vs leavers vs net change, in green and
+red) and a cohort-retention heatmap — *"the focus is too much on retention, which is
+somewhat negative; it looks as if people leave very easily."*
+
+Both charts were arithmetically correct. Both were the wrong question:
+
+- **The denominator was doing rhetorical work.** "10% of joiners are still involved"
+  describes an organisation whose contributors are mostly interns, students and fellows on
+  fixed terms. Nothing leaked. The metric imported a retention standard from a context that
+  did not apply.
+- **A tiny cohort set the colour scale.** One 2020 member sitting at 100% made the ramp's
+  maximum, squashing every real cohort into the pale end. Cohort grids need a floor on
+  cohort size, or they are a picture of their smallest row.
+- **The framing leaked onto the front page**, because the landing card quoted the lead
+  chart's computed takeaway.
+
+What replaced it measures participation: how many people have taken part (rising), how many
+are involved *at once*, how long they stay, where they come from. Same table, same rows, no
+spin — and the negative reading disappeared because the question changed.
+
+Practical rules:
+
+- **State a distribution as its commonest value, not as a share falling short of a
+  threshold.** "48 of 102 ran 3–6 months, the most common length" and "93 of 102 lasted
+  under six months" are the same numbers; only the second implies a target being missed.
+  If there is no standard to fall short of, do not imply one.
+- **Do not delete the honest bad news.** Keep the figure that shows a real decline and say
+  it plainly. Removing a churn chart because it read as negative is right; suppressing
+  concurrent headcount because it fell would be dishonest.
+- **When two numbers wear the same label, one of them is wrong.** A hero tile read
+  "Countries 25" (community + events) while another page read "45 countries" (organisations
+  + community + events). Both correct, both labelled "Countries". Name the narrower one
+  precisely or drop it.
+- **Exclude the non-answers from a ranking, and say that you did.** A "target organism"
+  ranking is dominated by "Any" (organism-agnostic) and "Homo sapiens" (a human property,
+  not a pathogen). Dropping both turns a useless bar chart into the mission-relevant one —
+  but the exclusion has to be stated in the caption and in Methods, or it is a silent edit.
+
+## Derived metrics owe the reader their derivation
+
+The most interesting figures are usually the ones nobody had subtracted yet: years between
+a paper's publication and its packaging; the largest input batch a model completed. Neither
+is a column in the source.
+
+The second was inferred from five runtime columns where **`-1` means the model failed at
+that size** — a convention a reader cannot possibly guess from the chart. If a number is
+derived, Methods must say so and name the convention. Also state what was dropped and why:
+three models whose incorporation year preceded their publication year were excluded,
+because a negative lag means one of the two dates is wrong, not that a paper was wrapped
+before it existed.
+
+## Rate and total belong in one chart
+
+A cumulative curve only ever rises, so on its own it cannot show whether growth is
+accelerating or stalling. Putting the two behind a Cumulative / Per-period **toggle** is
+worse than either: the reader can only ever see one, and toggles are for switching
+*measure*, not for hiding half of one.
+
+Draw them as two panels sharing one category axis — per-period bars above, running total
+below, axis pointers linked. Never as two y-axes on one plot.

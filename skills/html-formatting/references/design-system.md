@@ -106,41 +106,81 @@ Ersilia palette on a white card surface:
 
 | Role | Steps |
 |---|---|
-| Categorical (fixed order — the order *is* the CVD safety) | `#6d5de7 #e63745 #247dad #e2a72e #af5cc7 #6cbf5a` |
+| Categorical (fixed order — the order *is* the CVD safety) | `#6d5de7 #e2a72e #247dad #6cbf5a #af5cc7 #e63745` |
 | Sequential (magnitude, one hue) | `#b2b4d7 #9495d1 #7876ca #5f55c2 #492eb8` |
 
-Clears adjacent CVD ΔE 15.8 (target 8) and normal-vision ΔE 31.0 (floor 15). Amber and
+Clears adjacent CVD ΔE 20.0 (target 8) and normal-vision ΔE 20.6 (floor 15). Amber and
 lime fall below 3:1 on white, so any chart using them owes a relief channel: direct
 value labels or a table view.
+
+### Put red LAST in the categorical order
+
+This is the single highest-leverage ordering decision, and it is easy to get wrong by
+accident. Crimson used to sit in **slot 2** of this list. Since a two-series chart takes
+slots 1 and 2, that meant *every* two-series chart on a real dashboard came out
+periwinkle-versus-red — and the second series is very often the neutral half of a pair:
+"Left", "External", "Blog posts", "Featurization", "Science". All of them were painted
+the same red as a failure, and the reported symptom was that the whole site "looked
+ugly" and "too red".
+
+**Red carries a verdict whether or not you mean one.** So:
+
+- Order the categorical set so red is slot 6, reachable only by a genuine sixth category.
+- **Chrome must not reach it at all.** If a `slotColor(i)` helper cycles the palette for
+  sibling chrome (hero sparklines, section cards), cap it *below* the red slot. Otherwise
+  the sixth tile in a row of eight gets a red underline for no reason.
+- A **residual** category is not a category: fold-the-tail tiles named "Other" take the
+  neutral, never the next palette slot. As the 6th tile, "Other" landed on red and the
+  leftovers looked like a warning.
+- Keep `--good`/`--warn`/`--bad` for genuine **states** (a curation status, a project
+  status), addressed through a `semantics` map rather than by slot index. Emitting
+  `semantics: ["good","bad","brand"]` for a joined/left pair is the same mistake in
+  data-layer clothing: leaving is not "bad".
+
+**Reordering is not free.** The gates are adjacency-sensitive, so re-run the validator on
+any new order. In the set above, cobalt in slot 2 fails the normal-vision floor beside
+periwinkle (ΔE 14.7 — both read blue) and orchid beside cobalt fails deuteranopia
+(ΔE 5.8). Permute only the middle slots and keep re-running until both gates pass.
 
 **Expect `T1-COLOR-OFFBRAND`** on these, since they are not literal palette entries.
 That is the correct trade and should be documented in the page's CSS — never "fixed" by
 substituting the unvalidated brand hexes, which buys a clean report at the cost of
 charts colourblind readers cannot read.
 
-## Section identity hues — the one sanctioned way past T2-ACCENT-SPRAWL
+## Section hues: tint the nav, not the charts
 
 A multi-section dashboard may give **each section its own hue**, and the four-hue cap
-does not apply. The cap exists to stop flat accents being sprinkled across chrome as
-decoration. A section hue is not decoration if it does real work: it marks the nav
-entry *and* colours that section's own charts, so a page reads as itself and the
-sidebar doubles as a key.
+does not apply to that — the cap exists to stop flat accents being sprinkled across
+chrome as decoration, and a nav hue that identifies a section is doing real work.
 
-Two conditions:
+But keep it in the navigation. Two rules learned the hard way, in this order:
 
-1. **Validate the sequence in nav order.** Sidebar dots sit next to each other, so
-   neighbours must be distinguishable — this is exactly the adjacency case the CVD
-   check governs. Assigning hues by intuition is not enough: on one real dashboard the
-   natural assignment put lime beside amber at ΔE 5.0 under deuteranopia, invisible to
-   a red-green colourblind reader. Hold the editorial nav order and *permute the hue
-   assignment* until both gates pass.
-2. **One hue per chart.** A single-series chart takes the section hue. A two-series
-   chart takes the hue plus a pale tint of it (validate the pair). Only three or more
-   series reach for the categorical order.
+1. **Do not colour a section's charts with its section hue.** This seems elegant and it
+   is not: every page comes out monochrome, which is the *opposite* of using a palette.
+   One colour per page reads as a restriction rather than as a system. Chart colour
+   should be one global categorical set in a fixed order, so a hue always means "this is
+   a category" and never "this is page four". Reported verdict on the per-page version:
+   *"too much monochrome — you can use the full palette across pages, it is not necessary
+   that you choose one colour per page, that feels like too much."*
+2. **Do not colour the nav *label text* either.** Put the hue in the **fill** behind the
+   item — a light wash on hover, a slightly stronger one for the current page — and leave
+   every label in plain ink. Eight coloured words stacked in a column read as decoration
+   and make the sidebar look busy. Also skip leading colour dots and a thick coloured
+   left edge; both were rejected on sight (*"I don't understand the dots before the
+   menus, and I don't know why the menus have a dark left side — ugly"*).
 
-Compositions (donut segments, treemap tiles, choropleth steps) take **tints of the
-section hue, darkest first** — index 0 is the largest slice. Getting that backwards
-renders the biggest tile white with white text on it.
+Validate the nav sequence in **nav order** regardless: sidebar entries sit next to each
+other, which is exactly the adjacency case the CVD check governs. Assigning hues by
+intuition is not enough — on one real dashboard the natural assignment put lime beside
+amber at ΔE 5.0 under deuteranopia. Hold the editorial nav order and permute the hue
+assignment until both gates pass.
+
+Compositions (donut segments, nested treemap tiles, choropleth steps) take **tints of one
+hue, darkest first** — index 0 is the largest slice. Getting that backwards renders the
+biggest tile white with white text on it. When you flip a label between ink and white on a
+tint threshold, **check the comparison can actually be true**: one such test compared a
+tint against a constant that made it unreachable, so every child label stayed white
+forever, including on the palest tiles.
 
 ## What to inline where
 
