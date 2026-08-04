@@ -355,11 +355,11 @@ in Step 6 must speak to these answers.
 
 | # | Question | Pass criterion | If fail |
 |---|---|---|---|
-| 1 | **Input modality** | Accepts SMILES / InChI / molfile / SDF as the primary input. CPI (compound–protein interaction) models pass — the molecule is the primary input. | No 🤖. Surface as context with `(input: {modality})` annotation, in chapter 3 (methods) or wherever topical. |
+| 1 | **Input modality** | Accepts SMILES / InChI / molfile / SDF as the primary input. Two-input models (DTI / DTA / CPI / DDI — needing a protein sequence/structure or a second drug at inference) pass **only if** the paper ships a fixed-target checkpoint (or small fixed panel) that bakes the second entity in; otherwise they are two-input and fail. | No 🤖. Surface as context with `(input: {modality})` or `(I/O: drug + target — needs fixed-target wrap)`, in chapter 3 (methods) or wherever topical. |
 | 2 | **Output** | Produces a numeric score, vector, label, or molecule(s) — i.e. something the Hub `predict` / `featurize` / `generate` interface can return. | No 🤖. |
 | 3 | **Task fit** | Slots into one of: Property prediction, Activity prediction, Featurization, Projection, Similarity search, Generation. | No 🤖; mention task mismatch. |
 | 4 | **Code availability** | A public repo URL (GitHub / GitLab / Codeberg / HuggingFace Space) is named in the paper or in the model/dataset release page. | No 🤖. (Independent of 💻 — see below.) |
-| 5 | **Weights availability** | Trained weights are released (HuggingFace, Zenodo, repo release, or supplementary). | 🤖 with `(weights: pending)` qualifier; flag for follow-up. |
+| 5 | **Weights availability** | Trained weights are released (HuggingFace, Zenodo, GitHub release/LFS, or supplementary) — verified to exist, not a README promise or a `train.py` output. | 🤖 kept, but tag `(weights: pending)` if authors say they are coming, or `(weights: none — retrain required)` if code-only; rank below weights-released entries. |
 | 6 | **License** | Permissive enough for Ersilia redistribution — MIT, Apache-2.0, BSD-2/3-Clause, CC-BY, CC-BY-SA, MPL-2.0. CC-NC, GPL/AGPL-only, "research-only" or "non-commercial" all fail. | No 🤖. Note the license blocker in the body sentence and surface as context. |
 | 7 | **Inference reproducibility** | Dependencies are tractable — no proprietary library, no hardware lock-in beyond a single GPU, no cloud-API call required for inference — i.e. plausibly runnable inside an Ersilia model container. | 🤖 with `(infra: heavy)` qualifier; flag for follow-up. |
 
@@ -367,8 +367,10 @@ Decision:
 
 - Items passing **1–4 and 6** unconditionally get 🤖.
 - Items passing **1–4 + 6** but failing 5 or 7 still get 🤖 (still a candidate),
-  and the body sentence must say so concretely
-  (e.g. "weights not yet released" or "requires a 4×A100 inference budget").
+  and the body sentence must say so concretely via the mandatory `(weights: …)`
+  qualifier ("weights: none — retrain required", "weights: pending") or an
+  `(infra: heavy)` note (e.g. "requires a 4×A100 inference budget"). Rank these
+  below entries that pass 5 and 7.
 - Items failing any of 1–3 or 6 do **not** get 🤖. They may still appear as
   context in chapter 3 (methods) with the failing dimension named.
 - 💻 is **independent** of 🤖. 💻 applies only when the abstract or paper page
@@ -383,15 +385,16 @@ hook)**:
 
 ```
 Open-source {task} model taking {input modality} → {output type};
-released with {weights/code} under {license}. Plausible Hub addition because {hook}.
+released with {weights/code} under {license} (weights: released | pending | none).
+Plausible Hub addition because {hook}.
 ```
 
 Worked example:
 
 > Open-source activity-prediction model taking SMILES → IC50 (regression);
-> released with weights and inference code on GitHub under Apache-2.0.
-> Plausible Hub addition because it covers *M. tuberculosis* H37Rv whole-cell,
-> a Hub gap.
+> released with weights and inference code on GitHub under Apache-2.0
+> (weights: released). Plausible Hub addition because it covers
+> *M. tuberculosis* H37Rv whole-cell, a Hub gap.
 
 **Dataset-incorporability checklist (🗃️)**:
 

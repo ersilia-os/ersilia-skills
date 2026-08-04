@@ -106,9 +106,15 @@ Apply 🤖 when **all of the following hold**:
    - pocket-tensor or protein-pocket conditioning
    - multi-omics target-ID pipelines
 
-   Compound–protein interaction models are 🤖-eligible because the *primary*
-   user-facing input is the small molecule; the protein is a condition the Hub
-   handles as a fixed target argument. Generative models that emit small
+   **Two-input models (DTI / DTA / CPI / DDI) — apply the single-SMILES test.**
+   A compound–protein or drug–drug model is 🤖-eligible only if it can run from a
+   small molecule alone — i.e. the paper ships a **fixed-target checkpoint** (or a
+   small fixed target panel) so the second entity is baked in. If it genuinely
+   needs a user-supplied protein sequence/structure or a second drug at inference,
+   it is not single-SMILES-in: surface it as context **without 🤖**, tagged
+   `(I/O: drug + target — needs fixed-target wrap)`. Trigger this test whenever the
+   title/abstract carries DTI, DTA, DDI, CPI, drug–target, drug–drug,
+   compound–protein, binding affinity, or interaction prediction. Generative models that emit small
    molecules are 🤖-eligible even when they have no molecule input, *provided*
    they do not require a non-molecule conditioning input (e.g. a pocket
    tensor) the Hub's generator interface cannot currently supply.
@@ -122,9 +128,16 @@ Apply 🤖 when **all of the following hold**:
 3. The model performs one of the six Hub subtasks (use this file as the
    reference taxonomy). Map ambiguous tasks to the most specific subtask, and
    only call it "Generation" if the headline contribution is generative.
-4. The model is **openly available** — code or weights or web server. Mark 🤖
-   even for online-only services (ADMETLab-style entries are a Hub pattern), but
-   prefer code-bearing entries when triaging.
+4. The model is **openly available**, and the digest states *in which form* via
+   the mandatory `(weights: …)` qualifier: **weights released** (downloadable
+   checkpoint) is strongest; **code only, no weights** still gets 🤖 but is tagged
+   `(weights: none — retrain required)` and ranked below weights-bearing entries,
+   because incorporation then means reproducing the model, not wrapping it;
+   **web-server / online-only** (ADMETLab-style) is a fall-back, tagged
+   `(infra: online-only)` and ranked lowest; **proprietary / no artifact** is not
+   🤖. Rationale: releasing *code* is not the same as releasing a runnable *model*
+   — the most common reason a plausible candidate fails is that no weights were
+   ever published.
 5. The endpoint is plausibly Hub-relevant. Cardiology-only or plant-only
    models, for instance, do not fit unless they generalise.
 

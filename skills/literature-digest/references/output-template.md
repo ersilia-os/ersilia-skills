@@ -151,8 +151,9 @@ the icon and the word, matching the legend at the top.
 
 Each 🤖 entry must use the structured body-sentence pattern from `SKILL.md`
 Step 5a: **Open-source {task} model taking {input} → {output}; released with
-{weights/code} under {license}. Plausible Hub addition because {hook}.** Add
-`(weights: pending)` or `(infra: heavy)` qualifiers when applicable.
+{weights/code} under {license} (weights: released | pending | none). Plausible Hub
+addition because {hook}.** The `(weights: …)` qualifier is **mandatory** on every
+🤖 entry; add an `(infra: heavy)` qualifier as well when applicable.
 
 ### Chapter 2 internal structure — group 🗃️ by endpoint family
 
@@ -278,7 +279,8 @@ Components:
    institution). If you cannot write a credible one-liner, drop the item.
    - **🤖 entries** use the structured Step 5a pattern: *Open-source {task}
      model taking {input} → {output}; released with {weights/code} under
-     {license}. Plausible Hub addition because {hook}.*
+     {license} (weights: released | pending | none). Plausible Hub addition
+     because {hook}.* The `(weights: …)` qualifier is mandatory.
    - **🗃️ entries** use the structured Step 5b pattern: *{N} compounds / rows ·
      {endpoint} · {license} · {download host}. Plausible Hub input because
      {hook}.*
@@ -305,7 +307,7 @@ order: **⭐ 🌍 🤖 🗃️ 💻** (impact → equity → model → dataset �
 | 🌍 | LMIC-led work | First OR senior author at a World Bank low/lower-middle-income institution (see `lmic-countries.md`). |
 | 🤖 | Model/tool potentially incorporable into the Ersilia Model Hub | Open-source or openly distributable model with a clear inference interface; task fits the Hub taxonomy. Skip if closed, irreproducible, or commercial-only. |
 | 🗃️ | Dataset useful for training or evaluating Hub models | Openly downloadable; covers a Hub-relevant endpoint; large/labelled enough to train or benchmark. **Prefer big, well-established corpora** (tens of thousands of compounds upwards; clear public release; venue with citation traction). Examples this week: COMPASS (75k AMPs, *npj AMR*), QuantumPioneer (Coley/Kraft reaction QM corpus). Small, single-target or single-paper datasets rarely warrant 🗃️ on their own. Skip purely descriptive (non-ML-trainable) datasets. |
-| 💻 | Open code linked from the paper | The paper links to a public, runnable code repository (GitHub, GitLab, Codeberg, etc.). 💻 is applied **only when code existence is verified** — i.e. the abstract or paper text explicitly mentions a repo URL, or Crossref/OpenAlex metadata flags an open code object. Crossref abstracts often omit code mentions, so when the abstract is silent, fetch the paper page (or `data availability` block) before applying 💻. **Default-off**: if you cannot point at a specific URL, do not apply 💻 — false positives are worse than omission. When a URL *is* surfaced, also append `[code](...)` to the trailing extras. |
+| 💻 | Open code linked from the paper | The paper links to a public, runnable code repository (GitHub, GitLab, Codeberg, etc.). 💻 is applied **only when code existence is verified** — i.e. the abstract or paper text explicitly mentions a repo URL, or Crossref/OpenAlex metadata flags an open code object. Crossref abstracts often omit code mentions, so when the abstract is silent, fetch the paper page (or `data availability` block) before applying 💻. **Default-off**: if you cannot point at a specific URL, do not apply 💻 — false positives are worse than omission. When a URL *is* surfaced, also append `[code](...)` to the trailing extras. **💻 marks code only** — whether *weights* were released is carried by the mandatory `(weights: …)` body qualifier, not by a marker; the common false-positive is code-released-but-weights-not, which reads `💻 … (weights: none — retrain required)`. |
 
 Markers are editorial — apply them only when they're load-bearing. Do not sprinkle.
 A *Nature Methods* paper that releases an open Plasmodium ADMET model trained on a new
