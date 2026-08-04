@@ -112,10 +112,10 @@ high-impact venue when the work is foundational.
 
 Apply 🤖 when **all of the following hold**:
 
-1. **The model takes small molecules as its primary input.** The Hub's current
-   incorporation surface is small-molecule-only: SMILES / InChI / molfile.
-   That means the following are explicitly **not** 🤖-eligible, no matter how
-   relevant they look otherwise:
+1. **The model's runtime input is exactly one small molecule.** The Hub's
+   incorporation surface is strictly single-compound-in: one SMILES / InChI /
+   molfile per call, nothing else alongside it. That means the following are
+   explicitly **not** 🤖-eligible, no matter how relevant they look otherwise:
    - protein-sequence input (e.g. solubility, secondary structure, pLM
      interpretability)
    - RNA-sequence or RNA-structure input
@@ -125,17 +125,40 @@ Apply 🤖 when **all of the following hold**:
    - cell-image / phenotypic-image input
    - pocket-tensor or protein-pocket conditioning
    - multi-omics target-ID pipelines
+   - **multi-molecule runtime input** — any model that needs two or more
+     molecules supplied together in a single call (fragment-pair linker
+     generators, reaction-pair predictors, PROTAC warhead+E3-ligand
+     assemblers). Every individual input being a small molecule does **not**
+     save it: the Hub's interface has no slot for a second compound, a
+     designated reaction site, or a paired reference structure. Treat this
+     the same as a hard modality exclusion → **Out of scope**.
 
-   Compound–protein interaction models are 🤖-eligible because the *primary*
-   user-facing input is the small molecule; the protein is a condition the Hub
-   handles as a fixed target argument. Generative models that emit small
-   molecules are 🤖-eligible even when they have no molecule input, *provided*
-   they do not require a non-molecule conditioning input (e.g. a pocket
-   tensor) the Hub's generator interface cannot currently supply.
+   Compound–protein interaction (DTI) *models* are 🤖-eligible **only when the
+   protein is fixed at build time**, baked into the model as one specific
+   target — the runtime call is still exactly one compound in, one prediction
+   out (e.g. "predict pIC50 against PfDHFR" takes just the SMILES; PfDHFR is
+   not a second runtime input). A DTI model whose protein is itself a runtime
+   argument (pick-any-target) is out of scope by the multi-input rule above.
+
+   A DTI/bioactivity **dataset** — as opposed to a model — is a different
+   case, and should not be excluded by this rule: if it pairs many compounds
+   against one fixed, Hub-relevant protein target (e.g. bioactivity data
+   against an essential *P. falciparum* protein), it is a strong Data-to-model
+   candidate (route C4). Ersilia would fix that one target and train an
+   ordinary single-compound-in predictor from the pairs — the *resulting* Hub
+   model still respects the one-compound rule even though the source data has
+   a compound-protein-pair shape. Flag these as **Conditional candidate (C4)**,
+   not **Out of scope**.
+
+   Generative models that emit small molecules are 🤖-eligible even when they
+   have no molecule input, *provided* the call takes at most one molecule
+   (or none) and does not require a second molecule, a non-molecule
+   conditioning input (e.g. a pocket tensor), or a paired reference structure
+   the Hub's generator interface cannot currently supply.
 
    For models that are clearly important but fall outside this surface — surface
    them as context items without 🤖, with a one-liner stating "Out of the
-   current Hub small-molecule-input surface" so the team knows to revisit when
+   current Hub single-compound-input surface" so the team knows to revisit when
    the Hub interface expands.
 
 2. The paper introduces or releases a model / tool, not just an analysis.

@@ -136,12 +136,22 @@ Work through these questions in order — stop as soon as you hit a hard exclusi
 1. **Does the paper release a model or dataset?**
    If no (pure biology, review, analysis only) → verdict is **Not eligible**: no model to incorporate.
 
-2. **Does the model take small molecules as primary input?**
+2. **Is the model's runtime input exactly one small molecule?**
+   The ONLY input Ersilia Model Hub models accept is a single compound — one SMILES,
+   InChI, or molfile per call. Nothing else is passed alongside it.
    Eligible input: SMILES, InChI, molfile, or a compound–protein interaction model
-   where the small molecule is the user-facing input.
+   whose protein target is fixed at build time (the runtime call is still one compound in).
    Hard exclusions: protein sequence, RNA/peptide sequence, gene/genome, transcriptomics,
-   cell images, pocket tensors. If excluded → verdict is **Out of scope**: input modality
-   not currently supported by the Hub.
+   cell images, pocket tensors, AND any model requiring **two or more molecules in the
+   same call** (fragment-pair linker generators, reaction-pair predictors, warhead+E3-ligand
+   assemblers) — even though each individual input is itself a small molecule, the Hub
+   interface has no slot for a second one. If excluded → verdict is **Out of scope**: input
+   shape not currently supported by the Hub.
+   Exception: a DTI/bioactivity **dataset** (as opposed to a model) that pairs many
+   compounds against one fixed, Hub-relevant protein target (e.g. an essential
+   *P. falciparum* protein) is not excluded by this rule — it is a Data-to-model candidate
+   (route C4), since the resulting Hub model would be an ordinary single-compound predictor
+   for that one target. See `references/hub-incorporation-criteria.md`.
 
 3. **Does it perform one of the six Hub subtasks?**
    Activity prediction · Featurization · Property prediction · Similarity search · Generation · Projection
@@ -297,7 +307,7 @@ not eligible for incorporation."]
 | **Conditional candidate** | The paper enables Hub incorporation via an intermediate step (encoder extraction, fine-tuning, surrogate distillation, data-to-model, or replication with substitution) — route identified via C1–C6 trigger questions |
 | **Already in Hub pipeline** | A matching model already exists as `In progress` or `In maintenance` — the team is already on it; overrides whatever the base eligibility verdict would have been |
 | **Low fit** | Eligible input modality, but task or endpoint sits outside Ersilia priorities |
-| **Out of scope** | Hard exclusion on input modality (protein, RNA, image, etc.) |
+| **Out of scope** | Hard exclusion on input modality (protein, RNA, image, etc.) or input shape (requires two or more molecules in the same call) |
 | **Not eligible** | Paper does not release a model or dataset |
 
 Note: a match against an `Archived` model does not get its own verdict — it stays at
