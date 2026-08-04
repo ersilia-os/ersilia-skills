@@ -145,3 +145,71 @@ When 🗃️ is the *only* marker (no 🤖), the item still stays in its topical
 chapter — the marker alone tells the reader the dataset is Hub-trainable.
 When a paper carries **both** 🤖 and 🗃️, the model is the primary contribution
 and the dataset gets a mention in the body sentence.
+
+## Conditional incorporation routes (🤖❓)
+
+The 🤖 marker fires only when a paper's *own model* can be directly wrapped.
+But ~21 % of the Hub (Internal + Replicated source types) reached the Hub via an
+**intermediate step** — encoder extraction, fine-tuning, surrogate distillation,
+or data-to-model training. Papers enabling one of these routes are Hub candidates
+too, just conditional ones.
+
+Use **🤖❓** for these. They appear in the same topical chapter as a direct 🤖,
+sorted below 🤖 entries but above unannotated items. A paper carries **either**
+🤖 or 🤖❓, never both.
+
+### Seven trigger questions (C1–C7)
+
+Ask these *before* running the standard 🤖 checklist. Fire 🤖❓ on the first
+trigger that matches.
+
+| ID | Trigger | Route name | Hub precedent |
+|---|---|---|---|
+| C1 | The paper's main contribution is a **pretrained encoder** (molecular transformer, GNN, diffusion backbone) whose hidden-layer embeddings could be exposed as a featurizer, even if the paper does not frame it that way. | Encoder extraction | eos7w6n (GROVER), eos4rw4 (CDDD), eos9zw0 (MolPMoFiT), eos82v1 (SMI-TED), eos3wac (DeBERTaV2), eos39co (Uni-Mol) |
+| C2 | The paper describes **fine-tuning a foundation model** on a new endpoint — the fine-tuning recipe is the contribution, not a new backbone. | Fine-tuned predictor | eos4cxk, eos8c0o, eos6hy3, eos93h2 (ImageMol fine-tunes); eos6m2k (MolE + XGBoost on 40 antimicrobial strains) |
+| C3 | The model is **online/proprietary only**, but the API can be called in bulk to generate labels for a surrogate. Ersilia has used teacher–student distillation for models like this. | Surrogate distillation | eos2gth (MAIP surrogate via teacher–student distillation on 2M ChEMBL molecules) |
+| C4 | The paper releases a **screening dataset without a model** on a Hub-priority endpoint — large enough that LazyQSAR or Chemprop could produce a useful predictor. | Data-to-model (LazyQSAR) | eos4rta, eos2l0q, eos9ivc, eos5bsw, eos7l5m (LazyQSAR models trained on published assay data) |
+| C5 | A single codebase covers **multiple distinct endpoints or organisms** and could be deployed as several separate Hub entries. | One-to-many deployment | ChEMBL antimicrobial family (15 entries); GROVER family (12 entries, eos7w6n + task-specific models); ImageMol family (5 entries, eos4avb + fine-tunes) |
+| C6 | The model is a **multi-task predictor** whose output vector across tasks could serve as a molecular fingerprint, independent of its primary framing. | Multi-task featurizer | eos93h2 (10 GPCR scores as bioactivity embedding); eos1vms (616 ChEMBL target probabilities as fingerprint); eos4u6p (CC Signaturizer, 3200-dim bioactivity spaces) |
+| C7 | The model fails reproducibility because one component is **proprietary or unavailable**, but an open-source substitute benchmarked in the paper would yield comparable performance. | Replication with substitution | eos8d8a (MycPermCheck, replicated with LazyQSAR + Ersilia decoy sampler); eos9n1s (hemozoin inhibition, RDKit replacing proprietary ChemSpyder descriptors) |
+
+### Conditional body-sentence template
+
+```
+Conditional Hub candidate via [Route name].
+Paper contributes: {what the paper actually published — encoder, recipe, data, or API}.
+Hub would do: {the intermediate step} → {expected Hub output type}.
+Prerequisite: {what must exist or happen first}.
+Released under {license}. Priority: {High / Medium / Low} because {specific Hub gap filled}.
+```
+
+**Priority heuristics:**
+- **High** — no Hub coverage of this endpoint/task, or it is a named priority (AMR, Plasmodium, TB, ADMET).
+- **Medium** — partial Hub coverage; this route adds a new organism, endpoint, or meaningfully better accuracy.
+- **Low** — Hub already has adequate coverage; this would be a refinement.
+
+### Worked examples
+
+**C1 — Encoder extraction**
+
+> 🤖❓ Conditional Hub candidate via Encoder extraction.
+> Paper contributes: a SMILES-based molecular transformer pretrained on 77M PubChem compounds.
+> Hub would do: expose the final hidden-layer embedding as a 768-dim fingerprint → Featurization entry.
+> Prerequisite: weights confirmed downloadable (verify Zenodo record resolves).
+> Released under MIT. Priority: Medium because the Hub has featurizers (eos2d9a, eos5axz) but none pretrained at this scale.
+
+**C3 — Surrogate distillation**
+
+> 🤖❓ Conditional Hub candidate via Surrogate distillation.
+> Paper contributes: a proprietary antimalarial activity model accessible via web API (no weights or code released).
+> Hub would do: call the API in bulk → train a surrogate via teacher–student distillation → Activity prediction entry.
+> Prerequisite: API must remain live and allow bulk queries (~50k compounds; see eos2gth precedent).
+> Released under commercial licence (API only). Priority: High because Plasmodium falciparum activity coverage remains a Hub priority.
+
+**C4 — Data-to-model**
+
+> 🤖❓ Conditional Hub candidate via Data-to-model (LazyQSAR).
+> Paper contributes: 23 000 MIC measurements against M. tuberculosis H37Rv (no model shipped).
+> Hub would do: train a QSAR predictor with LazyQSAR → MIC/activity prediction entry for TB whole-cell.
+> Prerequisite: dataset confirmed downloadable under open licence; LazyQSAR training (~1 h on CPU) is the only additional step.
+> Released under CC-BY. Priority: High because TB whole-cell activity prediction is a named Hub gap.

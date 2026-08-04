@@ -123,6 +123,14 @@ title, and their `Status`.
 ## Step 3 — Apply the Hub relevance criteria
 
 Use the criteria in `references/hub-incorporation-criteria.md` to assess the paper.
+
+**Before the checklist — check for conditional incorporation routes (C1–C7).**
+Even if a paper looks like it would fail questions 1–3 below, scan the seven trigger
+questions in `references/hub-incorporation-criteria.md` (section "Conditional incorporation
+routes"). If any trigger fires, the verdict is **Conditional candidate** — skip
+questions 1–5, write the five-line conditional body sentence using the template in that
+section, and note which route (C1–C7) matched in the reasoning.
+
 Work through these questions in order — stop as soon as you hit a hard exclusion:
 
 1. **Does the paper release a model or dataset?**
@@ -203,10 +211,13 @@ No background context — jump straight to the contribution.]
 
 #### Ersilia Model Hub Relevance
 
-**Verdict:** [one of: Strong candidate · Candidate · Already in Hub pipeline · Low fit · Out of scope · Not eligible]
+**Verdict:** [one of: Strong candidate · Candidate · Conditional candidate · Already in Hub pipeline · Low fit · Out of scope · Not eligible]
 
 **Reasoning:**
-[4–5 bullets, each a short clause (not a full sentence). State the fact + implication only.]
+[4–5 bullets, each a short clause (not a full sentence). State the fact + implication only.
+When verdict is **Conditional candidate**: replace these bullets with the five-line
+conditional body sentence from `references/hub-incorporation-criteria.md`, and note which
+route (C1–C7) fired.]
 - Input: SMILES → within Hub surface.
 - Task: activity prediction → aligns with Hub's largest subtask bucket.
 - Endpoint: P. falciparum IC50 → high-priority (antimalarial focus).
@@ -244,11 +255,14 @@ Write for a computational biologist. Do not reproduce the abstract — synthesis
 
 #### Ersilia Model Hub Relevance
 
-**Verdict:** [one of: Strong candidate · Candidate · Already in Hub pipeline · Low fit · Out of scope · Not eligible]
+**Verdict:** [one of: Strong candidate · Candidate · Conditional candidate · Already in Hub pipeline · Low fit · Out of scope · Not eligible]
 
 **Eligibility assessment:**
 [Work through the same checklist as in `--short`, but write each point as a full sentence
-rather than a bullet fragment. Cover input modality, task, endpoint priority, and availability.]
+rather than a bullet fragment. Cover input modality, task, endpoint priority, and availability.
+When verdict is **Conditional candidate**: replace this section with the five-line conditional
+body sentence from `references/hub-incorporation-criteria.md`, written as full sentences,
+and identify which route (C1–C7) fired and why.]
 
 **Added value over existing Hub models:**
 [This is the core of the extended mode. For each Hub model returned by `ersilia_search`
@@ -280,6 +294,7 @@ not eligible for incorporation."]
 |---|---|
 | **Strong candidate** | Small-molecule input, Hub-relevant task + endpoint, open code, no identical model in the Hub (at any status) |
 | **Candidate** | Eligible but with one flag: low-priority endpoint, online-mode only, or a potential overlap with a `Ready` model |
+| **Conditional candidate** | The paper enables Hub incorporation via an intermediate step (encoder extraction, fine-tuning, surrogate distillation, data-to-model, or replication with substitution) — route identified via C1–C7 trigger questions |
 | **Already in Hub pipeline** | A matching model already exists as `In progress` or `In maintenance` — the team is already on it; overrides whatever the base eligibility verdict would have been |
 | **Low fit** | Eligible input modality, but task or endpoint sits outside Ersilia priorities |
 | **Out of scope** | Hard exclusion on input modality (protein, RNA, image, etc.) |
