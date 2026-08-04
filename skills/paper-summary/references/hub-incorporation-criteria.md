@@ -178,7 +178,7 @@ In the paper-summary skill, these papers receive the **Conditional candidate** v
 instead of a direct Strong candidate / Candidate verdict. A paper receives either
 Conditional candidate or a direct eligibility verdict — never both.
 
-### Seven trigger questions (C1–C7)
+### Six trigger questions (C1–C6)
 
 Ask these *before* running the standard eligibility checklist in Step 3. Fire
 **Conditional candidate** on the first trigger that matches.
@@ -188,10 +188,9 @@ Ask these *before* running the standard eligibility checklist in Step 3. Fire
 | C1 | The paper's main contribution is a **pretrained encoder** (molecular transformer, GNN, diffusion backbone) whose hidden-layer embeddings could be exposed as a featurizer, even if the paper does not frame it that way. | Encoder extraction | eos7w6n (GROVER), eos4rw4 (CDDD), eos9zw0 (MolPMoFiT), eos82v1 (SMI-TED), eos3wac (DeBERTaV2), eos39co (Uni-Mol) |
 | C2 | The paper describes **fine-tuning a foundation model** on a new endpoint — the fine-tuning recipe is the contribution, not a new backbone. | Fine-tuned predictor | eos4cxk, eos8c0o, eos6hy3, eos93h2 (ImageMol fine-tunes); eos6m2k (MolE + XGBoost on 40 antimicrobial strains) |
 | C3 | The model is **online/proprietary only**, but the API can be called in bulk to generate labels for a surrogate. Ersilia has used teacher–student distillation for models like this. | Surrogate distillation | eos2gth (MAIP surrogate via teacher–student distillation on 2M ChEMBL molecules) |
-| C4 | The paper releases a **screening dataset without a model** on a Hub-priority endpoint — large enough that LazyQSAR or Chemprop could produce a useful predictor. | Data-to-model (LazyQSAR) | eos4rta, eos2l0q, eos9ivc, eos5bsw, eos7l5m (LazyQSAR models trained on published assay data) |
-| C5 | A single codebase covers **multiple distinct endpoints or organisms** and could be deployed as several separate Hub entries. | One-to-many deployment | ChEMBL antimicrobial family (15 entries); GROVER family (12 entries, eos7w6n + task-specific models); ImageMol family (5 entries, eos4avb + fine-tunes) |
-| C6 | The model is a **multi-task predictor** whose output vector across tasks could serve as a molecular fingerprint, independent of its primary framing. | Multi-task featurizer | eos93h2 (10 GPCR scores as bioactivity embedding); eos1vms (616 ChEMBL target probabilities as fingerprint); eos4u6p (CC Signaturizer, 3200-dim bioactivity spaces) |
-| C7 | The model fails reproducibility because one component is **proprietary or unavailable**, but an open-source substitute benchmarked in the paper would yield comparable performance. | Replication with substitution | eos8d8a (MycPermCheck, replicated with LazyQSAR + Ersilia decoy sampler); eos9n1s (hemozoin inhibition, RDKit replacing proprietary ChemSpyder descriptors) |
+| C4 | The paper releases a **screening dataset without a model** on a Hub-priority endpoint — large enough that LazyQSAR or Chemprop could produce a useful predictor. This applies to both **experimental bioassay data** (MIC, IC50, phenotypic readouts) and **computational virtual-screening data** (docking scores, e.g. AutoDock Vina). For docking datasets, the route trains a QSAR surrogate to predict docking scores directly from SMILES, eliminating the need to run the docking pipeline per query. Scale threshold differs by data type: ~500+ compounds for bioassay endpoints; ~10 000+ per target for docking-surrogate routes (noisier labels require more data). | Data-to-model (LazyQSAR) | eos4rta, eos2l0q, eos9ivc, eos5bsw, eos7l5m (LazyQSAR models trained on published assay data) |
+| C5 | The model is a **multi-task predictor** whose output vector across tasks could serve as a molecular fingerprint, independent of its primary framing. | Multi-task featurizer | eos93h2 (10 GPCR scores as bioactivity embedding); eos1vms (616 ChEMBL target probabilities as fingerprint); eos4u6p (CC Signaturizer, 3200-dim bioactivity spaces) |
+| C6 | The model fails reproducibility because one component is **proprietary or unavailable**, but an open-source substitute benchmarked in the paper would yield comparable performance. | Replication with substitution | eos8d8a (MycPermCheck, replicated with LazyQSAR + Ersilia decoy sampler); eos9n1s (hemozoin inhibition, RDKit replacing proprietary ChemSpyder descriptors) |
 
 ### Conditional body-sentence template
 
@@ -233,3 +232,11 @@ Released under {license}. Priority: {High / Medium / Low} because {specific Hub 
 > Hub would do: train a QSAR predictor with LazyQSAR → MIC/activity prediction entry for TB whole-cell.
 > Prerequisite: dataset confirmed downloadable under open licence; LazyQSAR training (~1 h on CPU) is the only additional step.
 > Released under CC-BY. Priority: High because TB whole-cell activity prediction is a named Hub gap.
+
+**C4 — Data-to-model (docking surrogate)**
+
+> Conditional Hub candidate via Data-to-model (LazyQSAR).
+> Paper contributes: 48 000 AutoDock Vina docking scores against Mtb InhA (SMILES + score, supplementary CSV; no QSAR model shipped).
+> Hub would do: train a QSAR surrogate on SMILES → Vina score with LazyQSAR → Activity prediction entry (docking-score proxy), so users can screen libraries without running Vina.
+> Prerequisite: dataset confirmed downloadable under open licence; compound count ≥10 000 per target (check before proceeding — small docking runs are below the surrogate reliability threshold); target is Hub-priority (TB).
+> Released under CC-BY. Priority: High because a SMILES-native docking proxy for a TB target fills a Hub gap and is orders of magnitude cheaper to run than the docking pipeline itself.
