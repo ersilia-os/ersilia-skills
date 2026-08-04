@@ -79,12 +79,23 @@ The report is twice-yearly, not redundant. The canonical home is the remote
 one inline command:
 
 ```bash
-gh api repos/ersilia-os/digests/contents/events --jq '.[].name' 2>/dev/null | sort -r | head -3
+if LISTING=$(gh api repos/ersilia-os/digests/contents/events --jq '.[].name' 2>&1); then
+  printf '%s\n' "$LISTING" | sort -r | head -3
+elif printf '%s' "$LISTING" | grep -q 'Not Found'; then
+  echo "events/ folder does not exist yet — first run, continue to Step 1."
+else
+  echo "STOP — cannot read the remote digests repo:" >&2
+  printf '%s\n' "$LISTING" >&2
+  exit 1
+fi
 ```
 
-- If this errors for a reason other than the `events/` folder not existing yet
-  (e.g. auth failure, network issue), **STOP** and surface it — don't silently
-  proceed, since a run that can't see the remote could duplicate published work.
+**Do not discard stderr here.** A 404 (`events/` not created yet) and an auth or
+network failure both produce *no filenames*, so a suppressed error is
+indistinguishable from a clean first run — the skill would sail past the guard
+and republish over existing work. That is the precise failure this step exists
+to prevent, so "Not Found" is the **only** soft case; everything else stops the
+run and surfaces the message.
 - If it prints filenames, read the newest one's embedded date
   (`YY-MM-DD-event-discovery.md`). If that date is within the last ~150 days
   (roughly the 6-month cadence, so this only catches an accidental re-run
@@ -230,16 +241,25 @@ REPORT="reports/{YY}-{MM}-{DD}-event-discovery.md"
 REMOTE_PATH="events/$(basename "$REPORT")"
 
 # If a file already exists at that path, its blob sha is required to overwrite it.
+# Suppressing stderr is safe *here* (unlike Step 0): see the note below.
 SHA=$(gh api "repos/ersilia-os/digests/contents/$REMOTE_PATH" --jq .sha 2>/dev/null)
 
 gh api -X PUT "repos/ersilia-os/digests/contents/$REMOTE_PATH" \
   -f message="Add $(basename "$REPORT") (event discovery report)" \
-  -f content="$(base64 -w0 "$REPORT")" \
+  -f content="$(base64 < "$REPORT" | tr -d '\n')" \
   -f branch="main" \
   ${SHA:+-f sha="$SHA"}
 ```
 
 - `gh` must be authenticated (`gh auth status` checks this).
+- **Why `2>/dev/null` is acceptable on the SHA lookup but not in Step 0.** Here a
+  swallowed error can only ever leave `$SHA` empty, and an empty `$SHA` makes the
+  `PUT` fail *loudly* — 422 `sha wasn't supplied` if the file exists, or an auth
+  error if that was the real cause. There is no silent-wrong-outcome path. In
+  Step 0 the same suppression is genuinely dangerous, because an empty result is
+  a valid "nothing published yet" answer that lets the run proceed.
+- `base64` has no portable no-wrap flag — `-w0` is GNU-only and errors on
+  macOS/BSD. `base64 < "$REPORT" | tr -d '\n'` works on both; keep it that way.
 - If `$SHA` came back non-empty, you're overwriting an existing remote report —
   this should only happen after Step 0 already flagged it and the user agreed
   (`--force`). Don't silently overwrite otherwise.

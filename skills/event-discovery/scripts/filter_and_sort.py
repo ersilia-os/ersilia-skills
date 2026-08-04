@@ -25,6 +25,11 @@ from _common import parse_date, read_json, validate_event, warn, write_json
 
 DEADLINE_MARKER = "🗓️"
 BURSARY_MARKER = "💰"
+# Ledger schema version. v1 keyed on (name-without-year, location); v2 appends the
+# event's start-date year so a new edition of a recurring series is a distinct key.
+# Bump this whenever series_key_str's output format changes — load_ledger warns on
+# an older file so the one-time re-show of seen events isn't a mystery.
+LEDGER_VERSION = 2
 # bursary field values that mean "no real support" (so no 💰 marker)
 NO_BURSARY_VALUES = {"", "none", "no", "n/a", "na", "unknown"}
 
@@ -101,13 +106,22 @@ def load_ledger(path):
     except (OSError, json.JSONDecodeError) as exc:
         warn(f"could not read ledger {path} ({exc}); treating all events as new")
         return {}
-    return data.get("events", {}) if isinstance(data, dict) else {}
+    if not isinstance(data, dict):
+        return {}
+    version = data.get("version", 1)
+    if version < LEDGER_VERSION:
+        warn(f"ledger {path} is v{version}; keys now carry the event year "
+             f"(v{LEDGER_VERSION}), so none of its entries will match. Previously-seen "
+             "editions re-appear once in this run, then are recorded under the new "
+             "format and suppressed again from the next run on.")
+    return data.get("events", {})
 
 
 def save_ledger(path, events_map):
-    """Write the ledger back as {'version': 1, 'events': {...}}."""
+    """Write the ledger back as {'version': LEDGER_VERSION, 'events': {...}}."""
     with open(path, "w", encoding="utf-8") as handle:
-        json.dump({"version": 1, "events": events_map}, handle, ensure_ascii=False, indent=2)
+        json.dump({"version": LEDGER_VERSION, "events": events_map}, handle,
+                  ensure_ascii=False, indent=2)
         handle.write("\n")
 
 
