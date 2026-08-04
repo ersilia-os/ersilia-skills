@@ -69,6 +69,8 @@ CONTINENTS = {
     "austria": "Europe", "denmark": "Europe", "norway": "Europe", "finland": "Europe",
     "poland": "Europe", "czech republic": "Europe", "czechia": "Europe", "greece": "Europe",
     "hungary": "Europe", "ukraine": "Europe", "turkey": "Europe", "türkiye": "Europe",
+    "latvia": "Europe", "lithuania": "Europe", "estonia": "Europe", "slovenia": "Europe",
+    "slovakia": "Europe", "croatia": "Europe", "romania": "Europe", "bulgaria": "Europe",
     # North America
     "united states": "North America", "usa": "North America",
     "united states of america": "North America", "canada": "North America", "mexico": "North America",

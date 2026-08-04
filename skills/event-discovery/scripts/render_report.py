@@ -153,6 +153,7 @@ def render_theme_tables(lines, events, table_header, heading="##"):
         if not bucket:
             continue
         lines.append(f"{heading} {theme}")
+        lines.append("")
         lines.append(table_header)
         for event in bucket:
             lines.append(event_row(event))
@@ -242,6 +243,7 @@ def render(events, focus, date_from, date_to, swept, today=None, group_by="theme
     if beyond_events:
         beyond_events.sort(key=lambda e: (e.get("deadlines_in_window") or [{"date": "9999-99-99"}])[0]["date"])
         lines.append("## Beyond the window — event is later, but a deadline is open now")
+        lines.append("")
         lines.append(table_header)
         for event in beyond_events:
             lines.append(event_row(event))
@@ -251,6 +253,7 @@ def render(events, focus, date_from, date_to, swept, today=None, group_by="theme
     if closed_events:
         closed_events.sort(key=lambda e: str(e.get("start_date") or "9999"))
         lines.append("## Registration closed — event still upcoming, but you can no longer register")
+        lines.append("")
         lines.append(table_header)
         for event in closed_events:
             lines.append(event_row(event))
@@ -260,6 +263,7 @@ def render(events, focus, date_from, date_to, swept, today=None, group_by="theme
     if virtual_events:
         virtual_events.sort(key=lambda e: str(e.get("start_date") or "9999"))
         lines.append("## Virtual / online")
+        lines.append("")
         lines.append(table_header)
         for event in virtual_events:
             lines.append(event_row(event))
@@ -322,7 +326,7 @@ def main(argv=None):
     parser.add_argument("--today", default="", help="reference date for the Act-now countdown "
                         "(YYYY-MM-DD); defaults to --from")
     parser.add_argument("--group-by", dest="group_by", choices=["theme", "continent"],
-                        default="theme", help="section the report by theme (default) or by continent")
+                        default="continent", help="section the report by continent (default) or by theme")
     parser.add_argument("--continents-searched", dest="continents_searched", default=None,
                         help="comma-separated continents you actually queried; adds a "
                              "'Coverage by continent' footer so empty continents read as "

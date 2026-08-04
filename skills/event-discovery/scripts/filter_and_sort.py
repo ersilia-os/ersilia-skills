@@ -62,7 +62,12 @@ def collect_in_window_deadlines(event, window_start, window_end):
 
 
 def normalise_series_key(event):
-    """Build a dedup key that ignores the year, so 'Indaba 2026' == 'Indaba 2027'."""
+    """Build a within-run dedup key that ignores the year, so 'Indaba 2026' and
+    'Deep Learning Indaba' (mentioned without a year in a different search hit)
+    collapse to the same specific event. Used only to catch the same single
+    event surfacing twice in one sweep — NOT for cross-run ledger identity
+    (see ``series_key_str``), where a new year must stay distinguishable.
+    """
     name = str(event.get("name", "")).lower()
     name = re.sub(r"\b(19|20)\d{2}\b", "", name)        # strip 4-digit years
     name = re.sub(r"[^a-z0-9]+", " ", name).strip()      # collapse punctuation
@@ -71,8 +76,19 @@ def normalise_series_key(event):
 
 
 def series_key_str(event):
-    """Stable string form of the series key, for JSON ledger storage."""
-    return "||".join(normalise_series_key(event))
+    """Stable string form of the CROSS-RUN ledger key.
+
+    Includes the event's start-date year on top of the year-stripped
+    name+location: the ledger exists to stop the *same* edition from being
+    re-shown in a later report, not to hide next year's edition just because
+    an earlier year's was already reported. A recurring series (e.g. "GCC
+    2026") must always show again once "GCC 2027" rolls around, even at the
+    same venue.
+    """
+    name, location = normalise_series_key(event)
+    start = parse_date(event.get("start_date"))
+    year = start.year if start is not None else "unknown"
+    return f"{name}||{location}||{year}"
 
 
 def load_ledger(path):
@@ -212,9 +228,11 @@ def main(argv=None):
         for event in kept:
             kstr = series_key_str(event)
             if kstr not in ledger:
+                start = parse_date(event.get("start_date"))
                 ledger[kstr] = {
                     "name": event.get("name"),
                     "url": event.get("url"),
+                    "year": start.year if start is not None else None,
                     "first_seen": args.date_from,
                 }
                 new_to_ledger += 1
