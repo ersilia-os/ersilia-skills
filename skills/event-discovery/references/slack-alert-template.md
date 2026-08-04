@@ -11,7 +11,7 @@ scans this; they click through for the detail.
 ```text
 📅 *Ersilia Event Discovery — <from> → <to>*
 
-*{N_total} events* · *{N_priority}* high-priority fit ⭐ · *{N_lmic}* Global-South 🌍 · *{N_bursary}* with bursary/travel support 💰 · *{N_deadlines}* deadlines in the next 30 days 🗓️
+*{N_total} events* · *{N_priority}* high-priority fit ⭐ · *{N_lmic}* Global-South 🌍 · *{N_bursary}* with bursary/travel support 💰 · *{N_deadlines}* deadlines in the next 30 days 🗓️{closed_suffix}
 
 *Act now* — {one line naming the single most time-sensitive deadline, or "nothing due in the next 30 days"}.
 
@@ -28,10 +28,28 @@ Read it: {pages_url}
 
 ## Field rules
 
-- **Counts strip** uses the report's actual figures: total events, ⭐-marked
-  (high-priority fit), 🌍-marked (Global-South), 💰-marked (bursary / travel
-  support), and 🗓️-marked (deadline falling in the next 30 days from the "Act
-  now" section).
+- **Counts strip counts only events the reader can still act on.** Every figure
+  in the strip — total, ⭐, 🌍, 💰 — is computed over the report *excluding* its
+  **"Registration closed"** section. The strip sits above a call to action, so a
+  number that includes events nobody can register for overstates what is on
+  offer.
+  - `{N_total}` — events in the report minus the registration-closed ones.
+  - `{N_priority}` — ⭐-marked (high-priority fit) among those.
+  - `{N_lmic}` — 🌍-marked (Global-South) among those.
+  - `{N_bursary}` — 💰-marked (bursary / travel support) among those.
+  - `{N_deadlines}` — entries in the report's **"Act now → Deadlines in the next
+    30 days"** list. This one is *already* actionable-only by construction, so it
+    needs no adjustment. Note it is **not** the 🗓️ marker count: 🗓️ means
+    "deadline anywhere in the window", which is a much larger and different set.
+- **`{closed_suffix}`** — when the registration-closed section is non-empty,
+  append ` · *{N}* closed to new registrations` so the strip still reconciles
+  with the report's own event total ({N_total} + {N} = the report header's
+  `Events:` figure). **Omit the suffix entirely when that section is empty** —
+  don't render a zero.
+- **Do not** take `{N_priority}` from the "Top picks" list. Top picks is a
+  truncated highlight reel ("…and N more"), not a census; it already excludes
+  registration-closed events, so reading a count off it happens to agree here
+  but will drift the moment the truncation rule changes.
 - **`{pages_url}`** is the rendered GitHub **Pages** URL, derived from the
   submitted filename
   (`https://ersilia-os.github.io/digests/events/{YY-MM-DD}-event-discovery.html`).
@@ -85,7 +103,7 @@ and fills the template.
 ```text
 📅 *Ersilia Event Discovery — 2026-01-01 → 2027-01-01*
 
-*34 events* · *9* high-priority fit ⭐ · *14* Global-South 🌍 · *11* with bursary/travel support 💰 · *2* deadlines in the next 30 days 🗓️
+*34 events* · *9* high-priority fit ⭐ · *14* Global-South 🌍 · *11* with bursary/travel support 💰 · *2* deadlines in the next 30 days 🗓️ · *2* closed to new registrations
 
 *Act now* — abstract deadline in 12 days (2026-01-13) for the H3D Symposium (Cape Town, South Africa).
 
