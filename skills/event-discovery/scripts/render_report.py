@@ -417,7 +417,10 @@ def render(events, focus, date_from, date_to, swept, today=None, group_by="theme
             footer.append("")
         footer.append("💬 Shared by the team rather than found by the automated sweep:")
         for event in sorted(shared, key=lambda e: str(e.get("start_date") or "9999")):
-            footer.append(f"- {esc(event.get('name'))} — @{esc(event.get('shared_by'))}")
+            # No `@` prefix: shared_by is the sharer's display name (fetch_slack.py
+            # prefers user_real_name), so "@Jane Doe" would render as a broken mention
+            # on a public page rather than a Slack handle.
+            footer.append(f"- {esc(event.get('name'))} — {esc(event.get('shared_by'))}")
     if footer:
         lines.append("---")
         lines.extend(footer)

@@ -29,6 +29,25 @@ BURSARY_MARKER = "💰"
 # Set by Claude in Step 5 for Slack-sourced events; re-applied here when a duplicate
 # merge carries a teammate's credit onto an already-kept copy.
 SHARED_MARKER = "💬"
+# The documented ribbon order (references/classification.md). Markers arrive from three
+# places — Claude's ⭐🌍🎓💻💬, this script's 💰🗓️, and a 💬 carried over by a duplicate
+# merge — so the string is only in the right order if it is explicitly sorted.
+MARKER_ORDER = ("⭐", "🌍", "🎓", "💻", "💬", "💰", "🗓️")
+
+
+def order_markers(markers):
+    """Return the ribbon in the documented fixed order.
+
+    Anything unrecognised is preserved at the end rather than dropped: a marker written
+    without its variation selector, or a new one added to classification.md before this
+    tuple is updated, must not silently vanish from a published report.
+    """
+    text = str(markers or "")
+    ordered = [m for m in MARKER_ORDER if m in text]
+    leftover = text
+    for m in ordered:
+        leftover = leftover.replace(m, "")
+    return "".join(ordered) + leftover
 # Ledger schema version. v1 keyed on (name-without-year, location); v2 appends the
 # event's start-date year so a new edition of a recurring series is a distinct key.
 # Bump this whenever series_key_str's output format changes — load_ledger warns on
@@ -238,7 +257,8 @@ def main(argv=None):
             if event.get("shared_by") and not survivor.get("shared_by"):
                 survivor["shared_by"] = event["shared_by"]
                 if SHARED_MARKER not in (survivor.get("markers") or ""):
-                    survivor["markers"] = (survivor.get("markers") or "") + SHARED_MARKER
+                    survivor["markers"] = order_markers(
+                        (survivor.get("markers") or "") + SHARED_MARKER)
                 warn(f"duplicate '{event['name']}' also shared in Slack — "
                      f"carried shared_by={event['shared_by']!r} onto the kept copy")
             else:
@@ -266,7 +286,7 @@ def main(argv=None):
         if in_window_deadlines and DEADLINE_MARKER not in markers:
             markers = markers + DEADLINE_MARKER
 
-        event["markers"] = markers
+        event["markers"] = order_markers(markers)
         event["bursary_available"] = bursary_available
         event["deadlines_in_window"] = in_window_deadlines
         event["deadline_within_window"] = bool(in_window_deadlines)

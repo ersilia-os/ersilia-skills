@@ -25,6 +25,7 @@ Usage:
 import argparse
 import re
 import sys
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from _common import read_json, warn, write_json
 
@@ -57,17 +58,30 @@ SELF_URL_MARKERS = (
 )
 
 
+# Query parameters that carry no identity, only campaign/click tracking.
+TRACKING_PARAMS = frozenset({"fbclid", "gclid", "mc_cid", "mc_eid", "igshid"})
+
+
 def normalise_url(url):
-    """Lowercase host + strip tracking noise, for de-duplication only.
+    """Lowercase + strip tracking noise, for de-duplication only.
 
     The original URL string is what gets emitted; this is just the dedup key.
+
+    Parsed properly rather than regex-substituted: stripping the *first* query
+    parameter textually consumed the ``?`` too, so
+    ``…/ev?utm_source=slack&ref=y`` became ``…/ev&ref=y`` — a malformed key that
+    would never match the same URL shared without tracking, defeating the dedup it
+    exists for.
     """
     u = str(url or "").strip()
     if not u:
         return ""
-    u = re.sub(r"[?&](utm_[^=]+|fbclid|gclid)=[^&]*", "", u)
-    u = u.rstrip("/.,);]>\"'")
-    return u.lower()
+    parts = urlsplit(u)
+    kept = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True)
+            if not k.lower().startswith("utm_") and k.lower() not in TRACKING_PARAMS]
+    # Fragment dropped: it never distinguishes one event page from another.
+    u = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(kept), ""))
+    return u.rstrip("/.,);]>\"'").lower()
 
 
 def normalise_for_match(text):
