@@ -1,5 +1,5 @@
 ---
-name: paper-summary
+name: paper-to-model-assessment
 description: >
   Summarise a scientific paper PDF and assess its relevance to the Ersilia Model Hub.
   Reads the PDF, extracts title/authors/key contributions, searches the Hub for similar
@@ -11,7 +11,7 @@ description: >
   phrasing in an Ersilia context.
 ---
 
-# Paper Summary & Ersilia Hub Relevance Assessor
+# Paper-to-Model Assessment — Ersilia Hub Relevance
 
 Read a PDF and produce a structured report — factual summary plus a reasoned verdict on
 whether the paper's model (or dataset) is a candidate for Ersilia Model Hub incorporation.
@@ -52,7 +52,8 @@ Use the Read tool on the PDF. Extract:
 | **Biological / disease endpoint** | Which disease, target, or property is addressed |
 | **Availability** | Is code/weights/web server openly available? Where? |
 | **Links** | All explicit URLs or package names in the paper: code repo, web server, data download, PyPI/conda package, Zenodo DOI. Copy them verbatim; do not invent or expand. |
-| **Key results** | One or two headline performance numbers (AUC, RMSE, accuracy, R²) |
+| **Key results** | One or two headline performance numbers (AUC, RMSE, accuracy, R²) — aggregate, dataset-level |
+| **Reproducibility anchors** | Any specific, named-compound reference values reported in the paper — a per-compound score in a table/case-study, or a pairwise similarity example (e.g. "compound A vs compound B") — that could later confirm the Ersilia wrapper reproduces the paper once incorporated. Distinct from Key results: this is about individual data points, not aggregate metrics. |
 
 ---
 
@@ -125,10 +126,13 @@ title, and their `Status`.
 Use the criteria in `references/hub-incorporation-criteria.md` to assess the paper.
 
 **Before the checklist — check for conditional incorporation routes (C1–C6).**
-Even if a paper looks like it would fail questions 1–3 below, scan the six trigger
-questions in `references/hub-incorporation-criteria.md` (section "Conditional incorporation
-routes"). If any trigger fires, the verdict is **Conditional candidate** — skip
-questions 1–5, write the five-line conditional body sentence using the template in that
+Even if a paper looks like it would fail questions 1–4 below — including question 2
+(no directly usable artifact) — scan the six trigger questions in
+`references/hub-incorporation-criteria.md` (section "Conditional incorporation routes").
+Several routes exist specifically for papers that fail question 2 in the standard sense
+(C3 needs only an API, C4 needs only a dataset, C6 needs only one open substitute
+component). If any trigger fires, the verdict is **Conditional candidate** — skip
+questions 1–6, write the five-line conditional body sentence using the template in that
 section, and note which route (C1–C6) matched in the reasoning.
 
 Work through these questions in order — stop as soon as you hit a hard exclusion:
@@ -136,7 +140,21 @@ Work through these questions in order — stop as soon as you hit a hard exclusi
 1. **Does the paper release a model or dataset?**
    If no (pure biology, review, analysis only) → verdict is **Not eligible**: no model to incorporate.
 
-2. **Is the model's runtime input exactly one small molecule?**
+2. **Is there any accessible artifact to actually build the model from?**
+   At least one of the following must hold, or there is nothing Ersilia could wrap, call,
+   or retrain:
+   - Open weights/checkpoints (runnable locally, with or without open code).
+   - Open code sufficient to reproduce or load the model, even without published weights.
+   - A public, queryable web server or API (this is what justifies an Online-mode
+     wrapper in question 5 below — a bare "proprietary" label is not enough by itself).
+   - A publicly downloadable dataset large enough to retrain from (this should already
+     have been caught as a Data-to-model conditional route — C4 — before this checklist;
+     treat it here only as a final double-check).
+   If **none** of these hold — the model is fully closed, no API is exposed, and no usable
+   dataset is released → verdict is **Not eligible**: nothing exists to incorporate from,
+   regardless of how well the paper otherwise fits the Hub. Stop here.
+
+3. **Is the model's runtime input exactly one small molecule?**
    The ONLY input Ersilia Model Hub models accept is a single compound — one SMILES,
    InChI, or molfile per call. Nothing else is passed alongside it.
    Eligible input: SMILES, InChI, molfile, or a compound–protein interaction model
@@ -153,20 +171,24 @@ Work through these questions in order — stop as soon as you hit a hard exclusi
    (route C4), since the resulting Hub model would be an ordinary single-compound predictor
    for that one target. See `references/hub-incorporation-criteria.md`.
 
-3. **Does it perform one of the six Hub subtasks?**
+4. **Does it perform one of the six Hub subtasks?**
    Activity prediction · Featurization · Property prediction · Similarity search · Generation · Projection
    If none applies → verdict is **Low fit**.
 
-4. **Is the endpoint Hub-relevant?**
+5. **Is the endpoint Hub-relevant?**
    High-priority: AMR, malaria / Plasmodium, TB / M. tuberculosis, Chagas / T. cruzi,
    leishmaniasis, ADMET, toxicity, hERG, CYP, drug-likeness, solubility.
    Lower priority: cardiology-only, plant-only, or highly disease-specific endpoints
    with no generalisation to the Hub's NTD/AMR/ADMET focus.
 
-5. **Is code / weights / web server openly available?**
-   If proprietary → flag as **Online-mode only** (lower priority, but still eligible).
+6. **Is the model openly available, or only reachable via a web server/API?**
+   Question 2 already confirmed *some* accessible artifact exists — this step only sets
+   priority, it does not gate eligibility again:
+   - Open code and/or weights → full priority, proceeds normally.
+   - Closed code/weights but a public web server/API exists → flag as **Online-mode only**
+     (lower priority, but still eligible).
 
-6. **Is a similar model already in the Hub, in any status?**
+7. **Is a similar model already in the Hub, in any status?**
    If the `ersilia_search` results (across all statuses) contain a model doing the same
    task on the same endpoint, flag it — but the wording depends on status:
    - **Ready** → flag as **Potential overlap**; name the existing model(s).
@@ -183,8 +205,8 @@ Work through these questions in order — stop as soon as you hit a hard exclusi
    Do NOT decide on deduplication in any case — surface the overlap and status, and let
    the user decide.
 
-**Verdict override.** Steps 1–5 above set a *base* verdict from eligibility alone. If step
-6 finds a matching model that is `In progress` or `In maintenance`, override the final
+**Verdict override.** Steps 1–6 above set a *base* verdict from eligibility alone. If step
+7 finds a matching model that is `In progress` or `In maintenance`, override the final
 verdict to **Already in Hub pipeline** regardless of what the base verdict would have
 been — calling a paper a "Strong candidate" is misleading if the team is already building
 it. An `Archived` match does NOT override the verdict; keep the base verdict and add the
@@ -216,6 +238,8 @@ bullets are one short clause each. If it feels like it could be trimmed, trim it
 No background context — jump straight to the contribution.]
 
 **Links:** [list each URL or package name verbatim from the paper, comma-separated. Omit this line entirely if the paper states no explicit links.]
+
+**Reproducibility anchors:** [one line: either name the specific compound(s)/pair(s) and reported value(s) found — e.g. "Table 2: compound 7, pIC50 = 6.8" — or state "None reported — only aggregate metrics given."]
 
 ---
 
@@ -260,6 +284,8 @@ about the model's specific contribution relative to what already exists in the H
 Write for a computational biologist. Do not reproduce the abstract — synthesise the paper in your own words.]
 
 **Links:** [list each URL or package name verbatim from the paper, comma-separated. Omit this line entirely if the paper states no explicit links.]
+
+**Reproducibility anchors:** [describe any specific, named-compound reference values found — per-compound scores in a table or case study, or a pairwise similarity example — with enough detail to locate them later (table/figure number). If the paper only reports aggregate/dataset-level metrics, state that explicitly: "None — only aggregate metrics (e.g. AUC, RMSE) are reported, no individual compound values."]
 
 ---
 
@@ -308,7 +334,7 @@ not eligible for incorporation."]
 | **Already in Hub pipeline** | A matching model already exists as `In progress` or `In maintenance` — the team is already on it; overrides whatever the base eligibility verdict would have been |
 | **Low fit** | Eligible input modality, but task or endpoint sits outside Ersilia priorities |
 | **Out of scope** | Hard exclusion on input modality (protein, RNA, image, etc.) or input shape (requires two or more molecules in the same call) |
-| **Not eligible** | Paper does not release a model or dataset |
+| **Not eligible** | Paper does not release a model or dataset, OR it releases one but no accessible artifact exists to build it from (no open code/weights, no queryable web server/API, no usable dataset — and no conditional route (C1–C6) applies) |
 
 Note: a match against an `Archived` model does not get its own verdict — it stays at
 whatever the base eligibility verdict is (Strong candidate/Candidate/etc.), with the

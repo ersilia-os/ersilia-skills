@@ -84,9 +84,10 @@ prediction**; (2) addresses an Ersilia-priority endpoint (AMR / Plasmodium / TB 
 ADMET / toxicity / kinetoplastid) or a generic chemistry endpoint with broad
 utility (CYP, hERG, solubility, drug-likeness); (3) ships **open-source or
 openly-distributable** code, ideally with weights — proprietary models can be
-"online-mode" entries but they're a fall-back; (4) lives in J Cheminform, JCIM,
-arXiv, NMI, Nat Comms, or NAR — or, less often, a Nature/Cell-family
-high-impact venue when the work is foundational.
+"online-mode" entries but only when a live API/web server is actually queryable;
+a model with no code, no weights, and no interface at all is not incorporable,
+full stop; (4) lives in J Cheminform, JCIM, arXiv, NMI, Nat Comms, or NAR — or,
+less often, a Nature/Cell-family high-impact venue when the work is foundational.
 
 ## How this translates to the 🤖 marker
 
@@ -124,7 +125,13 @@ Apply 🤖 when **all of the following hold**:
    only call it "Generation" if the headline contribution is generative.
 4. The model is **openly available** — code or weights or web server. Mark 🤖
    even for online-only services (ADMETLab-style entries are a Hub pattern), but
-   prefer code-bearing entries when triaging.
+   prefer code-bearing entries when triaging. This is a hard requirement, not a
+   preference: if **none** of code, weights, or a queryable web server/API exists
+   — and no dataset is released for a Data-to-model route — there is nothing to
+   incorporate from, and the paper does not qualify for 🤖 at all, regardless of
+   how well it otherwise fits. "Proprietary" only justifies an online-mode 🤖
+   entry when there is still a live API to call; a fully closed model with no
+   interface of any kind is not incorporable.
 5. The endpoint is plausibly Hub-relevant. Cardiology-only or plant-only
    models, for instance, do not fit unless they generalise.
 
