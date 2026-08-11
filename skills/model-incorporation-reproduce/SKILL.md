@@ -94,11 +94,68 @@ If installable (or if user provides reference predictions):
    - **APPROXIMATE** — 0.990 ≤ r < 0.999
    - **DIVERGENT** — r < 0.990 → warn the user that the wrapper may be broken
 
-Record result; include it in the Phase A6 report.
+Record result; include it in the Phase A7 report.
 
 ---
 
-### Phase A1 — Extract Reported Performance Metrics
+### Phase A1 — Reported Compound-Level Scores
+
+Before extracting aggregate performance metrics, check whether the paper reports the model's
+score for any **individual, identifiable compound** — e.g. a "top hits" table, a case study, a
+docking/affinity example, or an in-text mention like "compound 7 was predicted with pIC50 = 6.8".
+This is optional but valuable: it is far cheaper than full dataset benchmarking and gives a
+directly interpretable, one-to-one comparison between the Ersilia wrapper and what the paper
+reports.
+
+**Step 1 — Extract candidates**
+
+Scan the paper's tables, figures, and text for compound + score pairs belonging to the model
+being incorporated (skip baseline/competitor compounds). For each candidate, record: compound
+identifier (name/number as used in the paper), reported score, and source (table/figure number).
+
+If none are found, note this and skip the rest of this phase:
+
+> "No individual compound-level scores were reported in the paper — skipping this check."
+
+**Step 2 — Resolve structures**
+
+For each candidate, resolve a canonical SMILES:
+- Use the SMILES directly if given in the paper.
+- Otherwise, look up the compound name/identifier (e.g. via PubChem) and confirm the match.
+- If the compound is only shown as a structure image and cannot be resolved confidently, ask the
+  user to provide the SMILES or drop the compound.
+
+**Step 3 — Confirm with the user**
+
+Present the extracted table and ask:
+
+> "These are the compound-level scores I found reported in the paper. Please confirm, edit, or
+> remove any before I run them through the model."
+
+| Compound | SMILES | Reported score | Source |
+|---|---|---|---|
+
+**Step 4 — Run and compare**
+
+1. Write the confirmed compounds to `/tmp/<model_id>_compound_input.csv` (single `smiles`
+   column).
+2. Run through the Ersilia wrapper:
+   ```bash
+   bash model/framework/run.sh model/framework \
+       /tmp/<model_id>_compound_input.csv \
+       /tmp/<model_id>_compound_output.csv
+   ```
+3. Compare each reproduced value against the reported value, reusing the tolerance table from
+   Phase A6:
+   - **REPRODUCED** / **APPROXIMATE** / **DIVERGENT** — as per Phase A6 thresholds for the
+     relevant metric type.
+   - **NOT REPRODUCIBLE** — structure could not be resolved, or the run failed for that compound.
+
+Record the per-compound results; include them in the Phase A7 report.
+
+---
+
+### Phase A2 — Extract Reported Performance Metrics
 
 Read the PDF carefully. Focus on:
 - Abstract (headline metric)
@@ -125,7 +182,7 @@ Present the full table to the user and ask:
 
 ---
 
-### Phase A2 — Assess Reproducibility
+### Phase A3 — Assess Reproducibility
 
 For each confirmed metric, investigate before attempting anything:
 
@@ -150,10 +207,10 @@ If **nothing** is reproducible, say so clearly and stop — do not invent datase
 
 ---
 
-### Phase A3 — Dataset Acquisition
+### Phase A4 — Dataset Acquisition
 
 For each selected metric, download the dataset. Search the web for the canonical source if not
-already identified in Phase A2.
+already identified in Phase A3.
 
 For each dataset:
 1. Download it and extract SMILES + ground-truth labels for the **test split**.
@@ -197,7 +254,7 @@ df = pd.DataFrame({
 df.to_csv("/tmp/<model_id>_eosbench_<dataset>.csv", index=False)
 ```
 
-Track internally that eosbench was used for this metric — you will need this in Phase A6.
+Track internally that eosbench was used for this metric — you will need this in Phase A7.
 
 If N > 1000 molecules, warn the user and offer to sample (suggest n = 500 for speed):
 
@@ -206,7 +263,7 @@ If N > 1000 molecules, warn the user and offer to sample (suggest n = 500 for sp
 
 ---
 
-### Phase A4 — Run the Model
+### Phase A5 — Run the Model
 
 For each acquired dataset:
 
@@ -232,7 +289,7 @@ inference), run it 3 times and report mean ± std. Compare the mean against the 
 
 ---
 
-### Phase A5 — Compute and Compare Metrics
+### Phase A6 — Compute and Compare Metrics
 
 Use `scripts/compute_metrics.py` (bundled with this skill):
 
@@ -262,13 +319,20 @@ Supported metric names: `auc-roc`, `auc-prc`, `accuracy`, `mcc`, `f1`, `rmse`, `
 
 ---
 
-### Phase A6 — Summary Report
+### Phase A7 — Summary Report
 
 ```
 Overall verdict: PASS / PARTIAL / FAIL
 
 Equivalence check (raw output): EQUIVALENT (Spearman r = 0.9997, MAD = 0.0002)
   ← or: APPROXIMATE / DIVERGENT / SKIPPED
+
+Per-compound score reproduction:
+Compound     | Source  | Reported | Reproduced | Delta   | Status
+-------------|---------|----------|------------|---------|-------
+Compound 12  | Table 2 | 0.82     | 0.79       | −0.03   | REPRODUCED
+Compound 7   | Fig. 3  | 0.61     | 0.44       | −0.17   | DIVERGENT
+  ← or: NOT REPORTED (no compound-level scores found in the paper)
 
 Metric   | Dataset | Reported | Reproduced | Delta   | Status
 ---------|---------|----------|------------|---------|-------
@@ -284,7 +348,7 @@ AUC-ROC  | Tox21   | 0.849    | —          | —       | NOT REPRODUCIBLE
 If any metric used eosbench, always include the `†` marker and footnote — even if the status
 would otherwise be REPRODUCED. The cap is unconditional.
 
-For each **DIVERGENT** metric, add a short note on likely causes:
+For each **DIVERGENT** metric or compound, add a short note on likely causes:
 - Different train/test split or scaffold vs random split
 - Different random seed or non-deterministic model
 - Different SMILES standardisation (RDKit version, sanitisation settings)
@@ -292,7 +356,7 @@ For each **DIVERGENT** metric, add a short note on likely causes:
 - Reported value is averaged over CV folds, not a single test set
 
 **Overall verdict:**
-- **PASS** — all attempted metrics are REPRODUCED or APPROXIMATE
+- **PASS** — all attempted metrics and compound-level checks are REPRODUCED or APPROXIMATE
 - **PARTIAL** — mixed results (some DIVERGENT)
 - **FAIL** — majority DIVERGENT or most metrics NOT REPRODUCIBLE
 
@@ -359,9 +423,69 @@ molecules and columns differ.
 
 ---
 
-### Phase R3 — Optional Downstream Analyses
+### Phase R3 — Reported Pairwise Similarity Scores
 
-Always offer these after Phase R2, even if the equivalence check was skipped. Ask the user before
+Check whether the paper reports a specific similarity value between two (or more) named
+compounds **in the model's own embedding space** — e.g. "compound A and compound B had a cosine
+similarity of 0.82", a small similarity matrix, or a "nearest neighbour" example. This is
+optional but valuable: compute embeddings for just those compounds via the Ersilia wrapper and
+compare the resulting similarity directly against what the paper reports.
+
+Only applicable when the reported similarity was computed from the model's own output vectors
+(e.g. cosine or Euclidean distance between embeddings) — not a generic structural similarity
+(e.g. Tanimoto on Morgan fingerprints), which says nothing about this model's representation.
+
+**Step 1 — Extract candidates**
+
+Scan the paper's tables, figures, and text for named-compound pairs (or small groups) with a
+reported embedding-space similarity value. Record: the compound identifiers, the reported value,
+the similarity metric used, and the source (table/figure number).
+
+If none are found, note this and skip the rest of this phase:
+
+> "No compound-level similarity values were reported in the paper — skipping this check."
+
+**Step 2 — Resolve structures**
+
+For each named compound, resolve a canonical SMILES (same approach as the Annotation branch's
+compound-level check): use the SMILES if given in the paper; otherwise look up the name and
+confirm the match with the user; ask the user directly if it can only be resolved from a
+structure image.
+
+**Step 3 — Confirm with the user**
+
+Present the extracted table and ask:
+
+> "These are the pairwise similarity values I found reported in the paper. Please confirm, edit,
+> or remove any before I run them through the model."
+
+| Compound A | Compound B | Reported similarity | Metric | Source |
+|---|---|---|---|---|
+
+**Step 4 — Run and compare**
+
+1. Write all distinct compounds involved to `/tmp/<model_id>_similarity_input.csv`.
+2. Run through the Ersilia wrapper to obtain embeddings:
+   ```bash
+   bash model/framework/run.sh model/framework \
+       /tmp/<model_id>_similarity_input.csv \
+       /tmp/<model_id>_similarity_embeddings.csv
+   ```
+3. Compute the same similarity metric reported in the paper between each pair (cosine similarity
+   unless the paper specifies otherwise).
+4. Compare each reproduced value against the reported value:
+   - **REPRODUCED** — within ±0.03 absolute
+   - **APPROXIMATE** — within ±0.06 absolute
+   - **DIVERGENT** — beyond ±0.06 absolute
+   - **NOT REPRODUCIBLE** — structure could not be resolved, or the run failed
+
+Record the per-pair results; include them in the Phase R5 report.
+
+---
+
+### Phase R4 — Optional Downstream Analyses
+
+Always offer these after Phase R2 and Phase R3, even if the equivalence check was skipped. Ask the user before
 running each one:
 
 > "Would you like me to run [analysis]? This validates that chemical information is preserved in
@@ -387,7 +511,7 @@ running each one:
 
 ---
 
-### Phase R4 — Summary Report
+### Phase R5 — Summary Report
 
 ```
 Overall verdict: PASS / PARTIAL / FAIL / NOT REPRODUCIBLE
@@ -400,6 +524,13 @@ Equivalence check:  EQUIVALENT
   count < 0.999:    3 / 20
   ← or: APPROXIMATE / DIVERGENT / SKIPPED (reason) / DETERMINISM — identical / DIVERGENT
 
+Pairwise similarity reproduction:
+Compound A   | Compound B   | Reported | Reproduced | Delta   | Status
+-------------|--------------|----------|------------|---------|-------
+Compound 3   | Compound 9   | 0.82     | 0.79       | −0.03   | REPRODUCED
+Compound 3   | Compound 14  | 0.41     | 0.22       | −0.19   | DIVERGENT
+  ← or: NOT REPORTED (no compound-level similarity values found in the paper)
+
 Downstream analyses:
   PCA (n=200):      PC1=32.4%, PC2=18.1% — DONE / SKIPPED
   Clustering (k=5): silhouette=0.63 — DONE / SKIPPED
@@ -407,10 +538,13 @@ Downstream analyses:
 ```
 
 **Overall verdict logic:**
-- **PASS** — EQUIVALENT or APPROXIMATE equivalence
-- **PARTIAL** — APPROXIMATE equivalence + at least one downstream check flagged a problem
+- **PASS** — EQUIVALENT or APPROXIMATE equivalence, and any attempted pairwise similarity checks
+  are REPRODUCED or APPROXIMATE
+- **PARTIAL** — APPROXIMATE equivalence, or a pairwise similarity check DIVERGENT, or at least
+  one downstream check flagged a problem
 - **FAIL** — DIVERGENT equivalence
-- **NOT REPRODUCIBLE** — equivalence skipped and no downstream analyses run
+- **NOT REPRODUCIBLE** — equivalence skipped, no pairwise similarity checks reported, and no
+  downstream analyses run
 
 ---
 
