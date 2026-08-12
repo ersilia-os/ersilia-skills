@@ -106,7 +106,7 @@ def run_checks(html: str) -> tuple[list[dict], list[dict]]:
         findings.append(finding(
             "T1-FAVICON", "T1", "Nice-to-have",
             "No favicon — the browser tab has no Ersilia mark.",
-            "Add the inline-SVG favicon from assets/head.html (a plain mint circle).",
+            "Add the inline-SVG favicon from assets/head.html (a plain plum circle).",
         ))
 
     # -- T1: clutter — too many top-level sections ------------------------

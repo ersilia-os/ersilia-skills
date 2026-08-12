@@ -37,7 +37,7 @@ mirrors the org-wide README footer in
 
 ## Logo & favicon
 
-- **Favicon:** a plain circle in Ersilia **mint** `#BEE6B4`, shipped as an **inline-SVG
+- **Favicon:** a plain circle in Ersilia **plum** `#50285A`, shipped as an **inline-SVG
   data-URI** in `assets/head.html`. No external file (CSP-safe). This is the default; don't
   reach for a raster, and don't reintroduce the old ring-and-dot "target" mark.
   - Keep it a solid disc. A favicon is seen at 16px, where any interior detail — a lattice, a
