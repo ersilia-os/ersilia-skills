@@ -37,11 +37,20 @@ mirrors the org-wide README footer in
 
 ## Logo & favicon
 
-- **Favicon:** a plain circle in Ersilia **plum** `#50285A`, shipped as an **inline-SVG
-  data-URI** in `assets/head.html`. No external file (CSP-safe). This is the default; don't
-  reach for a raster, and don't reintroduce the old ring-and-dot "target" mark.
+- **Favicon:** a plain disc in one of the **official brand colours**, shipped as an
+  **inline-SVG data-URI** in `assets/head.html`. No external file (CSP-safe). This is the
+  default; don't reach for a raster, and don't reintroduce the old ring-and-dot "target" mark.
   - Keep it a solid disc. A favicon is seen at 16px, where any interior detail — a lattice, a
     ring, a glyph — collapses into a smudge. One shape, one colour, and the tab stays legible.
+  - `apply_theme.py --favicon` picks the colour: `plum purple mint blue yellow pink orange
+    egray`, a literal hex, `random`, or **`auto`** (the default).
+  - **`auto` hashes the page title.** So a page keeps the same icon across rebuilds while
+    different Ersilia pages get different ones — a tab strip of Ersilia tools stays
+    distinguishable, and nobody's tab silently changes colour on a redeploy. Prefer it.
+    Reach for `random` only for one-off pages, and name a colour when a page has an identity
+    worth pinning (the repository browser is pinned to `plum`).
+  - `egray` is selectable but never drawn by `auto`/`random`: a grey dot reads as a disabled
+    or still-loading tab.
 - **Logo image:** prefer the **typographic wordmark** over a raster logo (gradi does). The
   canonical raster is `assets/Ersilia_Brand.png` (org-wide), usually referenced from a README,
   not a web app. If a page genuinely needs the raster logo:

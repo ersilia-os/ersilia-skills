@@ -25,6 +25,8 @@ the caller's to fix (inline the asset or embed as a data: URI); this script neve
 from __future__ import annotations
 
 import argparse
+import hashlib
+import random
 import re
 import sys
 from pathlib import Path
@@ -34,13 +36,58 @@ from _common import asset, parse_html, read_text, warn
 ARCHETYPES = ("app", "document", "dashboard")
 _EYEBROW_DEFAULT = {"app": "Explorer", "document": "Report", "dashboard": "Dashboard"}
 
+# The official Ersilia brand colours (assets/ersilia.css :root, "from stylia").
+# The favicon is a plain disc in one of these — see resolve_favicon().
+FAVICON_COLOURS = {
+    "plum": "#50285A",
+    "purple": "#AA96FA",
+    "mint": "#BEE6B4",
+    "blue": "#8CC8FA",
+    "yellow": "#FAD782",
+    "pink": "#DCA0DC",
+    "orange": "#FAA08C",
+    "egray": "#D2D2D0",
+}
+# egray is selectable by name but kept out of the shuffle: a grey dot in a tab
+# strip reads as a disabled or still-loading icon rather than as a brand mark.
+_SHUFFLE_POOL = tuple(name for name in FAVICON_COLOURS if name != "egray")
+_HEX_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+
 _STYLE_RE = re.compile(r"<style\b[^>]*>(.*?)</style>", re.I | re.S)
 _BODY_RE = re.compile(r"<body\b[^>]*>(.*?)</body>", re.I | re.S)
 _HEAD_RE = re.compile(r"<head\b[^>]*>.*?</head>", re.I | re.S)
 _CREDIT_RE = re.compile(r'class\s*=\s*["\'][^"\']*\bcredit\b', re.I)
 
 
-def build_head(title: str, extra_css: str = "") -> str:
+def resolve_favicon(spec: str, title: str) -> str:
+    """Resolve a --favicon spec to a hex colour.
+
+    Accepts a brand colour name, a literal hex, `auto`, or `random`.
+
+    `auto` is the default and is deliberately NOT random: it hashes the page
+    title, so one page keeps one icon across rebuilds while different pages get
+    different ones. A genuinely random pick would give the same page a new tab
+    icon on every build, which is how users lose track of a tab — and it would
+    make the build non-reproducible, which these scripts otherwise avoid (the
+    same reason none of them call datetime.now()). Pass `random` if you want the
+    dice anyway.
+    """
+    if spec in FAVICON_COLOURS:
+        return FAVICON_COLOURS[spec]
+    if _HEX_RE.match(spec):
+        return spec.upper()
+    if spec == "random":
+        return FAVICON_COLOURS[random.choice(_SHUFFLE_POOL)]
+    if spec == "auto":
+        digest = hashlib.sha256(title.encode("utf-8")).digest()
+        return FAVICON_COLOURS[_SHUFFLE_POOL[digest[0] % len(_SHUFFLE_POOL)]]
+    raise ValueError(
+        f"unknown --favicon {spec!r}: use a hex, 'auto', 'random', or one of "
+        + ", ".join(FAVICON_COLOURS)
+    )
+
+
+def build_head(title: str, extra_css: str = "", favicon: str = "auto") -> str:
     """Canonical <head> inner HTML with ersilia.css (and any extra CSS) inlined."""
     css = read_text(asset("ersilia.css"))
     if extra_css.strip():
@@ -48,7 +95,11 @@ def build_head(title: str, extra_css: str = "") -> str:
     head = read_text(asset("head.html"))
     # Drop the leading HTML comment block for a clean document.
     head = re.sub(r"^<!--.*?-->\s*", "", head, count=1, flags=re.S)
-    return head.replace("__TITLE__", _escape(title)).replace("__STYLE__", css)
+    # The hex sits inside a data: URI, so its '#' must be percent-encoded.
+    colour = resolve_favicon(favicon, title).replace("#", "%23")
+    return (head.replace("__TITLE__", _escape(title))
+                .replace("__FAVICON__", colour)
+                .replace("__STYLE__", css))
 
 
 def build_footer(source_url: str | None) -> str:
@@ -117,9 +168,19 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--eyebrow", help="mono eyebrow label (default: per archetype)")
     p.add_argument("--lede", default="One-sentence summary of what this page shows.", help="new mode lede")
     p.add_argument("--source-url", help="GitHub source URL for the footer")
+    p.add_argument(
+        "--favicon", default="auto", metavar="COLOUR",
+        help="favicon disc colour: a brand name (" + ", ".join(FAVICON_COLOURS) + "), a hex, "
+             "'random', or 'auto' (default: derived from the title, so a page keeps one icon)",
+    )
     args = p.parse_args(argv)
 
     mode = args.mode or ("retrofit" if args.html_file else "new")
+
+    try:
+        resolve_favicon(args.favicon, args.title)
+    except ValueError as exc:
+        p.error(str(exc))
 
     if mode == "retrofit":
         if not args.html_file:
@@ -128,11 +189,11 @@ def main(argv: list[str] | None = None) -> int:
         if not src.strip():
             p.error(f"could not read {args.html_file}")
         body, page_styles, _ = retrofit(src)
-        head = build_head(args.title, extra_css=page_styles)
+        head = build_head(args.title, extra_css=page_styles, favicon=args.favicon)
     else:
         eyebrow = args.eyebrow or _EYEBROW_DEFAULT[args.archetype]
         body = scaffold(args.archetype, args.title, eyebrow, args.lede)
-        head = build_head(args.title)
+        head = build_head(args.title, favicon=args.favicon)
 
     footer = build_footer(args.source_url)
     doc = assemble(head, body, footer)
