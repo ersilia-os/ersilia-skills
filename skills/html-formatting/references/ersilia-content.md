@@ -37,15 +37,11 @@ mirrors the org-wide README footer in
 
 ## Logo & favicon
 
-- **Favicon:** the Ersilia **grid** — the plum `#50285A` diagonal lattice taken from the
-  organisation's symbol (the same mark ersilia.io uses), shipped as an **inline-SVG data-URI**
-  in `assets/head.html`. No external file (CSP-safe). This is the default; don't reach for a
-  raster, and don't reintroduce the old ring-and-dot "target" mark.
-  - The geometry is a **bounded** 6×6 grid rotated 45°. The bounding is the whole point: it is
-    what produces the diamond silhouette. Extend the lines and you get a full square of lattice,
-    which is not the mark.
-  - Strokes sit slightly heavier than the 192px original. A faithful hairline reproduction
-    dissolves into a smudge at 16px, which is the size a favicon is actually seen at.
+- **Favicon:** a plain circle in Ersilia **mint** `#BEE6B4`, shipped as an **inline-SVG
+  data-URI** in `assets/head.html`. No external file (CSP-safe). This is the default; don't
+  reach for a raster, and don't reintroduce the old ring-and-dot "target" mark.
+  - Keep it a solid disc. A favicon is seen at 16px, where any interior detail — a lattice, a
+    ring, a glyph — collapses into a smudge. One shape, one colour, and the tab stays legible.
 - **Logo image:** prefer the **typographic wordmark** over a raster logo (gradi does). The
   canonical raster is `assets/Ersilia_Brand.png` (org-wide), usually referenced from a README,
   not a web app. If a page genuinely needs the raster logo:
