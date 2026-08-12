@@ -110,7 +110,7 @@ def reference(name: str) -> Path:
 # --------------------------------------------------------------------------------------
 
 # Hex colours that are legitimately "Ersilia" even when written as a literal rather
-# than a var(). Sourced from assets/ersilia.css :root plus the favicon red. Anything
+# than a var(). Sourced from assets/ersilia.css :root plus the brand red. Anything
 # outside this set (and not a var()) is flagged by the colour check.
 BRAND_HEX = {
     # brand
@@ -122,7 +122,8 @@ BRAND_HEX = {
     "#2c3e50", "#6b6675", "#9a93a6", "#fafafc", "#ffffff", "#f4f4f8", "#e6e6ee",
     # semantic
     "#3f9d6b", "#c98a1e", "#d9534f",
-    # favicon centre dot + plain white/black shorthands that are unavoidable
+    # Ersilia red (brand accent; was the old favicon's centre dot) + plain
+    # white/black shorthands that are unavoidable
     "#d8412f", "#fff", "#000",
 }
 
