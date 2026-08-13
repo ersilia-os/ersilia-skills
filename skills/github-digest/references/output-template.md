@@ -39,8 +39,8 @@ Each line ends with **two trailing spaces** for a hard line break.
 
 - `GitHub` reflects `connector_status.github` (🟢 ok, 🔴 partial/failed). A partial status
   often means the custom-property read failed — alignment will be thin; say so there.
-- `Airtable` is 🟢 if the registry was read/reconciled (and the metric sync ran), 🔴 if that
-  failed (then Registry alignment says so plainly rather than showing stale findings).
+- `Airtable` is 🟢 if the registry was read and reconciled, 🔴 if that failed (then Registry
+  alignment says so plainly rather than showing stale findings).
 - Allowed emoji: the markers above, the chapter-heading emoji below, and 🟢/🔴. Nothing else.
 
 ## Chapters (fixed order — action first, history last)
@@ -51,7 +51,6 @@ Each line ends with **two trailing spaces** for a hard line break.
 ## 🔧 Registry alignment
 ## 📊 Repository overview
 ## ✅ Recent activity
-## 🔄 Airtable sync
 ```
 
 Go straight from each heading to its content — no framing sentence. If a whole chapter is
@@ -63,9 +62,9 @@ empty, write one italic line rather than a placeholder list.
 
 **2–4 sentences, no more.** A factual narrative of what mattered, from the `highlights` block
 in `github.json` cross-checked against the activity buckets. Name the 1–3 repos with the most
-movement and the single most important change; close with a one-clause health read (e.g.
-"registry in sync; metrics refreshed for 14 repos"). Plain prose, no bullets. If the window
-was quiet, say so in one sentence.
+movement and the single most important change; close with a one-clause registry-health read
+(e.g. "registry in sync — no Status/Type drift"). Plain prose, no bullets. If the window was
+quiet, say so in one sentence.
 
 ---
 
@@ -142,9 +141,11 @@ is zero: `Registry is in sync with GitHub — no action needed.`
 
 - Cap each subsection at ~15 lines; if longer, list 15 and append `_…and {N} more._`
 - Airtable and GitHub share the same Status/Type vocabulary, so mismatches are real drift and
-  normally few — list them all (within the cap), don't dismiss them as noise.
+  normally few — list them all (within the cap), don't dismiss them as noise. `Status` is a
+  multi-select in Airtable while the GitHub property is usually single-valued, so an Airtable
+  value like «Completed, Archived» against GitHub «Completed» is a genuine finding: report both.
 - Order `missing_from_airtable` with non-archived repos first, archived after.
-- `metric_drift` is now largely moot (Step 4 syncs Open Issues); include it only if non-empty.
+- `metric_drift` is vestigial (the metric columns are gone from the table) — never render it.
 
 ---
 
@@ -189,26 +190,9 @@ Close with the **model-repo summary line** (always render, even if zero):
 **Model repos (eosXXXX):** {prs_merged} PRs merged · {prs_opened} opened · {issues_closed} issues closed · {issues_opened} opened — across {repos_touched} repos. Managed via the model-incorporation flow.
 ```
 
----
-
-### `## 🔄 Airtable sync`  (completed — small, last)
-
-A one- or two-line note of what the metric sync **acted on**, from the `summary` block in
-`/tmp/airtable_updates.json`. Metrics only (Stars/Forks/Open Issues/Subscribers/Total
-Commits/Contributors/Contributor Names) — never curated fields.
-
-```markdown
-Refreshed {records_to_update} repo records ({fields_changed} field updates) from GitHub. Notable: {name} {field} {from}→{to} · {name} {field} {from}→{to}.
-```
-
-- Pull `records_to_update`, `fields_changed`, and up to ~3 entries from `summary.notable`.
-- If nothing changed: *Airtable metrics already in sync — nothing to update.*
-- On `--dry-run` (plan computed but not applied): *Dry-run — {records_to_update} records would be updated; not written.*
-- If some MCP batches failed, state what was actually written vs intended — never imply success.
-
 ## Footer
 
-No footer. The file ends after the Airtable sync line. No methodology block, no sign-off.
+No footer. The file ends after the model-repo summary line. No methodology block, no sign-off.
 
 ## Worked micro-example
 
@@ -221,7 +205,7 @@ No footer. The file ends after the Airtable sync line. No methodology block, no 
 ## ✨ Highlights
 Busiest on `ersilia` and `zairachem-docker`. `zairachem-docker` cleared four long-standing
 descriptor/scaffold bugs; the standout new PR is the `olinda` calibrator fix (#17). Registry
-is in sync (no Status/Type drift); refreshed metrics for 14 repos.
+is in sync — no Status/Type drift.
 
 ## ⚠️ Needs attention
 
@@ -260,7 +244,4 @@ _…and 334 more open issues (344 open in total)._
 - [zairachem-docker #38](https://github.com/ersilia-os/zairachem-docker/issues/38) — **All Nan descriptors** · @GemmaTuron · 2026-06-15
 
 **Model repos (eosXXXX):** 0 PRs merged · 0 opened · 0 issues closed · 3 opened — across 29 repos. Managed via the model-incorporation flow.
-
-## 🔄 Airtable sync
-Refreshed 14 repo records (31 field updates) from GitHub. Notable: ai2050-compute-fund Total Commits 3→7 · zairachem-docker Contributors 4→5.
 ```
