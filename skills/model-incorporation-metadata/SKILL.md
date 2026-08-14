@@ -29,6 +29,7 @@ Fill **only** these fields — leave everything else exactly as it is:
 | `Output` | list | see `output.txt` |
 | `Output Dimension` | integer | number of output values per input compound |
 | `Output Consistency` | string | see `output_consistency.txt` |
+| `Description` | string | one paragraph, 200–600 **characters** (enforced) |
 | `Interpretation` | string | one sentence, max 20 words |
 | `Tag` | list | see `tag.txt` |
 | `Biomedical Area` | list | see `biomedical_area.txt` |
@@ -37,7 +38,25 @@ Fill **only** these fields — leave everything else exactly as it is:
 | `Publication Type` | string | see `publication_type.txt` |
 | `Publication Year` | integer | year |
 
-**Never modify**: Identifier, Slug, Status, Title, Description, Source Code, License, Contributor, and any auto-populated fields (Incorporation Date, S3, DockerHub, Model Size, etc.)
+`Description` is drafted at model-request time against the GitHub form. You **refine** it
+here, once you have read the paper and the code and know more than the form did. Leave it
+alone only if it already meets the standard in `references/writing-descriptions.md`.
+
+**Never modify**: Identifier, Slug, Status, Title, Source Code, License, Contributor, and any auto-populated fields (Incorporation Date, S3, DockerHub, Model Size, etc.)
+
+Four fields you do not write are nonetheless **controlled vocabularies, not free text**:
+`License` (`license.txt`), `Status` (`status.txt`), `Input` (`input.txt`) and
+`Docker Architecture` (`docker_architecture.txt`). If one of them looks wrong, raise it
+with the user rather than editing it here.
+
+## Reference documents
+
+Read these when the judgement call is not obvious — they carry the reasoning and the
+worked examples that do not fit here:
+
+- `references/writing-descriptions.md` — how to write the Description and the Interpretation
+- `references/field-semantics.md` — `Score` vs `Value`, `Output Consistency`, the
+  `Output Dimension` invariant, publication rules, subtask edge cases
 
 ## Step-by-step workflow
 
@@ -61,6 +80,10 @@ https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/
 
 Each file is newline-separated. Fetch all eleven now and keep the lists in memory — you will validate every value you write against them.
 
+These eleven cover the fields you write. The directory holds **fifteen** files in total;
+the other four (`license.txt`, `status.txt`, `input.txt`, `docker_architecture.txt`)
+constrain fields you must not modify.
+
 ### 1. Read the existing metadata.yml
 
 Note the Source Code URL and Publication URL — you will need them. Confirm which fields still need filling (they may have template placeholder text like "Biomedical Area 1" or multiple values comma-separated).
@@ -73,7 +96,10 @@ Use the PDF reading tools to extract:
 - Training dataset and target organisms
 - Disease or application area
 - Whether outputs are probabilities, measured values, or generated structures
-- Year of publication and publication venue (journal vs preprint)
+- Year of publication and publication venue (journal vs preprint) — and, if it is a
+  preprint, whether a published version now exists
+- Any experimental validation the authors performed, and the stated limitations — both
+  belong in the Description
 
 ### 3. Fetch the source code repository
 
@@ -111,6 +137,10 @@ Use only values from the `task.txt` and `subtask.txt` lists fetched in Step 0. C
 - `Representation` → model encodes a molecule into a numerical vector or projection
   - `Featurization` if it produces a fixed-length embedding/descriptor vector
   - `Projection` if it projects molecules into 2D/3D space
+  - Models that return a **non-numeric** representation — a format conversion, a
+    tokenisation, an IUPAC name, a natural-language description — also go under
+    `Featurization`. The vocabulary has no better value, so this is a convention rather
+    than a description. See `references/field-semantics.md`.
 - `Sampling` → model generates or retrieves molecules
   - `Generation` if it generates new molecules
   - `Similarity search` if it retrieves similar molecules from a database
@@ -123,8 +153,19 @@ Use only values from the `output.txt` list fetched in Step 0. Can be a list if t
 - `Text`: natural language output
 - Example: a model returning both a probability and an associated value would be `[Score, Value]`.
 
+The line between the first two: **a score relates to a label; a value has a direct
+interpretation of its own.** A column named `*_score` does not settle it — three hub models
+emit computed descriptors or plain counts whose names say "score". Read the columns, not
+their names (`references/field-semantics.md`).
+
 **Output Dimension**
 The number of output values produced per input compound. Only count continuous numeric outputs (scores, values) — do not count binary class labels separately. So a model with 6 endpoints each returning one probability score has Output Dimension 6, not 12.
+
+**Invariant:** once `model/framework/columns/run_columns.csv` exists, `Output Dimension`
+must equal its number of data rows. That file is written later by
+`/model-incorporation-code` (Phase 4), so at this stage you are predicting its row count —
+but if the paper and the repository disagree, the repository wins, because that is what the
+served model returns.
 
 This is often explicit in the paper ("6 endpoints", "512-dimensional vector"). If not stated directly:
 - Count the number of prediction tasks/endpoints described
@@ -137,16 +178,52 @@ Use only values from the `output_consistency.txt` list fetched in Step 0.
 - `Fixed`: the model always returns the same output for the same input (most QSAR models, classifiers, regression models)
 - `Variable`: the model is stochastic and may return different outputs on repeated runs (generative models, models with dropout at inference, sampling-based methods)
 
+**This field describes the code, not the subtask.** You can only answer it by reading the
+inference path — look for unseeded `random` / `numpy.random` / `torch` sampling, a PyTorch
+model served without `.eval()`, and whether a sequence model uses beam search (deterministic)
+or sampling. A generator can legitimately be `Fixed`: one hub model runs OpenNMT with a fixed
+beam size and never calls its own randomisation helper.
+
+**If the model is stochastic because of a bug rather than by design** — most commonly a
+missing `.eval()` leaving dropout active — write `Variable`, but say so explicitly to the
+user. That value becomes wrong the moment the bug is fixed. See
+`references/field-semantics.md`.
+
+**Description**
+One paragraph, **200–600 characters** — the limit is in characters, not words, and it is
+enforced by `ersilia test`. Cover what the model does, the context of the original study,
+how it was trained, any experimental validation the authors performed, known limitations,
+and anything Ersilia changed. Never open with "This model…", never invent data, and never
+reference another Ersilia model by identifier.
+
+Full guidance, prohibitions and worked examples: **`references/writing-descriptions.md`**.
+Read it before writing — this is the field users read first, and the one where generic text
+is most obvious.
+
 **Interpretation**
 Write **exactly one sentence**. Hard limit: 20 words. Do not write two sentences. Do not start with "The model" — start with the output itself.
 
-**Never use a colon (`:`) in the interpretation text** — colons break YAML parsing. Use a semicolon (`;`) or rephrase instead.
+**Never use a colon (`:`) in the interpretation text.** Colons break YAML parsing unless the
+whole value is quoted. (Strictly this is a `metadata.yml` hazard — JSON quotes every value,
+so `metadata.json` models are unaffected — but keep the habit, since a model may be
+converted.) Use a semicolon (`;`) or rephrase instead.
+
+Four further requirements, each of which caught real errors:
+
+- the interpretation must be **coherent with `run_columns.csv`** — exactly those columns
+- regressions state the value **and its unit** ("logD at pH 7.4", "log mol/L")
+- classifiers state the **cut-off** — the assay threshold behind the labels, and any
+  recommended decision threshold
+- similarity search names the **reference library** being searched
+
+Do not reproduce column names verbatim from `run_columns.csv`; say what they mean.
 
 Good examples:
 - `Higher score indicates greater predicted probability of anti-malarial activity.`
 - `100 features encoding molecular structure from a pretrained MACAW autoencoder.`
 - `Predicted probability of AMES mutagenicity; values closer to 1 indicate higher risk.`
 - `Binary indicators (1 = substructure present, 0 = absent) and total hit count.`
+- `Predicted log10 Caco-2 permeability and efflux ratios across Caco-2 and MDCK assays.`
 
 **Tag**
 Choose one or more values from the list you read in Step 0 (`tag.txt`). Every value you write must appear verbatim in that file. If no tag fits well, pick the closest match — do not invent new tags.
@@ -160,14 +237,39 @@ Choose one or more values from the list you read in Step 0 (`target_organism.txt
 **Publication**
 The `Publication` field must be a DOI URL in the format `https://doi.org/...`. This applies to both peer-reviewed articles and preprints (bioRxiv, ChemRxiv, and arXiv all issue DOIs). If the existing metadata contains a PubMed URL, abstract page, or journal landing page, locate and substitute the DOI. If genuinely no DOI exists, use the most stable URL available and note this to the user.
 
+Verify the URL resolves. But **HTTP 403 from ACS, RSC, Oxford, Wiley or MDPI on a
+`doi.org` redirect is bot-blocking, not a dead link** — those pages open fine in a browser.
+Do not "fix" them.
+
 **Publication Type**
 Use only values from the `publication_type.txt` list fetched in Step 0.
 - `Peer reviewed` for articles published in journals (DOI typically starts with `10.1`, `10.3`, `10.7`, etc.)
 - `Preprint` for bioRxiv (`10.1101/`), ChemRxiv (`10.26434/`), arXiv (`10.48550/`)
 - `Other` only in exceptional cases (thesis, technical report, no publication)
 
+**Before writing `Preprint`, check whether the preprint has since been published**, and cite
+the published version if so. This is one lookup and it is easy to skip: in a 2026 audit,
+nine of 17 cited preprints had been published since incorporation, affecting 21 models —
+one arXiv entry alone is cited by 12 of them. Use the bioRxiv API (`published` field), DBLP
+for ML conference papers, and Crossref or OpenAlex for journals. Do **not** trust arXiv's
+`journal_ref`, which authors rarely update.
+
+NeurIPS, ICLR, ICML and KDD papers are peer reviewed but **mint no DOI**. Convention: use
+`Peer reviewed` only where the published version carries a DOI, so `Publication` and
+`Publication Type` describe the same artefact.
+
 **Publication Year**
-Extract the year of publication from the paper or publication URL.
+The year of the **cited publication** — never the year the model was incorporated. This is
+the field that goes wrong most often: of 26 wrong years found in the 2026 audit, 18 exactly
+equalled the model's own incorporation year.
+
+- For **internally built** models the rule still holds: if the model was trained on data
+  published elsewhere, the year is that paper's, while `Incorporation Date` doubles as the
+  training date.
+- Where a journal gives both an **online** and an **issue** date, use the **issue year**.
+- If the preprint has been published (see above), use the **published** version's year, even
+  when `Publication` still points at the preprint because the venue mints no DOI. The two
+  fields can legitimately disagree.
 
 ### 5. Propose all changes and ask for confirmation
 
