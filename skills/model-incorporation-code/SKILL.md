@@ -235,16 +235,20 @@ Rules (details in `references/template-structure.md`):
   `logp` or `activity_score`. Note: many older Ersilia models use `dim_` instead of
   `feat_` — that is historical; all new incorporations must use `feat_`.
 - **type**: `float`, `integer`, or `string` — nothing else.
-- **direction**: `high` or `low` — the direction of biological activity. `high`
-  means higher output values correspond to more of the modelled property (e.g. a
-  higher probability score means the molecule is more likely to have that activity).
-  `low` means lower values correspond to more of the property (e.g. hydration free
-  energy in kcal/mol, where more negative = more solvated). Leave **empty** (not
-  the word "none") for sampling models and for representation models with abstract
-  latent dimensions (e.g. neural embeddings like UniMol) where individual dimensions
-  have no interpretable direction. For fingerprint-based representations (e.g. Morgan
-  counts), use `high` since a higher value means more of that structural feature is
-  present.
+- **direction**: `high` or `low` — describes the actual, literal relationship between
+  the raw output number and the property named in `description`. It is never about
+  whether that value is scientifically or clinically *desirable*. Ask only: "does a
+  bigger raw number mean more of what `description` names?" Yes → `high`; no → `low`.
+  Ignore whether more of that property is good or bad for drug discovery — e.g. a
+  toxicity-probability output (`description`: "probability the molecule is toxic") is
+  `high`, because a bigger score means more toxicity, even though *low* toxicity is
+  what's clinically desired. Hydration free energy in kcal/mol is `low`, because a
+  more negative (smaller) number means *more* solvation. Desirability for downstream
+  scoring is a separate concern — never let it influence this column. Leave **empty** (not the
+  word "none") for sampling models and for representation models with abstract latent
+  dimensions (e.g. neural embeddings like UniMol) where individual dimensions have no
+  interpretable direction. For fingerprint-based representations (e.g. Morgan counts),
+  use `high` since a higher value means more of that structural feature is present.
 - **description**: one plain-English sentence, no commas.
 
 Examples from real Ersilia models:

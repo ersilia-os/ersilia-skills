@@ -38,7 +38,7 @@ Four required columns, no extras. Write it with Python or a plain text editor wi
 |--------|-------|
 | `name` | lowercase letters and underscores only; no spaces, hyphens, or special chars |
 | `type` | exactly one of: `float`, `integer`, `string` |
-| `direction` | `high` or `low` — the direction of biological activity. `high` means higher output values correspond to more of the modelled property. `low` means lower values correspond to more of the property. Leave **empty** for sampling outputs and for representation models with abstract latent dimensions (e.g. neural embeddings) where dimensions have no interpretable direction. For fingerprint-based representations (e.g. Morgan counts), use `high` since higher = more of that structural feature present. |
+| `direction` | `high` or `low` — the **actual, literal** relationship between the raw output number and the named property, never whether that value is *desirable*. Ask: does a bigger number mean more of what `description` names? Yes → `high`; no → `low`. E.g. a toxicity-probability output is `high` (bigger score = more toxicity) even though low toxicity is clinically preferred; hydration free energy is `low` (more negative = more solvation). Desirability is a separate concern — don't let it influence this column. Leave **empty** for sampling outputs and for representation models with abstract latent dimensions (e.g. neural embeddings) where dimensions have no interpretable direction. For fingerprint-based representations (e.g. Morgan counts), use `high` since higher = more of that structural feature present. |
 | `description` | one plain-English sentence; **no commas** inside the text |
 
 ### Naming conventions by model type
@@ -104,6 +104,7 @@ Key patterns to notice:
 - Fingerprint-based representation outputs use `high` — a higher value means more of that structural feature is present
 - Abstract neural embedding outputs leave `direction` empty — individual dimensions have no interpretable direction
 - Sampling outputs always leave `direction` empty
+- A property being clinically undesirable at high values (e.g. toxicity) does not make its direction `low` — direction tracks the raw number, not desirability
 
 ---
 
