@@ -5,13 +5,17 @@
      The favicon is a plain disc in an official Ersilia colour, as an inline SVG
      data-URI (no external file). Deliberately simple: a solid disc is the one
      shape that still reads as itself at 16px. apply_theme.py substitutes
-     __FAVICON__ with the percent-encoded hex it picked (see --favicon). -->
+     __FAVICON__ with the percent-encoded hex it picked (see --favicon).
+     __SOCIAL__ receives the description / canonical / Open Graph block, and is
+     EMPTY unless the social flags are passed: an Artifact has no public URL, so
+     a preview card would point nowhere. See --og-image in apply_theme.py. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
 <meta name="generator" content="ersilia html-formatting skill">
 <title>__TITLE__</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Ccircle%20cx='16'%20cy='16'%20r='16'%20fill='__FAVICON__'/%3E%3C/svg%3E">
+__SOCIAL__
 <style>
 __STYLE__
 </style>
