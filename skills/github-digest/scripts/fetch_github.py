@@ -362,7 +362,9 @@ def main(argv: list[str] | None = None) -> int:
     issues_opened = grab("issues opened", "issues", "--created", [])
     issues_closed = grab("issues closed", "issues", "--closed", ["--state", "closed"])
     prs_opened = grab("PRs opened", "prs", "--created", [])
-    prs_merged = grab("PRs merged", "prs", "--merged", [])
+    # NB: `--merged` is a boolean flag in `gh search prs`; the date-range flag is
+    # `--merged-at`. Passing the window to `--merged` silently returns nothing.
+    prs_merged = grab("PRs merged", "prs", "--merged-at", [])
 
     # 3. Open-item snapshot (no date window — current state). We reuse search() by
     #    passing the `--state open` filter as the (flag, window) pair.

@@ -16,8 +16,8 @@ description: >
 
 You produce the periodic GitHub digest for **Ersilia Open Source Initiative** — a curated
 markdown file covering issue / PR activity across the `ersilia-os` org, items that need
-attention, and the health of the Airtable Repositories registry. As part of the run the skill
-also refreshes the registry's metric columns from GitHub (Step 4, one-directional write-back).
+attention, and the health of the Airtable Repositories registry. The skill is **read-only with
+respect to Airtable** — it never writes to the base.
 
 The digest is read by the Ersilia engineering team and is **publicly hosted** on
 `ersilia-os/digests` (it auto-builds a GitHub Pages site at `ersilia-os.github.io/digests`).
@@ -41,10 +41,9 @@ The user will invoke this skill with:
 - (optional) `--out <path>` to override the local staging path. Default:
   `digests/YY-MM-DD-github-digest.md` (end date of the window, 2-digit year) relative to this
   skill folder. The local file is a working copy; the canonical home is the remote repo
-  `ersilia-os/digests` at `github/YY-MM-DD-github-digest.md` (Step 8).
+  `ersilia-os/digests` at `github/YY-MM-DD-github-digest.md` (Step 7).
 - (optional) `--force` to override the recent-digest guards in Step 0.
-- (optional) `--dry-run` to fetch, reconcile, and compute the metric-sync plan but **not**
-  apply it to Airtable, and not write or upload the digest file.
+- (optional) `--dry-run` to fetch and reconcile but **not** write or upload the digest file.
 
 If anything is unclear, ask one focused question before proceeding. Never invent missing
 inputs.
@@ -131,49 +130,21 @@ dump normalised records for the reconcile script:
    `search_bases "Ersilia Content"` → base `app1iYv78K6xbHkmL`; `list_tables_for_base` →
    confirm the **Repositories** table `tbluZtI3W9pseCSPH`.
 2. Read **all** records with `list_records_for_table`, requesting the fields in
-   `references/airtable-schema.md`: Name, Title, Status, Type, Projects, **Stars, Forks,
-   Open Issues, Subscribers, Total Commits, Contributors, Contributor Names**, Visibility,
+   `references/airtable-schema.md`: Name, Title, Status, Type, Projects, Visibility,
    Creation Date. The full table is too large for one MCP response, so the harness saves the
    raw result to a `tool-results/…txt` file and returns its path — this is expected (see
    `airtable-schema.md` for the field-ID map).
 3. Transform the saved raw file into the flat JSON shape in `airtable-schema.md` (plain
    strings, not select objects; `type`/`projects` as lists) and write the list to
    `/tmp/airtable_repos.json` — a short Python script reading the saved file is the reliable
-   path. **Include each record's `id`** (the top-level `rec…` id) — the metric sync in Step 4
-   needs it to target rows, and include the current metric values so the sync only pushes
-   changes.
+   path. **Include each record's `id`** (the top-level `rec…` id) so findings can be traced
+   back to a row. `Status` is a **multipleSelects** field — join multiple values with `", "`.
 
 If the MCP read fails mid-way, that is an Airtable-connector failure: render the Airtable
 semaphore 🔴 and have the Registry alignment chapter say the registry check could not run —
 do not show partial findings.
 
-### Step 4 — Sync GitHub metrics to Airtable (write-back; GitHub → Airtable only)
-
-This is the **one write path** in the skill, and it is strictly unidirectional: GitHub is the
-source of truth, Airtable the sink. It refreshes only the cron-maintained metric columns
-(Stars, Forks, Open Issues, Subscribers, Total Commits, Contributors, Contributor Names) and
-**never** the human-curated columns (Status, Type, Projects, Title). Run it after the fetch
-and **before** reconcile so the digest reflects the just-synced numbers.
-
-```bash
-python scripts/sync_airtable_metrics.py \
-  --github /tmp/github.json \
-  --airtable /tmp/airtable_repos.json \
-  --out /tmp/airtable_updates.json
-```
-
-The script fetches the per-repo metrics (subscribers/contributors/commits) via `gh`, diffs
-against the current Airtable values, and writes an **update plan** containing only the records
-and fields that changed, each `fields` object keyed by **Airtable field ID**, plus a `summary`
-(counts + a few notable deltas) for the digest's sync note. Then **you apply it via the MCP**:
-
-- For each entry in `updates`, call `update_records_for_table(baseId, tableId, records=[{id:
-  recordId, fields}])`. **Batch ≤ 50 records per request.**
-- On `--dry-run`, do **not** apply — just read the summary for the digest.
-- If some batches fail, note how many records were written vs intended; the digest's sync note
-  must reflect what actually happened, not the plan. Never write curated fields.
-
-### Step 5 — Reconcile
+### Step 4 — Reconcile
 
 ```bash
 python scripts/reconcile_airtable.py \
@@ -184,21 +155,21 @@ python scripts/reconcile_airtable.py \
 
 This is **report-only** — it never writes to Airtable. Read `/tmp/health.json`: it carries
 the missing / stale / **status_mismatch / type_mismatch** / needs-curation / active-but-parked
-/ metric-drift findings that become the Registry alignment chapter. The mismatch findings
+findings that become the Registry alignment chapter. The mismatch findings
 compare Airtable Status and Type against the GitHub custom properties (strict compare; both
 values reported). Airtable and GitHub share the same vocabulary, so mismatches are real drift
 and normally few (see `airtable-schema.md`).
 
-### Step 6 — Compose the digest
+### Step 5 — Compose the digest
 
-Read `/tmp/github.json`, `/tmp/health.json`, and `/tmp/airtable_updates.json`. Compose the
+Read `/tmp/github.json` and `/tmp/health.json`. Compose the
 file following `references/output-template.md` exactly. **Keep it succinct, scannable,
 high-signal** — a 30-second read. **Action-needed items come before completed activity**, and
 emoji section headers are used for readability. Order:
 
 - H1 + connector semaphore + marker legend.
 - **✨ Highlights** — 2–4 sentences from the `highlights` payload: busiest repos, the single
-  most important change, one health clause, and (if anything was synced) one clause on it.
+  most important change, and one registry-health clause.
 - **⚠️ Needs attention** (ACTION, first) — capped lists of stale PRs (most stale first),
   long-open issues (oldest first), and **💡 Easy wins**. For easy wins, judge the
   `easy_candidate` set: keep genuinely small work, drop false positives (model requests, vague
@@ -208,8 +179,6 @@ emoji section headers are used for readability. Order:
 - **📊 Repository overview** (context) — totals · by type · by status from the stratification.
 - **✅ Recent activity** (completed) — itemise non-model issues/PRs (merged/opened/closed),
   then the model-repo summary line from `model_summary`.
-- **🔄 Airtable sync** (completed, small) — the acted-on note from the `airtable_updates.json`
-  summary: how many records/fields were updated and a couple of notable deltas.
 
 Composition rules:
 - Apply a work-type emoji only when the label/title makes it obvious; otherwise omit.
@@ -217,7 +186,7 @@ Composition rules:
   the totals for what was truncated. Silent truncation is forbidden.
 - Be factual and neutral. No internal channel names, no invented labels, no padding.
 
-### Step 7 — Render
+### Step 6 — Render
 
 Write to the default local staging path unless `--out` was given:
 
@@ -227,7 +196,7 @@ Write to the default local staging path unless `--out` was given:
 lives locally and is not committed by default. **If `--dry-run`, stop here** and show the
 user the local path and the key counts; do not upload or post to Slack.
 
-### Step 8 — Upload to the canonical remote
+### Step 7 — Upload to the canonical remote
 
 ```bash
 python scripts/upload_digest.py --digest digests/{YY}-{MM}-{DD}-github-digest.md
@@ -259,24 +228,24 @@ The Pages workflow already copies every top-level category folder into the site,
 workflow change is needed. Until this scope block exists the page still uploads and renders,
 just without the shared digest layout. Make this change via a small PR to the digests repo.
 
-### Step 9 — Post the Slack alert (only on successful push)
+### Step 8 — Post the Slack alert (only on successful push)
 
 After (and **only** after) `upload_digest.py` exits 0, post a single notification using
 `references/slack-alert-template.md`:
 
 ```text
-slack_send_message(channel_id = "C01JL4SDKSL", message = <rendered template>)
+slack_send_message(channel_id = "C0100L3DRCM", message = <rendered template>)
 ```
 
-- Post to **`#coding`** (`C01JL4SDKSL`) — see `references/slack-alert-template.md` for the
-  message format and field rules.
+- Post to **`#technology`** (`C0100L3DRCM`) — see `references/slack-alert-template.md` for the
+  message format and field rules. (The old `#coding` channel was archived on 2026-08-13.)
 - Do **not** post on `--dry-run`, on any non-zero upload exit, or if the digest was generated
   but not pushed. Post exactly once per push (including `--force` re-pushes).
 
-### Step 10 — Remove the local staging copy
+### Step 9 — Remove the local staging copy
 
 The canonical home is the remote `ersilia-os/digests` repo; the local file is only a staging
-area and is **not** kept. **Only after** the upload succeeded (Step 8 exit 0) *and* the Slack
+area and is **not** kept. **Only after** the upload succeeded (Step 7 exit 0) *and* the Slack
 alert was posted, delete the local digest file:
 
 ```bash
@@ -285,15 +254,15 @@ rm -f digests/{YY}-{MM}-{DD}-github-digest.md
 
 - Do this **only** on a confirmed successful push — never on `--dry-run`, never if the upload
   failed (in that case keep the file so the user can re-run just the upload), and never before
-  the Slack post. The remote URL from Step 8 is the digest's location to hand back to the user.
+  the Slack post. The remote URL from Step 7 is the digest's location to hand back to the user.
 
 ---
 
 ## Things to avoid
 
 - Do not itemise model-repo (`eosXXXX`) issues/PRs — summarise them in one line.
-- Do not write curated Airtable fields. Only the metric columns are synced (Step 4,
-  GitHub→Airtable); Status/Type/Projects/Title are read-only. The reconcile is report-only.
+- Do not write to Airtable at all. The registry check is **report-only** — the digest reports
+  drift for a human to fix; it never updates records.
 - Do not silently truncate the attention or health lists — always state the totals.
 - Keep Highlights to ≤4 sentences and Easy wins to ≤5 items. The digest is a fast read, not a report.
 - Do not list every easy_candidate verbatim — judge them; drop model requests and vague items.
@@ -325,5 +294,7 @@ Invoked manually by default. To run it weekly:
 - **PR review latency** metrics (time-to-first-review) for the attention chapter.
 - **Trend deltas** vs the previous digest (activity up/down, registry drift closing or
   growing) by parsing the last published github digest.
-- **Curated-field write-back** (Status/Type) behind an explicit `--fix` flag. Note: *metric*
-  write-back is already implemented (Step 4); the curated columns remain report-only by design.
+- **Airtable write-back** (Status/Type) behind an explicit `--fix` flag. Removed 2026-08-13:
+  the metric columns (Stars, Forks, Open Issues, Subscribers, Total Commits, Contributors,
+  Contributor Names) no longer exist on the Repositories table, so the metric sync that used to
+  run here was dropped. The skill is now read-only against Airtable.
