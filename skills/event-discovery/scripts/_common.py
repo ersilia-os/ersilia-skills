@@ -69,6 +69,8 @@ CONTINENTS = {
     "austria": "Europe", "denmark": "Europe", "norway": "Europe", "finland": "Europe",
     "poland": "Europe", "czech republic": "Europe", "czechia": "Europe", "greece": "Europe",
     "hungary": "Europe", "ukraine": "Europe", "turkey": "Europe", "türkiye": "Europe",
+    "latvia": "Europe", "lithuania": "Europe", "estonia": "Europe", "slovenia": "Europe",
+    "slovakia": "Europe", "croatia": "Europe", "romania": "Europe", "bulgaria": "Europe",
     # North America
     "united states": "North America", "usa": "North America",
     "united states of america": "North America", "canada": "North America", "mexico": "North America",
@@ -102,12 +104,58 @@ def continent_of(event):
     return CONTINENTS.get(country, "Other")
 
 
+# Continent names are themselves valid `focus_region` values — an event can be about a
+# whole continent, not only a country — so accept them alongside country names.
+CONTINENT_NAMES = {c.lower(): c for c in set(CONTINENTS.values())}
+
+
+def continent_of_region(region):
+    """Resolve a ``focus_region`` string to a continent name, or ``None``.
+
+    Accepts a country (``"Kenya"``) or a continent (``"Africa"``), case-insensitive.
+    Returns ``None`` for empty or unrecognised input so callers can fall back to the
+    physical location instead of silently bucketing the event into "Other".
+    """
+    key = str(region or "").strip().lower()
+    if not key:
+        return None
+    if key in CONTINENT_NAMES:
+        return CONTINENT_NAMES[key]
+    return CONTINENTS.get(key)
+
+
+def focus_continent_of(event):
+    """The continent an event is *about*, falling back to where it is *held*.
+
+    ``focus_region`` is optional — most events are simply about the place they happen
+    — so when it is absent or unrecognised this returns ``continent_of(event)``.
+    That fallback is load-bearing: without it the majority of events, which declare no
+    explicit focus, would vanish from any focus-based count or marker.
+    """
+    return continent_of_region(event.get("focus_region")) or continent_of(event)
+
+
 def validate_event(event):
-    """Return a list of missing required fields for ``event`` (empty = valid)."""
+    """Return a list of missing required fields for ``event`` (empty = valid).
+
+    ``start_date`` is waived for **team-shared** events (``shared_by`` set). SKILL.md
+    Step 2a promises a colleague's contribution is kept even when it cannot be verified
+    at all — but a conference whose page has not published dates yet is precisely that
+    case, and requiring ``start_date`` made the promise undeliverable: the event was
+    silently dropped as invalid. Such events are routed to their own report section
+    rather than being given an invented date.
+
+    The waiver is deliberately narrow. A machine-discovered event with no date is still
+    dropped, because "no date found on the official page" means the sweep failed to
+    establish it, whereas for a shared event a human has already vouched for it.
+    """
     if not isinstance(event, dict):
         return list(REQUIRED_EVENT_FIELDS)
+    waived = {"start_date"} if str(event.get("shared_by") or "").strip() else set()
     missing = []
     for field in REQUIRED_EVENT_FIELDS:
+        if field in waived:
+            continue
         value = event.get(field)
         if value is None or (isinstance(value, str) and not value.strip()):
             missing.append(field)
