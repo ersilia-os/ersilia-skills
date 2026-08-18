@@ -75,11 +75,38 @@ Field rules:
 **Slug**
 Lowercase, hyphens only, **2–4 words maximum**. Keep it short and memorable — it becomes part of the model's permanent identifier. Propose a single best option (e.g. `mt-gnn-adme`, `morgan-fingerprints`). If you find yourself using more than 4 words, trim ruthlessly.
 
+These rules are **not enforced anywhere**. `BaseInformation.slug` and
+`BaseInformationValidator` check only that the value is lowercase and 5–60 characters long,
+so spaces, underscores and punctuation all pass validation cleanly (ersilia-os/ersilia#1899).
+Getting the slug right is manual — nothing downstream will catch it.
+
 **Description**
-200–600 characters (hard limits from the GitHub form). Plain English, focused on what a user gets from running this model on a molecule. Do not start with "This model...". Do not include a character count in the table — just show the description text.
+200–600 characters (hard limits from the GitHub form, and enforced later by `ersilia test`).
+Plain English, focused on what a user gets from running this model on a molecule. Do not
+start with "This model...". Do not include a character count in the table — just show the
+description text.
+
+For structure, prohibitions and worked examples, read
+`model-incorporation-metadata/references/writing-descriptions.md` — the single source of
+truth for this field. The description written here is a first draft;
+`/model-incorporation-metadata` refines it once the paper and the code have been read.
 
 **Tags**
 Pick only from the tag list fetched in Phase 1c. Choose **2–4 tags maximum** — only the most directly relevant ones. Do not tag everything that loosely applies; prefer precision over coverage. At least one is required.
+
+**Source Code**
+Must point at **code** — a repository, a package page, an archived release — not at the
+paper. Three URL forms rot and should be avoided:
+
+- **a bare IP address** (one hub model points at `http://130.92.106.217:8080/...`, which no
+  longer responds and has no hostname to fall back on)
+- **a deep file path inside a repository** (`.../blob/main/pkg/module/file.py`). Two hub
+  models broke when the upstream repo was refactored; the repository root would have
+  survived. Link the root.
+- **an academic project page** on a university host. Several have disappeared entirely.
+
+Where the upstream repository may not last — a personal account, an unreleased project —
+prefer a DOI (Zenodo) or a package page (PyPI, Conda), which are archived.
 
 **License**
 Use only values from the `license.txt` list fetched in Phase 1c. Use `None` if no LICENSE file is found.
