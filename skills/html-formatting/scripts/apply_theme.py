@@ -14,6 +14,11 @@ Two modes:
             footer.
               python apply_theme.py --mode retrofit page.html --out page.ersilia.html
 
+Either mode takes the social-preview flags, for a page that will be HOSTED at a public URL
+(--description --url --og-image --og-image-alt). They add the Open Graph / twitter card tags
+that LinkedIn and Slack read; without them the head carries no social metadata, which is the
+right default for an Artifact. Generate the image with make_og_image.py.
+
 The template is assembled with str.replace on __TOKENS__ (never str.format), the same
 convention as molecule-auditing/make_visualizer.py, so any embedded JSON/braces in a
 retrofitted page survive untouched. Standard library only.
@@ -52,6 +57,8 @@ FAVICON_COLOURS = {
 # strip reads as a disabled or still-loading icon rather than as a brand mark.
 _SHUFFLE_POOL = tuple(name for name in FAVICON_COLOURS if name != "egray")
 _HEX_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+_ABS_URL_RE = re.compile(r"^https?://", re.I)
+_SIZE_RE = re.compile(r"^(\d+)[x×](\d+)$")
 
 _STYLE_RE = re.compile(r"<style\b[^>]*>(.*?)</style>", re.I | re.S)
 _BODY_RE = re.compile(r"<body\b[^>]*>(.*?)</body>", re.I | re.S)
@@ -87,7 +94,70 @@ def resolve_favicon(spec: str, title: str) -> str:
     )
 
 
-def build_head(title: str, extra_css: str = "", favicon: str = "auto") -> str:
+def absolute_url(url: str, what: str) -> str:
+    """Reject a relative or data: URL for a tag that a social crawler must resolve.
+
+    LinkedIn, Slack and X fetch og:image from their own servers with no page
+    context, so a relative path or a data: URI resolves to nothing and the card
+    silently falls back to a bare grey box. Failing the build is far kinder than
+    shipping a preview that only looks broken once it is posted.
+    """
+    if not _ABS_URL_RE.match(url):
+        raise ValueError(
+            f"{what} must be an absolute http(s) URL, got {url!r} — social crawlers "
+            "fetch it without page context, so a relative path or data: URI cannot work"
+        )
+    return url
+
+
+def build_social(
+    title: str,
+    description: str | None = None,
+    url: str | None = None,
+    image: str | None = None,
+    image_alt: str | None = None,
+    size: tuple[int, int] = (1200, 630),
+) -> str:
+    """The description / canonical / Open Graph block, or "" when nothing applies.
+
+    Split from build_head because it is the one part of the head that is NOT
+    universal: a hosted page wants it, an Artifact cannot use it. Passing only
+    --description yields the plain <meta name=description> and nothing else.
+
+    og:* is what LinkedIn reads (it ignores twitter:*); the twitter:* pair costs
+    four lines and covers X, Slack and WhatsApp, which prefer them when present.
+    """
+    lines: list[str] = []
+    if description:
+        lines.append(f'<meta name="description" content="{_escape(description)}">')
+    if url:
+        lines.append(f'<link rel="canonical" href="{_escape(url)}">')
+    if url or image:
+        lines.append('<meta property="og:type" content="website">')
+        lines.append('<meta property="og:site_name" content="Ersilia">')
+        lines.append(f'<meta property="og:title" content="{_escape(title)}">')
+        if description:
+            lines.append(f'<meta property="og:description" content="{_escape(description)}">')
+        if url:
+            lines.append(f'<meta property="og:url" content="{_escape(url)}">')
+        if image:
+            w, h = size
+            lines.append(f'<meta property="og:image" content="{_escape(image)}">')
+            lines.append(f'<meta property="og:image:width" content="{w}">')
+            lines.append(f'<meta property="og:image:height" content="{h}">')
+            if image_alt:
+                lines.append(f'<meta property="og:image:alt" content="{_escape(image_alt)}">')
+        card = "summary_large_image" if image else "summary"
+        lines.append(f'<meta name="twitter:card" content="{card}">')
+        lines.append(f'<meta name="twitter:title" content="{_escape(title)}">')
+        if description:
+            lines.append(f'<meta name="twitter:description" content="{_escape(description)}">')
+        if image:
+            lines.append(f'<meta name="twitter:image" content="{_escape(image)}">')
+    return "\n".join(lines)
+
+
+def build_head(title: str, extra_css: str = "", favicon: str = "auto", social: str = "") -> str:
     """Canonical <head> inner HTML with ersilia.css (and any extra CSS) inlined."""
     css = read_text(asset("ersilia.css"))
     if extra_css.strip():
@@ -97,6 +167,8 @@ def build_head(title: str, extra_css: str = "", favicon: str = "auto") -> str:
     head = re.sub(r"^<!--.*?-->\s*", "", head, count=1, flags=re.S)
     # The hex sits inside a data: URI, so its '#' must be percent-encoded.
     colour = resolve_favicon(favicon, title).replace("#", "%23")
+    # Consume the token's own newline so an empty block leaves no blank line.
+    head = head.replace("__SOCIAL__\n", social + "\n" if social.strip() else "")
     return (head.replace("__TITLE__", _escape(title))
                 .replace("__FAVICON__", colour)
                 .replace("__STYLE__", css))
@@ -168,6 +240,18 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--eyebrow", help="mono eyebrow label (default: per archetype)")
     p.add_argument("--lede", default="One-sentence summary of what this page shows.", help="new mode lede")
     p.add_argument("--source-url", help="GitHub source URL for the footer")
+    # Social preview — hosted pages only; an Artifact has no public URL to point at.
+    p.add_argument("--description", help="one-sentence <meta description> / og:description")
+    p.add_argument("--url", metavar="ABS_URL", help="canonical page URL (absolute); enables og:url")
+    p.add_argument(
+        "--og-image", metavar="ABS_URL",
+        help="absolute URL of the 1200x630 preview image (see make_og_image.py); enables the card",
+    )
+    p.add_argument("--og-image-alt", help="alt text for the preview image")
+    p.add_argument(
+        "--og-image-size", default="1200x630", metavar="WxH",
+        help="declared preview image size (default: 1200x630)",
+    )
     p.add_argument(
         "--favicon", default="auto", metavar="COLOUR",
         help="favicon disc colour: a brand name (" + ", ".join(FAVICON_COLOURS) + "), a hex, "
@@ -182,6 +266,24 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as exc:
         p.error(str(exc))
 
+    size_match = _SIZE_RE.match(args.og_image_size)
+    if not size_match:
+        p.error(f"--og-image-size must look like 1200x630, got {args.og_image_size!r}")
+    try:
+        for value, what in ((args.url, "--url"), (args.og_image, "--og-image")):
+            if value:
+                absolute_url(value, what)
+    except ValueError as exc:
+        p.error(str(exc))
+    social = build_social(
+        args.title,
+        description=args.description,
+        url=args.url,
+        image=args.og_image,
+        image_alt=args.og_image_alt,
+        size=(int(size_match.group(1)), int(size_match.group(2))),
+    )
+
     if mode == "retrofit":
         if not args.html_file:
             p.error("retrofit mode needs an HTML file argument")
@@ -189,11 +291,11 @@ def main(argv: list[str] | None = None) -> int:
         if not src.strip():
             p.error(f"could not read {args.html_file}")
         body, page_styles, _ = retrofit(src)
-        head = build_head(args.title, extra_css=page_styles, favicon=args.favicon)
+        head = build_head(args.title, extra_css=page_styles, favicon=args.favicon, social=social)
     else:
         eyebrow = args.eyebrow or _EYEBROW_DEFAULT[args.archetype]
         body = scaffold(args.archetype, args.title, eyebrow, args.lede)
-        head = build_head(args.title, favicon=args.favicon)
+        head = build_head(args.title, favicon=args.favicon, social=social)
 
     footer = build_footer(args.source_url)
     doc = assemble(head, body, footer)

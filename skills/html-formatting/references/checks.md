@@ -22,6 +22,7 @@ font set), it goes to the report's **Checks not run** section — silence must n
 | `T1-COLOR-OFFBRAND` | Should-fix | a hex colour outside the `ersilia.css` palette appears in the CSS | Replace with a token (`var(--plum)`, `var(--brand)`, `var(--ink)`, a data hue). Derive shades with `color-mix`, don't hard-code. |
 | `T1-FONT-FOREIGN` | Should-fix | a `font-family` is set using a foreign stack (Segoe UI / Arial / Roboto / -apple-system) with **no** Ersilia family (Inter / mono) present | Use `var(--sans)` and `var(--mono)`. |
 | `T1-FAVICON` | Nice-to-have | no `<link rel="icon">` | Add the inline-SVG target favicon (`assets/head.html`). |
+| `T1-SOCIAL-PREVIEW` | Nice-to-have (Should-fix if present but relative) | no `og:image`, or an `og:image` that is not an absolute `http(s)` URL | **Hosted page:** screenshot it with `make_og_image.py --zoom 1.4` and pass `--description --url --og-image` (absolute) to `apply_theme.py`. **Artifact:** ignore — it has no public URL, so there is nothing to preview. A relative or `data:` `og:image` is always wrong: crawlers fetch it with no page context. |
 | `T1-CLUTTER-SECTIONS` | Should-fix | more than **8** top-level `<h2>` sections (heuristic, medium confidence) | Merge/drop sections; push detail behind progressive disclosure. |
 | `T1-MULTI-H1` | Nice-to-have | more than one `<h1>` | Keep a single wordmark `<h1>`; demote the rest. |
 

@@ -168,6 +168,10 @@ class _Doc(HTMLParser):
         self.external_refs: list[tuple[str, str]] = []  # (kind, url)
         self.headings: list[tuple[int, str]] = []  # (level, text)
         self.has_favicon = False
+        # <meta> keyed by its name= or property=, so a check can ask for og:image or
+        # description without re-parsing. Never a source of external_refs: a crawler
+        # fetches og:image, the browser does not, so it cannot break self-containment.
+        self.metas: dict[str, str] = {}
         self.emoji_headings: list[str] = []
         self.text_len = 0
         self._in_style = False
@@ -196,6 +200,10 @@ class _Doc(HTMLParser):
             self._heading_buf = []
         if "style" in attrs and attrs["style"].strip():
             self.inline_styles.append(attrs["style"])
+        if tag == "meta":
+            key = (attrs.get("name") or attrs.get("property") or "").strip().lower()
+            if key:
+                self.metas[key] = attrs.get("content", "")
         if tag == "link":
             rel = attrs.get("rel", "").lower()
             href = attrs.get("href", "")
