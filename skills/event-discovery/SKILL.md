@@ -11,7 +11,7 @@ description: >
   "any hackathons or fellowships", "events on <topic/region>". Always use this skill
   for Ersilia event-discovery requests, even if the ask is phrased casually.
 argument-hint: [focus] [--from <date>] [--to <date>] [--out <path>] [--force]
-allowed-tools: [Read, Write, Bash, WebSearch, WebFetch, AskUserQuestion, slack_search_channels, slack_send_message]
+allowed-tools: [Read, Write, Bash, WebSearch, WebFetch, AskUserQuestion, slack_search_channels, slack_read_channel, slack_read_user_profile, slack_send_message]
 ---
 
 # Event Discovery for Ersilia
@@ -39,11 +39,14 @@ skill folder.
   in-scope event types.
 - **`--from` / `--to`** (optional): the event date window (ISO `YYYY-MM-DD`).
   Default: **today → +12 months**. Past events are always excluded. The
-  12-month look-ahead (up from an earlier 9-month default) is deliberately
-  generous: events need long planning lead time (bursaries, abstract
-  deadlines, travel booking), and this window is what each twice-yearly
-  scheduled run (see Scheduling) is expected to cover — the two runs then
-  overlap by 6 months rather than leaving a gap.
+  12-month look-ahead is deliberately generous, for **two** reasons — events
+  need long planning lead time (bursaries, abstract deadlines, travel
+  booking), *and* a wide window is the **recovery net for events that missed
+  an earlier digest**. An event never captured has no ledger entry, so only a
+  later sweep can catch it. Under the monthly cadence (see Scheduling) that
+  means re-sweeping the same 12 months every run for a handful of new hits:
+  accepted cost, paid deliberately, because the alternative is that anything
+  missed once is missed permanently.
 - **`--out`** (optional): output path override for the report. Default:
   `reports/{YY}-{MM}-{DD}-event-discovery.md` (2-digit year, run date)
   relative to this skill folder — a working copy; the canonical home is the
@@ -74,7 +77,7 @@ Read all four before starting:
 
 ### Step 0 — Pre-flight check (no recent report)
 
-The report is twice-yearly, not redundant. The canonical home is the remote
+The report is monthly, not redundant. The canonical home is the remote
 `ersilia-os/digests` repo, so check there directly — no dedicated script, just
 one inline command:
 
@@ -97,10 +100,13 @@ and republish over existing work. That is the precise failure this step exists
 to prevent, so "Not Found" is the **only** soft case; everything else stops the
 run and surfaces the message.
 - If it prints filenames, read the newest one's embedded date
-  (`YY-MM-DD-event-discovery.md`). If that date is within the last ~150 days
-  (roughly the 6-month cadence, so this only catches an accidental re-run
-  within the same cycle, never the next scheduled one), **stop and ask** the
-  user whether they want to proceed anyway (`--force` skips this check).
+  (`YY-MM-DD-event-discovery.md`). If that date is within the last **20 days**,
+  **stop and ask** the user whether they want to proceed anyway (`--force`
+  skips this check). 20 days is tuned to the monthly cadence: it catches a
+  same-day or same-week accidental re-run while always clearing the next
+  scheduled run, which is ~28–31 days out. **Do not raise this back toward a
+  full cycle length** — at 150 days (the old twice-yearly value) it would
+  reject every monthly run.
 - If the folder doesn't exist yet or the newest report is older than that,
   continue to Step 1.
 
@@ -130,6 +136,45 @@ Track which continents you actually queried and pass them to `--continents-searc
 Step 7. If a continent genuinely returns nothing verifiable, that's fine — the report
 will mark it "searched, none verified" so the gap is visible, never silently empty.
 
+### Step 2a — Sweep Slack (`#networking`)
+
+Teammates post events in `#networking` that no web sweep will surface. Read them
+as a **first-class source**, not a bonus.
+
+```text
+slack_search_channels(query="networking")   # resolve the id, never hardcode it
+slack_read_channel(channel_id=<id>, ...)    # messages since the previous digest
+```
+
+Collect the messages to `/tmp/slack_raw.json` (each needs at least `text`, `ts`,
+`user`; add `user_real_name` via `slack_read_user_profile` and `permalink` when
+available), then:
+
+```bash
+python scripts/fetch_slack.py --raw /tmp/slack_raw.json \
+  --out /tmp/slack_candidates.json --channel "#networking" \
+  --exclude-user <the id that posts the Step 9 alert>
+```
+
+**Window: since the previous digest.** Take the date from the newest remote
+report Step 0 already listed. No fixed lookback — that would either re-read
+months of history or miss a delayed run.
+
+**The feedback loop is the trap here.** Step 9 posts this skill's own alert
+*into* `#networking`, so a naive read re-ingests it as a fresh batch of
+candidates every month, compounding. `fetch_slack.py` guards this two ways —
+dropping messages whose text starts with the alert signature, and dropping
+`--exclude-user` ids. Pass the flag; the text match alone is a fallback, not the
+plan.
+
+**Candidates are not events.** A Slack message yields a URL and a sharer, never
+the `name` / `start_date` / `location` the schema requires. Each candidate goes
+through Step 3 exactly like a web hit — the difference is only how it entered.
+
+**If the Slack MCP is unavailable**, skip this step, continue on web sources
+alone, and record `slack:down` in `--connectors` (Step 7) so the header shows 🔴.
+Do not fail the run.
+
 ### Step 3 — Verify each event
 
 `WebFetch` the event's **official page** and confirm **name, exact dates, location,
@@ -137,7 +182,27 @@ official URL**. If the page confirms them, set `verified: true`. If the official
 **can't be fetched** (site down, cert error) but independent reputable sources agree on
 name/dates/URL, keep the event with `verified: false` — it will be flagged with `†` in
 the report rather than silently dropped. If you can't establish a date or an official
-URL at all, drop it (omit, never guess a date). Also capture, when stated: the **typed
+URL at all, drop it (omit, never guess a date).
+
+**Exception for team-shared candidates (Step 2a).** Verify-or-drop applies to
+machine-discovered events. A candidate a colleague posted is **kept even when it
+cannot be verified at all** — set `verified: false` so it renders with `†`, and
+keep `shared_by`. A human vouched for it; silently discarding that is worse than
+carrying a flagged row the reader can judge at Step 7a.
+
+**If the official page states no dates**, set `start_date: null` — never guess.
+`validate_event` waives the required `start_date` when `shared_by` is set, and the
+event renders under **"Shared by the team — dates not yet announced"** rather than
+being dropped. This waiver is narrow by design: a *machine-discovered* event with
+no date is still dropped, because there "no date" means the sweep failed, while for
+a shared event a colleague has already vouched for the thing existing.
+
+**A shared event the web sweep also found keeps its credit.** When the same event
+arrives twice, `filter_and_sort.py` merges `shared_by` and 💬 onto whichever copy it
+kept, so the colleague is credited even though the web copy is the one that
+survived dedup.
+
+Also capture, when stated: the **typed
 deadlines** (`abstract` / `early_bird` / `registration` / `bursary`); the attendance
 **cost** (`Free`, a figure with currency, or `Unknown`); and any **bursary** / financial
 aid / travel support (short description, `None`, or `Unknown`). Never invent a number, a
@@ -154,11 +219,26 @@ each surviving event maps to.
 For every surviving event, assign all five axes and the marker ribbon per
 `references/classification.md`, set a `priority` and an `action`, note the `engagement`
 angle (what to do there / who should go, or `—`), and write a one-line `why_ersilia`.
-Use `references/lmic-countries.md` for the `Global-South` / 🌍 decision.
-
 Write the pool to `/tmp/events_pool.json` as a JSON array conforming to the schema in
-`references/event-sources.md`. Set the `⭐🌍🎓💻` markers yourself; do **not** add the
+`references/event-sources.md`. Set the `⭐🌍🎓💻💬` markers yourself; do **not** add the
 💰 or 🗓️ markers — the script derives those from the `bursary` and `deadlines` fields.
+
+**`focus_region` (optional).** Set it when an event is *about* a region other than
+the one it is held in — an "AMR in Africa" symposium in London gets
+`focus_region: "Africa"`. Accepts a country or a continent. Leave it out for the
+common case where the event is simply about where it happens; the scripts fall
+back to `country` wherever focus is needed. One row per event either way — the
+report never cross-lists an event under two continents.
+
+**🌍 follows *focus*, not location.** Use `references/lmic-countries.md`, but apply
+it to what the event is *about*: an Africa-focused event held in Berlin earns 🌍;
+a generic European conference that happens to host one LMIC speaker does not.
+Where no `focus_region` is set, this collapses to the old location-based reading,
+so most events are unaffected.
+
+**For candidates from Step 2a**, additionally set `shared_by` to the sharer's
+name and add the 💬 marker. The renderer credits them in a footnote rather than a
+table column.
 
 ### Step 6 — Normalise and order (script)
 
@@ -181,19 +261,37 @@ matters: the ledger exists to stop the *same edition* from being re-shown in a l
 report, not to hide next year's edition just because an earlier year's was already
 reported — "GCC 2026" being seen never suppresses "GCC 2027" once it rolls around,
 even at the same venue. A new calendar-year edition of a recurring series always shows.
-The ledger is updated with every kept event at the end of the run, so the *next* run
-(whatever the cadence) won't re-surface the same edition this one already showed. The
+The ledger is updated with every kept event at the end of the run, so next month's run
+won't re-surface the same edition this one already showed. **This is what makes the
+monthly cadence readable** — without it, every run would repeat the same standing list.
+The
 file lives outside this repo (`~/.ersilia/events_seen.json`, in the user's home
 directory) so it persists across runs regardless of cadence and is never committed. If
 the user explicitly asks for a full, unfiltered sweep (e.g. "show me everything
 again"), omit `--ledger`/`--hide-seen` for that one invocation rather than editing or
 deleting the ledger file.
 
+**Known limitation — accepted deliberately.** The ledger key is
+name+location+year, so it does **not** change when an event's *details* change.
+An event first surfaced with `deadline: Unknown` will never resurface when its
+deadline is later announced, because it is already recorded for that edition.
+Under the monthly cadence that blind window is up to eleven months wide. The
+mitigation is Step 3: when verifying an event, capture deadlines properly the
+*first* time, since there is no second chance within the edition. If this proves
+too costly in practice, the fix is a fingerprint over the
+deadline/bursary/registration fields added to the ledger record — recorded here
+so the tradeoff stays visible instead of being rediscovered as a bug.
+
 ### Step 7 — Render the report (script) + summarise
 
 ```bash
-python scripts/render_report.py --in /tmp/events_clean.json --focus "<focus>" --from <from> --to <to> --today <today> --swept <N> --continents-searched "Africa,Europe,Asia,South America,North America,Oceania" --out <report path>
+python scripts/render_report.py --in /tmp/events_clean.json --focus "<focus>" --from <from> --to <to> --today <today> --swept <N> --continents-searched "Africa,Europe,Asia,South America,North America,Oceania" --connectors "web:ok,slack:ok" --out <report path>
 ```
+
+`--connectors "web:ok,slack:ok"` renders the `**Connectors:**` header line, 🟢 for
+`ok` and 🔴 for anything else. Pass `slack:down` when Step 2a was skipped. Omit the
+flag entirely and the line is left out rather than implying every connector was
+healthy.
 
 `--today` (the current date) drives the **Act now** countdown; it defaults to `--from`
 if omitted. Pass the real today when `--from` isn't today.
@@ -201,7 +299,7 @@ if omitted. Pass the real today when `--from` isn't today.
 `--group-by continent` (the **default**) sections the report by continent (Africa →
 Europe → Asia → South America → North America → Oceania), and **within each continent
 sub-groups by theme** (Science → Training → Community → Philanthropy) — useful for
-travel/reachability decisions, which is what this twice-yearly report is mainly read
+travel/reachability decisions, which is what this report is mainly read
 for. Pass `--group-by theme` to fall back to the single-level theme grouping for a
 one-off ask. Continent is derived from each event's `country`. **Virtual / online
 events** (no physical location) are never a continent — in either mode they collect
@@ -227,7 +325,38 @@ time-sensitive deadline, and a note of anything the script dropped.
 The `reports/` folder is `.gitignored` — the file lives locally but is not committed by
 default.
 
+### Step 7a — Review gate (STOP here)
+
+**Nothing is published until the user approves this run.** Present the rendered
+report and the in-chat summary, then **stop and wait**. Steps 8 and 9 do not run
+on the same turn as Step 7 unless the user has already said, in this session, to
+publish without reviewing.
+
+State plainly what will happen on approval — the remote path it will be written
+to, and that a Slack alert will follow — so "yes" is informed consent for both,
+not just the push.
+
+This gate exists because publishing is a two-channel, effectively irreversible
+action: Step 8 writes to a public repo that auto-rebuilds a public site, and
+Step 9 posts to a team channel. Neither can be cleanly retracted — the Slack MCP
+available here has **no edit-message tool**, so a wrong number in the alert
+cannot be corrected in place, only superseded by a later report.
+
+Two things are the user's call at this gate, not the skill's:
+
+- **A run with zero new events.** Publish an empty report as a "nothing new this
+  month" signal, or skip this cycle. There is no automatic rule — ask.
+- **Anything the report flags as uncertain**: `†` unverified events (including
+  human-sourced ones kept under Step 2a's exception) and any WARNINGs from
+  Step 6.
+
+If the user declines, keep the local file and stop. Do not partially publish —
+never run Step 8 without Step 9, or the report goes live silently.
+
 ### Step 8 — Submit to the canonical remote and hand off
+
+**Precondition: the user approved this run at Step 7a.** Do not run this step
+speculatively or "to save a round trip".
 
 The local file in `reports/` is a working copy. The canonical home is
 `github.com/ersilia-os/digests` at `events/{YY}-{MM}-{DD}-event-discovery.md`.
@@ -323,10 +452,11 @@ slack_send_message(
 `render_report.py` produces this deterministically — do not hand-format it:
 
 ```markdown
-# Event Discovery for Ersilia — <focus>
-*Generated: <YYYY-MM-DD> | Window: <from> → <to> | Events: N | Sources swept: M*
+# Ersilia Event Digest — <YYYY-MM-DD>
 
-**Markers:** ⭐ High-priority fit · 🌍 Global-South · 🎓 Training · 💻 Open-source / AI methods · 💰 Bursary / travel support · 🗓️ Deadline in window
+**Scope:** N new events · window <from> → <to> · M sources swept · focus: <focus>
+**Connectors:** Web hunt 🟢 · Slack 🟢
+**Markers:** ⭐ High-priority fit · 🌍 Global-South · 🎓 Training · 💻 Open-source / AI methods · 💰 Bursary / travel support · 🗓️ Deadline in window · 💬 Shared by the team
 
 ## ⏱️ Act now
 **Deadlines in the next 30 days**
@@ -349,12 +479,40 @@ slack_send_message(
 ## Registration closed — event still upcoming, but you can no longer register
 | … |
 
+## Shared by the team — dates not yet announced
+| … |
+
 ## Virtual / online
 | … |
 
 ## Deadlines (within the window)
 - **<YYYY-MM-DD>** — [Name](url) · abstract / CFP
+
+## Coverage by region focus
+_Counted by what each event is **about**, not where it is held …_
+- **Africa**: 3 events
+
+---
+† Not confirmed on the official page …
+
+💬 Shared by the team rather than found by the automated sweep:
+- Name — @sharer
 ```
+
+**The header block must never use pipes.** It reads as three bold lines with `·`
+separators because an earlier single line of `*Generated: … | Window: … | Events: …*`
+was parsed by kramdown as a one-row **table** on the published page, with the italic
+asterisks leaking through as literal `*Generated:` and `37*`. A lone pipe-delimited
+line is a table waiting to happen — keep separators as `·`.
+
+**The count is a delta.** `N new events` is what Step 6 kept after dropping
+already-seen editions, not a standing total. A low number is the expected steady state
+under the monthly cadence, not a failed sweep.
+
+**The coverage footer counts region *focus*, so it will not match the continent
+section counts** — an Africa-focused event held in Berlin sits under Europe but counts
+toward Africa in the footer. That divergence is intentional; the heading and the
+italic note carry it.
 
 The "Beyond the window" and "Registration closed" sections appear only when such events
 exist. A past `registration` deadline on a still-upcoming event moves it into the
@@ -408,19 +566,30 @@ the tie-breaker between *attend* and *scout*, not a filter that removes top meth
 
 ---
 
-## Scheduling
+## Cadence
 
-This skill is invoked manually by default. To run it twice a year:
+**Monthly, on the first Friday, invoked manually.** There is deliberately no
+cron job: the user runs the skill from a standing calendar reminder, because
+every report is reviewed before it is published (Step 7a) and an unattended run
+would have nothing to gate on.
 
-```text
-/schedule create event-discovery --cron "0 8 1 1,7 *" --command "/event-discovery"
-```
+Do **not** offer to automate this with `/schedule`. Beyond the review gate,
+"first Friday" is not expressible in cron: in Vixie cron, when both
+day-of-month and day-of-week are restricted they combine as **OR**, not AND, so
+`0 8 1-7 * 5` fires on the 1st–7th *and* on every Friday. Automating it
+correctly would need a Friday-only schedule plus a
+`[ "$(date +%-d)" -le 7 ] || exit 0` guard in the command — complexity with no
+payoff while a human is reviewing each run anyway.
 
-(Jan 1 and Jul 1, 08:00 local time.) The `schedule` skill handles the cron wiring; see
-its SKILL.md for options. Posting to Slack (Step 9) requires the Slack MCP to be live
-in that session — unlike `literature-digest`, this is a soft dependency here (the
-report still generates and submits without it; only the alert is skipped), so it's less
-critical to guarantee for a scheduled run than for `literature-digest`'s hard MCP gates.
+Because the cadence is monthly and Step 6 drops already-seen events, a typical
+run surfaces **few** events — often a handful, sometimes none. That is the
+intended steady state, not a failed sweep; see Step 7's delta framing.
+
+Posting to Slack (Step 9) needs the Slack MCP live in the session. Unlike
+`literature-digest`, that is a **soft** dependency for the alert but a **hard**
+one for the Slack *connector* in Step 2a — without the MCP the run proceeds on
+web sources alone and both the alert and the Slack sweep are skipped, which the
+`**Connectors:**` header line records as 🔴.
 
 ---
 

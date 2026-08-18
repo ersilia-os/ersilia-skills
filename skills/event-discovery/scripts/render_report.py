@@ -15,7 +15,7 @@ Prints the output path to stdout.
 import argparse
 import sys
 
-from _common import continent_of, parse_date, read_json
+from _common import continent_of, focus_continent_of, parse_date, read_json
 
 # Fixed theme order; only non-empty groups render.
 THEME_ORDER = ["Science", "Training", "Community", "Philanthropy"]
@@ -38,8 +38,43 @@ DEADLINE_LABELS = {
 }
 MARKER_LEGEND = (
     "**Markers:** ⭐ High-priority fit · 🌍 Global-South · 🎓 Training · "
-    "💻 Open-source / AI methods · 💰 Bursary / travel support · 🗓️ Deadline in window"
+    "💻 Open-source / AI methods · 💰 Bursary / travel support · 🗓️ Deadline in window · "
+    "💬 Shared by the team"
 )
+
+# Connector labels for the `**Connectors:**` header line, in fixed display order.
+# Status comes from --connectors "web:ok,slack:down"; anything not "ok" renders 🔴.
+CONNECTOR_LABELS = {"web": "Web hunt", "slack": "Slack"}
+CONNECTOR_ORDER = ("web", "slack")
+
+
+def render_connectors(spec):
+    """Build the `**Connectors:**` line from a "web:ok,slack:down" spec.
+
+    Returns None when no spec was passed, so the line is omitted entirely rather
+    than rendering a misleading all-green row for connectors nobody reported on.
+    """
+    if not spec:
+        return None
+    statuses = {}
+    for chunk in str(spec).split(","):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        name, _, state = chunk.partition(":")
+        statuses[name.strip().lower()] = state.strip().lower()
+    if not statuses:
+        return None
+    bits = []
+    for key in CONNECTOR_ORDER:
+        if key in statuses:
+            label = CONNECTOR_LABELS.get(key, key)
+            bits.append(f"{label} {'🟢' if statuses[key] == 'ok' else '🔴'}")
+    # Anything unrecognised still renders, so a new connector isn't silently dropped.
+    for key, state in statuses.items():
+        if key not in CONNECTOR_ORDER:
+            bits.append(f"{key} {'🟢' if state == 'ok' else '🔴'}")
+    return "**Connectors:** " + " · ".join(bits) if bits else None
 
 
 def fmt_dates(event):
@@ -66,6 +101,13 @@ def event_row(event):
     markers = event.get("markers", "") or "—"
     dates = fmt_dates(event)
     location = esc(event.get("location"))
+    # When an event is *about* a different region than the one it is *held* in, show
+    # both: "London, United Kingdom → Africa". The arrow is the cue that focus and
+    # location diverge. Deliberately not an emoji marker — the ribbon is already seven
+    # glyphs deep, and this belongs next to the place it qualifies.
+    focus_continent = focus_continent_of(event)
+    if focus_continent and focus_continent != continent_of(event):
+        location = f"{location} → {esc(event.get('focus_region')) or focus_continent}"
     fmt_type = f"{esc(event.get('format'))} · {esc(event.get('type'))}"
     cost = esc(event.get("cost")) or "—"
     bursary = esc(event.get("bursary")) or "—"
@@ -172,26 +214,54 @@ def registration_closed(event, today):
 
 
 def render(events, focus, date_from, date_to, swept, today=None, group_by="theme",
-           continents_searched=None):
+           continents_searched=None, connectors=None):
     lines = []
-    title_focus = focus.strip() if focus and focus.strip() else "broad sweep"
-    lines.append(f"# Event Discovery for Ersilia — {title_focus}")
+    # Title mirrors the sibling digests' `# Ersilia X Digest — <date>` form. The focus
+    # moves into the Scope line: it is a run parameter, not part of the digest's identity.
+    lines.append(f"# Ersilia Event Digest — {today or date_from or '—'}")
     lines.append("")
 
-    header_bits = [f"Generated: {today or date_from or '—'}"]
+    # Scope / Connectors / Markers, each a bold line with `·` separators.
+    #
+    # NEVER build this from pipe-delimited text. The previous
+    # `*Generated: … | Window: … | Events: …*` single line was parsed by kramdown as a
+    # one-row TABLE on the published page, and the italic asterisks leaked through as
+    # literal `*Generated:` / `37*`. Pipes in a lone line are a table waiting to happen.
+    #
+    # The event count is a DELTA, not a standing total: Step 6 drops already-seen
+    # events, so `len(events)` is what is new since the last digest. No "tracked in
+    # window" figure is carried — it would mean computing a pre-suppression count here
+    # and threading it through the Slack template as a second number to keep consistent.
+    n = len(events)
+    scope_bits = [f"{n} new event{'s' if n != 1 else ''}"]
     if date_from and date_to:
-        header_bits.append(f"Window: {date_from} → {date_to}")
-    header_bits.append(f"Events: {len(events)}")
+        scope_bits.append(f"window {date_from} → {date_to}")
     if swept is not None:
-        header_bits.append(f"Sources swept: {swept}")
-    lines.append(f"*{' | '.join(header_bits)}*")
-    lines.append("")
-    lines.append(MARKER_LEGEND)
+        scope_bits.append(f"{swept} source{'s' if swept != 1 else ''} swept")
+    if focus and focus.strip():
+        scope_bits.append(f"focus: {focus.strip()}")
+    # These lines form ONE markdown paragraph, so every line but the last needs a
+    # two-space hard break or they render as a single run-on line. This is the idiom
+    # `literature-digest` uses; `github-digest` omits it and its Connectors and Markers
+    # lines are visibly joined on the published page. Trailing whitespace here is
+    # load-bearing — do not let an editor or linter strip it.
+    header_lines = ["**Scope:** " + " · ".join(scope_bits)]
+    connector_line = render_connectors(connectors)
+    if connector_line:
+        header_lines.append(connector_line)
+    header_lines.append(MARKER_LEGEND)
+    lines.extend(line + "  " for line in header_lines[:-1])
+    lines.append(header_lines[-1])
     lines.append("")
 
     if not events:
-        lines.append("_No events matched the focus and window. Reported honestly rather "
-                     "than padded — widen the window or focus to see more._")
+        # Under the monthly cadence this is a normal outcome, not a failure: everything
+        # in the window was already reported in an earlier digest. Say so, so an empty
+        # report is not mistaken for a broken sweep. Whether to publish it at all is the
+        # user's call at Step 7a.
+        lines.append("_No new events this cycle — everything found in the window was "
+                     "already covered by an earlier digest. Reported honestly rather than "
+                     "padded._")
         lines.append("")
         return "\n".join(lines)
 
@@ -210,9 +280,11 @@ def render(events, focus, date_from, date_to, swept, today=None, group_by="theme
     # Events whose date is beyond the window (kept only for an in-window deadline) and
     # events whose registration has closed each render in their own section, not mixed
     # into the grouped tables.
-    in_window_events = [e for e in events if not e.get("beyond_window") and not closed[id(e)]]
-    beyond_events = [e for e in events if e.get("beyond_window") and not closed[id(e)]]
-    closed_events = [e for e in events if closed[id(e)]]
+    undated_events = [e for e in events if e.get("undated")]
+    dated = [e for e in events if not e.get("undated")]
+    in_window_events = [e for e in dated if not e.get("beyond_window") and not closed[id(e)]]
+    beyond_events = [e for e in dated if e.get("beyond_window") and not closed[id(e)]]
+    closed_events = [e for e in dated if closed[id(e)]]
 
     # Virtual/online events are pulled out into their own section at the end (not a place).
     virtual_events = [e for e in in_window_events if is_virtual(e)]
@@ -259,6 +331,22 @@ def render(events, focus, date_from, date_to, swept, today=None, group_by="theme
             lines.append(event_row(event))
         lines.append("")
 
+    # Team-shared events whose official page has not announced dates yet. They cannot be
+    # date-sorted or window-filtered, so they get their own section rather than being
+    # dropped (SKILL.md Step 2a) or given an invented date.
+    if undated_events:
+        undated_events.sort(key=lambda e: str(e.get("name", "")).lower())
+        lines.append("## Shared by the team — dates not yet announced")
+        lines.append("")
+        lines.append("_Posted in `#networking` and kept on a colleague's recommendation; the "
+                     "official page has no dates yet, so these are unverified by "
+                     "construction. Watch rather than plan around._")
+        lines.append("")
+        lines.append(table_header)
+        for event in undated_events:
+            lines.append(event_row(event))
+        lines.append("")
+
     # Virtual / online events — no physical location, so a single section at the end.
     if virtual_events:
         virtual_events.sort(key=lambda e: str(e.get("start_date") or "9999"))
@@ -285,15 +373,24 @@ def render(events, focus, date_from, date_to, swept, today=None, group_by="theme
         lines.extend(row for _, row in deadline_rows)
         lines.append("")
 
-    # Coverage-by-continent footer — makes it explicit which continents were searched,
-    # so an empty continent reads as "searched, nothing in report" rather than "forgotten".
+    # Coverage footer — makes it explicit which regions were searched, so an empty
+    # region reads as "searched, nothing in report" rather than "forgotten".
+    #
+    # These counts are by REGION FOCUS, not by physical location, so they intentionally
+    # will NOT match the continent section counts above: an Africa-focused event held in
+    # Berlin sits in the Europe section but counts toward Africa here. The heading and
+    # the note below exist so that divergence reads as designed rather than as a bug.
     if continents_searched is not None:
         counts = {}
         for event in events:
-            c = continent_of(event)
+            c = focus_continent_of(event)
             counts[c] = counts.get(c, 0) + 1
         searched = {s.strip() for s in continents_searched.split(",") if s.strip()}
-        lines.append("## Coverage by continent")
+        lines.append("## Coverage by region focus")
+        lines.append("")
+        lines.append("_Counted by what each event is **about**, not where it is held — so "
+                     "these totals can differ from the continent sections above._")
+        lines.append("")
         for c in CONTINENT_ORDER:
             n = counts.get(c, 0)
             if n:
@@ -305,11 +402,28 @@ def render(events, focus, date_from, date_to, swept, today=None, group_by="theme
             lines.append(f"- **{c}**: {note}")
         lines.append("")
 
-    # Footnote for any events that could not be verified on their official page.
+    # Footer notes. Both are content-gated, so a clean report ends without a rule.
+    #
+    # Attribution lives here rather than in the table: the row is already ten columns
+    # wide, and crediting a colleague is a footnote-shaped fact, not a sortable field.
+    footer = []
     if any(not e.get("verified", True) for e in events):
+        footer.append("† Not confirmed on the official page — details come from secondary "
+                      "sources, or, for a team-shared event, could not be verified at all. "
+                      "Verify before acting.")
+    shared = [e for e in events if e.get("shared_by")]
+    if shared:
+        if footer:
+            footer.append("")
+        footer.append("💬 Shared by the team rather than found by the automated sweep:")
+        for event in sorted(shared, key=lambda e: str(e.get("start_date") or "9999")):
+            # No `@` prefix: shared_by is the sharer's display name (fetch_slack.py
+            # prefers user_real_name), so "@Jane Doe" would render as a broken mention
+            # on a public page rather than a Slack handle.
+            footer.append(f"- {esc(event.get('name'))} — {esc(event.get('shared_by'))}")
+    if footer:
         lines.append("---")
-        lines.append("† Not confirmed on the official page (details from secondary "
-                     "sources) — verify before acting.")
+        lines.extend(footer)
         lines.append("")
 
     return "\n".join(lines)
@@ -329,8 +443,12 @@ def main(argv=None):
                         default="continent", help="section the report by continent (default) or by theme")
     parser.add_argument("--continents-searched", dest="continents_searched", default=None,
                         help="comma-separated continents you actually queried; adds a "
-                             "'Coverage by continent' footer so empty continents read as "
+                             "'Coverage by region focus' footer so empty regions read as "
                              "searched-but-empty, not forgotten")
+    parser.add_argument("--connectors", default=None,
+                        help='connector status for the header line, e.g. "web:ok,slack:down". '
+                             "Omit to leave the Connectors line out entirely rather than "
+                             "implying every connector was healthy.")
     args = parser.parse_args(argv)
 
     events = read_json(args.infile)
@@ -339,7 +457,13 @@ def main(argv=None):
         sys.exit(1)
 
     # Guard: a caller passing a still-dirty pool would produce a misleading report.
+    # Events flagged `undated` are the one legitimate exception — team-shared entries
+    # whose official page has published no dates yet (SKILL.md Step 2a). filter_and_sort
+    # sets that flag deliberately, so it means "checked and genuinely dateless", not
+    # "unprocessed".
     for event in events:
+        if event.get("undated"):
+            continue
         if parse_date(event.get("start_date")) is None:
             print(f"ERROR: event {event.get('name')!r} has no valid start_date; "
                   "run filter_and_sort.py first", file=sys.stderr)
@@ -347,7 +471,8 @@ def main(argv=None):
 
     markdown = render(events, args.focus, args.date_from, args.date_to, args.swept,
                       today=args.today or args.date_from, group_by=args.group_by,
-                      continents_searched=args.continents_searched)
+                      continents_searched=args.continents_searched,
+                      connectors=args.connectors)
     with open(args.outfile, "w", encoding="utf-8") as handle:
         handle.write(markdown)
     print(args.outfile)
