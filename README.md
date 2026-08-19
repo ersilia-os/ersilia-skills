@@ -35,6 +35,7 @@ Several of these skills are designed to be chained together as part of a larger 
 | model-incorporation-code | Wires the model code into the Ersilia template. |
 | repository-auditing | Audits a repository to make sure it abides by Ersilia's standards. |
 | ersilia-model-test | Tests an Ersilia Model Hub model before hub incorporation. 
+| model-monitoring | Reports on model maintenance activity and isaura precalculation coverage as a self-contained HTML page. |
 | model-fixing | When a model fails a test, reviews where it failed and fixes it automatically. |
 | github-digest | Tracks open issues and produces summaries for tech-tracking meetings. |
 | repository-auditing | Audits a repository to make sure it abides by Ersilia's standards. |
