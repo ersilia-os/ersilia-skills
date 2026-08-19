@@ -110,6 +110,46 @@ The consistency check requires: same input → same output across runs, CLI run 
 
 ---
 
+## 6. The lazyqsar rdkit/chemprop cycle (empty output, "works once")
+
+Diagnosis and confirmation steps are in `ersilia-model-test`'s `troubleshooting.md` §6. Apply this fix when a model installs `lazyqsar[descriptors]==2.3.0` + `lazyqsar-setup` and `simple_model_run` fails with empty (`''`) actual values.
+
+Pin chemprop to the last release that does not drag rdkit forward, and re-pin rdkit afterwards.
+
+**Newer template (`install.yml`)**
+
+```yaml
+python: "3.12"
+commands:
+    - ["pip", "lazyqsar[descriptors]", "2.3.0"]
+    - ["pip", "chemprop", "2.2.0"]
+    - ["lazyqsar-setup"]
+    - ["pip", "rdkit", "2025.9.1"]
+```
+
+**Legacy template (`Dockerfile`)** — same packages, same order. Legacy models have no `install.yml`; the `Dockerfile` *is* the dependency spec, so it is the file to edit. Change only the dependency lines, never `FROM`, `WORKDIR`, or `COPY`.
+
+```dockerfile
+RUN pip install lazyqsar[descriptors]==2.3.0
+RUN pip install chemprop==2.2.0
+RUN lazyqsar-setup
+RUN pip install rdkit==2025.9.1
+```
+
+Why the order matters:
+
+- chemprop **2.2.0** is the last release depending on `rdkit` **without** `cuik_molmaker_pin`.
+- Installing it **before** `lazyqsar-setup` means `ensure_chemprop()`'s `import chemprop` succeeds, so it returns early and never pip-installs chemprop 2.3.x. `cuik_molmaker_pin` never enters the environment at all.
+- The trailing `rdkit==2025.9.1` re-pin is insurance in case an earlier step moved it.
+
+**Do not pin rdkit alone.** With `cuik_molmaker_pin` present, `import chemprop` under rdkit 2025.9.1 fails with `ImportError: libRDKitAbbreviations-*.so: cannot open shared object file`, which re-triggers `ensure_chemprop()` and restores the cycle. The constraint is genuinely circular — chemprop must be downgraded to break it.
+
+Verify with the normal shallow test: it rebuilds the environment from scratch, and `simple_model_run` executes the model *after* fetch has already run it once, so passing that check is direct proof the "works once" cycle is broken.
+
+**Do not commit `install.sh`.** Ersilia writes an `install.sh` into the model directory while building the env locally; it contains hardcoded absolute paths (`/home/<user>/anaconda3/envs/<model_id>/bin/python -m pip install ...`) and is meaningless on a CI runner. Editing it does not change what CI builds — only `install.yml` (or the `Dockerfile`) does.
+
+---
+
 ## Verifying manually (optional, when the test error is opaque)
 
 Reproduce the run outside the test harness to see the raw error:

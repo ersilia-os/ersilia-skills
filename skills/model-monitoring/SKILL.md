@@ -48,6 +48,8 @@ engineering and science team.
 This skill is the sibling of `github-digest` and `literature-digest` and follows the same
 shape: deterministic scripts do the fetching and arithmetic, the reference files carry the
 domain knowledge and report format, and you do the triage, interpretation and composition.
+The report's *appearance* belongs to `html-formatting`, which is applied in Step 4 — there is
+deliberately no palette anywhere in this skill.
 Both halves of the report always run — the maintenance picture and the coverage picture
 are read together, and a report with only one of them has repeatedly proven to be the
 wrong deliverable.
@@ -175,23 +177,59 @@ comparable. A key that does not match the expected naming is reported in
 `unexpected_keys` rather than dropped, because an unmatched key means the convention changed
 and images are about to be under-counted.
 
-### Step 4 — Build the report
+### Step 4 — Build the report, then apply the house style
+
+This is **two steps**, because the look of the page is not this skill's to define. The
+`html-formatting` skill owns the Ersilia design system; this skill emits structure and content
+against it. Keeping that split is why there is no palette anywhere in this skill — a second
+copy of the tokens would drift, and the copy here would lose.
+
+First render the body:
 
 ```bash
 python3 build_report.py \
   --coverage /tmp/coverage.json \
   --maintenance /tmp/maintenance.json \
   --sif /tmp/sif.json \
-  --out ../reports/YY-MM-DD-model-monitoring.html \
-  --title "Model Hub monitoring — 19 Aug 2026"
+  --out /tmp/report.body.html \
+  --title "Model Hub monitoring" \
+  --snapshot "Snapshot 19 Aug 2026"
 ```
 
-`--sif` is optional; without it the report renders with a placeholder in place of the
-Singularity section.
+`--sif` is optional; without it the Singularity section renders as a placeholder. `--snapshot`
+is passed in rather than derived because these scripts never call `datetime.now()` — same data
+in, same bytes out.
 
-Output is one file with no external dependencies: CSS inlined, plots embedded as data URIs,
-GitHub links navigational only. That self-containment is deliberate — these reports get
-archived and forwarded, and one that loses its charts a month later is worse than none.
+Then apply the theme, which inlines `ersilia.css`, sets the SVG favicon and appends the credit
+footer:
+
+```bash
+python3 ~/.claude/skills/html-formatting/scripts/apply_theme.py \
+  --mode retrofit /tmp/report.body.html \
+  --out ../reports/YY-MM-DD-model-monitoring.html \
+  --title "Model Hub monitoring" \
+  --source-url "https://github.com/ersilia-os/ersilia-skills" \
+  --favicon auto
+```
+
+Then check it:
+
+```bash
+python3 ~/.claude/skills/html-formatting/scripts/check_html.py \
+  ../reports/YY-MM-DD-model-monitoring.html --date YYYY-MM-DD
+```
+
+Expect exactly one finding, `T1-SOCIAL-PREVIEW`, and ignore it: that check is for pages hosted
+at a public URL, and this report is a local file. Anything else is a real regression — most
+likely a hard-coded colour, which is how a page quietly stops being Ersilia.
+
+The result makes **zero network requests**: styles inlined, favicon an inline SVG, plots
+base64 data URIs, GitHub links navigational only. That self-containment is deliberate — these
+reports get archived and forwarded, and one that loses its styling or charts a month later is
+worse than none.
+
+If the user wants the report to look different, that is a request for `html-formatting`; load
+that skill rather than editing colours here.
 
 ### Step 5 — Read the numbers before showing anyone
 
@@ -227,12 +265,11 @@ it themselves.
 
 Treat this as a live session. Common follow-ups:
 
-- **Restyling.** The design is deliberate — the coverage plate is the signature element and
-  everything around it is kept quiet so it carries the page. If the user wants a different
-  look, load the `frontend-design` skill and work from `build_report.py`'s design notes,
-  which explain what each choice is doing so you can change it coherently rather than
-  layering CSS on top. The data JSONs are stable, so re-rendering is cheap: keep them and
-  pass `--reuse-stats` on any re-fetch.
+- **Restyling.** Load `html-formatting` — it owns the look, and its tokens and components are
+  what the report is built from. Only reach into `build_report.py`'s `CSS` constant for genuine
+  structure the design system does not cover (the plate wells, the fixed-column KPI grid), and
+  keep using tokens there. Re-rendering is cheap: keep the data JSONs and pass `--reuse-stats`
+  on any re-fetch.
 - **Deeper on a failing model.** Hand off to `failing-models-check` for the per-check
   breakdown, then `model-fixing` to act on it. Don't re-implement that analysis here.
 - **A different completeness threshold.** `--full-count` on `fetch_coverage.py`, if the
@@ -277,6 +314,8 @@ Full detail in `references/report-template.md`. In order:
 
 ## Related skills
 
+- `html-formatting` — owns the Ersilia look and feel, and styles this report. Load it for
+  anything about colour, type or chrome; this skill deliberately holds no palette.
 - `failing-models-check` — per-check breakdown for models that failed. This skill tells you
   *which* models are failing; that one tells you *what* failed inside them.
 - `model-fixing` — applies fixes once a failure is diagnosed.

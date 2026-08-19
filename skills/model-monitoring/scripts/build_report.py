@@ -1,200 +1,166 @@
-"""Render the model-monitoring HTML report from the two data payloads.
+"""Render the model-monitoring report body from the data payloads.
 
-Takes coverage.json (from fetch_coverage.py) and maintenance.json (from
-fetch_maintenance.py) and writes one self-contained HTML file: no external
-scripts, no stylesheets, images inlined as data URIs. That matters because the
-report gets archived and passed around, and a file that silently loses its
-charts a month later is worse than no file.
+Takes coverage.json (fetch_coverage.py), maintenance.json (fetch_maintenance.py)
+and sif.json (fetch_sif.py) and writes the report as a `dashboard`-archetype page
+built from the Ersilia design system's components.
+
+**This script does not style the page.** It emits structure and content; the
+`html-formatting` skill owns the look. Run its assembler afterwards to inline the
+design tokens, set the favicon and append the credit footer:
+
+    python build_report.py --coverage c.json --maintenance m.json --sif s.json \
+        --out /tmp/body.html --title "Model Hub monitoring" \
+        --snapshot "Snapshot 19 Aug 2026"
+
+    python ~/.claude/skills/html-formatting/scripts/apply_theme.py \
+        --mode retrofit /tmp/body.html --out report.html \
+        --title "Model Hub monitoring" \
+        --source-url "https://github.com/ersilia-os/ersilia-skills" --favicon auto
+
+    python ~/.claude/skills/html-formatting/scripts/check_html.py report.html \
+        --date YYYY-MM-DD
 
 Design notes, so future edits stay coherent rather than accreting:
 
+  * **No palette lives here.** Every colour, font and radius is a design-system
+    token (`var(--…)`). A hard-coded hex is how a page quietly stops being
+    Ersilia, and check_html.py flags it. Coverage classes map onto the semantic
+    state tokens (--good/--warn/--bad) because coverage genuinely is a state.
   * The signature element is the **coverage plate** — one cell per model laid out
     as a dense grid, coloured by coverage class. A microplate is native
-    vernacular in drug discovery, and it is the only device that makes ~250
-    models legible in a single glance. Everything else on the page is kept
-    deliberately quiet so the plate carries the visual weight.
-  * Type is set in IBM Plex (Sans for prose, Mono for every model id and count).
-    Model ids and molecule counts are data to be scanned and compared, so they
-    get tabular figures; prose does not.
-  * Colour encodes coverage class and nothing else. Class colours are reused
-    verbatim in the plate, the legend, the badges and the table so the reader
-    learns the mapping once.
-
-Usage:
-    python build_report.py --coverage coverage.json \
-        --maintenance maintenance.json --out report.html
+    vernacular in drug discovery, and it is the only device that makes ~220
+    models legible in a single glance. Everything else stays quiet so the plate
+    carries the visual weight.
+  * Colour encodes coverage class and nothing else, and the Singularity section
+    reuses the same three tokens in the same roles, so the mapping is learnt once.
+  * **Check a new class name against ersilia.css before using it.** Three bugs
+    here came from collisions (`.note`, `.sw`, `.lede`) where the page still
+    rendered, just wrongly. Deliberate extensions of a house class are marked as
+    such in CSS.
+  * The output is self-contained with zero network requests, because these reports
+    get archived and forwarded and one that loses its styling a month later is
+    worse than no file.
 """
 
 import argparse
 import html
 import json
-from datetime import datetime, timezone
 
-# Coverage classes in triage order, with the label and colour used everywhere.
-# Colours are Ersilia brand values: Yellow, Orange, Purple and Mint. The mapping is
-# semantic — Mint reads as healthy, Yellow as caution, Orange as the alarm (the
-# palette has no true red), Purple as the odd case that sits outside the hub.
+# Coverage classes in triage order, each with its label and its design-system
+# token. Coverage is a genuine *state*, which is exactly what --good/--warn/--bad
+# are reserved for, so the mapping needs no invented colours. --purple is a data
+# hue rather than a state token, used for the one class that is not a state at
+# all: an artefact stored for a model outside the measured population.
 CLASSES = [
-    ("partial", "Incomplete", "#FAD782",
+    ("partial", "Incomplete", "var(--warn)",
      "Some predictions stored, but fewer than the full collection"),
-    ("missing", "Not started", "#FAA08C",
+    ("missing", "Not started", "var(--bad)",
      "The hub lists this model, isaura holds nothing for it"),
-    ("orphan", "Orphaned", "#AA96FA",
-     "isaura holds data for a model the hub search no longer returns"),
-    ("complete", "Complete", "#BEE6B4",
+    ("orphan", "Not Ready", "var(--purple)",
+     "isaura holds data for a model outside the Ready population"),
+    ("complete", "Complete", "var(--good)",
      "Every reference molecule has a stored prediction"),
 ]
 CLASS_COLOR = {k: c for k, _, c, _ in CLASSES}
 CLASS_LABEL = {k: lbl for k, lbl, _, _ in CLASSES}
 
-# Singularity image availability. Deliberately the same three brand hues as the
-# isaura classes, in the same roles — Mint for "we have it", Orange for "we do
-# not", Purple for "it sits outside the population" — so a reader who has learnt
-# the colours in one section reads the other for free.
+# Singularity availability, deliberately reusing the same three tokens in the same
+# roles as the isaura classes, so a reader who has learnt the colours in one
+# section reads the other for free.
 SIF_CLASSES = [
-    ("missing", "No image", "#FAA08C",
+    ("missing", "No image", "var(--bad)",
      "The model is Ready, but no .sif image has been built"),
-    ("extra", "Not in Ready list", "#AA96FA",
+    ("extra", "Not in Ready list", "var(--purple)",
      "An image exists for a model that is not currently Ready"),
-    ("available", "Available", "#BEE6B4",
+    ("available", "Available", "var(--good)",
      "A built .sif image is in the bucket"),
 ]
 SIF_COLOR = {k: c for k, _, c, _ in SIF_CLASSES}
 SIF_LABEL = {k: lbl for k, lbl, _, _ in SIF_CLASSES}
 
+# Page-specific structure only. Every colour, font and radius comes from the
+# Ersilia design system (`html-formatting/assets/ersilia.css`, inlined by
+# apply_theme.py), so there is deliberately no palette here: this skill owns the
+# report's structure and content, html-formatting owns how it looks. If a colour
+# is needed, reach for a token — never a hex, or check_html.py will flag it and
+# the page will drift from the house style.
 CSS = """
-/* Ersilia brand palette, used verbatim. It is one dark plum plus a set of light
-   pastels, which dictates how colour can be used here: the pastels are strong as
-   *fills* and illegible as text on white, so every fill (wells, badges, bars,
-   chips) is a pastel and every piece of text is plum. Emphasis that would
-   normally be done by colouring a numeral is done with a pastel accent rule
-   instead, so nothing important depends on reading pale text.
-   Surfaces (--paper, --plate) are tints derived from brand Gray; every hue on the
-   page is a brand value. */
-:root{
-  --plum:#50285A; --mint:#BEE6B4; --gray:#D2D2D0; --yellow:#FAD782;
-  --blue:#8CC8FA; --pink:#DCA0DC; --orange:#FAA08C; --purple:#AA96FA;
+/* --- the coverage plate (the report's signature element) --------------- */
+/* One well per model. Wells encode a state, so they take the semantic state
+   tokens; --purple marks the one class that is not a state but a population
+   mismatch (an artefact stored for a model that is no longer served). */
+.plate{display:flex;flex-wrap:wrap;gap:3px}
+.well{width:14px;height:14px;border-radius:3px;background:var(--surface-2);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--plum) 12%, transparent)}
+.well[data-c=complete]{background:var(--good)}
+.well[data-c=partial]{background:var(--warn)}
+.well[data-c=missing]{background:var(--bad)}
+.well[data-c=orphan]{background:var(--purple)}
+.well[data-ready="0"]{opacity:.4}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:6px 24px;margin:14px 0 0;font-size:11.5px;color:var(--muted)}
+/* `.swatch`, not `.sw`: the design system's `.sw` is the switch component — a
+   34x19 pill with a white knob — so every legend key rendered as a tiny toggle.
+   Check any new utility name against ersilia.css before using it. */
+.legend .swatch{width:10px;height:10px;border-radius:3px;display:inline-block;
+  margin-right:7px;vertical-align:-1px}
+.legend .fade{grid-column:1/-1}
 
-  --ink:#50285A; --ink-soft:#6B4A73; --muted:#7C7080;
-  --paper:#F7F7F5; --card:#FFFFFF; --rule:#D2D2D0; --plate:#EDEDEA;
+/* --- intro prose ------------------------------------------------------- */
+/* The starters write this inline as `class="muted"` plus a max-width; naming it
+   keeps the call sites clean. Measure is capped because a section intro running
+   the full 1160px container is hard to read. */
+.lede{color:var(--muted);max-width:78ch;margin:.4em 0 14px}
+.brandhead .lede{max-width:62ch}
 
-  --complete:#BEE6B4; --partial:#FAD782; --missing:#FAA08C; --orphan:#AA96FA;
-}
-*{box-sizing:border-box}
-body{
-  margin:0; background:var(--paper); color:var(--ink);
-  font-family:"IBM Plex Sans","Segoe UI",Helvetica,Arial,sans-serif;
-  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
-}
-.mono,code{font-family:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
-  font-variant-numeric:tabular-nums}
-.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
-a{color:var(--plum);text-decoration-color:var(--purple);text-underline-offset:2px}
-a:focus-visible,button:focus-visible,input:focus-visible{
-  outline:2px solid var(--plum); outline-offset:2px}
+/* --- KPI row ----------------------------------------------------------- */
+/* Fixed four columns rather than auto-fit: the headline set is eight tiles, and
+   letting the browser fit seven per row strands the last one beside a gap. */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 0}
+@media (max-width:860px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stats.six{grid-template-columns:repeat(3,1fr)}
+@media (max-width:860px){.stats.six{grid-template-columns:repeat(2,1fr)}}
+/* Emphasis by accent rule, not by colouring the numeral: a large figure in the
+   alert hue is harder to read than an ink one, and the rule is louder anyway. */
+.stat.alert{border-top:2px solid var(--bad)}
 
-/* ---- masthead ---- */
-header.top{background:var(--plum);color:#F4EEF6;padding:38px 0 30px}
-header.top .eyebrow{
-  font-size:11px;letter-spacing:.20em;text-transform:uppercase;
-  color:var(--mint);margin:0 0 10px}
-header.top h1{
-  margin:0;font-size:clamp(28px,4.2vw,44px);line-height:1.05;font-weight:600;
-  letter-spacing:-.02em}
-header.top .sub{margin:12px 0 0;color:#D8C6DE;max-width:62ch}
-header.top .sub a{color:var(--mint);text-decoration-color:var(--mint)}
-header.top .sub code{color:var(--yellow)}
-
-/* ---- headline figures ---- */
-/* Fixed column counts, not auto-fit: the headline set is 8 figures, and letting
-   the browser fit 7 per row leaves a single stranded cell beside a dead gap. */
-.figures{display:grid;grid-template-columns:repeat(4,1fr);
-  gap:1px;background:var(--rule);border:1px solid var(--rule);margin:28px 0}
-@media (max-width:820px){.figures{grid-template-columns:repeat(2,1fr)}}
-.fig{background:var(--card);padding:16px 18px;border-top:3px solid transparent}
-.fig .n{font-size:30px;font-weight:600;letter-spacing:-.02em;display:block}
-.fig .k{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
-/* Emphasis by accent rule rather than by colouring the numeral: the brand's
-   alert hue is a pale salmon that would be hard to read as 30px text on white. */
-.fig.alert{border-top-color:var(--orange);background:#FEF6F3}
-
-/* ---- sections ---- */
-section{margin:44px 0}
-h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);
-  margin:0 0 4px;font-weight:600}
-h2+.lede{margin:0 0 18px;color:var(--muted);max-width:70ch}
-h3{font-size:16px;margin:26px 0 10px;font-weight:600}
-
-/* ---- the coverage plate (signature) ---- */
-.plate{display:flex;flex-wrap:wrap;gap:3px;padding:16px;background:var(--plate);
-  border:1px solid var(--rule)}
-.well{width:15px;height:15px;border-radius:2px;background:#fff;position:relative;
-  box-shadow:inset 0 0 0 1px rgba(80,40,90,.10)}
-.well[data-c=complete]{background:var(--complete)}
-.well[data-c=partial]{background:var(--partial)}
-.well[data-c=missing]{background:var(--missing)}
-.well[data-c=orphan]{background:var(--orphan)}
-.well[data-ready="0"]{opacity:.42}
-.figures.six{grid-template-columns:repeat(3,1fr)}
-@media (max-width:820px){.figures.six{grid-template-columns:repeat(2,1fr)}}
-.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));
-  gap:8px 24px;margin:14px 0 0;font-size:13px}
-.legend span.sw{width:11px;height:11px;border-radius:2px;display:inline-block;
-  margin-right:7px;vertical-align:-1px;box-shadow:inset 0 0 0 1px rgba(80,40,90,.12)}
-/* Deliberately not `.note`: that class is the yellow callout box, and reusing the
-   name here wrapped every legend caption in a callout. */
-.legend .dim{color:var(--muted)}
-.legend .fade{grid-column:1/-1;color:var(--muted)}
-
-/* ---- tables ---- */
-.tablewrap{overflow-x:auto;border:1px solid var(--rule);background:var(--card)}
-table{border-collapse:collapse;width:100%;font-size:13.5px}
-th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--rule);
-  vertical-align:top}
-th{background:#F1EBF3;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
-  color:var(--ink-soft);position:sticky;top:0;cursor:pointer;white-space:nowrap}
+/* --- table extras not in the design system ----------------------------- */
+/* Two-word status labels wrap inside a narrow cell, turning every badge into a
+   two-line pill and padding the column out. Structure only — the tint and text
+   colour still come from the design system's .badge. */
+.badge{white-space:nowrap}
 th[aria-sort]{color:var(--ink)}
-tbody tr:hover{background:#FAF6FB}
-td.num{text-align:right}
-/* Pastel fill, plum text — the palette has no saturated hue that would carry
-   white text at this size. */
-.badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;
-  font-weight:600;color:var(--plum);white-space:nowrap}
-.pill{display:inline-block;padding:1px 7px;border:1px solid var(--rule);
-  border-radius:999px;font-size:11px;color:var(--ink-soft);background:#fff}
+table.data th{cursor:pointer;white-space:nowrap}
+table.data td{vertical-align:top}
+.meter{height:6px;border-radius:999px;background:var(--surface-2);
+  overflow:hidden;min-width:64px}
+.meter>i{display:block;height:100%;background:var(--good)}
 
-/* ---- controls ---- */
-.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px}
-.controls input[type=search]{padding:7px 11px;border:1px solid var(--rule);
-  border-radius:4px;font:inherit;min-width:210px;background:#fff}
-.chip{padding:5px 12px;border:1px solid var(--rule);background:#fff;border-radius:999px;
-  font:inherit;font-size:12.5px;cursor:pointer;color:var(--ink-soft)}
-.chip[aria-pressed=true]{background:var(--plum);border-color:var(--plum);color:#fff}
-.count{color:var(--muted);font-size:12.5px;margin-left:auto}
+/* --- controls ---------------------------------------------------------- */
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
+.controls input[type=search]{font-family:var(--sans);font-size:12px;
+  padding:6px 11px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  min-width:220px;background:var(--surface);color:var(--ink)}
+.count{color:var(--faint);font-size:11.5px;margin-left:auto}
 
-/* ---- bars ---- */
-.bar{height:7px;background:var(--plate);border-radius:99px;overflow:hidden;min-width:70px}
-.bar>i{display:block;height:100%;background:var(--complete)}
-
-/* ---- plots + notes ---- */
-figure{margin:0 0 26px}
-figure img{width:100%;height:auto;border:1px solid var(--rule);background:#fff}
-figcaption{font-size:12.5px;color:var(--muted);margin-top:7px}
-.note{border-left:3px solid var(--yellow);background:#FEF9EC;padding:12px 16px;
-  margin:18px 0;font-size:13.5px}
-.note strong{display:block;margin-bottom:2px}
-footer{border-top:1px solid var(--rule);margin-top:56px;padding:22px 0 44px;
-  color:var(--muted);font-size:12.5px}
-footer ul{margin:8px 0 0;padding-left:18px}
-.empty{padding:16px;color:var(--muted);background:var(--card);
-  border:1px solid var(--rule)}
-@media (prefers-reduced-motion:no-preference){
-  .fig,.well{transition:opacity .15s ease}
-}
-@media print{
-  header.top{background:#fff;color:#000}
-  .controls{display:none}
-}
+/* --- figures & notes --------------------------------------------------- */
+figure{margin:0 0 20px}
+figure img{width:100%;height:auto;border:1px solid var(--border);
+  border-radius:var(--radius-sm);background:var(--surface)}
+figcaption{font-size:11.5px;color:var(--muted);margin-top:6px}
+.note{border-left:2px solid var(--warn);background:var(--surface);
+  padding:10px 14px;margin:16px 0;font-size:12px;border-radius:var(--radius-sm)}
+.note strong{display:block;margin-bottom:2px;color:var(--ink)}
+.empty{padding:14px;color:var(--muted);font-size:12px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-sm)}
+.snap{display:inline-block;font-family:var(--mono);font-size:10.5px;
+  padding:2px 9px;border-radius:999px;background:var(--surface-2);
+  color:var(--muted);border:1px solid var(--border)}
+details.methods{margin:18px 0 0;font-size:12px}
+details.methods summary{cursor:pointer;color:var(--brand);font-weight:450}
+details.methods div{margin-top:10px;color:var(--muted);max-width:80ch}
+details.methods p{margin:0 0 8px}
+@media print{.controls{display:none}}
 """
 
 # Search, chip filtering and column sort, scoped per `.filterable` block so the
@@ -287,28 +253,39 @@ def _hv(month_entry, *keys):
 
 
 def figure_grid(items, extra_class=""):
-    """Render a row of headline figures.
+    """Render a KPI row using the design system's `.stat` tiles.
 
-    `items` is a list of (value, label, is_alert). Alert cells get an accent rule
-    rather than coloured text — see the CSS note.
+    `items` is a list of (value, label, is_alert). Alert tiles get an accent rule
+    rather than a coloured numeral — see the CSS note.
     """
     cells = "".join(
-        f'<div class="fig{" alert" if alert else ""}">'
-        f'<span class="n mono">{v}</span><span class="k">{esc(k)}</span></div>'
+        f'<div class="stat{" alert" if alert else ""}">'
+        f'<div class="k">{esc(k)}</div><div class="v">{v}</div></div>'
         for v, k, alert in items
     )
-    return f'<div class="figures{extra_class}">{cells}</div>'
+    return f'<div class="stats{extra_class}">{cells}</div>'
+
+
+def badge(label, color, extra=""):
+    """A design-system badge tinted by a token via the `--c` custom property."""
+    return f'<span class="badge{extra}" style="--c:{color}">{esc(label)}</span>'
 
 
 def filterable_block(headers, rows_html, chips, placeholder, noun="models"):
-    """Wrap a table with its own search box, filter chips and result count.
+    """Wrap a `table.data` with its own search box, filter chips and result count.
 
     Scoped by class inside a `.filterable` container rather than by id, so the
     page can hold more than one of these without the second one going inert.
+    Column headers carry `title=` so the meaning of a column is one hover away
+    rather than spelled out in prose above the table.
     """
     ths = "".join(
-        f'<th{" data-num=\'1\'" if num else ""}>{esc(label)}</th>'
-        for label, num in headers
+        "<th{num}{tip}>{label}</th>".format(
+            num=" data-num='1'" if num else "",
+            tip=f" title='{esc(tip)}'" if tip else "",
+            label=esc(label),
+        )
+        for label, num, tip in headers
     )
     chip_html = "".join(
         f'<button class="chip" data-f="{esc(key)}" '
@@ -321,8 +298,17 @@ def filterable_block(headers, rows_html, chips, placeholder, noun="models"):
         f"<input type='search' class='q' placeholder='{esc(placeholder)}' "
         f"aria-label='{esc(placeholder)}'>"
         f"{chip_html}<span class='count'></span></div>"
-        f"<div class='tablewrap'><table><thead><tr>{ths}</tr></thead>"
+        f"<div class='scrollwrap'><table class='data'><thead><tr>{ths}</tr></thead>"
         f"<tbody>{rows_html}</tbody></table></div></div>"
+    )
+
+
+def data_table(headers, rows_html):
+    """A plain house data table, for the short tables that need no controls."""
+    ths = "".join(f"<th>{esc(h)}</th>" for h in headers)
+    return (
+        f"<div class='scrollwrap'><table class='data'><thead><tr>{ths}</tr></thead>"
+        f"<tbody>{rows_html}</tbody></table></div>"
     )
 
 
@@ -341,7 +327,11 @@ def figures_block(cov, mnt, sif_summary=None):
         (fmt(c.get("missing", 0)), "no precalculations", c.get("missing", 0) > 0),
         (fmt(sif.get("counts", {}).get("missing", 0)), "no .sif image",
          sif.get("counts", {}).get("missing", 0) > 0),
-        (f"{s['stored_gb'] + sif.get('total_gb', 0):,.0f} GB", "stored", False),
+        # Two different buckets, so the label says so: an unqualified "stored"
+        # beside per-section GB figures invites the reader to match it to one of
+        # them and find it does not add up.
+        (f"{s['stored_gb'] + sif.get('total_gb', 0):,.0f} GB",
+         "stored, both buckets", False),
     ]
     return figure_grid(items)
 
@@ -365,16 +355,16 @@ def plate_block(cov):
         for m in models
     )
     legend = "".join(
-        f'<span><span class="sw" style="background:{col}"></span>{esc(lbl)} '
-        f'<span class="dim">— {esc(desc)}</span></span>'
+        f'<span><span class="swatch" style="background:{col}"></span>{esc(lbl)} '
+        f"— {esc(desc)}</span>"
         for key, lbl, col, desc in CLASSES
         if cov["summary"]["counts"].get(key)
     )
     return (
         f'<div class="plate">{wells}</div>'
         f'<div class="legend">{legend}'
-        f'<span class="fade">Faded wells are models that are not <code>Ready</code>.</span>'
-        f"</div>"
+        '<span class="fade">Faded wells sit outside the Ready population.</span>'
+        "</div>"
     )
 
 
@@ -445,16 +435,14 @@ def attention_block(cov, mnt):
             "<td>{s}</td><td><span class='pill'>{st}</span></td>"
             "<td class='mono'>{d}</td></tr>".format(
                 m=esc(r.get("model", "")), s=esc(r.get("slug", "")),
-                st=esc(r.get("status", "")), d=esc(r.get("last_test_date", "")),
+                st=esc(r.get("status", "")), d=esc((r.get("last_test_date") or "")[:10]),
             )
             for r in failing
         )
         parts.append(
             f"<h3>Failed their last maintenance test ({len(failing)})</h3>"
-            "<div class='tablewrap'><table><thead><tr><th>Model</th><th>Slug</th>"
-            "<th>Status</th><th>Last test</th></tr></thead>"
-            f"<tbody>{rows}</tbody></table></div>"
-            "<p class='lede'>To see which checks failed inside a model, run "
+            + data_table(["Model", "Slug", "Status", "Last test"], rows)
+            + "<p class='lede'>To see which checks failed inside a model, run "
             "<code>/failing-models-check</code>, then <code>/model-fixing</code>.</p>"
         )
     else:
@@ -466,10 +454,10 @@ def attention_block(cov, mnt):
     if gaps:
         rows = "".join(
             "<tr><td class='mono'><a href='https://github.com/ersilia-os/{m}'>{m}</a></td>"
-            "<td>{s}</td><td><span class='badge' style='background:{col}'>{lbl}</span></td>"
-            "<td class='num mono'>{mol}</td><td>{task}</td><td>{area}</td></tr>".format(
+            "<td>{s}</td><td>{bdg}</td>"
+            "<td class='num'>{mol}</td><td>{task}</td><td>{area}</td></tr>".format(
                 m=esc(m["model_id"]), s=esc(m["slug"]),
-                col=CLASS_COLOR[m["coverage"]], lbl=esc(CLASS_LABEL[m["coverage"]]),
+                bdg=badge(CLASS_LABEL[m["coverage"]], CLASS_COLOR[m["coverage"]]),
                 mol=fmt(m["molecules"]), task=esc(m["subtask"] or m["task"]),
                 area=esc(m["biomedical_area"]),
             )
@@ -477,10 +465,9 @@ def attention_block(cov, mnt):
         )
         parts.append(
             f"<h3>No precalculations ({len(gaps)})</h3>"
-            "<div class='tablewrap'><table><thead><tr><th>Model</th><th>Slug</th>"
-            "<th>Coverage</th><th>Molecules</th><th>Subtask</th>"
-            "<th>Biomedical area</th></tr></thead>"
-            f"<tbody>{rows}</tbody></table></div>"
+            + data_table(
+                ["Model", "Slug", "Coverage", "Molecules", "Subtask",
+                 "Biomedical area"], rows)
         )
     else:
         parts.append(
@@ -488,6 +475,24 @@ def attention_block(cov, mnt):
             "full set of precalculations.</div>"
         )
     return "".join(parts)
+
+
+def outcome_badge(raw):
+    """Turn the maintenance reports' emoji outcome into a house badge.
+
+    The upstream markdown encodes results as ✅ / 🚨 / ❓. Those are status markers
+    rather than decoration, so they would be permissible — but a badge carries the
+    same meaning in the page's own vocabulary, reads at a glance in a dense table,
+    and says the word rather than relying on the reader knowing the icon.
+    """
+    text = raw or ""
+    if "✅" in text:
+        return badge("passed", "var(--good)")
+    if "🚨" in text:
+        return badge("failed", "var(--bad)")
+    if "❓" in text or not text.strip():
+        return badge("unknown", "var(--egray)")
+    return esc(text)
 
 
 def weekly_block(mnt):
@@ -499,18 +504,17 @@ def weekly_block(mnt):
         "<tr><td class='mono'><a href='https://github.com/ersilia-os/{m}'>{m}</a></td>"
         "<td>{s}</td><td>{t}</td><td class='mono'>{d}</td></tr>".format(
             m=esc(r.get("repository_name", "")), s=esc(r.get("slug", "")),
-            t=esc(r.get("test", "")), d=esc(r.get("test_date", "")),
+            t=outcome_badge(r.get("test", "")),
+            d=esc((r.get("test_date") or "")[:10]),
         )
         for r in rep["rows"]
     )
     return (
         f"<p class='lede'>{w.get('tested', 0)} models were selected for the weekly "
         f"shallow test: {w.get('passed', 0)} passed, {w.get('failed', 0)} failed. "
-        f"Report generated {esc(rep.get('generated'))}. "
+        f"Reported {esc((rep.get('generated') or '')[:10])}. "
         f"<a href='{esc(rep['url'])}'>Source</a></p>"
-        "<div class='tablewrap'><table><thead><tr><th>Model</th><th>Slug</th>"
-        "<th>Test</th><th>Tested at</th></tr></thead>"
-        f"<tbody>{rows}</tbody></table></div>"
+        + data_table(["Model", "Slug", "Test", "Tested"], rows)
     )
 
 
@@ -523,8 +527,10 @@ def updated_block(mnt):
         "<td>{s}</td><td><span class='pill'>{st}</span></td><td class='mono'>{p}</td>"
         "<td>{o}</td><td class='mono'>{u}</td></tr>".format(
             m=esc(r.get("model", "")), s=esc(r.get("slug", "")),
-            st=esc(r.get("status", "")), p=esc(r.get("last_packaging_date", "")),
-            o=esc(r.get("last_test_outcome", "")), u=esc(r.get("source_updated_at", "")),
+            st=esc(r.get("status", "")),
+            p=esc((r.get("last_packaging_date") or "—")[:10]),
+            o=outcome_badge(r.get("last_test_outcome", "")),
+            u=esc((r.get("source_updated_at") or "")[:10]),
         )
         for r in rep["rows"]
     )
@@ -533,9 +539,9 @@ def updated_block(mnt):
         "<p class='lede'>The original authors changed their code after we last "
         "packaged the model. Not a failure, but a signal the model may be behind "
         "upstream.</p>"
-        "<div class='tablewrap'><table><thead><tr><th>Model</th><th>Slug</th>"
-        "<th>Status</th><th>Packaged</th><th>Last test</th><th>Source updated</th>"
-        f"</tr></thead><tbody>{rows}</tbody></table></div>"
+        + data_table(
+            ["Model", "Slug", "Status", "Packaged", "Last test", "Source updated"],
+            rows)
     )
 
 
@@ -553,20 +559,19 @@ def monthly_block(mnt):
             ("archived", "archived"),
             ("non_archived_with_open_issues", "with open issues"),
         ]
-        cells = "".join(
-            f'<div class="fig"><span class="n mono">{fmt(snap[k])}</span>'
-            f'<span class="k">{esc(lbl)}</span></div>'
-            for k, lbl in keys if k in snap
-        )
         parts.append(
-            f"<h3>Snapshot — {esc(month)}</h3><div class='figures six'>{cells}</div>"
+            f"<h3>Snapshot — {esc(month)}</h3>"
+            + figure_grid(
+                [(fmt(snap[k]), lbl, False) for k, lbl in keys if k in snap],
+                extra_class=" six",
+            )
         )
     if hist:
         rows = "".join(
-            "<tr><td class='mono'>{m}</td><td class='num mono'>{t}</td>"
-            "<td class='num mono'>{p}</td><td class='num mono'>{f}</td>"
-            "<td class='num mono'>{n}</td><td class='num mono'>{i}</td>"
-            "<td class='num mono'>{a}</td></tr>".format(
+            "<tr><td class='mono'>{m}</td><td class='num'>{t}</td>"
+            "<td class='num'>{p}</td><td class='num'>{f}</td>"
+            "<td class='num'>{n}</td><td class='num'>{i}</td>"
+            "<td class='num'>{a}</td></tr>".format(
                 m=esc(h.get("month", "")),
                 t=_hv(h, "total_models"),
                 p=_hv(h, "ready_passing", "healthy"),
@@ -579,13 +584,11 @@ def monthly_block(mnt):
         )
         parts.append(
             f"<h3>Month by month ({len(hist)} months on record)</h3>"
-            "<p class='lede'>The maintenance repository renamed these fields part-way "
-            "through the series, so both namings are read here. An em dash means the "
-            "month genuinely does not record that figure, rather than a count of zero."
-            "</p>"
-            "<div class='tablewrap'><table><thead><tr><th>Month</th><th>Total</th>"
-            "<th>Passing</th><th>Failing</th><th>Not tested</th><th>Open issues</th>"
-            f"<th>Added</th></tr></thead><tbody>{rows}</tbody></table></div>"
+            "<p class='lede'>An em dash means the month does not record that figure, "
+            "rather than a count of zero.</p>"
+            + data_table(
+                ["Month", "Total", "Passing", "Failing", "Not tested",
+                 "Open issues", "Added"], rows)
         )
     return "".join(parts) or "<div class='empty'>No monthly data available.</div>"
 
@@ -606,7 +609,7 @@ def plots_block(mnt):
         for name, p in plots.items()
     )
     return (
-        "<section><h2>Monthly trends</h2>"
+        "<section class='section'><h2>Monthly trends</h2>"
         "<p class='lede'>Plots as published by the maintenance repository, "
         "embedded here so this file stands alone.</p>"
         f"{figs}</section>"
@@ -627,18 +630,17 @@ def coverage_table(cov):
             "<tr data-c='{c}' data-action='{act}' data-search='{q}'>"
             "<td class='mono' data-v='{mid}'><a href='https://github.com/ersilia-os/{mid}'>{mid}</a></td>"
             "<td data-v='{slug}'>{slug}</td>"
-            "<td data-v='{c}'><span class='badge' style='background:{col}'>{lbl}</span></td>"
-            "<td class='num mono' data-v='{mol_raw}'>{mol}</td>"
-            "<td data-v='{pct}'><div class='bar'><i style='width:{pct}%'></i></div></td>"
-            "<td data-v='{st}'><span class='pill'>{st}</span></td>"
+            "<td data-v='{c}'>{bdg}</td>"
+            "<td class='num' data-v='{mol_raw}'>{mol}</td>"
+            "<td data-v='{pct}'><div class='meter'><i style='width:{pct}%'></i></div></td>"
             "<td data-v='{sub}'>{sub}</td>"
             "<td class='mono' data-v='{ver}'>{ver}</td>"
-            "<td class='num mono' data-v='{gb_raw}'>{gb}</td>"
+            "<td class='num' data-v='{gb_raw}'>{gb}</td>"
             "</tr>".format(
                 c=m["coverage"], act=action, q=esc(search), mid=esc(m["model_id"]),
-                slug=esc(m["slug"] or "—"), col=CLASS_COLOR[m["coverage"]],
-                lbl=esc(CLASS_LABEL[m["coverage"]]), mol=fmt(m["molecules"]),
-                mol_raw=m["molecules"], pct=m["pct"], st=esc(m["status"] or "—"),
+                slug=esc(m["slug"] or "—"),
+                bdg=badge(CLASS_LABEL[m["coverage"]], CLASS_COLOR[m["coverage"]]),
+                mol=fmt(m["molecules"]), mol_raw=m["molecules"], pct=m["pct"],
                 sub=esc(m["subtask"] or m["task"] or "—"), ver=esc(versions),
                 gb=f'{m["total_gb"]:,.1f}' if m["total_gb"] else "—",
                 gb_raw=m["total_gb"],
@@ -649,14 +651,21 @@ def coverage_table(cov):
     for key, lbl, _, _ in CLASSES:
         if counts.get(key):
             chips.append((key, f"{lbl} ({counts[key]})", False))
+    # Status is dropped as a column: the population is Ready by definition, so it
+    # read the same on every row and carried no information.
     headers = [
-        ("Model", False), ("Slug", False), ("Coverage", False),
-        ("Molecules", True), ("Of full set", True), ("Status", False),
-        ("Subtask", False), ("Versions", False), ("GB", True),
+        ("Model", False, "Ersilia model identifier; links to its GitHub repository"),
+        ("Slug", False, "Human-readable model name"),
+        ("Coverage", False, "Whether the full set of predictions is stored"),
+        ("Molecules", True,
+         f"Stored predictions, out of {fmt(cov['summary']['full_count'])}"),
+        ("Of full set", True, "Share of the reference collection covered"),
+        ("Subtask", False, "What the model does"),
+        ("Versions", False, "Model versions stored in isaura"),
+        ("GB", True, "Storage used across all stored versions"),
     ]
     return filterable_block(
-        headers, "".join(rows), chips,
-        "Search model, slug, task, area…",
+        headers, "".join(rows), chips, "Search model, slug, task, area…",
     )
 
 
@@ -702,15 +711,15 @@ def sif_section(sif):
             "<td class='mono' data-v='{mid}'>"
             "<a href='https://github.com/ersilia-os/{mid}'>{mid}</a></td>"
             "<td data-v='{slug}'>{slug}</td>"
-            "<td data-v='{c}'><span class='badge' style='background:{col}'>{lbl}</span></td>"
+            "<td data-v='{c}'>{bdg}</td>"
             "<td class='mono' data-v='{ver}'>{ver}</td>"
-            "<td class='num mono' data-v='{lgb_raw}'>{lgb}</td>"
+            "<td class='num' data-v='{lgb_raw}'>{lgb}</td>"
             "<td class='mono' data-v='{lm}'>{lm}</td>"
             "<td data-v='{sub}'>{sub}</td>"
             "</tr>".format(
                 c=m["sif"], act=1 if m["sif"] == "missing" else 0, q=esc(search),
                 mid=esc(m["model_id"]), slug=esc(m["slug"] or "—"),
-                col=SIF_COLOR[m["sif"]], lbl=esc(SIF_LABEL[m["sif"]]),
+                bdg=badge(SIF_LABEL[m["sif"]], SIF_COLOR[m["sif"]]),
                 ver=esc(versions),
                 lgb=f'{m["latest_gb"]:,.2f}' if m["latest_gb"] else "—",
                 lgb_raw=m["latest_gb"],
@@ -726,8 +735,13 @@ def sif_section(sif):
     # No Total-GB column: it equals the latest image's size for all but the 19
     # multi-version models, and total storage is already in the figures above.
     headers = [
-        ("Model", False), ("Slug", False), ("Image", False), ("Versions", False),
-        ("Size GB", True), ("Built", False), ("Subtask", False),
+        ("Model", False, "Ersilia model identifier; links to its GitHub repository"),
+        ("Slug", False, "Human-readable model name"),
+        ("Image", False, "Whether a built .sif image exists in the bucket"),
+        ("Versions", False, "Image versions present in the bucket"),
+        ("Size GB", True, "Size of the newest image"),
+        ("Built", False, "When the newest image was uploaded"),
+        ("Subtask", False, "What the model does"),
     ]
 
     unexpected = s.get("unexpected_keys") or []
@@ -745,7 +759,7 @@ def sif_section(sif):
     )
 
     return (
-        "<section><h2>Singularity images</h2>"
+        "<section class='section'><h2>Singularity images</h2>"
         f"<p class='lede'>Whether a built <code>.sif</code> image exists for each Ready "
         f"model in <code>s3://{esc(sif['bucket'])}</code>. Singularity is how a model "
         f"runs on HPC and on hosts without Docker, so a Ready model with no image cannot "
@@ -760,9 +774,65 @@ def sif_section(sif):
     )
 
 
-def build(cov, mnt, title, sif=None):
+def methods_block(cov, mnt, sif):
+    """The derivations, one click deep.
+
+    Every headline number here is derived rather than read off a source, and a few
+    rest on conventions a reader could not guess (what counts as "full", which
+    population the percentages divide by, that one upstream schema was renamed
+    mid-series). The house style keeps that rigour on the page but off the surface,
+    so it lives behind a disclosure rather than in the lede.
+    """
     s = cov["summary"]
-    gen = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    sif_line = ""
+    if sif:
+        ss = sif["summary"]
+        sif_line = (
+            f"<p><strong>Singularity images.</strong> Objects in "
+            f"<code>s3://{esc(sif['bucket'])}</code> named "
+            f"<code>&lt;model_id&gt;_&lt;version&gt;.sif</code>, joined to the same "
+            f"population. A model counts as covered if any image exists; size and date "
+            f"are the newest one. {fmt(ss['images_total'])} images cover "
+            f"{fmt(ss['models_with_images'])} models.</p>"
+        )
+    return (
+        "<details class='methods'><summary>How these numbers are derived</summary><div>"
+        f"<p><strong>Population.</strong> Every figure divides by the "
+        f"{fmt(s['hub_models'])} models the hub search returns with status "
+        f"<code>Ready</code>. Archived and in-progress models are excluded: they are not "
+        f"served, so a missing artefact for them is not a gap. Artefacts we still store "
+        f"for non-Ready models are counted separately and never folded into a coverage "
+        f"percentage.</p>"
+        f"<p><strong>Precalculation coverage.</strong> A model is complete when it has a "
+        f"stored prediction for all {fmt(s['full_count'])} molecules in the isaura "
+        f"reference collection — the size of that collection is the definition of "
+        f"&ldquo;full&rdquo;. Where a model is stored at several versions, the version "
+        f"with the most molecules is the one measured, since the question is whether the "
+        f"predictions exist at all.</p>"
+        f"{sif_line}"
+        "<p><strong>Maintenance.</strong> Read from the published reports in "
+        f"<a href='{esc(mnt.get('repo_url', ''))}'>{esc(mnt.get('repo', ''))}</a>, not "
+        "recomputed here. The monthly series changed field names part-way through, so "
+        "both namings are read; an em dash means a month does not record that figure, "
+        "which is not the same as a zero.</p>"
+        "<p><strong>Provenance.</strong> isaura inventory taken "
+        f"{esc((cov.get('isaura_generated_at_utc') or '')[:19])}; coverage computed "
+        f"{esc((cov.get('generated_at_utc') or '')[:19])}; maintenance reports read "
+        f"{esc((mnt.get('generated_at_utc') or '')[:19])}. Counts are a snapshot and "
+        "will drift as models are packaged and images are built.</p>"
+        "</div></details>"
+    )
+
+
+def build(cov, mnt, title, sif=None, snapshot=""):
+    """Assemble the report body.
+
+    Emits a `dashboard` archetype page with the page's own structural CSS only —
+    apply_theme.py swaps in the canonical Ersilia head (design tokens inlined, SVG
+    favicon) and appends the credit footer, so nothing here defines a colour, a
+    font or an attribution block.
+    """
+    s = cov["summary"]
     missing = mnt.get("missing_sources") or []
     miss_html = (
         "<div class='note'><strong>Some sources were unavailable</strong>"
@@ -773,78 +843,55 @@ def build(cov, mnt, title, sif=None):
     return f"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{esc(title)}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>{CSS}</style>
 </head><body>
+<div class="dashboard">
 
-<header class="top"><div class="wrap">
-  <p class="eyebrow">Ersilia Model Hub · monitoring</p>
-  <h1>{esc(title)}</h1>
-  <p class="sub">Maintenance test outcomes from
-    <a href="{esc(mnt.get('repo_url', ''))}">ersilia-maintenance</a>,
-    and precalculation coverage in the
-    <code class="mono">{esc(cov.get('bucket'))}</code> isaura bucket measured against the
-    full reference collection of <span class="mono">{fmt(s['full_count'])}</span> molecules.</p>
-</div></header>
+  <header class="brandhead">
+    <span class="eyebrow brand">Model monitoring · Ersilia Open Source Initiative</span>
+    <h1 class="wordmark">Model Hub <em>monitoring</em></h1>
+    <p class="lede">Precalculation coverage, Singularity images and maintenance test
+      outcomes for the {fmt(s['hub_models'])} models the Hub currently serves.
+      <span class="snap">{esc(snapshot)}</span></p>
+  </header>
 
-<div class="wrap">
   {figures_block(cov, mnt, sif)}
   {miss_html}
+  {methods_block(cov, mnt, sif)}
 
-  <section>
+  <section class="section">
     <h2>Needs attention</h2>
     {attention_block(cov, mnt)}
   </section>
 
-  <section>
-    <h2>Coverage plate</h2>
-    <p class="lede">One well per model, problems first. Hover a well for its model id
-      and molecule count.</p>
-    {plate_block(cov)}
-  </section>
-
-  <section>
+  <section class="section">
     <h2>Precalculation coverage</h2>
-    <p class="lede">Every model the hub search returns, joined against what isaura
-      actually stores. {fmt(s['isaura_unique_models'])} models hold data across
+    <p class="lede">Every Ready model joined against what isaura actually stores.
+      {fmt(s['isaura_unique_models'])} models hold data across
       {fmt(s['isaura_entries'])} stored versions
-      ({s['multi_version_models']} models have more than one), totalling
-      {s['stored_gb']:,.0f} GB.</p>
+      ({s['multi_version_models']} have more than one), totalling
+      {s['stored_gb']:,.0f} GB. One well per model below, problems first — hover for
+      the model id and its molecule count.</p>
+    {plate_block(cov)}
     {coverage_table(cov)}
   </section>
 
   {sif_section(sif)}
 
-  <section>
+  <section class="section">
     <h2>This week in maintenance</h2>
     {weekly_block(mnt)}
     {updated_block(mnt)}
   </section>
 
-  <section>
+  <section class="section">
     <h2>Monthly health</h2>
     {monthly_block(mnt)}
   </section>
 
   {plots_block(mnt)}
 
-  <footer>
-    <p>Generated {gen} by <code>model-monitoring</code>. Self-contained: no external
-      data is loaded when this file is opened.</p>
-    <ul>
-      <li>Coverage measured {esc(cov.get('generated_at_utc'))}; isaura inventory
-        taken {esc(cov.get('isaura_generated_at_utc'))}.</li>
-      <li>Maintenance reports read from
-        <a href="{esc(mnt.get('repo_url', ''))}">{esc(mnt.get('repo', ''))}</a>
-        at {esc(mnt.get('generated_at_utc'))}.</li>
-      <li>Full coverage is defined as {fmt(s['full_count'])} molecules — the size of the
-        isaura reference collection.</li>
-    </ul>
-  </footer>
 </div>
 <script>{JS}</script>
 </body></html>
@@ -858,13 +905,18 @@ def main():
     ap.add_argument("--sif", help="sif.json from fetch_sif.py. Omit to render the "
                                   "report without the Singularity section.")
     ap.add_argument("--out", required=True)
-    ap.add_argument("--title", default="Model Hub monitoring report")
+    ap.add_argument("--title", default="Model Hub monitoring")
+    ap.add_argument("--snapshot", default="",
+                    help="Snapshot label shown beside the lede, e.g. "
+                         "'Snapshot 19 Aug 2026'. Passed in rather than derived: "
+                         "these scripts never call datetime.now() so a rebuild of "
+                         "the same data produces the same bytes (repo convention).")
     args = ap.parse_args()
 
     cov = json.load(open(args.coverage))
     mnt = json.load(open(args.maintenance))
     sif = json.load(open(args.sif)) if args.sif else None
-    html_text = build(cov, mnt, args.title, sif)
+    html_text = build(cov, mnt, args.title, sif, args.snapshot)
     with open(args.out, "w") as f:
         f.write(html_text)
     print(

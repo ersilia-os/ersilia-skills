@@ -45,86 +45,117 @@ last maintenance test" is information, whereas an absent section is ambiguous.
 
 ---
 
-## The design system
+## Design
 
-Grounded in the subject's own world rather than in generic dashboard conventions.
+The report is styled by the **`html-formatting`** skill, which owns the Ersilia look and feel.
+This skill owns the report's structure, content and semantics. Keep that split: anything about
+colour, type or chrome belongs in `html-formatting`, and duplicating it here guarantees drift.
+
+The page is a **`dashboard`** archetype (wide centred container, wordmark header, KPI row of
+`.stat` tiles, house `table.data` in `.scrollwrap`). Dashboard rather than `document` because
+the primary content is metrics and tables rather than prose, and because the wider container
+suits an eight-column table.
 
 ### Signature element: the coverage plate
 
 One small well per model, laid out as a dense grid, coloured by coverage class, ordered
-problems-first. Faded wells are models that are not `Ready`; hovering gives the model id,
+problems-first. Faded wells sit outside the Ready population; hovering gives the model id,
 slug, class, molecule count and status.
 
 Two reasons it earns the space: a microplate is native vernacular for an audience that does
-drug discovery, and a dense grid is the only device that makes ~250 discrete units legible
-in a single glance — a table of 250 rows cannot do that, and a bar chart of 250 bars is
+drug discovery, and a dense grid is the only device that makes ~220 discrete units legible
+in a single glance — a table of 220 rows cannot do that, and a bar chart of 220 bars is
 worse. It is also honest to the data: each model genuinely is a discrete unit that is either
 covered or not.
 
-Everything else on the page is kept deliberately quiet so the plate carries the visual
-weight. That is the one place boldness is spent.
+Everything else on the page stays quiet so the plate carries the visual weight. That is the
+one place boldness is spent.
 
-### Palette — the Ersilia brand colours
+### Colour and type: owned by `html-formatting`
 
-The brand palette is used verbatim. Its shape drives how colour works on the page: it is
-**one dark plum plus a set of light pastels**, so the pastels are strong as fills and
-illegible as text on white.
+**This skill does not define a palette.** Every colour, font, radius and shadow comes from the
+Ersilia design system in the `html-formatting` skill, which is the single authority for how
+Ersilia HTML looks. Read `html-formatting/references/design-system.md` for the tokens; do not
+restate them here, or the two will drift and this copy will lose.
 
-| Brand colour | Hex | Use in the report |
+What this skill owns is the **mapping** — which token carries which meaning:
+
+| Meaning | Token | Why |
 |---|---|---|
-| Plum | `#50285A` | Masthead, all body text, headings, numerals, links, active chips |
-| Mint | `#BEE6B4` | `complete` wells and badges, progress fill, masthead eyebrow |
-| Yellow | `#FAD782` | `partial` wells and badges, note-box rule, masthead inline code |
-| Orange | `#FAA08C` | `missing` wells and badges, alert accent rule |
-| Purple | `#AA96FA` | `orphan` wells and badges, link underlines |
-| Gray | `#D2D2D0` | All rules and borders |
-| White | `#FFFFFF` | Card surfaces |
-| Blue `#8CC8FA`, Pink `#DCA0DC` | | Declared as tokens, held in reserve |
+| Complete coverage / image available | `--good` | A genuine healthy state |
+| Incomplete coverage | `--warn` | A genuine caution state |
+| No coverage / no image | `--bad` | A genuine failure state |
+| Outside the Ready population | `--purple` | Not a state at all — a population mismatch, so it takes a data hue rather than a state token |
 
-Two consequences worth preserving:
+The design system reserves `--good`/`--warn`/`--bad` for exactly this: real states, addressed
+semantically rather than by palette slot. Coverage is a state, so no colour had to be invented.
 
-- **Text is plum, fills are pastel.** Badges are a pastel fill with plum text, because no hue
-  in the palette carries white text at 11px.
-- **Emphasis is an accent rule, not coloured text.** Alert figures get an Orange top border
-  and a pale wash rather than an orange numeral — a 30px number in `#FAA08C` on white is
-  hard to read, and the figures are the one thing that must be readable at a glance.
+Two rules that survive from the report's own design and are worth keeping:
 
-Surfaces `--paper` (`#F7F7F5`) and `--plate` (`#EDEDEA`) are light tints derived from brand
-Gray, and `--ink-soft` / `--muted` are lighter plums. Every actual hue on the page is a
-brand value.
+- **Colour encodes coverage class and nothing else.** The same token appears in the plate, the
+  legend, the badges and the table, so the reader learns the mapping once. The Singularity
+  section reuses the identical three tokens in the identical roles.
+- **Emphasis is an accent rule, not a coloured numeral.** An alert stat tile takes a `--bad`
+  top border; the number stays `--ink`. A large figure in the alert hue is harder to read than
+  an ink one, and the rule is louder anyway.
 
-Colour encodes coverage class and **nothing else**. The same value is reused verbatim in the
-plate, the legend, the badges and the table, so the reader learns the mapping once.
+### Class collisions: check the name before you use it
 
-### One CSS trap already hit
+Three separate bugs in this report came from reusing a class name the surrounding CSS already
+owned. Each time the page still *rendered*, just wrongly, which is what makes this worth a
+standing note:
 
-The legend's muted caption originally used `class="note"`, colliding with the global `.note`
-yellow-callout rule and wrapping every legend caption in a callout box. It now uses `.dim`
-and `.fade`. When adding a utility class, check it against the existing rules first — this
-is the failure mode `frontend-design` warns about, and it is easy to miss because the page
-still renders, just wrongly.
+| Class | What went wrong |
+|---|---|
+| `.note` | Used for the legend's muted caption; also the yellow callout box, so every legend key was wrapped in a callout. Now `.dim` / `.fade`. |
+| `.sw` | Used for the legend swatches; `ersilia.css` defines `.sw` as the **switch** component (a 34×19 pill with a white knob), so each swatch rendered as a tiny toggle. Now `.swatch`. |
+| `.lede` | Used for every section intro but defined **nowhere** — neither here nor in `ersilia.css` — so the paragraphs rendered as unstyled full-width body text. Now defined in this skill's CSS from tokens. |
+
+Before adding a utility class, grep `html-formatting/assets/ersilia.css` for the name. The
+audit is cheap:
+
+```bash
+grep -nE "\.<name>[ ,{:]" ~/.claude/skills/html-formatting/assets/ersilia.css
+```
+
+Deliberate *extensions* of a house class are fine and are marked as such in the CSS —
+`.badge{white-space:nowrap}` and `.stat.alert` both add to a house component rather than
+redefining it.
 
 ### Type
 
-IBM Plex Sans for prose, IBM Plex Mono for every model id, count and timestamp. Plex has a
-technical, instrument-like character that suits a monitoring page, and the mono face is
-functional rather than decorative: `font-variant-numeric: tabular-nums` means molecule
-counts and GB figures align for comparison down a column. Prose does not get tabular
-figures. Fonts load from Google Fonts with real system fallbacks, so the page degrades
-cleanly offline — the only network reference in the file, and a non-blocking one.
+Comes from the design system (`--sans` / `--mono`). The one thing this skill decides is *which
+cells are data*: every model id, count, size and date is `.mono`, and numeric table cells use
+`td.num` so `font-variant-numeric: tabular-nums` aligns them down the column. Prose does not
+get tabular figures, and neither do the large `.stat` values — the design system deliberately
+sets those proportional, because equal-width digits make a single big number look loose.
+
+### Progressive disclosure
+
+Three tiers, per the house UX rules:
+
+1. **Surface** — the KPI row and the counted sub-headings.
+2. **Hover** — every table column header carries a `title=` explaining what the column means,
+   so the meaning is one hover away rather than spelled out in prose above the table.
+3. **Methods** — a `<details>` block, *How these numbers are derived*, holding the population
+   definition, what counts as "full", the multi-version rule, the upstream schema rename and
+   the provenance timestamps. Every headline figure here is derived rather than read off a
+   source, and the house rule is that derived metrics owe the reader their derivation.
 
 ### Quality floor
 
-Responsive to mobile (grids collapse at 820px), visible keyboard focus, reduced motion
-respected, print stylesheet that drops the dark masthead and the filter controls. Wide
-tables scroll inside their own container so the page body never scrolls sideways.
+Responsive (grids collapse at 860px), visible keyboard focus, wide tables scroll inside
+`.scrollwrap` so the page body never scrolls sideways, print stylesheet drops the filter
+controls. Single light theme — the Ersilia brand is light, so no dark variant.
 
 ### Self-containment
 
-No external scripts or stylesheets; plots inlined as base64 data URIs; GitHub links are
-navigational only. These reports get archived and forwarded, and one that silently loses its
-charts a month later is worse than no report. The cost is file size — roughly 250 KB
-without plots, 600 KB with them — which is why `--plots` is opt-in.
+**Zero network requests.** No external scripts, stylesheets or fonts; `ersilia.css` is inlined
+by `apply_theme.py`, the favicon is an inline SVG data URI, and the maintenance plots are
+base64 data URIs. GitHub links are navigational only. These reports get archived and forwarded,
+and one that silently loses its styling or charts a month later is worse than no report. The
+cost is file size — roughly 250 KB without plots, 700 KB with them — which is why `--plots` is
+opt-in.
 
 ---
 
@@ -162,10 +193,17 @@ Versions column, so a partial newer version behind a complete older one stays vi
 `build_report.py` is organised as one function per section, each returning an HTML string,
 composed in `build()`. To change a section, edit its function; to reorder, edit `build()`.
 
-- `figure_grid(items)` — shared renderer for any row of headline figures. The grid is a
-  **fixed** four columns, not `auto-fit`: with eight cells, letting the browser choose
-  stranded the last one beside a dead grey gap. The monthly snapshot's six figures use
-  `.figures.six` (three columns) for the same reason.
+- `figure_grid(items)` — shared renderer for any row of headline figures, emitting house
+  `.stat` tiles. The grid is a **fixed** four columns, not `auto-fit`: with eight cells,
+  letting the browser choose stranded the last one beside a dead gap. The monthly snapshot's
+  six figures use `.stats.six` (three columns) for the same reason.
+- `badge(label, token)` — a house `.badge` tinted through its `--c` custom property.
+- `outcome_badge(raw)` — maps the maintenance reports' ✅ / 🚨 / ❓ to a badge. The emoji are
+  status markers rather than decoration so they would be permissible, but a badge says the
+  word and does not rely on the reader knowing the icon.
+- `data_table(headers, rows)` — a plain `table.data` in a `.scrollwrap`, for short tables that
+  need no controls.
+- `methods_block(...)` — the *How these numbers are derived* disclosure.
 - `filterable_block(...)` — shared renderer for a table with its own search box, filter chips
   and result count. Everything inside is found **by class within a `.filterable` container**,
   never by id: the page now carries two of these, and duplicate ids would be invalid HTML and
@@ -181,7 +219,11 @@ composed in `build()`. To change a section, edit its function; to reorder, edit 
 - `_hv` — reads a monthly figure under either schema naming. See trap 4 in
   `data-sources.md`.
 
-If the user wants a visually different report, load the `frontend-design` skill and work
-from these notes: knowing what each choice is doing makes it possible to replace a decision
-coherently rather than layering CSS over it. Keep the data JSONs and re-render — the
-expensive step is the isaura inventory, not the HTML.
+If the user wants a visually different report, that is a question for **`html-formatting`**,
+not for this file — load that skill and work within its tokens and components. Reach into
+`build_report.py`'s `CSS` constant only for genuine *structure* the design system does not
+cover (the plate wells, the fixed-column KPI grid, the search input), and keep using tokens
+there: `check_html.py` flags any hex outside the palette, and a hard-coded colour is how a page
+quietly stops being Ersilia.
+
+Keep the data JSONs and re-render — the expensive step is the isaura inventory, not the HTML.
