@@ -55,7 +55,7 @@ score Medium/High on fit alone even if costly and far). Every event also gets a
 recommended **action**: *attend / apply / partner / scout / watch* (`scout` = a high-fit
 but costly/far event worth sending someone to for methods or partnership intel).
 
-## Marker ribbon (fixed display order `⭐🌍🎓💻💰🗓️`)
+## Marker ribbon (fixed display order `⭐🌍🎓💻💬💰🗓️`)
 
 Stored in the `markers` field as a string in this exact order; render as-is. Apply a
 marker **only when load-bearing — absent beats wrong.**
@@ -63,16 +63,41 @@ marker **only when load-bearing — absent beats wrong.**
 | Marker | Apply when |
 |---|---|
 | ⭐ | `priority` is `High` — a top pick worth the team's active effort |
-| 🌍 | `scope` is `Global-South` (LMIC-hosted or LMIC-serving, per `lmic-countries.md`) |
+| 🌍 | the event is Global-South **by focus** — see the rule below |
 | 🎓 | training / capacity-building event (`type` ∈ {Workshop, Summer school} or `theme` = Training) |
 | 💻 | open-source or AI-methods focus — the event centres on code, models, or ML methods |
+| 💬 | surfaced from the `#networking` Slack sweep rather than the automated web sweep (pairs with `shared_by`) |
 | 💰 | the event offers a **bursary / financial aid / travel support** (from the `bursary` field) |
 | 🗓️ | **any** typed deadline (abstract / early-bird / registration / bursary) falls within the report window |
 
-Claude sets `⭐🌍🎓💻`. The last two are script-derived: `filter_and_sort.py` appends 💰
-when the `bursary` field names real support, and 🗓️ when any `deadlines` entry lands
-in-window. Claude still records the raw `bursary` and `deadlines` values — the script
-decides the markers.
+**The 🌍 rule — focus, not venue.** Apply 🌍 when **any** of these holds:
+
+1. `focus_region` is set and names an LMIC country or a Global-South region — an
+   "AMR in Africa" symposium held in London (`focus_region: "Africa"`) earns 🌍;
+2. no `focus_region` is set and the **`country`** is on the LMIC list; **or**
+3. the event **explicitly serves or prioritises Global-South participants** —
+   a regional LMIC focus, travel bursaries, scholarships, or fee waivers stated on
+   the official page.
+
+Decide LMIC status with `lmic-countries.md`, whose tagging rule this mirrors.
+
+**Clause 3 is load-bearing — do not drop it.** Most Global-South-serving events in
+this digest are *held in the North*: a TB Keystone in London with a Global Health
+Award, a tropical-medicine meeting in the US with travel awards, an Asia-Pacific
+conference with a fellowship programme. Several host countries (South Africa,
+Malaysia, Brazil) are upper-middle-income and so are **not** on the LMIC list at
+all, meaning clause 2 never fires for them. A geography-only reading of this rule
+silently strips 🌍 from exactly the events the Global-South lens exists to surface —
+it did, in testing, cutting the marker from 4 to 1 on a real report.
+
+A generic European conference that merely happens to host one LMIC speaker still
+does not qualify. Where `scope` and 🌍 diverge, **🌍 follows who the event serves** —
+`scope` describes where it sits.
+
+Claude sets `⭐🌍🎓💻💬`. The last two in the ribbon are script-derived:
+`filter_and_sort.py` appends 💰 when the `bursary` field names real support, and 🗓️
+when any `deadlines` entry lands in-window. Claude still records the raw `bursary`
+and `deadlines` values — the script decides the markers.
 
 ## Worked examples
 

@@ -18,6 +18,7 @@ input file (handled in _common.read_json).
 
 import argparse
 import json
+import os
 import re
 import sys
 
@@ -25,6 +26,33 @@ from _common import parse_date, read_json, validate_event, warn, write_json
 
 DEADLINE_MARKER = "🗓️"
 BURSARY_MARKER = "💰"
+# Set by Claude in Step 5 for Slack-sourced events; re-applied here when a duplicate
+# merge carries a teammate's credit onto an already-kept copy.
+SHARED_MARKER = "💬"
+# The documented ribbon order (references/classification.md). Markers arrive from three
+# places — Claude's ⭐🌍🎓💻💬, this script's 💰🗓️, and a 💬 carried over by a duplicate
+# merge — so the string is only in the right order if it is explicitly sorted.
+MARKER_ORDER = ("⭐", "🌍", "🎓", "💻", "💬", "💰", "🗓️")
+
+
+def order_markers(markers):
+    """Return the ribbon in the documented fixed order.
+
+    Anything unrecognised is preserved at the end rather than dropped: a marker written
+    without its variation selector, or a new one added to classification.md before this
+    tuple is updated, must not silently vanish from a published report.
+    """
+    text = str(markers or "")
+    ordered = [m for m in MARKER_ORDER if m in text]
+    leftover = text
+    for m in ordered:
+        leftover = leftover.replace(m, "")
+    return "".join(ordered) + leftover
+# Ledger schema version. v1 keyed on (name-without-year, location); v2 appends the
+# event's start-date year so a new edition of a recurring series is a distinct key.
+# Bump this whenever series_key_str's output format changes — load_ledger warns on
+# an older file so the one-time re-show of seen events isn't a mystery.
+LEDGER_VERSION = 2
 # bursary field values that mean "no real support" (so no 💰 marker)
 NO_BURSARY_VALUES = {"", "none", "no", "n/a", "na", "unknown"}
 
@@ -62,7 +90,12 @@ def collect_in_window_deadlines(event, window_start, window_end):
 
 
 def normalise_series_key(event):
-    """Build a dedup key that ignores the year, so 'Indaba 2026' == 'Indaba 2027'."""
+    """Build a within-run dedup key that ignores the year, so 'Indaba 2026' and
+    'Deep Learning Indaba' (mentioned without a year in a different search hit)
+    collapse to the same specific event. Used only to catch the same single
+    event surfacing twice in one sweep — NOT for cross-run ledger identity
+    (see ``series_key_str``), where a new year must stay distinguishable.
+    """
     name = str(event.get("name", "")).lower()
     name = re.sub(r"\b(19|20)\d{2}\b", "", name)        # strip 4-digit years
     name = re.sub(r"[^a-z0-9]+", " ", name).strip()      # collapse punctuation
@@ -71,8 +104,19 @@ def normalise_series_key(event):
 
 
 def series_key_str(event):
-    """Stable string form of the series key, for JSON ledger storage."""
-    return "||".join(normalise_series_key(event))
+    """Stable string form of the CROSS-RUN ledger key.
+
+    Includes the event's start-date year on top of the year-stripped
+    name+location: the ledger exists to stop the *same* edition from being
+    re-shown in a later report, not to hide next year's edition just because
+    an earlier year's was already reported. A recurring series (e.g. "GCC
+    2026") must always show again once "GCC 2027" rolls around, even at the
+    same venue.
+    """
+    name, location = normalise_series_key(event)
+    start = parse_date(event.get("start_date"))
+    year = start.year if start is not None else "unknown"
+    return f"{name}||{location}||{year}"
 
 
 def load_ledger(path):
@@ -85,13 +129,32 @@ def load_ledger(path):
     except (OSError, json.JSONDecodeError) as exc:
         warn(f"could not read ledger {path} ({exc}); treating all events as new")
         return {}
-    return data.get("events", {}) if isinstance(data, dict) else {}
+    if not isinstance(data, dict):
+        return {}
+    version = data.get("version", 1)
+    if version < LEDGER_VERSION:
+        warn(f"ledger {path} is v{version}; keys now carry the event year "
+             f"(v{LEDGER_VERSION}), so none of its entries will match. Previously-seen "
+             "editions re-appear once in this run, then are recorded under the new "
+             "format and suppressed again from the next run on.")
+    return data.get("events", {})
 
 
 def save_ledger(path, events_map):
-    """Write the ledger back as {'version': 1, 'events': {...}}."""
+    """Write the ledger back as {'version': LEDGER_VERSION, 'events': {...}}.
+
+    Creates the parent directory if needed. SKILL.md passes
+    ``--ledger ~/.ersilia/events_seen.json`` on *every* run, and that directory does
+    not exist on a fresh machine — without this the first run crashes here, after the
+    cleaned output is already written, so the report succeeds while the ledger is
+    silently never recorded and the next run re-shows everything.
+    """
+    parent = os.path.dirname(os.path.abspath(path))
+    if parent:
+        os.makedirs(parent, exist_ok=True)
     with open(path, "w", encoding="utf-8") as handle:
-        json.dump({"version": 1, "events": events_map}, handle, ensure_ascii=False, indent=2)
+        json.dump({"version": LEDGER_VERSION, "events": events_map}, handle,
+                  ensure_ascii=False, indent=2)
         handle.write("\n")
 
 
@@ -144,6 +207,22 @@ def main(argv=None):
 
         start = parse_date(event.get("start_date"))
         if start is None:
+            # A team-shared event whose official page has not announced dates yet is
+            # kept and flagged, per SKILL.md Step 2a. It cannot be window-filtered or
+            # date-sorted, so it bypasses both and renders in its own section. Everything
+            # else with an unusable date is still dropped — never date-guessed.
+            if str(event.get("shared_by") or "").strip():
+                event["undated"] = True
+                key = normalise_series_key(event)
+                if key in seen_series:
+                    counts["duplicate"] += 1
+                    warn(f"dropping duplicate undated '{event['name']}'")
+                    continue
+                seen_series[key] = event
+                kept.append(event)
+                warn(f"keeping undated team-shared '{event['name']}' "
+                     f"(shared by {event['shared_by']}) — no dates on the official page")
+                continue
             counts["invalid"] += 1
             warn(f"dropping '{event['name']}': unparseable start_date {event.get('start_date')!r}")
             continue
@@ -168,9 +247,25 @@ def main(argv=None):
         key = normalise_series_key(event)
         if key in seen_series:
             counts["duplicate"] += 1
-            warn(f"dropping duplicate series occurrence '{event['name']}' (kept the earlier one)")
+            # Carry the teammate's credit onto the surviving copy before discarding this
+            # one. An event can arrive twice — once from the web sweep, once from the
+            # Slack sweep — and whichever landed first wins. Without this merge the
+            # `shared_by`/💬 attribution is silently lost whenever the web sweep happened
+            # to find it too, which is exactly the "don't silently discard a teammate's
+            # contribution" rule the Slack step is built around.
+            survivor = seen_series[key]
+            if event.get("shared_by") and not survivor.get("shared_by"):
+                survivor["shared_by"] = event["shared_by"]
+                if SHARED_MARKER not in (survivor.get("markers") or ""):
+                    survivor["markers"] = order_markers(
+                        (survivor.get("markers") or "") + SHARED_MARKER)
+                warn(f"duplicate '{event['name']}' also shared in Slack — "
+                     f"carried shared_by={event['shared_by']!r} onto the kept copy")
+            else:
+                warn(f"dropping duplicate series occurrence '{event['name']}' "
+                     "(kept the earlier one)")
             continue
-        seen_series[key] = True
+        seen_series[key] = event
 
         # Cross-run ledger: tag (or, with --hide-seen, drop) events seen in a prior run.
         seen_before = args.ledger is not None and series_key_str(event) in ledger
@@ -191,7 +286,7 @@ def main(argv=None):
         if in_window_deadlines and DEADLINE_MARKER not in markers:
             markers = markers + DEADLINE_MARKER
 
-        event["markers"] = markers
+        event["markers"] = order_markers(markers)
         event["bursary_available"] = bursary_available
         event["deadlines_in_window"] = in_window_deadlines
         event["deadline_within_window"] = bool(in_window_deadlines)
@@ -200,7 +295,8 @@ def main(argv=None):
 
         kept.append(event)
 
-    kept.sort(key=lambda e: (e["_start"], str(e.get("name", "")).lower()))
+    # Undated team-shared events carry no `_start`; sort them last rather than crashing.
+    kept.sort(key=lambda e: (e.get("_start") or "9999-99-99", str(e.get("name", "")).lower()))
     for event in kept:
         event.pop("_start", None)
 
@@ -212,9 +308,11 @@ def main(argv=None):
         for event in kept:
             kstr = series_key_str(event)
             if kstr not in ledger:
+                start = parse_date(event.get("start_date"))
                 ledger[kstr] = {
                     "name": event.get("name"),
                     "url": event.get("url"),
+                    "year": start.year if start is not None else None,
                     "first_seen": args.date_from,
                 }
                 new_to_ledger += 1

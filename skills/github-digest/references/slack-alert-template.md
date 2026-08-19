@@ -6,9 +6,12 @@ on failure, never on the `--no-readme` path mid-step. The skill only sends this 
 
 ## Channel
 
-Workspace `ersilia-workspace`. **Channel: `#coding` — ID `C01JL4SDKSL`.** This is where the
+Workspace `ersilia-workspace`. **Channel: `#technology` — ID `C0100L3DRCM`.** This is where the
 engineering team watches GitHub activity. (For reference, the literature digest posts to
 `#literature` = `C010067BP2Q`.)
+
+> **Changed 2026-08-13.** The previous channel `#coding` (`C01JL4SDKSL`) was **archived** —
+> posting to it now fails with `is_archived`. Do not fall back to it.
 
 ## Template
 
