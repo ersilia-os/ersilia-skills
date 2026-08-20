@@ -11,11 +11,20 @@ and `WebFetch` on the event's own page to confirm dates and location. Always end
 ## In-scope event types (v1)
 
 Scientific conferences & symposia · workshops & training / capacity-building ·
-hackathons, datathons & fellowships · philanthropy / funder forums (donor and
-foundation gatherings — the `Philanthropy` theme).
+hackathons, datathons, challenges & fellowships · philanthropy / funder forums (donor and
+foundation gatherings — the `Philanthropy` theme) · open-source / open-science community
+gatherings (the `Community` theme).
 **Out of scope in v1:** pure funding *calls* / grant deadlines (handled elsewhere) —
 a funder's annual *forum or meeting* is an in-scope event; an open call for grant
 applications is not.
+
+**The test is participation** — a convening you attend on dates, or a cohort-based
+fellowship, school or challenge you apply to. Not a paper, blog post, tool release,
+job ad, organisation homepage or funding call. See
+SKILL.md Step 3 for the full test and for how an organisation page is handled as a
+*lead* rather than a candidate. This is load-bearing for the Slack sweep: `#general`
+absorbed `#funding-opportunities` and `#media`, so grant calls and outreach articles
+now arrive on the same feed as events.
 
 ## Where to look
 
@@ -31,6 +40,123 @@ applications is not.
 | Keystone Symposia | keystonesymposia.org | `Keystone Symposia infectious disease <year>` |
 | ELRIG (drug discovery) | elrig.org | `ELRIG Drug Discovery <year>` |
 | NTD / AMR bodies | dndi.org, mmv.org, who.int/tdr, gardp.org | `DNDi OR MMV OR GARDP conference OR symposium <year>` |
+| EMBO workshops & courses | meetings.embo.org | `EMBO workshop tuberculosis OR mycobacteria OR infection <year>`, `EMBO course drug discovery <year>` |
+| AI4Sci / AI for Science Week | ai4sci.eu, ai4sciweek.org, discovery-science.org | `AI for Science conference <year> dates`, `AI4Sci <year>` |
+
+### Global-health R&D partnerships & public funders
+
+**The family that produced the sweep's worst documented miss.** The 2026-08-04 report
+missed the EDCTP Forum 2027 (Madrid, 5–9 April 2027, abstract deadline 2 Sep 2026 with
+travel/visa scholarships) because no row here covered EU public global-health R&D
+partnerships. These are **scientific congresses** convened by funders — theme `Science`,
+not `Philanthropy`, which is for donor/foundation gatherings.
+| Source | Home | Query hint |
+|---|---|---|
+| Global Health EDCTP3 / EDCTP Forum | global-health-edctp3.europa.eu, edctpforum.eu | `EDCTP Forum <year> dates abstract deadline`, `Global Health EDCTP3 event <year>` |
+| FESTMIH / ECTMIH (European tropical medicine congress) | festmih.eu, ectmih2027.eu | `ECTMIH <year> dates abstract`, `European Congress Tropical Medicine International Health <year>` |
+| ISGlobal (Barcelona; ECTMIH 2027 organiser) | isglobal.org | `ISGlobal course OR symposium OR congress <year>` |
+| RSTMH (Royal Society of Tropical Medicine & Hygiene) | rstmh.org | `RSTMH meeting OR call for papers <year>` |
+
+### Priority-pathogen circuits
+
+**Search by pathogen, not only by known venue.** `ersilia-priorities.md` lists the
+priority organisms, but they were previously used only to *screen* at Step 4 and never
+to *search* at Step 2 — so a pathogen's own congress circuit went unqueried. Run at
+least one query per row (see Query discipline below).
+| Pathogen | Home | Query hint |
+|---|---|---|
+| *M. tuberculosis* / *M. abscessus* | theunion.org, tbvaccinesforum.org, tbvi.eu, newtbvaccines.org, meetings.embo.org | `Union World Conference on Lung Health <year>`, `Global Forum on TB Vaccines <year>`, `tuberculosis conference OR congress <year>` |
+| *P. falciparum* / *P. vivax* | mmv.org, who.int/teams/global-malaria-programme | `MIM Pan-African Malaria Conference <year>`, `malaria conference OR congress <year>` |
+| *Leishmania* / *T. cruzi* / *T. brucei* | leishsymposium.org, worldleish8.org, dndi.org | `WorldLeish <year>`, `Chagas OR leishmaniasis congress <year>` |
+| *S. mansoni* / schistosomiasis | — | `schistosomiasis conference OR symposium <year>`, `helminth OR NTD congress <year>` |
+| AMR — ESKAPE / WHO GLASS | escmid.org, bsac.org.uk, gardp.org, acc-conference.com | `ESCMID Global <year> dates`, `antimicrobial resistance conference <year>`, `Antimicrobial Chemotherapy Conference <year>` |
+
+### Spain — Barcelona, Catalonia & national
+
+**Priority 4 names "presence in Barcelona, Catalonia and Europe", and the sweep had no
+way to act on it.** Geography was tracked only at continent granularity, so "Europe:
+swept" hid the fact that nothing ever queried Ersilia's own city. The evidence is
+uncomfortable: all three congresses the 2026-08-04 report missed were **in Spain**, and
+the backfill then turned up MozFest 2026 in Barcelona and the MAINFRAME symposium at the
+Ateneu Barcelonès — 180+ researchers on AI-driven small-molecule discovery, a 20-minute
+walk from the office, found only because a colleague posted it.
+
+A local event is also the cheapest possible attendance: no flights, no visa, no
+accommodation. A Barcelona event at `Medium` fit beats a San Diego event at `High`.
+| Source | Home | Query hint |
+|---|---|---|
+| Biocat / BioRegion of Catalonia agenda | biocat.cat/en/news/agenda | `Biocat agenda <year>`, `BioRegion Catalonia life sciences event <year>` |
+| SEQT (Spanish medicinal chemistry society) | seqt.org/en/events/meetings, seqt.org/es/eventos/congresos | `SEQT congreso <year>`, `Sociedad Española de Química Terapéutica congreso <year>` |
+| ISCIII / Fundación CSAI (EDCTP Forum 2027 host) | isciii.es | `ISCIII jornada OR congreso OR curso <year>` |
+| Barcelona research institutes | irbbarcelona.org, prbb.org, irsicaixa.es, bsc.es | `IRB Barcelona OR PRBB OR BSC symposium OR jornada <year>` |
+| SDDN — Spanish drug discovery network | sddn.es | `SDDN reunión OR jornada <year>`, `Spanish drug discovery network meeting <year>` |
+| BIOSPAIN (Spanish biotech convention) | — | `BIOSPAIN <year> dates` |
+| **Norrsken House Barcelona — our own building** | norrsken.org | `Norrsken House Barcelona event <year>`, `Norrsken Impact Week <year>` |
+
+**Check Norrsken every run — but proximity is a reason to *look*, never a reason to
+*include*.** Ersilia's headquarters is Norrsken House Barcelona (per the team's own
+announcement in Slack), so its programme is worth sweeping every time: an event in the
+building we work in costs a lift, not a flight. Norrsken's own programme, however, is
+startup/impact-investing rather than science — Impact/Week 2026 (14–15 Oct 2026, in our
+venue) is themed on climate, energy and geopolitics for founders and investors.
+
+**So every Norrsken event still has to pass the mission lens in SKILL.md's "Not in scope"
+section**, and priority-4-only events need the second reason set out in
+`ersilia-priorities.md`. A venue we occupy generates a high volume of near-misses; treat
+the row as a funnel, not a whitelist. The same holds for any other
+community/venue source added here later.
+
+Note the query shape: Norrsken's events are English-named impact/startup convenings
+(`Impact/Week`), so the Spanish- and Catalan-language terms above will **not** find them
+and neither will `simposio`/`jornada`. Query the venue by name.
+
+**Biocat's agenda is a discovery source, not a citation.** It curates Catalan, Spanish and
+international life-science events and negotiates discounts for BioRegion organisations —
+so it is an excellent place to *find* an event, but always follow through to the event's
+own official page before recording a `url`, per the no-aggregators rule at the top of
+this file.
+
+**Query in Spanish and Catalan, not only English.** This is not optional politeness —
+it is the difference between finding an event and not. The archived `#networking` channel
+held `platformdali.org/es/encuentros`, which an English-only sweep cannot reach. Useful
+terms: Spanish `congreso`, `jornada`, `simposio`, `curso`, `encuentro`, `reunión`,
+`convocatoria`; Catalan `congrés`, `jornada`, `simposi`, `curs`, `trobada`. The existing
+Spanish/Portuguese instruction in SKILL.md Step 2 applied only to Latin America — Spain
+itself was never covered by it.
+
+### Open-source / open-science community (the `Community` theme)
+
+`classification.md` has a `Community` theme but this file had no sources for it, so
+priority-4 venues depended entirely on a teammate posting them.
+| Source | Home | Query hint |
+|---|---|---|
+| Mozilla Festival (MozFest) | mozillafestival.org | `MozFest <year> dates location`, `Mozilla Festival <year> call for proposals` |
+| BOSC / Open Bioinformatics Foundation | open-bio.org | `BOSC <year> dates`, `Bioinformatics Open Source Conference <year>` |
+| Conscience (open-science drug discovery; runs MAINFRAME) | conscience.ca | `MAINFRAME symposium <year>`, `Conscience symposium <year> dates` |
+| ChEMBL / EMBL-EBI user-group meetings | ebi.ac.uk, chembl.blogspot.com | `ChEMBL User Group Meeting <year>` |
+
+### News & announcement feeds (where events surface *first*)
+
+**Every other source in this file is an event or organiser page — which is where an
+event lands last, not first.** A congress is announced in a funder's news post 6–18
+months before its microsite exists or ranks. The EDCTP Forum 2027 was announced on
+**2 March 2026**; the 2026-08-04 sweep, five months later, still missed it, because
+nothing here pointed at a news feed. Sweep these for *announcements*, then follow them
+to whatever page exists — see SKILL.md Step 3 for how to verify an event that has an
+announcement but no site yet.
+| Source | Home | Query hint |
+|---|---|---|
+| Global Health EDCTP3 news | global-health-edctp3.europa.eu/news-and-events | `EDCTP3 news event OR forum OR congress <year>` |
+| DNDi news (distinct from `dndi.org/events`) | dndi.org/news | `DNDi news symposium OR meeting OR conference <year>` |
+| WHO/TDR news | who.int/tdr/news | `TDR news meeting OR training <year>` |
+| GARDP news | gardp.org/news | `GARDP news conference OR webinar <year>` |
+| Wellcome news & reports | wellcome.org/news | `Wellcome news meeting OR summit <year>` |
+| ISGlobal news (Barcelona) | isglobal.org/en/news | `ISGlobal news congress OR course <year>` |
+| FESTMIH events & announcements | festmih.eu/events | `FESTMIH ECTMIH announcement <year>` |
+
+Query these with **announcement verbs**, not venue names — `announced`, `will host`,
+`save the date`, `call for abstracts` — since the event's own name is exactly what you
+do not yet know.
 
 ### Applied / industry ML drug discovery
 These are method-heavy, often vendor- or CRO-hosted meetings where applied AI-for-drug-discovery
@@ -57,12 +183,21 @@ in-person and costly — but a strong fit to priority 1/2 earns them a place on 
 | Deep Learning Indaba | deeplearningindaba.com | `Deep Learning Indaba <year>` |
 | Data Science Africa | datascienceafrica.org | `Data Science Africa summer school <year>` |
 | AIMS network | nexteinstein.org | `AIMS AI OR data science school <year>` |
+| BioStruct-Africa (structure-based design training, Africa) | biostructafrica.org | `BioStruct-Africa workshop <year>`, `structural biology training Africa <year>` |
+
+BioStruct-Africa is worth querying every run: it covers participants' travel,
+accommodation, registration **and visa** fees, which is rare enough to be 💰 on its own
+and squarely priority 3.
 
 ### Hackathons, datathons & fellowships
 | Source | Home | Query hint |
 |---|---|---|
 | Open-source / global-health hackathons | — | `global health OR drug discovery hackathon OR datathon <year>` |
 | Fellowships & awards | — | `AI for science fellowship <year> deadline`, `EMBO OR Schmidt OR foundation fellowship global health <year>` |
+| Prediction / benchmark challenges | — | `blind challenge ADMET OR bioactivity prediction <year>`, `OpenADMET challenge <year>` |
+
+A **challenge** is in scope under the participation test — a cohort applies and takes
+part on a deadline — even though nobody travels to it.
 
 ### Philanthropy & funder forums (the `Philanthropy` theme)
 | Source | Home | Query hint |
@@ -103,6 +238,10 @@ never invent an event from a source name.
 
 - Run **≥4 query variants per in-scope type** (source-scoped + a couple of open web
   searches for the current `focus`).
+- Run **≥1 query per row in "Priority-pathogen circuits"** — all five, every run, even
+  when the `focus` is a method rather than a disease. This is a floor, not a suggestion:
+  the pathogens are the mission, and querying them only via named venues is what left
+  the 2026-08-04 report with a single TB event and no AMR-specific venue at all.
 - Anchor every query to the date window (`<year>` and, where useful, the next year too,
   since events 6–9 months out are often announced under the following year).
 - `WebFetch` the official page to confirm **name, exact dates, location, URL** before
@@ -133,7 +272,7 @@ Write the classified pool to `/tmp/events_pool.json` as a JSON array of objects.
 | `markers` | string | emoji ribbon you set in fixed order `⭐🌍🎓💻💬`; the script appends 💰 (from `bursary`) and 🗓️ (from `deadlines`). 🌍 follows `focus_region` when set, else `country`. |
 | `shared_by` | string \| null | **optional** — for candidates from the Slack sweep (Step 2a), the name of the teammate who posted it. Renders as a `💬 Shared by the team` footnote, not a table column, and pairs with the 💬 marker. |
 | `deadlines` | object | typed deadlines, each an ISO `YYYY-MM-DD` string (omit or `null` if unknown). Recognised keys: `abstract` (call for papers / posters), `early_bird` (early-bird registration), `registration` (standard/final registration or an application/interest deadline), `bursary` (financial-aid / scholarship application). Record every date the page states — **including past ones**; the script decides which land in-window (adds 🗓️), and a **past `registration` date on a still-upcoming event** moves it to the report's "registration closed" section. Use `registration` as the catch-all when the type is unclear. |
-| `priorities` | array[int] | which Ersilia strategic priorities (1–4) it maps to |
+| `priorities` | array[int] | which Ersilia strategic priorities (1–4) it maps to. **May be empty** for a human-sourced event: `shared_by` events skip the Step 4 relevance screen, so there may be no priority to record. Not validated. |
 | `action` | string | `attend` / `apply` / `partner` / `scout` / `watch` (`scout` = a high-fit event worth sending someone to for methods/partner intel even though it's far/costly) |
 | `engagement` | string | the participation angle — a short phrase (≤6 words) for *what to do there* and, if clear, *who should go*: e.g. `Present Model Hub work`, `Recruit trainees; send a student`, `Meet African partners`, `Scout AI4Science talks`. `—` if there's no distinct angle beyond attending. |
 | `why_ersilia` | string | one line: why it matters (name the priority + action) |

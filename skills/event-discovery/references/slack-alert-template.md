@@ -1,6 +1,6 @@
 # Slack alert template — published event-discovery report notification
 
-Posted to `#networking` (workspace `ersilia-workspace`, channel resolved by name via
+Posted to `#general` (workspace `ersilia-workspace`, channel resolved by name via
 `slack_search_channels` — see SKILL.md Step 9) after the Step 8 `gh api` submission
 succeeds — never on dry-run, never on failure.
 
