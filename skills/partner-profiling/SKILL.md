@@ -224,8 +224,10 @@ python3 scripts/render_sweep.py --in /tmp/partners_clean.json \
 
 `--layout` picks the shape:
 
-- **`table`** (default) — one master table, one row per partner. What you want for the
-  local report; scannable in one pass.
+- **`table`** (default) — **one table per class**, with columns chosen for that class
+  (a `Creative` table carries rate, event experience and portfolio; a `Media` table
+  carries reach). Warm rows also get a strip at the top, because splitting by class
+  scatters them. See "Report columns differ by class" in `classification.md`.
 - **`detail`** — a heading and labelled bullets per partner, plus the warm-paths and
   per-class sections. Wordier, and the **only** layout safe for a Google Drive Doc, whose
   markdown conversion mangles pipe tables. Pair it with `--markers text`.
@@ -356,8 +358,11 @@ python3 scripts/render_campaign.py --in /tmp/partners_clean.json \
   --date 2026-08-21 --occasion "Ersilia anniversary" --occasion-date 2026-11-15
 ```
 
-`--layout table` (the default) emits one master table ordered by contact-by date — the
-table *is* the schedule. `--layout detail` instead leads with a bucketed schedule (Overdue
+`--layout table` (the default) emits **one table per class**, each led by a contact-by
+column, above them an **⏱️ Act first** strip listing everything due within 21 days
+regardless of class. That strip is not decoration: splitting into per-class tables
+scatters the deadline ordering, which is the entire reason campaign mode exists, so the
+strip is the one place the report still answers "who do I contact this week". `--layout detail` instead leads with a bucketed schedule (Overdue
 / this week / this month / later / no date) followed by per-partner blocks, and is the
 layout to use for a Drive Doc, with `--markers text`.
 

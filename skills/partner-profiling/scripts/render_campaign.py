@@ -33,6 +33,7 @@ from render_sweep import (
     contact_label,
     esc,
     link,
+    render_class_table,
     render_markers,
     title_of,
     trim,
@@ -100,35 +101,39 @@ def bucket_of(days):
     return BUCKETS[-1][0]
 
 
-def render_table(partners, today, marker_mode):
-    """One master table for the whole plan, ordered by contact-by date.
+# Rows due within this many days lead the report regardless of class.
+ACT_FIRST_DAYS = 21
 
-    In campaign mode the table *is* the schedule — rows arrive sorted by `contact_by`
-    from `filter_and_sort.py --order deadline` — so the bucketed contact-schedule section
-    of the detail layout would only restate it. Urgency stays visible through the ⏱️
-    marker and the relative day count.
+
+def render_tables_by_class(partners, today, marker_mode):
+    """Per-class tables, each led by a contact-by column.
+
+    Splitting by class is what makes the columns useful — a Creative table can carry rate
+    and licensing, a Media table carries reach — but it **scatters the deadline ordering**,
+    which is the whole reason campaign mode exists. The caller therefore emits an
+    "act first" strip above these tables so the who-first answer survives the split.
     """
-    out = [
-        "| Contact by | Partner | Class | Markers | Action | What we want | Next step |",
-        "|---|---|---|---|---|---|---|",
-    ]
-    for partner in partners:
-        name = partner.get("person") or partner.get("org") or partner.get("name")
-        dagger = "" if partner.get("verified", True) else " †"
-        url = partner.get("url")
-        label = f"[{cell(name)}]({url})" if url else cell(name)
+    def when(partner):
         days = days_until(partner.get("contact_by"), today)
-        when = (f"**{partner['contact_by']}**<br>{human_delta(days)}"
-                if partner.get("contact_by") else "—<br>no date")
-        out.append(
-            f"| {when} | {label}{dagger} | {cell(partner.get('class'))} "
-            f"| {render_markers(partner.get('markers'), marker_mode) or '—'} "
-            f"| **{cell(partner.get('action'))}** | {trim(partner.get('amplification'))} "
-            f"| {cell(partner.get('next_step'))} |"
-        )
-    out.append("")
-    out.append(TRIM_NOTE)
-    out.append("")
+        if not partner.get("contact_by"):
+            return "—<br>no date"
+        return f"**{partner['contact_by']}**<br>{human_delta(days)}"
+
+    by_class = defaultdict(list)
+    for partner in partners:
+        by_class[partner.get("class") or "Other"].append(partner)
+    class_order = [c for c in CLASS_VALUES if by_class.get(c)]
+    class_order += [c for c in sorted(by_class) if c not in CLASS_VALUES]
+
+    out = []
+    for class_name in class_order:
+        out.append(f"## {CLASS_HEADINGS_CAMPAIGN.get(class_name, class_name)}")
+        out.append("")
+        out.extend(render_class_table(
+            by_class[class_name], class_name, marker_mode, mode="campaign",
+            context_header="What we want", context_field="amplification",
+            leading=[("Contact by", when)],
+        ))
     return out
 
 
@@ -226,13 +231,34 @@ def render(partners, run_date, occasion, occasion_date, marker_mode="emoji", lay
         out.append("")
 
     if layout == "table":
-        out.append("## Contact schedule")
-        out.append("")
-        if partners:
-            out.extend(render_table(partners, today, marker_mode))
-        else:
+        if not partners:
             out.append("Nothing to schedule — no partner survived screening.")
             out.append("")
+            return out
+
+        # Act-first strip. The per-class tables below scatter the deadline ordering, so
+        # this is the one place the report still answers "who do I contact this week".
+        urgent = [p for p in partners
+                  if (days_until(p.get("contact_by"), today) is not None
+                      and days_until(p.get("contact_by"), today) <= ACT_FIRST_DAYS)]
+        out.append(f"## ⏱️ Act first — within {ACT_FIRST_DAYS} days")
+        out.append("")
+        if urgent:
+            for partner in urgent:
+                markers = render_markers(partner.get("markers"), marker_mode)
+                label = str(partner.get("person") or partner.get("org")
+                            or partner.get("name") or "").strip()
+                days = days_until(partner.get("contact_by"), today)
+                out.append(f"- {markers} **{partner['contact_by']}** ({human_delta(days)}) — "
+                           f"**{label}** · {esc(partner.get('class'))} — "
+                           f"{esc(partner.get('next_step'))}")
+        else:
+            out.append(f"- Nothing due within {ACT_FIRST_DAYS} days.")
+        out.append("")
+
+        out.extend(render_tables_by_class(partners, today, marker_mode))
+        out.append(TRIM_NOTE)
+        out.append("")
         unverified_rows = [p for p in partners if not p.get("verified", True)]
         if unverified_rows:
             out.append("## † Unverified — resolve before acting")

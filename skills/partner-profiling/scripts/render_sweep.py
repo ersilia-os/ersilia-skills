@@ -140,25 +140,76 @@ TRIM_NOTE = ("*Cells ending in “…” are trimmed for context only — next s
              "trimmed. Full text is in the partner JSON, or re-render with `--layout detail`.*")
 
 
-def render_table(partners, marker_mode):
-    """One master table for the whole report, one row per partner."""
+def _fmt_events(partner):
+    """Creative rows: does the portfolio show event work? Distinguish no from unknown."""
+    value = partner.get("does_events")
+    if value is None:
+        return "unknown"
+    return "yes" if value else "no"
+
+
+def _fmt_portfolio(partner):
+    return link("view", partner["portfolio_url"]) if partner.get("portfolio_url") else "—"
+
+
+# Columns that differ **by class**, because the classes are not comparable on the same
+# axes. You assess a photographer on rate, event experience and licensing; a journalist on
+# reach. Forcing one shared table means every row carries the lowest common denominator
+# and the class-specific fields — which are the ones that decide the commission — vanish.
+#
+# Keep this in sync with `references/classification.md`. A class missing here falls back to
+# CLASS_COLUMNS_DEFAULT rather than erroring, so a new class value renders before anyone
+# has decided what its useful columns are.
+CLASS_COLUMNS = {
+    "Media":       [("Reach", lambda p: cell(p.get("reach")))],
+    "Open-source": [("Scope", lambda p: cell(p.get("scope")))],
+    "Institution": [("Scope", lambda p: cell(p.get("scope")))],
+    "Comms-team":  [("Scope", lambda p: cell(p.get("scope")))],
+    "Community":   [("Reach", lambda p: cell(p.get("reach")))],
+    "Creative":    [("Covers events", _fmt_events),
+                    # Generous limit: the rate note often carries a second, cheaper tier
+                    # ("€400-500 for events under 2-4 hours") which is exactly what an
+                    # evening event needs, and a 44-character cut was dropping it.
+                    ("Rate", lambda p: trim(p.get("rate_note"), 72)),
+                    ("Portfolio", _fmt_portfolio)],
+}
+CLASS_COLUMNS_DEFAULT = [("Scope", lambda p: cell(p.get("scope")))]
+
+
+def partner_label(partner):
+    """Linked display name plus the unverified dagger."""
+    name = partner.get("person") or partner.get("org") or partner.get("name")
+    dagger = "" if partner.get("verified", True) else " †"
+    url = partner.get("url")
+    label = f"[{cell(name)}]({url})" if url else cell(name)
+    return f"{label}{dagger}"
+
+
+def render_class_table(partners, class_name, marker_mode, mode="sweep",
+                       context_header="Why them", context_field="hook",
+                       leading=None):
+    """One table for one class.
+
+    ``leading`` is a list of (header, fn) prepended before the shared columns — campaign
+    mode uses it for the contact-by date. ``context_field`` is the prose column, and
+    ``next_step`` always comes last and is **never trimmed**.
+    """
+    cols = list(leading or [])
+    cols.append(("Partner", partner_label))
+    cols.append(("Markers", lambda p: render_markers(p.get("markers"), marker_mode) or "—"))
+    if mode == "sweep":
+        cols.append(("Pri", lambda p: cell(p.get("priority"))))
+    cols.extend(CLASS_COLUMNS.get(class_name, CLASS_COLUMNS_DEFAULT))
+    cols.append((context_header, lambda p: trim(p.get(context_field) or p.get("hook"))))
+    cols.append(("Action", lambda p: f"**{cell(p.get('action'))}**"))
+    cols.append(("Next step", lambda p: cell(p.get("next_step"))))
+
     out = [
-        "| Partner | Class · Scope | Markers | Pri | Action | Why them | Next step |",
-        "|---|---|---|---|---|---|---|",
+        "| " + " | ".join(h for h, _ in cols) + " |",
+        "|" + "---|" * len(cols),
     ]
     for partner in partners:
-        name = partner.get("person") or partner.get("org") or partner.get("name")
-        dagger = "" if partner.get("verified", True) else " †"
-        url = partner.get("url")
-        label = f"[{cell(name)}]({url})" if url else cell(name)
-        scope = f"{cell(partner.get('class'))} · {cell(partner.get('scope'))}"
-        out.append(
-            f"| {label}{dagger} | {scope} | {render_markers(partner.get('markers'), marker_mode) or '—'} "
-            f"| {cell(partner.get('priority'))} | **{cell(partner.get('action'))}** "
-            f"| {trim(partner.get('hook'))} | {cell(partner.get('next_step'))} |"
-        )
-    out.append("")
-    out.append(TRIM_NOTE)
+        out.append("| " + " | ".join(fn(partner) for _, fn in cols) + " |")
     out.append("")
     return out
 
@@ -280,8 +331,6 @@ def render(partners, run_date, focus, sources, marker_mode="emoji", layout="tabl
     out.append("")
 
     if layout == "table":
-        # The table is sorted by priority already, and 🤝 marks the warm rows, so the
-        # separate "start here" list and the per-class sections would just restate it.
         out.append("## Counts")
         out.append("")
         for class_name in class_order:
@@ -292,12 +341,32 @@ def render(partners, run_date, focus, sources, marker_mode="emoji", layout="tabl
         if not class_order:
             out.append("- Nothing survived screening this sweep.")
         out.append("")
-        out.append("## Partners")
-        out.append("")
-        if partners:
-            out.extend(render_table(partners, marker_mode))
-        else:
-            out.append("Nothing survived screening this sweep.")
+
+        # Warm rows still get their own strip. Splitting the report into per-class tables
+        # scatters them, and they are the cheapest actions in it.
+        warm_rows = [p for p in partners
+                     if p.get("warmth") in ("Shared network", "Warm intro", "Existing contact")]
+        if warm_rows:
+            out.append("## 🤝 Start here — warm paths")
+            out.append("")
+            for partner in warm_rows:
+                markers = render_markers(partner.get("markers"), marker_mode)
+                label = str(partner.get("person") or partner.get("org")
+                            or partner.get("name") or "").strip()
+                out.append(f"- {markers} **{label}** · {esc(partner.get('class'))} — "
+                           f"{esc(partner.get('next_step'))}")
+            out.append("")
+
+        for class_name in class_order:
+            out.append(f"## {CLASS_HEADINGS.get(class_name, class_name)}")
+            out.append("")
+            out.extend(render_class_table(by_class[class_name], class_name, marker_mode,
+                                          mode="sweep"))
+        # The Counts section already said so when the pool is empty; repeating it here,
+        # and printing a note about trimmed cells when there are no tables, both read as
+        # a rendering fault rather than an empty result.
+        if class_order:
+            out.append(TRIM_NOTE)
             out.append("")
         unverified_rows = [p for p in partners if not p.get("verified", True)]
         if unverified_rows:

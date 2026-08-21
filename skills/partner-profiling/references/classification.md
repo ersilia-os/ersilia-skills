@@ -129,6 +129,33 @@ de-duplication needed. This was a real bug, caught when campaign mode first put 
 --markers text` swaps it, because the Drive markdown-to-Doc conversion corrupts emoji
 above U+1FFFF. See the note at the top of that script.
 
+## Report columns differ by class
+
+`--layout table` (the default) emits **one table per class**, and the columns differ,
+because the classes are not comparable on the same axes. `CLASS_COLUMNS` in
+`scripts/render_sweep.py` is the single place this is defined — **keep it in sync with the
+class list above.**
+
+| Class | Class-specific columns |
+|---|---|
+| `Media` | Reach |
+| `Open-source` · `Institution` · `Comms-team` | Scope |
+| `Community` | Reach |
+| `Creative` | Covers events · Rate · Portfolio |
+
+The `Creative` row is the reason this exists: you decide a commission on event experience,
+rate and licensing, and none of those fit a shared table whose columns were chosen for
+journalists. Equally, `reach` would be meaningless there — see the reachless note above.
+
+A class absent from `CLASS_COLUMNS` falls back to a `Scope` column rather than erroring,
+so a newly added class value renders before anyone has decided what its useful columns
+are. That path is defensive only: `filter_and_sort.py` rejects out-of-vocabulary classes,
+so it cannot be reached through the normal pipeline.
+
+Every table shares the same leading and trailing columns — partner, markers, the context
+field, the action, and `next_step` last. **`next_step` is never trimmed**, whatever the
+class; context fields are.
+
 ## Verification and the `†` flag
 
 `verified: false` marks a partner whose details could not be confirmed against a live

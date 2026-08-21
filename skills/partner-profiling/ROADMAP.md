@@ -159,3 +159,17 @@ which turned Agencia SINC's row from "decide whether a result ships; only if yes
 if no, drop this row" into "decide by late September whether a peer-reviewed result …" —
 a conditional instruction rendered as an unconditional one. A truncated next step is worse
 than a wide column.
+
+### Per-class tables (2026-08-21, same day)
+
+The single master table was replaced by **one table per class, with class-specific
+columns** (`CLASS_COLUMNS` in `render_sweep.py`). The driver was `Creative`: a commission
+is decided on event experience, rate and licensing, and none of those fit a shared table
+whose columns were chosen for journalists — while `reach`, which the shared table led
+with, is meaningless for a photographer.
+
+**The cost, and the mitigation.** Splitting by class scatters the deadline ordering, which
+is the whole reason campaign mode exists. So campaign reports now carry an **⏱️ Act first**
+strip above the tables listing everything due within 21 days regardless of class, and
+sweep reports keep a warm-paths strip for the same reason. Without those, per-class tables
+would be more readable and less useful.
