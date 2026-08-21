@@ -28,11 +28,14 @@ from collections import defaultdict
 from _common import CLASS_VALUES, REACHLESS_CLASSES, parse_date, read_json
 from render_sweep import (
     CLASS_HEADINGS,
+    TRIM_NOTE,
+    cell,
     contact_label,
     esc,
     link,
     render_markers,
     title_of,
+    trim,
 )
 
 # Buckets for the contact schedule, as (label, inclusive upper bound in days from today).
@@ -95,6 +98,38 @@ def bucket_of(days):
         if days <= bound:
             return label
     return BUCKETS[-1][0]
+
+
+def render_table(partners, today, marker_mode):
+    """One master table for the whole plan, ordered by contact-by date.
+
+    In campaign mode the table *is* the schedule — rows arrive sorted by `contact_by`
+    from `filter_and_sort.py --order deadline` — so the bucketed contact-schedule section
+    of the detail layout would only restate it. Urgency stays visible through the ⏱️
+    marker and the relative day count.
+    """
+    out = [
+        "| Contact by | Partner | Class | Markers | Action | What we want | Next step |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for partner in partners:
+        name = partner.get("person") or partner.get("org") or partner.get("name")
+        dagger = "" if partner.get("verified", True) else " †"
+        url = partner.get("url")
+        label = f"[{cell(name)}]({url})" if url else cell(name)
+        days = days_until(partner.get("contact_by"), today)
+        when = (f"**{partner['contact_by']}**<br>{human_delta(days)}"
+                if partner.get("contact_by") else "—<br>no date")
+        out.append(
+            f"| {when} | {label}{dagger} | {cell(partner.get('class'))} "
+            f"| {render_markers(partner.get('markers'), marker_mode) or '—'} "
+            f"| **{cell(partner.get('action'))}** | {trim(partner.get('amplification'))} "
+            f"| {cell(partner.get('next_step'))} |"
+        )
+    out.append("")
+    out.append(TRIM_NOTE)
+    out.append("")
+    return out
 
 
 def render_partner(partner, today, marker_mode):
@@ -171,7 +206,7 @@ def render_partner(partner, today, marker_mode):
     return out
 
 
-def render(partners, run_date, occasion, occasion_date, marker_mode="emoji"):
+def render(partners, run_date, occasion, occasion_date, marker_mode="emoji", layout="table"):
     today = parse_date(run_date)
     occasion_days = days_until(occasion_date, today)
 
@@ -189,6 +224,23 @@ def render(partners, run_date, occasion, occasion_date, marker_mode="emoji"):
         out.append("> **The occasion date has passed.** This plan is retrospective; check "
                    "the date before acting on it.")
         out.append("")
+
+    if layout == "table":
+        out.append("## Contact schedule")
+        out.append("")
+        if partners:
+            out.extend(render_table(partners, today, marker_mode))
+        else:
+            out.append("Nothing to schedule — no partner survived screening.")
+            out.append("")
+        unverified_rows = [p for p in partners if not p.get("verified", True)]
+        if unverified_rows:
+            out.append("## † Unverified — resolve before acting")
+            out.append("")
+            for partner in unverified_rows:
+                out.append(f"- {esc(partner.get('name'))} — {esc(partner.get('source'))}")
+            out.append("")
+        return out
 
     # --- The contact schedule: the point of campaign mode. -----------------------
     out.append("## Contact schedule")
@@ -250,6 +302,10 @@ def main(argv=None):
     parser.add_argument("--occasion", default="", help="what is being amplified")
     parser.add_argument("--occasion-date", dest="occasion_date", default="",
                         help="the occasion's date YYYY-MM-DD")
+    parser.add_argument("--layout", choices=("table", "detail"), default="table",
+                        help="'table' (default) is one master table ordered by contact-by; "
+                             "'detail' is a bucketed schedule plus per-partner blocks, which "
+                             "is what a Google Drive Doc needs")
     parser.add_argument("--markers", choices=("emoji", "text"), default="emoji",
                         help="emoji ribbon (default) or bracketed text labels for a Drive Doc")
     args = parser.parse_args(argv)
@@ -267,7 +323,8 @@ def main(argv=None):
         print(f"WARNING: {missing_dates} partner(s) have no contact_by date and cannot be "
               "scheduled — they render in a trailing bucket", file=sys.stderr)
 
-    lines = render(partners, args.run_date, args.occasion, args.occasion_date, args.markers)
+    lines = render(partners, args.run_date, args.occasion, args.occasion_date, args.markers,
+                   args.layout)
     with open(args.outfile, "w", encoding="utf-8") as handle:
         handle.write("\n".join(lines).rstrip() + "\n")
 

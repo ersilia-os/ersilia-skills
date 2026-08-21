@@ -140,3 +140,22 @@ Barcelona/Catalonia/Spain.
    selector, rendering a bare `✉`. Only reachable once campaign mode existed.
 3. **`MARKER_TEXT` had no entry for `⏱️`**, so `--markers text` silently dropped the
    urgency label — the one marker a Drive reader would most need.
+
+## Table layout added (2026-08-21)
+
+The reports were too text-heavy to scan. Both list renderers gained `--layout
+table|detail`, defaulting to `table`: one master table, one row per partner.
+
+**Why this was not the original design, and why it is fine now.** Both renderers avoided
+pipe tables entirely because the Google Drive markdown-to-Doc conversion mangles them. But
+v1 output is local-only, so that constraint was not actually biting — the design had been
+shaped by a destination the skill does not yet write to. The two layouts now serve the two
+destinations explicitly: `table` for the local report, `detail` (with `--markers text`) for
+a Drive Doc if that step is ever built.
+
+**One rule worth keeping.** Context fields (`hook`, `amplification`) are trimmed to fit a
+cell; `next_step` never is. The first table draft trimmed everything at 96 characters,
+which turned Agencia SINC's row from "decide whether a result ships; only if yes submit;
+if no, drop this row" into "decide by late September whether a peer-reviewed result …" —
+a conditional instruction rendered as an unconditional one. A truncated next step is worse
+than a wide column.

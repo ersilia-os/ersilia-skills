@@ -87,6 +87,81 @@ CLASS_HEADINGS = {
 }
 
 
+# --- Table layout ---------------------------------------------------------------
+# `--layout table` is the default for the local markdown report: one row per partner,
+# scannable at a glance. `--layout detail` keeps the heading-per-partner prose form and
+# is what a Google Drive Doc needs, because that conversion mangles pipe tables — see
+# the module docstring. Keep both working; they serve different destinations.
+
+# How much of a prose field survives in a table cell. Trimmed cells end in "…" so a
+# reader can always tell something was cut rather than silently reading a half-sentence
+# as the whole instruction.
+CELL_LIMIT = 96
+
+
+def cell(value):
+    """Make a value safe for a markdown table cell.
+
+    Escapes pipes — an unescaped `|` in a hook or a URL silently splits the row into the
+    wrong number of columns and corrupts every cell after it — and collapses newlines,
+    which would end the table early.
+    """
+    text = str(value or "").strip()
+    if not text:
+        return "—"
+    text = " ".join(text.split())
+    return text.replace("|", "\\|")
+
+
+def trim(value, limit=CELL_LIMIT):
+    """Shorten a prose field for a table cell, preferring a sentence boundary.
+
+    Returns the whole string when it already fits. Otherwise cuts at the last sentence
+    end inside the limit, falling back to the last word boundary, and marks the cut with
+    an ellipsis. Never cuts mid-word.
+    """
+    text = cell(value)
+    if text == "—" or len(text) <= limit:
+        return text
+    window = text[:limit]
+    for stop in (". ", "; ", " — "):
+        idx = window.rfind(stop)
+        if idx > limit // 2:
+            return window[:idx + 1].rstrip()
+    idx = window.rfind(" ")
+    return (window[:idx] if idx > 0 else window).rstrip() + " …"
+
+
+# Context fields (hook, amplification) are trimmed; `next_step` never is. It is the
+# field the whole skill exists to produce, and a truncated instruction is worse than a
+# long cell — a trimmed conditional ("only if X, otherwise drop") reads as an
+# unconditional one.
+TRIM_NOTE = ("*Cells ending in “…” are trimmed for context only — next steps are never "
+             "trimmed. Full text is in the partner JSON, or re-render with `--layout detail`.*")
+
+
+def render_table(partners, marker_mode):
+    """One master table for the whole report, one row per partner."""
+    out = [
+        "| Partner | Class · Scope | Markers | Pri | Action | Why them | Next step |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for partner in partners:
+        name = partner.get("person") or partner.get("org") or partner.get("name")
+        dagger = "" if partner.get("verified", True) else " †"
+        url = partner.get("url")
+        label = f"[{cell(name)}]({url})" if url else cell(name)
+        scope = f"{cell(partner.get('class'))} · {cell(partner.get('scope'))}"
+        out.append(
+            f"| {label}{dagger} | {scope} | {render_markers(partner.get('markers'), marker_mode) or '—'} "
+            f"| {cell(partner.get('priority'))} | **{cell(partner.get('action'))}** "
+            f"| {trim(partner.get('hook'))} | {cell(partner.get('next_step'))} |"
+        )
+    out.append("")
+    out.append(TRIM_NOTE)
+    out.append("")
+    return out
+
 def esc(value):
     """Return a display string, collapsing None to an em dash."""
     text = str(value or "").strip()
@@ -185,7 +260,7 @@ def render_partner(partner, marker_mode="emoji"):
     return out
 
 
-def render(partners, run_date, focus, sources, marker_mode="emoji"):
+def render(partners, run_date, focus, sources, marker_mode="emoji", layout="table"):
     """Build the whole report as a list of lines."""
     by_class = defaultdict(list)
     for partner in partners:
@@ -203,6 +278,35 @@ def render(partners, run_date, focus, sources, marker_mode="emoji"):
     legend = MARKER_LEGEND_TEXT if marker_mode == "text" else MARKER_LEGEND
     out.append(f"**Markers:** {legend}")
     out.append("")
+
+    if layout == "table":
+        # The table is sorted by priority already, and 🤝 marks the warm rows, so the
+        # separate "start here" list and the per-class sections would just restate it.
+        out.append("## Counts")
+        out.append("")
+        for class_name in class_order:
+            group = by_class[class_name]
+            tally = Counter(p.get("priority") for p in group)
+            breakdown = " · ".join(f"{p} {tally[p]}" for p in PRIORITY_VALUES if tally[p])
+            out.append(f"- **{class_name}:** {len(group)}" + (f" ({breakdown})" if breakdown else ""))
+        if not class_order:
+            out.append("- Nothing survived screening this sweep.")
+        out.append("")
+        out.append("## Partners")
+        out.append("")
+        if partners:
+            out.extend(render_table(partners, marker_mode))
+        else:
+            out.append("Nothing survived screening this sweep.")
+            out.append("")
+        unverified_rows = [p for p in partners if not p.get("verified", True)]
+        if unverified_rows:
+            out.append("## † Unverified — resolve before sharing")
+            out.append("")
+            for partner in unverified_rows:
+                out.append(f"- {esc(partner.get('name'))} — {esc(partner.get('source'))}")
+            out.append("")
+        return out
 
     # Warm paths first — the cheapest actions in the report, and the ones most likely
     # to be dropped if a reader stops halfway down a long list.
@@ -254,6 +358,10 @@ def main(argv=None):
     parser.add_argument("--date", dest="run_date", required=True, help="run date YYYY-MM-DD")
     parser.add_argument("--focus", default="", help="the focus lens for this sweep")
     parser.add_argument("--sources", type=int, default=0, help="how many sources were swept")
+    parser.add_argument("--layout", choices=("table", "detail"), default="table",
+                        help="'table' (default) is one master table, one row per partner; "
+                             "'detail' is a heading and labelled bullets per partner, which "
+                             "is what a Google Drive Doc needs")
     parser.add_argument("--markers", choices=("emoji", "text"), default="emoji",
                         help="emoji ribbon (default, for the local report) or bracketed "
                              "text labels (for a Google Drive Doc, whose markdown "
@@ -265,7 +373,7 @@ def main(argv=None):
         print("ERROR: input JSON must be an array of partner objects", file=sys.stderr)
         sys.exit(1)
 
-    lines = render(partners, args.run_date, args.focus, args.sources, args.markers)
+    lines = render(partners, args.run_date, args.focus, args.sources, args.markers, args.layout)
     with open(args.outfile, "w", encoding="utf-8") as handle:
         handle.write("\n".join(lines).rstrip() + "\n")
 

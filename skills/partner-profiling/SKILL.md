@@ -222,6 +222,14 @@ python3 scripts/render_sweep.py --in /tmp/partners_clean.json \
   --date 2026-08-20 --focus "science journalists, AMR; Barcelona institutions" --sources 14
 ```
 
+`--layout` picks the shape:
+
+- **`table`** (default) — one master table, one row per partner. What you want for the
+  local report; scannable in one pass.
+- **`detail`** — a heading and labelled bullets per partner, plus the warm-paths and
+  per-class sections. Wordier, and the **only** layout safe for a Google Drive Doc, whose
+  markdown conversion mangles pipe tables. Pair it with `--markers text`.
+
 Then summarise in chat: the counts strip, the warm paths, and anything flagged `†`.
 
 ### Step 8 — Review gate (STOP here)
@@ -348,10 +356,17 @@ python3 scripts/render_campaign.py --in /tmp/partners_clean.json \
   --date 2026-08-21 --occasion "Ersilia anniversary" --occasion-date 2026-11-15
 ```
 
-The report leads with the **contact schedule** — bucketed Overdue / this week / this month
-/ later / no date — then gives per-partner detail grouped by class. Summarise in chat by
-reading out the overdue and this-week buckets; those are the only ones that need a decision
-today.
+`--layout table` (the default) emits one master table ordered by contact-by date — the
+table *is* the schedule. `--layout detail` instead leads with a bucketed schedule (Overdue
+/ this week / this month / later / no date) followed by per-partner blocks, and is the
+layout to use for a Drive Doc, with `--markers text`.
+
+Summarise in chat by reading out the overdue and this-week rows; those are the only ones
+that need a decision today.
+
+**Context fields are trimmed in table layout; `next_step` never is.** A truncated
+instruction is worse than a long cell — a trimmed conditional ("only if a result ships,
+otherwise drop this row") reads as an unconditional one. Do not add a trim there.
 
 ### Step C6 — Review gate
 
@@ -365,6 +380,15 @@ window, and only the user can say which.
 
 Each of these cost a debugging cycle when the skill was built (2026-08-20).
 
+- **The default layout is `table`; the Drive-safe layout is `detail`.** These are two
+  destinations, not two styles. The table layout exists because the local report is far
+  more scannable as one row per partner; the detail layout exists because Drive cannot
+  render pipe tables. Do not collapse them into one.
+- **Escape pipes in every table cell.** `cell()` does this. An unescaped `|` in a hook or
+  a URL silently splits the row into the wrong number of columns and corrupts every cell
+  after it. When testing this, note that `line.split("|")` counts an *escaped* `\|` as a
+  separator too — count with a negative lookbehind or you will diagnose a working escape
+  as broken.
 - **Markdown pipe tables do not survive conversion to a Google Doc.** The header row comes
   back empty and its cells are demoted into a body row with escaped literal asterisks. This
   is why both renderers use headings and labelled bullets, and why the report format looks
