@@ -1,0 +1,28 @@
+{
+  "last_refresh_date": "2026-06-16",
+  "refresh_interval_days": 90,
+  "next_refresh_due": "2026-09-14",
+  "refreshed_files": [
+    "scope.md",
+    "airtable-schema.md",
+    "output-template.md"
+  ],
+  "refresh_log": [
+    {
+      "date": "2026-06-16",
+      "notes": "Initial buildout. ersilia-os org swept (417 repos: 237 model, 180 non-model); Airtable Repositories table located (base app1iYv78K6xbHkmL, table tbluZtI3W9pseCSPH, ~181 records, nightly-cron maintained); reconciliation rules and digest format defined."
+    },
+    {
+      "date": "2026-06-18",
+      "notes": "Added metric write-back: sync_airtable_metrics.py (GitHub->Airtable only) refreshes Stars/Forks/Open Issues/Subscribers/Total Commits/Contributors/Contributor Names; runs as SKILL Step 4 (after fetch, before reconcile), emits a field-ID-keyed update plan applied via MCP update_records_for_table (<=50/req). Airtable dump now includes record id + metric values. run_gh_json/_loads_gh moved to _common.py. Digest reordered action-first (Highlights, Needs attention, Registry alignment, Repository overview, Recent activity, Airtable sync) with emoji headers + an acted-on sync note. Metric field IDs: Stars fldbQUSKXf0ncJtTH, Forks fld54Du5w2IapXZOQ, Open Issues fldcw1u9DyOzs54tx, Subscribers fld43sjGwxLYjrb5q, Total Commits fldySp7DgJPKq7I93, Contributors fldznty61FrXKeIhl, Contributor Names fldL50bcwVxhl889c."
+    },
+    {
+      "date": "2026-06-18",
+      "notes": "Added Airtable<->GitHub alignment via org custom properties (status, type, mirrored from Airtable by the cron): fetch_github now reads orgs/ersilia-os/properties/values and attaches gh_status/gh_type + by_type/by_status stratification + highlights payload + easy_candidate pre-flagging; reconcile adds strict status_mismatch/type_mismatch findings. Digest reworked to 5 chapters (Highlights, Repository overview, Recent activity, Needs attention incl. Easy wins, Registry alignment). Live re-verification (179 Repositories records, 416 org repos): Airtable Status choices are Todo/In progress/Completed/Archived/Discontinued/Idle (NOT 'Discarded' as the prior schema note said) and match the GitHub status vocabulary 1:1; GitHub type adds 'Model'. Corrected airtable-schema.md choices and PARKED_STATUSES (Idle/Completed/Discontinued/Archived). run_gh_json made tolerant of older gh --paginate concatenation (this host: gh 2.24.3)."
+    },
+    {
+      "date": "2026-08-13",
+      "notes": "REMOVED the Airtable metric write-back. Live check of tbluZtI3W9pseCSPH showed the metric columns (Stars, Forks, Open Issues, Subscribers, Total Commits, Contributors, Contributor Names) no longer exist on the Repositories table, and Status changed singleSelect -> multipleSelects. Deleted scripts/sync_airtable_metrics.py, dropped SKILL Step 4 (steps renumbered 0-9), removed the '## Airtable sync' digest chapter, and stripped metric fields from the Airtable dump shape. The skill is now strictly read-only against Airtable. Remaining table fields: Name, Title, Description, URL, Status, Type, Visibility, Projects, Creation Date. Also FIXED a silent fetch bug: fetch_github.py passed the date window to `gh search prs --merged`, which is a boolean flag, so the PRs-merged bucket always returned 0 with no error; corrected to `--merged-at`. Live table now 180 records; org 428 repos (247 model, 176 trackable)."
+    }
+  ]
+}

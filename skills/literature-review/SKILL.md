@@ -51,7 +51,8 @@ Read before starting:
 - `references/apis.md` — Semantic Scholar, Google Scholar, PubMed, Europe PMC, Crossref,
   preprint endpoints. **Read before any search.**
 - `references/hub-incorporation-criteria.md` — rules for 🤖 / 🗃️ and venue priors. Read before tagging.
-- `references/hub-exclusion.md` — how to fetch and apply the Hub-DOI exclusion set.
+- `references/hub-exclusion.md` — how to build and apply the two exclusion sets (already in the
+  Hub, and already in the incorporation pipeline).
 - `references/lmic-countries.md` — the 🌍 rule (LMIC authorship).
 
 ---
@@ -70,13 +71,27 @@ Map the entity to Ersilia priorities (see Ersilia context below).
 
 ---
 
-### Step 2 — Build the Hub-DOI exclusion set
+### Step 2 — Build the exclusion sets
 
-Before searching, pull the set of DOIs already in the Hub so they can be dropped later
-(see `references/hub-exclusion.md` for the exact one-liner). The review focuses on **novel
-literature** — anything already incorporated is out of scope.
+Before searching, build **two** exclusion sets so already-known models can be dropped later
+(see `references/hub-exclusion.md` for the exact commands). The review focuses on **novel
+literature** — anything already incorporated *or already in the pipeline* is out of scope.
 
-Keep the normalised DOI set in memory. Track how many candidates it later removes.
+1. **Hub set** — DOIs of models already published to the Hub (`ErsiliaModelsDOI.csv`).
+2. **Pipeline set** — DOIs / arXiv IDs / source-repo URLs of models already **requested or in
+   progress**, extracted from the `new-model` issues on `ersilia-os/ersilia`. This catches
+   models mid-incorporation that have **no DOI in the CSV yet** and would otherwise look novel.
+
+Keep both sets in memory. Track how many candidates each removes — the two counts are reported
+separately. If either fetch fails (egress, `gh` not authenticated), proceed without that set
+and flag the skipped exclusion in the report.
+
+**Coverage self-check (pipeline set).** Both sets are fetched live, so they're always fresh —
+but the pipeline set's quality depends on the extraction regexes still matching the issue-body
+format. The build command prints a coverage line (`N keys from X/Y issues`). Baseline is ~200/250
+matched; if it prints the `WARNING` (>30% unmatchable), the issue form or URL formats have
+likely drifted — surface the warning to the user and update the regexes in `hub-exclusion.md`
+before trusting the exclusion.
 
 ---
 
@@ -123,8 +138,9 @@ Verify first-author surname + year before composing an entry. Prefer Semantic Sc
 returned fields; fall back to Crossref by DOI (`api.crossref.org/works/<doi>`). If lookup
 fails, **omit the author** — never guess.
 
-- **DOI:** every entry needs a verified DOI — it is both the citation link and the
-  Hub-exclusion key. No DOI, no exclusion check.
+- **DOI:** every entry needs a verified DOI — it is both the citation link and the primary
+  exclusion key. No DOI, no DOI-based exclusion check (arXiv ID and repo URL still apply for
+  the pipeline set).
 - **Affiliations (for 🌍):** Crossref usually omits them. Use the Europe PMC *core* endpoint
   (`.../search?query=...&resultType=core`) — it returns author affiliation strings reliably.
   Don't try to fetch publisher landing pages for this; they routinely 403. See `apis.md`.
@@ -138,7 +154,12 @@ fails, **omit the author** — never guess.
 In order:
 
 1. **Dedup.** Collapse preprint + journal versions to one (keep the published DOI). Merge near-identical titles.
-2. **Exclude Hub DOIs.** Drop any candidate whose normalised DOI is in the Step-2 set. Record the count dropped.
+2. **Exclude known models.** For each candidate build its keys (normalised DOI, arXiv ID, and
+   repo URL if any) and drop it if its DOI is in the **Hub** set **or** any key is in the
+   **pipeline** set (see `hub-exclusion.md`). Record the two counts **separately** — Hub vs.
+   pipeline. **Also record each dropped item** — title, DOI (linked), and reason (`Hub` or
+   `Pipeline`) — for the "Already covered" section (Step 8 template). Only items dropped
+   *here* go in that section; scope- and venue-filtered items (steps 3–4 below) do not.
 3. **Scope filter** — keep only items in one of:
    - Antibiotic / antimicrobial / AMR drug discovery (TB, NTD antibacterials, AMPs, AMR+ML)
    - Global health / LMIC drug discovery / open-science (NTDs, Africa/LMIC-led, public datasets/infra)
@@ -154,8 +175,19 @@ In order:
    covers it. When you keep one, flag it inline in the TL;DR: `(⚠ low-tier venue)`. Prefer a
    strong preprint (bioRxiv/ChemRxiv/arXiv) over a weak journal.
 5. **Tag for integration** (the headline lens — re-read `hub-incorporation-criteria.md`):
-   - 🤖 — Hub-incorporable model (small-molecule input, one of six subtasks, openly available)
-   - 🗃️ — open dataset the Hub could train on (bioactivity / ADMET / phenotypic on priority targets)
+   - 🤖 — Hub-incorporable model (small-molecule input, one of six subtasks, openly available).
+     **Availability gate: verify the model is actually obtainable before tagging** — resolve a
+     public code repo, downloadable weights, or a **working** web server (`web_fetch` / `curl -I`).
+     Reject "on request", "TBD"/placeholder repos, paywalled-with-no-artifact, or a dead server
+     (502/503, expired cert, 404) — e.g. MalariaFlow (server down, no code) → no 🤖. If the only
+     route is a bare-IP/no-code server that responds today, keep 🤖 but flag `(⚠ fragile:
+     server-only)`. Record which route resolved.
+   - 🗃️ — open dataset the Hub could train on (bioactivity / ADMET / phenotypic on priority
+     targets). **Availability gate: verify the data is actually downloadable before tagging** —
+     resolve the download URL / repo / accession (`web_fetch` or `curl -I`). Reject "on request",
+     paywalled, dead-link, or tool/model papers that use public data without releasing their own
+     (e.g. MalariaFlow → no 🗃️). If it doesn't resolve, drop the marker. Record the data location
+     — it's what the dataset entry links to (Step 7).
 6. **Equity** — apply 🌍 (first/last author at LMIC institution); ranking bonus on tie-breaks.
    LMIC-pathogen papers with no LMIC authorship → note under "Research Gaps", don't promote.
 
@@ -181,13 +213,21 @@ hard line budget:
 | **Overview** | the picture + why it matters for Ersilia | **≤ 2 lines** |
 | **Biology / Target** | mechanism, druggability, resistance — landmarks only | **≤ 2 lines** |
 | **Drug Discovery** | assays, screens, scaffolds, lead series | **≤ 2 lines** |
-| **Models & Datasets worth integrating** | the core section — see below | most detail here |
+| **Models & Datasets worth integrating** | ranked pointer index (🤖 / 🗃️) — see below; detail lives in the Step-7 tables | ≤ 5 + 5 one-line pointers |
 | **Research Gaps** | field gaps **and** review limitations, merged — see below | bullets |
 
-**Models & Datasets worth integrating — aim for 5 + 5.** List up to **5 models (🤖)** and up to
-**5 datasets (🗃️)**, one embedded-DOI line each, ordered by how incorporable they are. If the
-topic genuinely yields fewer high-quality ones, list what exists and say so — never pad with
-weak/low-tier entries. Close with one line on what the Hub already covers / still lacks.
+**Models & Datasets worth integrating — a ranked shortlist of pointers, aim for 5 + 5.** This is
+the "at a glance, grab these first" index — **not** a second write-up. List up to **5 models
+(🤖)** and up to **5 datasets (🗃️)**, ordered by how incorporable they are, one line each:
+
+```
+[Author et al., YYYY](https://doi.org/<doi>) — one clause on why it's incorporable / how it ranks.
+```
+
+**No TL;DR here** — the full description lives once in the detail tables below (Step 7): each
+model in its topical sub-section, each dataset in **Datasets & benchmarks**. Don't repeat it.
+If the topic genuinely yields fewer high-quality ones, list what exists and say so — never pad
+with weak/low-tier entries. Close with one line on what the Hub already covers / still lacks.
 
 **Research Gaps — one merged section.** A single bulleted list covering both (a) gaps in the
 science (understudied biology, contested results, missing methods) and (b) this review's own
@@ -224,7 +264,9 @@ sub-sections by Hub subtask). Render only the sub-sections that have entries, in
 3. **Featurization** — descriptors, embeddings, foundation-model representations.
 4. **Generation** — generative / de-novo design.
 5. **Property / ADMET** — physchem, ADMET, toxicity predictors.
-6. **Datasets & benchmarks** — open dataset / benchmark releases (🗃️).
+6. **Datasets & benchmarks** — open dataset / benchmark releases (🗃️). Each entry must **link
+   the verified data location** (repo / Zenodo / accession) — a linked-DOI paper alone isn't
+   enough; the reader has to be able to click through to the actual downloadable data.
 
 Collapse the rare subtasks (similarity, projection) into an "Other models" bucket only if
 populated. Reviews are **not** sub-divided.
@@ -235,26 +277,29 @@ populated. Reviews are **not** sub-divided.
 |---|---|
 | ⭐ | very-high-impact venue (Nature, Science, Cell, PNAS, NMI, NEJM, Lancet, JACS, Angew. Chem., family) |
 | 🌍 | first/last author at LMIC institution (`lmic-countries.md`) |
-| 🤖 | Hub-incorporable model (`hub-incorporation-criteria.md`) |
-| 🗃️ | open dataset the Hub could train on |
+| 🤖 | Hub-incorporable model (`hub-incorporation-criteria.md`) — **availability verified** (resolvable code / weights / working web server); never on "on request", TBD repos, or a dead server. Flag `(⚠ fragile: server-only)` when the sole route is a bare-IP/no-code server |
+| 🗃️ | open dataset the Hub could train on — **verified downloadable** (resolvable URL / repo / accession); never on data that's only described, on-request, or paywalled |
 | 💻 | paper explicitly names a public repo URL — do not infer |
 
 ---
 
 ### Step 8 — Write output (+ optional Slack)
 
+**Default location: the skill's own `examples/` directory.** Every report is written to
+`<skill-dir>/examples/literature_<topic>_<YYYYMMDD>.md` (the `examples/` folder next to this
+`SKILL.md`) so reports accumulate as a dated archive. `--out` overrides this.
+
 Write the markdown file, then surface it:
-- **Claude.ai / Cowork:** write to `/mnt/user-data/outputs/literature_<topic>_<YYYYMMDD>.md`
-  and call `present_files`.
-- **Claude Code / local:** that path won't exist — write to `--out` if given, else
-  `./literature_<topic>_<YYYYMMDD>.md`, and hand the user the file path (there is no
-  `present_files`).
+- **Claude Code / local:** write to `--out` if given, else
+  `<skill-dir>/examples/literature_<topic>_<YYYYMMDD>.md`, and hand the user the file path.
+- **Claude.ai / Cowork:** also copy to `/mnt/user-data/outputs/literature_<topic>_<YYYYMMDD>.md`
+  and call `present_files` so the user can download it (the `examples/` copy stays in the bundle).
 
 Template (every citation embeds its DOI as a link — no bare DOI/PMID strings anywhere):
 
 ```markdown
 # Literature Research: [Topic]
-*Generated: [Date] | Engines: Semantic Scholar, Google Scholar (+ PubMed, Europe PMC, PLOS, preprints) | Papers: N | Hub DOIs excluded: M*
+*Generated: [Date] | Engines: Semantic Scholar, Google Scholar (+ PubMed, Europe PMC, PLOS, preprints) | Papers: N | Hub DOIs excluded: M | Pipeline models excluded: P*
 
 ## Overview
 [≤ 2 lines — citations as embedded DOI links]
@@ -266,8 +311,11 @@ Template (every citation embeds its DOI as a link — no bare DOI/PMID strings a
 [≤ 2 lines]
 
 ## Models & Datasets worth integrating
-**Models (🤖) — up to 5**, most-incorporable first: one embedded-DOI line each.
-**Datasets (🗃️) — up to 5**: one embedded-DOI line each.
+*Ranked pointers to the detail tables below — no TL;DRs here.*
+**Models (🤖) — up to 5**, most-incorporable first:
+1. [Author et al., YYYY](https://doi.org/<doi>) — one clause on incorporability / rank.
+**Datasets (🗃️) — up to 5**, most-incorporable first:
+1. [Author et al., YYYY](https://doi.org/<doi>) — one clause on incorporability / rank.
 [one line on what the Hub already covers / still lacks]
 
 ## Research Gaps
@@ -299,15 +347,33 @@ Template (every citation embeds its DOI as a link — no bare DOI/PMID strings a
 |---|---|---|
 
 ### Datasets & benchmarks
-| Paper | Markers | TL;DR + why for Ersilia |
-|---|---|---|
-*(render only non-empty sub-sections; flag any sub-tier venue inline as `⚠ low-tier venue`)*
+| Paper | Markers | Data location | TL;DR + why for Ersilia |
+|---|---|---|---|
+| [Author et al., *Venue*, YYYY](url) | 🗃️ | [repo / Zenodo / accession](data-url) | … |
+*(render only non-empty sub-sections; flag any sub-tier venue inline as `⚠ low-tier venue`.
+The **Data location** link is required and must be verified-resolvable — a 🗃️ entry without a
+working data link should not be here.)*
 
 ---
 
 ## Search Log
 | Engine/Source | Query | Results |
 |---|---|---|
+
+---
+
+## Already covered — excluded from the review
+*Candidates found during search but dropped in Step 5 because they are already in the Hub or the
+incorporation pipeline. Listed for transparency; not part of the novel-literature set above.*
+
+| Item | DOI | Reason |
+|---|---|---|
+| [*short title*](https://doi.org/<doi>) | `10.xxxx/…` | Hub / Pipeline |
+*(one row per dropped candidate; DOI is the required field — title from the search hit, author
+optional (don't verify or guess for excluded items). For pipeline drops matched on arXiv ID or
+repo URL rather than DOI, put that key in the DOI column and link accordingly. Omit the whole
+section if nothing was dropped. Row count must match the `Hub DOIs excluded: M | Pipeline models
+excluded: P` header counts.)*
 ```
 
 **In-chat summary** after presenting:
@@ -315,6 +381,8 @@ Template (every citation embeds its DOI as a link — no bare DOI/PMID strings a
 2. The 2–3 most important papers, one line each.
 3. The single most important gap.
 4. If present: 🤖 Hub candidates and 🌍 LMIC-led papers, as short bullets.
+5. Exclusions: `M` already in the Hub, `P` already in the pipeline — full list in the report's
+   "Already covered" section.
 
 **Slack — experimental, disabled by default.** Do **nothing** Slack-related unless the user
 passes `--slack` in this request. When (and only when) they do: post a single pointer to
@@ -350,8 +418,16 @@ Hub-compatible models.
   embedded: `[Author et al., Year](https://doi.org/<doi>)`.
 - No verbatim abstracts — write fresh TL;DRs.
 - No invented DOIs, authors, or dates — omit and note why.
-- No paper already in the Hub (the Step-2 exclusion is mandatory).
+- No paper already in the Hub **or already in the incorporation pipeline** (both Step-2
+  exclusions are mandatory; report the two drop counts separately).
 - No 🤖 on non-small-molecule inputs (protein/RNA/peptide/image/pocket) — surface as context instead.
+- No 🤖 without **verified availability** — a resolvable code repo, downloadable weights, or a
+  web server that responds *now*. "On request", a TBD/placeholder repo, a paywalled paper with no
+  artifact, or a dead server (502/503, expired cert, 404) gets no 🤖 (e.g. MalariaFlow). If the
+  only route is a bare-IP/no-code server that's up today, keep 🤖 but flag `(⚠ fragile: server-only)`.
+- No 🗃️ without a **verified, resolvable download** (repo / Zenodo / accession). Data that's only
+  described, "on request", paywalled, dead-linked, or used-but-not-released by a tool/model paper
+  (e.g. MalariaFlow) gets no 🗃️. Every "Datasets & benchmarks" row needs a working data link.
 - No 💻 without an explicit repo URL from the paper.
 - No 🌍 promotion of work *about* LMICs without LMIC authorship.
 - Don't pad to hit 20–40 — if the topic is sparse, say so.

@@ -123,17 +123,41 @@ Apply 🤖 when **all of the following hold**:
 3. The model performs one of the six Hub subtasks (use this file as the
    reference taxonomy). Map ambiguous tasks to the most specific subtask, and
    only call it "Generation" if the headline contribution is generative.
-4. The model is **openly available** — code or weights or web server. Mark 🤖
-   even for online-only services (ADMETLab-style entries are a Hub pattern), but
-   prefer code-bearing entries when triaging. This is a hard requirement, not a
-   preference: if **none** of code, weights, or a queryable web server/API exists
-   — and no dataset is released for a Data-to-model route — there is nothing to
-   incorporate from, and the paper does not qualify for 🤖 at all, regardless of
-   how well it otherwise fits. "Proprietary" only justifies an online-mode 🤖
-   entry when there is still a live API to call; a fully closed model with no
-   interface of any kind is not incorporable.
+4. The model is **openly available** — code or weights or web server — and that
+   availability is **verified, not assumed** (see the availability gate below).
+   Mark 🤖 even for online-only services (ADMETLab-style entries are a Hub
+   pattern), but prefer code-bearing entries when triaging.
 5. The endpoint is plausibly Hub-relevant. Cardiology-only or plant-only
    models, for instance, do not fit unless they generalise.
+
+**Availability gate — the model must actually be obtainable/runnable today.**
+🤖 marks *a model the team can go and get and run*, not one that merely exists in
+a paper. Before applying it, confirm **at least one** of these resolves, and
+record which:
+
+- **Code:** a public repository (GitHub/GitLab/Zenodo) that actually exists —
+  resolve the URL (`curl -I` / `web_fetch`), don't infer it from the lab name.
+- **Weights:** downloadable trained parameters (repo release, Zenodo, figshare).
+- **Web server:** a URL that returns a working app **right now** — fetch it and
+  confirm it's not dead. A 502/503, an expired-certificate failure, a login wall,
+  or a 404 means **no working server**.
+
+**"Proprietary" is not itself a pass.** It only satisfies this gate through the
+web-server/API route above — a live, callable API counts; a fully closed model
+with no interface of any kind does not, regardless of how well it otherwise fits.
+
+Reject 🤖 (surface as context instead) when **none** resolve: "code available on
+request", "TBD"/"coming soon" repo placeholders, a paywalled paper with no
+released artifact, or a web server that no longer responds.
+*Example: MalariaFlow (Lin 2024) — the author's own CV lists "Code: TBD", the
+dataset is paywalled, and the web server (`malariaflow.idruglab.cn`) returns 502
+Bad Gateway with an expired cert → no 🤖, no 🗃️; it is context only.*
+
+**Fragility flag.** When the *only* availability route is a **bare-IP or
+non-institutional web server with no code/weights** (e.g. `http://197.255.x.x:8081`),
+it passes the gate if it responds today, but tag it `(⚠ fragile: server-only)` in
+the entry — it will rot the moment the box goes down and is a weak incorporation
+target versus a code-bearing model.
 
 When 🤖 is applied, the item stays in the topical chapter it would have
 landed in anyway (per `output-template.md` placement rules), but is sorted
@@ -147,6 +171,26 @@ Hub model the team hasn't built yet — i.e. there is no model in the paper, OR
 the dataset is bigger / cleaner / more diverse than what the paper's own model
 was trained on. The presence of bioactivity (IC50/MIC), ADMET, or phenotypic
 endpoint data on Hub-priority pathogens is the strongest signal.
+
+**Availability gate — the dataset must actually be downloadable/checkable.**
+🗃️ marks *data the team can go and get*, not data that merely exists. Before
+applying it, confirm there is a **resolvable, openly accessible location** for
+the data and record it:
+
+- **Accept:** a working download URL or repository (Zenodo, Figshare, GitHub
+  data folder, OSF), a public-database accession (ChEMBL, PubChem, BindingDB,
+  GEO), or supplementary-information files that actually contain the data.
+- **Reject (no 🗃️):** "available from the authors on request", a login/paywall
+  wall, a dead or 404 link, a description of data with no release, or a **tool /
+  model paper that consumes public data without publishing its own curated set**.
+  *Example: MalariaFlow ships a workflow but no downloadable dataset — no 🗃️.*
+- **Verify, don't assume:** resolve the link (`web_fetch` / `curl -I`) or the
+  accession before tagging. If it doesn't resolve, drop the 🗃️. When the data
+  lives somewhere other than the paper DOI, capture that data location — it is
+  what the dataset entry links to (see `SKILL.md` Step 7).
+
+A candidate can still appear in the review as context without 🗃️; the marker is
+specifically a promise that the data is retrievable today.
 
 When 🗃️ is the *only* marker (no 🤖), the item still stays in its topical
 chapter — the marker alone tells the reader the dataset is Hub-trainable.

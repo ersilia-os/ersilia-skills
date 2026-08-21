@@ -12,8 +12,14 @@ echo "Linking skills into $SKILLS_DST ..."
 for skill_dir in "$SKILLS_SRC"/*/; do
   skill_name="$(basename "$skill_dir")"
   target="$SKILLS_DST/$skill_name"
-  if [ -L "$target" ]; then
+  if [ -L "$target" ] && [ -e "$target" ]; then
     echo "  (already linked) $skill_name"
+  elif [ -L "$target" ]; then
+    # Dangling symlink — e.g. the repo moved, or $HOME changed. Note that [ -L ] alone
+    # is true for a broken link, so checking it first would silently skip the repair.
+    rm "$target"
+    ln -s "$skill_dir" "$target"
+    echo "  Relinked (was broken): $skill_name"
   elif [ -e "$target" ]; then
     echo "  (SKIPPED — $skill_name already exists and is not a symlink)"
   else

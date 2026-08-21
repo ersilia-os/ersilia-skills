@@ -1,0 +1,23 @@
+{
+  "skill_name": "model-fixing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Yes, go ahead and apply those fixes.",
+      "expected_output": "Following an ersilia-model-test diagnosis in the conversation (run failure + downstream consistency failures on a model), the skill builds a concrete edit plan, re-reads the affected files (mainly main.py), shows a before/after plan and asks to confirm, applies minimal surgical edits without touching run.sh/run_output.csv/checkpoints, re-runs `ersilia test --shallow` once, and reports which checks now pass vs still fail. Deletes the JSON report afterward.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Fix the metadata issues you found on eos4ywv but leave the code alone for now.",
+      "expected_output": "Skill scopes the fix plan to metadata.yml only (e.g. trimming Description to <=600 chars, fixing case-sensitive field formats, list-vs-string), does not edit main.py or other files, confirms the plan, applies it, re-runs the shallow test once, and reports. Respects the user's scope restriction.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Apply the fixes to eos96f4 at /home/marina/models/error_models/eos96f4.",
+      "expected_output": "No ersilia-model-test diagnosis exists in the conversation. The skill declines to guess at fixes and asks the user to run ersilia-model-test first so failures are diagnosed against real test output, rather than editing files blindly.",
+      "files": []
+    }
+  ]
+}

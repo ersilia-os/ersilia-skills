@@ -53,7 +53,8 @@ Ground truth is the real incorporated repo on GitHub.
 - [ ] `main.py` runs on 3 SMILES without error
 - [ ] Output values match ground truth `run_output.csv` within 1% (100 floats × 3 rows)
 - [ ] `run_columns.csv`: 100 columns named `feat_00`…`feat_99`, type `float`, direction empty
-  _(ground truth uses `dim_` — skill output must use `feat_`)_
+  _(ground truth uses `dim_`; `feat_` is the preferred prefix for new work, so either is
+  acceptable here — do not fail the eval on the prefix alone)_
 - [ ] `ersilia_pack_utils` used in `main.py`
 - [ ] `model/checkpoints/macaw_chembl_trained.joblib` present and LFS-tracked
 - [ ] `install.yml` has all deps pinned

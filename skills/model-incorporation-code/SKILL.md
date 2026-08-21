@@ -232,22 +232,48 @@ Rules (details in `references/template-structure.md`):
   `smi_000` for 1000 outputs since max index = 999 has 3 digits); representation/featurisation
   outputs: `feat_` + zero-padded index using the same padding rule (e.g. `feat_00` for
   100 dims, `feat_000` for 512 dims, `feat_0000` for 2048 dims); single-value predictors: a meaningful name like
-  `logp` or `activity_score`. Note: many older Ersilia models use `dim_` instead of
-  `feat_` — that is historical; all new incorporations must use `feat_`.
+  `logp` or `activity_score`.
+
+  Prefer `feat_` and `smi_` for new incorporations — but these are **conventions, not
+  enforced rules**, and the hub is genuinely split. Among existing featurizers `dim_`
+  is the plurality (13 models against 10 using `feat_`, plus 7 `feature_` and 1
+  `dimension_`), and `smi_` leads `smiles_` only 14 to 8. Nothing in the `ersilia`
+  codebase checks any prefix, and no Ersilia documentation deprecates `dim_`. Do not
+  "correct" an existing model's columns on the strength of this preference alone; see
+  ersilia-os/ersilia#1901.
 - **type**: `float`, `integer`, or `string` — nothing else.
-- **direction**: `high` or `low` — the direction of biological activity. `high`
-  means higher output values correspond to more of the modelled property (e.g. a
-  higher probability score means the molecule is more likely to have that activity).
-  `low` means lower values correspond to more of the property (e.g. hydration free
-  energy in kcal/mol, where more negative = more solvated). Leave **empty** (not
-  the word "none") for sampling models and for representation models with abstract
-  latent dimensions (e.g. neural embeddings like UniMol) where individual dimensions
-  have no interpretable direction. For fingerprint-based representations (e.g. Morgan
-  counts), use `high` since a higher value means more of that structural feature is
-  present.
+- **direction**: `high` or `low` — whether a larger value means **more of the modelled
+  property**. `high` means higher output values correspond to more of the property
+  (e.g. a higher probability score means the molecule is more likely to have that
+  activity). `low` means lower values correspond to more of the property (e.g.
+  hydration free energy in kcal/mol, where more negative = more solvated). Leave
+  **empty** (not the word "none") for sampling models and for representation models
+  with abstract latent dimensions (e.g. neural embeddings like UniMol) where
+  individual dimensions have no interpretable direction. For fingerprint-based
+  representations (e.g. Morgan counts), use `high` since a higher value means more of
+  that structural feature is present.
+
+  **`direction` is magnitude, not desirability.** It says nothing about what is wanted
+  in a drug candidate. A cardiotoxicity score is `high` because the number rises with
+  cardiotoxicity, even though *less* cardiotoxicity is what you want. Two things push
+  readers towards the wrong reading and should be ignored: the vocabulary file is named
+  `desired_directions.txt`, and it offers `intermediate`, a value that only makes sense
+  under a desirability reading and which no model in the hub uses.
+
+  This was applied inconsistently across the hub before a 2026 sweep corrected 51
+  models: hERG blockade was `high` in four models while cardiotoxicity and
+  cytotoxicity were `low`, and synthetic accessibility was `high` in two models and
+  `low` in a third. All of those describe rising property magnitude and should have
+  agreed.
 - **description**: one plain-English sentence, no commas.
 
-Examples from real Ersilia models:
+The row count of this file is not free: **`Output Dimension` in `metadata.yml` must
+equal the number of data rows here**, and `/model-incorporation-metadata` relies on it.
+If you change the number of output columns, update the metadata to match.
+
+Examples from real Ersilia models. These are shown **as they exist in the hub**, which is
+why two of them use `dim_` and `smiles_` rather than the preferred `feat_` and `smi_` —
+the preference is recent, the models are not:
 
 **eos3b5e — annotation, single output:**
 ```
