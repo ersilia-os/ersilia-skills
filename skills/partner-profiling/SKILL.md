@@ -225,8 +225,8 @@ python3 scripts/render_sweep.py --in /tmp/partners_clean.json \
 `--layout` picks the shape:
 
 - **`table`** (default) — **one table per class**, with columns chosen for that class
-  (a `Creative` table carries rate, event experience and portfolio; a `Media` table
-  carries reach). Warm rows also get a strip at the top, because splitting by class
+  (a `Creative` table carries event experience and portfolio; a `Media` table carries
+  reach), plus a shared **Cost** column on every table. Warm rows also get a strip at the top, because splitting by class
   scatters them. See "Report columns differ by class" in `classification.md`.
 - **`detail`** — a heading and labelled bullets per partner, plus the warm-paths and
   per-class sections. Wordier, and the **only** layout safe for a Google Drive Doc, whose
@@ -369,6 +369,10 @@ layout to use for a Drive Doc, with `--markers text`.
 Summarise in chat by reading out the overdue and this-week rows; those are the only ones
 that need a decision today.
 
+Campaign reports also carry a **Budget** section: the partners that cost money, and
+separately the ones nobody has priced. There is no arithmetic — costs are free text and
+cannot be summed — and the unpriced list is the more useful half.
+
 **Context fields are trimmed in table layout; `next_step` never is.** A truncated
 instruction is worse than a long cell — a trimmed conditional ("only if a result ships,
 otherwise drop this row") reads as an unconditional one. Do not add a trim there.
@@ -413,6 +417,11 @@ Each of these cost a debugging cycle when the skill was built (2026-08-20).
 - **Markers are derived after the dedup loop, not when a row is appended.** A later
   duplicate can upgrade a kept row's priority or add a contact; markers computed at append
   time went stale and silently dropped the `⭐`/`🤝`/`✉️` the upgrade had just earned.
+- **An absent `cost` means "not established", never "free".** The renderers print `—`
+  and the campaign Budget section names the unpriced partners outright, because an
+  unknown cost is a risk and a blank cell reads as a zero. On the anniversary run the two
+  unpriced rows were Norrsken venue hire and Open Tech Week participation — plausibly the
+  only two line items that would actually cost anything.
 - **The contact policy fails closed.** An unrecognised `kind` is stripped, not kept. This
   is deliberate: the default for an unreviewed channel type is to discard it. Adding one is
   an edit to `ALLOWED_CONTACT_KINDS` in `scripts/_common.py` after a human decision.

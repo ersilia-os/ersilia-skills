@@ -173,3 +173,24 @@ is the whole reason campaign mode exists. So campaign reports now carry an **⏱
 strip above the tables listing everything due within 21 days regardless of class, and
 sweep reports keep a warm-paths strip for the same reason. Without those, per-class tables
 would be more readable and less useful.
+
+### Cost as a cross-class field (2026-08-21, same day)
+
+`rate_note` existed only for `Creative`, which meant the biggest likely line item in the
+anniversary campaign — Norrsken venue hire — had nowhere to live. Replaced by a general
+`cost` field on any class, a shared **Cost** column on every table, and a **Budget**
+section in campaign reports. `rate_note` is kept as a legacy alias.
+
+**The rule that matters: absent cost means *not established*, never *free*.** The
+renderers print `—` and say so in the footnote, and the Budget section names unpriced
+partners outright. On the anniversary run the two unpriced rows were Norrsken venue hire
+and Open Tech Week participation — plausibly the only two items that would cost anything,
+which is exactly why a blank cell must not read as zero.
+
+Two bugs found while building it:
+
+- The Budget strip's free-cost test was an exact match, so `"Free — editorial"` was filed
+  as a paid item. Costs are almost always qualified — `is_free()` now matches on the first
+  word.
+- The Creative table briefly carried both `Rate` and the new shared `Cost`, duplicating
+  the same value in two columns.

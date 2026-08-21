@@ -25,7 +25,8 @@ import argparse
 import sys
 from collections import defaultdict
 
-from _common import CLASS_VALUES, REACHLESS_CLASSES, parse_date, read_json
+from _common import (CLASS_VALUES, REACHLESS_CLASSES, cost_of, is_free, parse_date,
+                     read_json)
 from render_sweep import (
     CLASS_HEADINGS,
     TRIM_NOTE,
@@ -164,13 +165,15 @@ def render_partner(partner, today, marker_mode):
     axes.append(f"action **{esc(partner.get('action'))}**")
     out.append(f"- **Axes:** {' · '.join(axes)}")
 
+    # Cost applies to any class — a venue and a photographer both cost money, editorial
+    # coverage does not — so it is not inside the Creative block.
+    if cost_of(partner):
+        out.append(f"- **Cost:** {esc(cost_of(partner))}")
     if partner.get("class") == "Creative":
         if partner.get("portfolio_url"):
             out.append(f"- **Portfolio:** {link('portfolio', partner['portfolio_url'])}")
         if partner.get("does_events") is not None:
             out.append(f"- **Covers events:** {'yes' if partner['does_events'] else 'no / unknown'}")
-        if partner.get("rate_note"):
-            out.append(f"- **Rate:** {esc(partner['rate_note'])}")
 
     recent = partner.get("recent_work") or []
     if recent:
@@ -257,6 +260,29 @@ def render(partners, run_date, occasion, occasion_date, marker_mode="emoji", lay
         out.append("")
 
         out.extend(render_tables_by_class(partners, today, marker_mode))
+
+        # Budget strip. No arithmetic — costs are free text and cannot be summed — but a
+        # campaign needs the paid items and the unpriced ones in one place. The unpriced
+        # list is the more useful half: an unknown cost is a budget risk, not a zero.
+        priced, unpriced = [], []
+        for partner in partners:
+            label = str(partner.get("person") or partner.get("org")
+                        or partner.get("name") or "").strip()
+            value = cost_of(partner)
+            if value is None:
+                unpriced.append(label)
+            elif not is_free(value):
+                priced.append((label, value))
+        if priced or unpriced:
+            out.append("## Budget")
+            out.append("")
+            for label, value in priced:
+                out.append(f"- **{label}** — {esc(value)}")
+            if unpriced:
+                out.append(f"- **Not yet priced:** {', '.join(unpriced)} — establish these "
+                           "before committing; an unknown cost is a risk, not a zero.")
+            out.append("")
+
         out.append(TRIM_NOTE)
         out.append("")
         unverified_rows = [p for p in partners if not p.get("verified", True)]

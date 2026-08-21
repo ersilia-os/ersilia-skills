@@ -176,6 +176,7 @@ the row**, so use the exact strings.
 | `recent_work` | array | `{"title", "url", "date", "note"}`. The evidence behind the hook. |
 | `warm_paths` | array of string | Required in practice whenever `warmth` is above `Cold`. |
 | `contacts` | array | `{"kind", "value"}` — **`kind` must be from the vocabulary in `data-handling.md`**; anything else is stripped. |
+| `cost` | string | What engaging them costs: `"Free — editorial"`, `"€800–1,500 full day"`, `"Quote on request"`. Free text, any class. **Omit it when nobody has established a price** — an absent cost renders as "not established" and is listed as a budget risk, whereas guessing "Free" hides one. |
 | `verified` | bool | `false` if no live page confirmed the details. Renders with `†`. |
 
 ### Campaign-mode fields
@@ -190,7 +191,7 @@ and renders in a trailing bucket.
 | `amplification` | string | What we are hoping they actually do: a news item, a listing in a mail-out, event photography. |
 | `portfolio_url` | string | `Creative` only. |
 | `does_events` | bool | `Creative` only — does the portfolio show event work. |
-| `rate_note` | string | `Creative` only — published day rate, quote route. Never a negotiated figure. |
+| `rate_note` | string | **Legacy alias for `cost`**, accepted for older pools. Prefer `cost`, which applies to every class. |
 
 **Deriving `contact_by` is a judgement, so record the reasoning.** A monthly print title
 closes copy weeks ahead; a daily wants days; a photographer books out months. The script

@@ -64,6 +64,44 @@ FORBIDDEN_CONTACT_KINDS = {
 }
 
 
+# --- Cost -----------------------------------------------------------------------
+# `cost` is free text, not a vocabulary: "Free", "EUR 800-1,500 full day", "Venue hire —
+# quote needed". Any class can carry it — editorial coverage is free, a photographer and a
+# venue are not — so it is a shared column rather than a Creative-only field.
+#
+# An ABSENT cost renders as "—" meaning **not established**, never "free". Treating
+# unknown as free is how a campaign budget gets a surprise in it, so the renderers say
+# "not established" and the reference docs say so too.
+COST_UNKNOWN = "—"
+
+
+def cost_of(partner):
+    """The cost of engaging this partner, or None when it was never established.
+
+    ``rate_note`` is the legacy Creative-only name and is accepted as an alias, the same
+    way event-discovery accepts a flat ``deadline`` alongside typed ``deadlines``.
+    """
+    for field in ("cost", "rate_note"):
+        value = partner.get(field)
+        if value is not None and str(value).strip():
+            return str(value).strip()
+    return None
+
+
+# Cost values that mean "no money changes hands". Matched on the FIRST word, because a
+# cost is almost always qualified — "Free — editorial", "Free (member rate)" — and an
+# exact-match check put those in the paid column of the budget.
+FREE_COST_WORDS = {"free", "none", "no", "gratis", "n/a", "na", "nil", "zero"}
+
+
+def is_free(value):
+    """True when a cost string means nothing is payable. False for None (unknown != free)."""
+    if value is None:
+        return False
+    words = str(value).strip().lower().replace("—", " ").replace("-", " ").split()
+    return bool(words) and words[0].strip("().,:;") in FREE_COST_WORDS
+
+
 def warn(message):
     """Print a WARNING to stderr (stdout is reserved for machine-readable output)."""
     print(f"WARNING: {message}", file=sys.stderr)

@@ -19,7 +19,7 @@ import argparse
 import sys
 from collections import Counter, defaultdict
 
-from _common import CLASS_VALUES, PRIORITY_VALUES, read_json
+from _common import CLASS_VALUES, COST_UNKNOWN, PRIORITY_VALUES, cost_of, read_json
 
 MARKER_LEGEND = (
     "⭐ High fit · 🏠 Barcelona / Catalonia · 🌍 Global-South · 💻 Open-source · "
@@ -137,7 +137,8 @@ def trim(value, limit=CELL_LIMIT):
 # long cell — a trimmed conditional ("only if X, otherwise drop") reads as an
 # unconditional one.
 TRIM_NOTE = ("*Cells ending in “…” are trimmed for context only — next steps are never "
-             "trimmed. Full text is in the partner JSON, or re-render with `--layout detail`.*")
+             "trimmed. A `—` in **Cost** means not established, **not** free. "
+             "Full text is in the partner JSON, or re-render with `--layout detail`.*")
 
 
 def _fmt_events(partner):
@@ -166,11 +167,9 @@ CLASS_COLUMNS = {
     "Institution": [("Scope", lambda p: cell(p.get("scope")))],
     "Comms-team":  [("Scope", lambda p: cell(p.get("scope")))],
     "Community":   [("Reach", lambda p: cell(p.get("reach")))],
+    # No Rate column here any more — `Cost` is shared across every class (see
+    # render_class_table), so a Creative-only rate column would duplicate it.
     "Creative":    [("Covers events", _fmt_events),
-                    # Generous limit: the rate note often carries a second, cheaper tier
-                    # ("€400-500 for events under 2-4 hours") which is exactly what an
-                    # evening event needs, and a 44-character cut was dropping it.
-                    ("Rate", lambda p: trim(p.get("rate_note"), 72)),
                     ("Portfolio", _fmt_portfolio)],
 }
 CLASS_COLUMNS_DEFAULT = [("Scope", lambda p: cell(p.get("scope")))]
@@ -200,6 +199,10 @@ def render_class_table(partners, class_name, marker_mode, mode="sweep",
     if mode == "sweep":
         cols.append(("Pri", lambda p: cell(p.get("priority"))))
     cols.extend(CLASS_COLUMNS.get(class_name, CLASS_COLUMNS_DEFAULT))
+    # Generous limit: a cost note often carries a second, cheaper tier ("EUR 400-500 for
+    # events under 2-4 hours") which is exactly what a short evening event needs, and a
+    # tight cut dropped it.
+    cols.append(("Cost", lambda p: trim(cost_of(p), 72) if cost_of(p) else COST_UNKNOWN))
     cols.append((context_header, lambda p: trim(p.get(context_field) or p.get("hook"))))
     cols.append(("Action", lambda p: f"**{cell(p.get('action'))}**"))
     cols.append(("Next step", lambda p: cell(p.get("next_step"))))
@@ -264,6 +267,8 @@ def render_partner(partner, marker_mode="emoji"):
         f"reach {esc(partner.get('reach'))} · warmth {esc(partner.get('warmth'))} · "
         f"priority {esc(partner.get('priority'))} · action **{esc(partner.get('action'))}**"
     )
+    if cost_of(partner):
+        out.append(f"- **Cost:** {esc(cost_of(partner))}")
     if partner.get("priorities"):
         mapped = ", ".join(str(p) for p in partner["priorities"])
         out.append(f"- **Ersilia priorities served:** {mapped}")

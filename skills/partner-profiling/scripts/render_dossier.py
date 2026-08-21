@@ -20,7 +20,7 @@ Exit code 0 on success; 1 on unreadable input or an input array that is not one 
 import argparse
 import sys
 
-from _common import read_json
+from _common import cost_of, read_json
 
 SECTIONS_REQUIRED = ("background", "pitch", "ask")
 
@@ -118,6 +118,12 @@ def render(target, run_date):
                     if contact.get("restricted") else "")
             out.append(f"- {contact.get('kind')}: {contact.get('value')}{note}")
     out.append("")
+
+    if cost_of(target):
+        out.append("## Cost")
+        out.append("")
+        out.append(esc(cost_of(target)))
+        out.append("")
 
     out.append("## The pitch")
     out.append("")

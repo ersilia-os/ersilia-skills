@@ -141,7 +141,14 @@ class list above.**
 | `Media` | Reach |
 | `Open-source` · `Institution` · `Comms-team` | Scope |
 | `Community` | Reach |
-| `Creative` | Covers events · Rate · Portfolio |
+| `Creative` | Covers events · Portfolio |
+
+Every table also carries a shared **Cost** column, whatever the class — a venue and a
+photographer both cost money, editorial coverage does not, and a campaign cannot be
+budgeted if the field only exists for photographers. **An empty Cost renders as `—`
+meaning *not established*, never *free*.** Treating unknown as zero is how a budget
+acquires a surprise, so campaign reports also list unpriced partners explicitly under
+**Budget**.
 
 The `Creative` row is the reason this exists: you decide a commission on event experience,
 rate and licensing, and none of those fit a shared table whose columns were chosen for
