@@ -20,6 +20,8 @@ Each set of skills is designed to help us achieve one of these three goals. Some
 | Name | Skill |
 |------|-------|
 | stylia-plotting | Documents how to create Python plots using the `stylia` package — Ersilia's matplotlib wrapper for publication-ready figures. |
+| event-discovery | Discovers events worth Ersilia's time and writes a classified, published digest. |
+| partner-profiling | Discovers and profiles potential partners for visibility and networking — journalists and outlets, open-source organisations, and Barcelona/Catalonia institutions. Runs a broad `sweep` or a single-target `dossier`. |
 | event-discovery | Discover interesting events for Ersilia and write a summarised report. Classify between categories: local/global, science/philanthropy, etc. |
 
 ### 2. Ersilia Model Hub Growth
