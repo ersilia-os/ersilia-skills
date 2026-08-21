@@ -10,6 +10,26 @@ candidates inside their chapter (see `output-template.md` for chapter layout
 and 🤖-first ordering rules). A paper that "looks like the Hub" is a paper
 that resembles what has historically made it in.
 
+## Model status values
+
+`ersilia_search` tags every model with one of four statuses. The default search (no
+`--all-statuses` flag) returns **Ready only** — always pass `--all-statuses` when checking
+for overlap with a paper, or a model already in the incorporation pipeline or a past
+incorporation attempt will be invisible to the search.
+
+| Status | Meaning | How it affects a paper's verdict |
+|---|---:|---|
+| **Ready** | Fully incorporated, available in the Hub today | Standard overlap check — flag as **Potential overlap** |
+| **In progress** | Actively being incorporated right now | The team already knows about this method — flag as **Already in Hub pipeline**, overriding the base eligibility verdict |
+| **In maintenance** | Incorporated, currently being reworked/fixed | Same treatment as In progress — **Already in Hub pipeline** |
+| **Archived** | Was incorporated, later removed | Does not override the verdict; surface as context (possible revival candidate, or superseded) — do not speculate on the reason unless documented |
+
+`In progress` entries are frequently metadata-thin (title + GitHub link only, no
+Description/Task/Subtask yet), so they can be missed by keyword-relevance ranking even
+with `--all-statuses` set. When a paper's method name is distinctive, cross-check directly:
+`ersilia_search --status "In progress" --status "In maintenance" --status "Archived" --limit 200 --csv`
+and grep for the name.
+
 ## Subtask distribution (Ready models)
 
 | Subtask | Models | Share |
@@ -93,10 +113,10 @@ less often, a Nature/Cell-family high-impact venue when the work is foundational
 
 Apply 🤖 when **all of the following hold**:
 
-1. **The model takes small molecules as its primary input.** The Hub's current
-   incorporation surface is small-molecule-only: SMILES / InChI / molfile.
-   That means the following are explicitly **not** 🤖-eligible, no matter how
-   relevant they look otherwise:
+1. **The model's runtime input is exactly one small molecule.** The Hub's
+   incorporation surface is strictly single-compound-in: one SMILES / InChI /
+   molfile per call, nothing else alongside it. That means the following are
+   explicitly **not** 🤖-eligible, no matter how relevant they look otherwise:
    - protein-sequence input (e.g. solubility, secondary structure, pLM
      interpretability)
    - RNA-sequence or RNA-structure input
@@ -106,17 +126,40 @@ Apply 🤖 when **all of the following hold**:
    - cell-image / phenotypic-image input
    - pocket-tensor or protein-pocket conditioning
    - multi-omics target-ID pipelines
+   - **multi-molecule runtime input** — any model that needs two or more
+     molecules supplied together in a single call (fragment-pair linker
+     generators, reaction-pair predictors, PROTAC warhead+E3-ligand
+     assemblers). Every individual input being a small molecule does **not**
+     save it: the Hub's interface has no slot for a second compound, a
+     designated reaction site, or a paired reference structure. Treat this
+     the same as a hard modality exclusion → **Out of scope**.
 
-   Compound–protein interaction models are 🤖-eligible because the *primary*
-   user-facing input is the small molecule; the protein is a condition the Hub
-   handles as a fixed target argument. Generative models that emit small
-   molecules are 🤖-eligible even when they have no molecule input, *provided*
-   they do not require a non-molecule conditioning input (e.g. a pocket
-   tensor) the Hub's generator interface cannot currently supply.
+   Compound–protein interaction (DTI) *models* are 🤖-eligible **only when the
+   protein is fixed at build time**, baked into the model as one specific
+   target — the runtime call is still exactly one compound in, one prediction
+   out (e.g. "predict pIC50 against PfDHFR" takes just the SMILES; PfDHFR is
+   not a second runtime input). A DTI model whose protein is itself a runtime
+   argument (pick-any-target) is out of scope by the multi-input rule above.
+
+   A DTI/bioactivity **dataset** — as opposed to a model — is a different
+   case, and should not be excluded by this rule: if it pairs many compounds
+   against one fixed, Hub-relevant protein target (e.g. bioactivity data
+   against an essential *P. falciparum* protein), it is a strong Data-to-model
+   candidate (route C4). Ersilia would fix that one target and train an
+   ordinary single-compound-in predictor from the pairs — the *resulting* Hub
+   model still respects the one-compound rule even though the source data has
+   a compound-protein-pair shape. Flag these as **Conditional candidate (C4)**,
+   not **Out of scope**.
+
+   Generative models that emit small molecules are 🤖-eligible even when they
+   have no molecule input, *provided* the call takes at most one molecule
+   (or none) and does not require a second molecule, a non-molecule
+   conditioning input (e.g. a pocket tensor), or a paired reference structure
+   the Hub's generator interface cannot currently supply.
 
    For models that are clearly important but fall outside this surface — surface
    them as context items without 🤖, with a one-liner stating "Out of the
-   current Hub small-molecule-input surface" so the team knows to revisit when
+   current Hub single-compound-input surface" so the team knows to revisit when
    the Hub interface expands.
 
 2. The paper introduces or releases a model / tool, not just an analysis.
@@ -161,24 +204,23 @@ But ~21 % of the Hub (Internal + Replicated source types) reached the Hub via an
 or data-to-model training. Papers enabling one of these routes are Hub candidates
 too, just conditional ones.
 
-Use **🤖❓** for these. They appear in the same topical chapter as a direct 🤖,
-sorted below 🤖 entries but above unannotated items. A paper carries **either**
-🤖 or 🤖❓, never both.
+In the paper-to-model-assessment skill, these papers receive the **Conditional candidate** verdict
+instead of a direct Strong candidate / Candidate verdict. A paper receives either
+Conditional candidate or a direct eligibility verdict — never both.
 
-### Seven trigger questions (C1–C7)
+### Six trigger questions (C1–C6)
 
-Ask these *before* running the standard 🤖 checklist. Fire 🤖❓ on the first
-trigger that matches.
+Ask these *before* running the standard eligibility checklist in Step 3. Fire
+**Conditional candidate** on the first trigger that matches.
 
 | ID | Trigger | Route name | Hub precedent |
 |---|---|---|---|
 | C1 | The paper's main contribution is a **pretrained encoder** (molecular transformer, GNN, diffusion backbone) whose hidden-layer embeddings could be exposed as a featurizer, even if the paper does not frame it that way. | Encoder extraction | eos7w6n (GROVER), eos4rw4 (CDDD), eos9zw0 (MolPMoFiT), eos82v1 (SMI-TED), eos3wac (DeBERTaV2), eos39co (Uni-Mol) |
 | C2 | The paper describes **fine-tuning a foundation model** on a new endpoint — the fine-tuning recipe is the contribution, not a new backbone. | Fine-tuned predictor | eos4cxk, eos8c0o, eos6hy3, eos93h2 (ImageMol fine-tunes); eos6m2k (MolE + XGBoost on 40 antimicrobial strains) |
 | C3 | The model is **online/proprietary only**, but the API can be called in bulk to generate labels for a surrogate. Ersilia has used teacher–student distillation for models like this. | Surrogate distillation | eos2gth (MAIP surrogate via teacher–student distillation on 2M ChEMBL molecules) |
-| C4 | The paper releases a **screening dataset without a model** on a Hub-priority endpoint — large enough that LazyQSAR or Chemprop could produce a useful predictor. | Data-to-model (LazyQSAR) | eos4rta, eos2l0q, eos9ivc, eos5bsw, eos7l5m (LazyQSAR models trained on published assay data) |
-| C5 | A single codebase covers **multiple distinct endpoints or organisms** and could be deployed as several separate Hub entries. | One-to-many deployment | ChEMBL antimicrobial family (15 entries); GROVER family (12 entries, eos7w6n + task-specific models); ImageMol family (5 entries, eos4avb + fine-tunes) |
-| C6 | The model is a **multi-task predictor** whose output vector across tasks could serve as a molecular fingerprint, independent of its primary framing. | Multi-task featurizer | eos93h2 (10 GPCR scores as bioactivity embedding); eos1vms (616 ChEMBL target probabilities as fingerprint); eos4u6p (CC Signaturizer, 3200-dim bioactivity spaces) |
-| C7 | The model fails reproducibility because one component is **proprietary or unavailable**, but an open-source substitute benchmarked in the paper would yield comparable performance. | Replication with substitution | eos8d8a (MycPermCheck, replicated with LazyQSAR + Ersilia decoy sampler); eos9n1s (hemozoin inhibition, RDKit replacing proprietary ChemSpyder descriptors) |
+| C4 | The paper releases a **screening dataset without a model** on a Hub-priority endpoint — large enough that LazyQSAR or Chemprop could produce a useful predictor. This applies to both **experimental bioassay data** (MIC, IC50, phenotypic readouts) and **computational virtual-screening data** (docking scores, e.g. AutoDock Vina). For docking datasets, the route trains a QSAR surrogate to predict docking scores directly from SMILES, eliminating the need to run the docking pipeline per query. Scale threshold differs by data type: ~500+ compounds for bioassay endpoints; ~10 000+ per target for docking-surrogate routes (noisier labels require more data). | Data-to-model (LazyQSAR) | eos4rta, eos2l0q, eos9ivc, eos5bsw, eos7l5m (LazyQSAR models trained on published assay data) |
+| C5 | The model is a **multi-task predictor** whose output vector across tasks could serve as a molecular fingerprint, independent of its primary framing. | Multi-task featurizer | eos93h2 (10 GPCR scores as bioactivity embedding); eos1vms (616 ChEMBL target probabilities as fingerprint); eos4u6p (CC Signaturizer, 3200-dim bioactivity spaces) |
+| C6 | The model fails reproducibility because one component is **proprietary or unavailable**, but an open-source substitute benchmarked in the paper would yield comparable performance. | Replication with substitution | eos8d8a (MycPermCheck, replicated with LazyQSAR + Ersilia decoy sampler); eos9n1s (hemozoin inhibition, RDKit replacing proprietary ChemSpyder descriptors) |
 
 ### Conditional body-sentence template
 
@@ -199,7 +241,7 @@ Released under {license}. Priority: {High / Medium / Low} because {specific Hub 
 
 **C1 — Encoder extraction**
 
-> 🤖❓ Conditional Hub candidate via Encoder extraction.
+> Conditional Hub candidate via Encoder extraction.
 > Paper contributes: a SMILES-based molecular transformer pretrained on 77M PubChem compounds.
 > Hub would do: expose the final hidden-layer embedding as a 768-dim fingerprint → Featurization entry.
 > Prerequisite: weights confirmed downloadable (verify Zenodo record resolves).
@@ -207,7 +249,7 @@ Released under {license}. Priority: {High / Medium / Low} because {specific Hub 
 
 **C3 — Surrogate distillation**
 
-> 🤖❓ Conditional Hub candidate via Surrogate distillation.
+> Conditional Hub candidate via Surrogate distillation.
 > Paper contributes: a proprietary antimalarial activity model accessible via web API (no weights or code released).
 > Hub would do: call the API in bulk → train a surrogate via teacher–student distillation → Activity prediction entry.
 > Prerequisite: API must remain live and allow bulk queries (~50k compounds; see eos2gth precedent).
@@ -215,8 +257,16 @@ Released under {license}. Priority: {High / Medium / Low} because {specific Hub 
 
 **C4 — Data-to-model**
 
-> 🤖❓ Conditional Hub candidate via Data-to-model (LazyQSAR).
+> Conditional Hub candidate via Data-to-model (LazyQSAR).
 > Paper contributes: 23 000 MIC measurements against M. tuberculosis H37Rv (no model shipped).
 > Hub would do: train a QSAR predictor with LazyQSAR → MIC/activity prediction entry for TB whole-cell.
 > Prerequisite: dataset confirmed downloadable under open licence; LazyQSAR training (~1 h on CPU) is the only additional step.
 > Released under CC-BY. Priority: High because TB whole-cell activity prediction is a named Hub gap.
+
+**C4 — Data-to-model (docking surrogate)**
+
+> Conditional Hub candidate via Data-to-model (LazyQSAR).
+> Paper contributes: 48 000 AutoDock Vina docking scores against Mtb InhA (SMILES + score, supplementary CSV; no QSAR model shipped).
+> Hub would do: train a QSAR surrogate on SMILES → Vina score with LazyQSAR → Activity prediction entry (docking-score proxy), so users can screen libraries without running Vina.
+> Prerequisite: dataset confirmed downloadable under open licence; compound count ≥10 000 per target (check before proceeding — small docking runs are below the surrogate reliability threshold); target is Hub-priority (TB).
+> Released under CC-BY. Priority: High because a SMILES-native docking proxy for a TB target fills a Hub gap and is orders of magnitude cheaper to run than the docking pipeline itself.
