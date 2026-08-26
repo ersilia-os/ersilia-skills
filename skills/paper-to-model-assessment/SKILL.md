@@ -190,8 +190,26 @@ Work through these questions in order — stop as soon as you hit a hard exclusi
 
 7. **Is a similar model already in the Hub, in any status?**
    If the `ersilia_search` results (across all statuses) contain a model doing the same
-   task on the same endpoint, flag it — but the wording depends on status:
-   - **Ready** → flag as **Potential overlap**; name the existing model(s).
+   task on the same endpoint, flag it — but the wording depends on status, and, for a
+   `Ready` match, on whether the paper is the *same method* as the Hub entry, not just
+   the same task+endpoint:
+   - **Ready, same method** → flag as **Candidate - Update**; name the existing model.
+     "Same method" means the paper is a new version, optimization, or re-implementation
+     of the *identical* underlying algorithm/tool — not an independently different
+     technique that happens to reach the same task+endpoint. Do not infer this from
+     topical similarity alone; it requires explicit evidence such as: the paper's own
+     related-work/comparison text describing itself as extending, modifying, or
+     optimizing the prior tool; a method name that is transparently a variant of the Hub
+     model's name (e.g. "oCReM" vs. the Hub's "CReM"); or the released repo's
+     README/module structure stating it forks, wraps, or modifies the original tool's
+     codebase. Check the actual repo (not just the paper's claims) before applying this
+     label — e.g. `gh api repos/OWNER/REPO --jq '.description,.fork'` and read the
+     README for language like "modified X library" or a subfolder literally named after
+     the original tool. If you cannot find this kind of explicit evidence, do not use
+     this label — fall through to the next bullet instead.
+   - **Ready, different method** → flag as **Potential overlap**; name the existing
+     model(s). This is the default when a Ready model covers the same task+endpoint via
+     a genuinely different architecture or approach.
    - **In progress** or **In maintenance** → flag as **Already in the Hub pipeline**. This
      is a stronger signal than a plain overlap: the team already knows about this method
      and is actively working on it (or maintaining it). Do not present the paper as an
@@ -201,7 +219,10 @@ Work through these questions in order — stop as soon as you hit a hard exclusi
    - **Archived** → flag as **Previously incorporated, now archived**; name the model. Do
      not speculate about why it was archived unless the paper or Hub description states
      it — just surface the fact so the user can decide whether it's worth reviving or
-     whether the new paper's version supersedes it.
+     whether the new paper's version supersedes it. Apply the same same-method check
+     described above: if the paper is confirmed as an updated version of the archived
+     tool, say so explicitly (a strong revival signal) rather than only noting a generic
+     overlap.
    Do NOT decide on deduplication in any case — surface the overlap and status, and let
    the user decide.
 
@@ -209,9 +230,14 @@ Work through these questions in order — stop as soon as you hit a hard exclusi
 7 finds a matching model that is `In progress` or `In maintenance`, override the final
 verdict to **Already in Hub pipeline** regardless of what the base verdict would have
 been — calling a paper a "Strong candidate" is misleading if the team is already building
-it. An `Archived` match does NOT override the verdict; keep the base verdict and add the
-archived-model context as a reasoning bullet instead, since an archived model may need
-reviving or may be legitimately superseded by the new paper.
+it. A confirmed same-method match against a `Ready` model overrides the base verdict to
+**Candidate - Update** instead (see step 7's verification requirement) — this takes
+priority over a plain "Strong candidate"/"Candidate" label, but is itself superseded by
+an `In progress`/`In maintenance` match if both are somehow present. An `Archived` match
+does NOT override the verdict on its own; keep the base verdict (or **Candidate -
+Update** if the same-method check confirms it against the archived model) and add the
+archived-model context as a reasoning bullet, since an archived model may need reviving
+or may be legitimately superseded by the new paper.
 
 ---
 
@@ -245,7 +271,7 @@ No background context — jump straight to the contribution.]
 
 #### Ersilia Model Hub Relevance
 
-**Verdict:** [one of: Strong candidate · Candidate · Conditional candidate · Already in Hub pipeline · Low fit · Out of scope · Not eligible]
+**Verdict:** [one of: Strong candidate · Candidate · Candidate - Update · Conditional candidate · Already in Hub pipeline · Low fit · Out of scope · Not eligible]
 
 **Reasoning:**
 [4–5 bullets, each a short clause (not a full sentence). State the fact + implication only.
@@ -256,7 +282,8 @@ route (C1–C6) fired.]
 - Task: activity prediction → aligns with Hub's largest subtask bucket.
 - Endpoint: P. falciparum IC50 → high-priority (antimalarial focus).
 - Availability: GitHub (MIT) → straightforward path.
-- Overlap: eosXXXX (Ready) covers same endpoint — review before incorporating.
+- Overlap: eosXXXX (Ready) covers same endpoint via a different method — review before incorporating.
+- Update: eosZZZZ (Ready) is the same underlying method (paper/repo confirms it extends or optimizes it) — Candidate - Update, not a fresh addition.
 - Pipeline: eosYYYY (In progress) is this same method — already being incorporated, not a fresh candidate.
 
 **Hub search results:** [list all closely matching Hub models as `eosXXXX — Title (Status)`, or "No close matches found."]
@@ -291,7 +318,7 @@ Write for a computational biologist. Do not reproduce the abstract — synthesis
 
 #### Ersilia Model Hub Relevance
 
-**Verdict:** [one of: Strong candidate · Candidate · Conditional candidate · Already in Hub pipeline · Low fit · Out of scope · Not eligible]
+**Verdict:** [one of: Strong candidate · Candidate · Candidate - Update · Conditional candidate · Already in Hub pipeline · Low fit · Out of scope · Not eligible]
 
 **Eligibility assessment:**
 [Work through the same checklist as in `--short`, but write each point as a full sentence
@@ -316,6 +343,12 @@ paper adds or differs, and always name the status explicitly:
 - If the match is `Archived`: note it was previously in the Hub and is no longer active;
   say whether the new paper's version looks like a straightforward revival candidate or
   a meaningfully different approach.
+- If the verdict is **Candidate - Update** (a confirmed same-method match against a
+  `Ready` model): shift the framing from "would this be a good new addition" to "does
+  this newer version improve enough on the existing Ready model to justify upgrading
+  it" — compare speed, accuracy, data recency, licence, and maintenance burden
+  explicitly, and cite the specific evidence (paper text or repo) that established this
+  is the same method rather than a different one.
 If no overlapping Hub models were found (at any status), state that clearly and note which
 gap the paper would fill. If the paper is out of scope or not eligible, write "N/A — model
 not eligible for incorporation."]
@@ -329,17 +362,21 @@ not eligible for incorporation."]
 | Verdict | Meaning |
 |---|---|
 | **Strong candidate** | Small-molecule input, Hub-relevant task + endpoint, open code, no identical model in the Hub (at any status) |
-| **Candidate** | Eligible but with one flag: low-priority endpoint, online-mode only, or a potential overlap with a `Ready` model |
+| **Candidate** | Eligible but with one flag: low-priority endpoint, online-mode only, or a potential overlap with a `Ready` model via a *different* method |
+| **Candidate - Update** | Confirmed same underlying method/tool as an existing `Ready` (or `Archived`) Hub model — a new version, optimization, or re-implementation, verified via explicit evidence (paper text or repo), not inferred from topical overlap alone. Relevant as a potential upgrade to the existing entry, not as a fresh addition |
 | **Conditional candidate** | The paper enables Hub incorporation via an intermediate step (encoder extraction, fine-tuning, surrogate distillation, data-to-model, or replication with substitution) — route identified via C1–C6 trigger questions |
 | **Already in Hub pipeline** | A matching model already exists as `In progress` or `In maintenance` — the team is already on it; overrides whatever the base eligibility verdict would have been |
 | **Low fit** | Eligible input modality, but task or endpoint sits outside Ersilia priorities |
 | **Out of scope** | Hard exclusion on input modality (protein, RNA, image, etc.) or input shape (requires two or more molecules in the same call) |
 | **Not eligible** | Paper does not release a model or dataset, OR it releases one but no accessible artifact exists to build it from (no open code/weights, no queryable web server/API, no usable dataset — and no conditional route (C1–C6) applies) |
 
-Note: a match against an `Archived` model does not get its own verdict — it stays at
-whatever the base eligibility verdict is (Strong candidate/Candidate/etc.), with the
-archived overlap surfaced as a reasoning bullet, since an archived entry means "no longer
-active in the Hub," not "already being handled."
+Note: a match against an `Archived` model does not, by itself, get its own verdict — it
+stays at whatever the base eligibility verdict is (Strong candidate/Candidate/etc.), with
+the archived overlap surfaced as a reasoning bullet, since an archived entry means "no
+longer active in the Hub," not "already being handled." The one exception is a *confirmed
+same-method* match (see step 7) — that does get its own verdict, **Candidate - Update**,
+since it signals a possible revival/upgrade of the archived tool rather than a fresh,
+unrelated candidate.
 
 ---
 
