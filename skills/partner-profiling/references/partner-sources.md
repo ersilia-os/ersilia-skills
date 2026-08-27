@@ -144,6 +144,38 @@ route is usually a `public_form`.
 photographer whose standard contract restricts reuse is a poor fit however good the
 portfolio. Put the licence question in `next_step`.
 
+## Links must point at the current edition
+
+**A recurring series has two kinds of page, and only one is safe to cite.**
+
+- A **generic landing page** — `canodrom.barcelona/en/opentechweek` — renders whichever
+  edition the site currently shows. Today that may be last year's; next month it may be
+  this year's. It is not a stable citation.
+- A **year-specific page** — a dated news item, `…-open-tech-week-2026-1614276` — never
+  moves.
+
+**Always cite the year-specific page as the row's `url`.** A generic page produces a link
+the reader clicks and lands on *last year's event*, which is worse than no link at all
+because it looks checked. This was flagged by a reader of a real report, which is exactly
+the wrong way to find it.
+
+When only a generic page exists, record **`edition_year`** — the edition the page actually
+documented when you read it. `filter_and_sort.py` compares both the years embedded in
+`url`/`org_url` and `edition_year` against the target year (the occasion's year in campaign
+mode, else the run year) and, on a mismatch, warns *and forces* `verified: false`. That is
+not a punishment: a row citing last year's edition genuinely is not verified for this one,
+and the `†` flag routes it to the review gate where someone has to decide.
+
+Two deliberate non-flags:
+
+- **A later year is fine.** Linking next year's edition is forward planning, not staleness.
+- **`recent_work` is never checked.** Old items there are the *evidence* — a 2019 byline is
+  the point, not a defect. Only the primary link a reader clicks is judged.
+
+**State what is still unconfirmed.** For the 2026 Open Tech Week the year-specific page
+confirmed the edition and MozFest's dates but *not* the full week's dates — so the row says
+so, rather than repeating a date range that only press coverage carried.
+
 ## The partner JSON schema
 
 Produce a JSON **array** of objects with these fields, and pass it to
@@ -177,6 +209,7 @@ the row**, so use the exact strings.
 | `warm_paths` | array of string | Required in practice whenever `warmth` is above `Cold`. |
 | `contacts` | array | `{"kind", "value"}` — **`kind` must be from the vocabulary in `data-handling.md`**; anything else is stripped. |
 | `cost` | string | What engaging them costs: `"Free — editorial"`, `"€800–1,500 full day"`, `"Quote on request"`. Free text, any class. **Omit it when nobody has established a price** — an absent cost renders as "not established" and is listed as a budget risk, whereas guessing "Free" hides one. |
+| `edition_year` | int | For a recurring series: the edition the cited page actually documents. Checked against the target year; a mismatch forces `verified: false`. See "Links must point at the current edition". |
 | `verified` | bool | `false` if no live page confirmed the details. Renders with `†`. |
 
 ### Campaign-mode fields

@@ -346,6 +346,51 @@ def merge_duplicate(base, other):
     return notes
 
 
+# --- Link freshness ------------------------------------------------------------
+# A recurring series keeps a generic landing page ("/opentechweek") that renders whichever
+# edition the site currently shows, and year-specific pages that never move. Citing either
+# the wrong year, or a generic page as if it were verified for this year, produces a link a
+# reader clicks and lands on LAST year's event — worse than no link, because it looks
+# checked. Flagged in a real report by a reader, which is exactly the wrong way to find it.
+#
+# Scope note: only the PRIMARY link is checked. `recent_work` is *supposed* to carry older
+# items — that is what makes it evidence — so a 2024 byline there is correct, not stale.
+YEAR_RE = re.compile(r"(?<!\d)(20\d{2})(?!\d)")
+
+
+def link_year_notes(partner, reference_year):
+    """Return (notes, stale) for a partner whose primary link cites an old edition.
+
+    ``reference_year`` is the occasion year in campaign mode, else the run year. A year
+    LATER than the reference is not flagged: linking next year's edition is forward
+    planning, not staleness.
+    """
+    notes = []
+    stale = False
+
+    for field in ("url", "org_url"):
+        value = str(partner.get(field) or "")
+        for found in YEAR_RE.findall(value):
+            year = int(found)
+            if year < reference_year:
+                notes.append(f"{field} points at the {year} edition, but the target year is "
+                             f"{reference_year}")
+                stale = True
+
+    edition = partner.get("edition_year")
+    if edition is not None:
+        try:
+            edition = int(edition)
+        except (TypeError, ValueError):
+            notes.append(f"edition_year={partner.get('edition_year')!r} is not a year")
+            edition = None
+        if edition is not None and edition < reference_year:
+            notes.append(f"the cited page documents the {edition} edition, not {reference_year}")
+            stale = True
+
+    return notes, stale
+
+
 def derive_markers(partner, today=None):
     """Build the marker ribbon from the partner's classified axes.
 
@@ -423,7 +468,11 @@ def main(argv=None):
     kept = []
     seen_keys = {}
     counts = {"input": len(pool), "invalid": 0, "vocabulary": 0, "known": 0,
-              "duplicate": 0, "seen": 0, "contacts_stripped": 0}
+              "duplicate": 0, "seen": 0, "contacts_stripped": 0, "stale_link": 0}
+
+    # The year a link should point at: the occasion's year in campaign mode, else the run
+    # year. Derived once so every row is judged against the same reference.
+    reference_year = (occasion or today).year
 
     for partner in pool:
         missing = validate_partner(partner)
@@ -443,6 +492,21 @@ def main(argv=None):
         for note in notes:
             counts["contacts_stripped"] += 1
             warn(f"'{partner['name']}': {note}")
+
+        # Link freshness. A stale primary link forces verified=false rather than merely
+        # warning: a row citing last year's edition is, precisely, not verified for this
+        # one, and that routes it into the report's † section where the review gate makes
+        # someone decide about it.
+        year_notes, stale = link_year_notes(partner, reference_year)
+        for note in year_notes:
+            counts["stale_link"] += 1
+            warn(f"'{partner['name']}': {note}")
+        if stale:
+            partner["stale_link"] = True
+            if partner.get("verified", True):
+                partner["verified"] = False
+                warn(f"'{partner['name']}': marking unverified — the link a reader clicks "
+                     "does not go to the target year's edition")
 
         if is_known(partner, known_names, known_domains):
             if not args.keep_known:
@@ -549,6 +613,9 @@ def main(argv=None):
         f"{counts['duplicate']} duplicate, "
         f"{counts['seen']} already-seen) -> {args.outfile}"
     )
+    if counts["stale_link"]:
+        warn(f"{counts['stale_link']} link-year problem(s) found — a link pointing at an "
+             "older edition sends the reader to the wrong event; see the † rows")
     if counts["contacts_stripped"]:
         warn(f"{counts['contacts_stripped']} contact entr(ies) were stripped by the "
              "contact policy — see references/data-handling.md")

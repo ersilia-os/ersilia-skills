@@ -172,6 +172,13 @@ For every candidate, reach a **first-party page** and confirm: the person exists
 role, the beat or remit is as claimed, and at least one dated piece of recent relevant
 work. Three outcomes:
 
+0. **Check the link points at the current edition, before anything else.** A recurring
+   series keeps a generic landing page that renders whichever edition is current *today*
+   and year-specific pages that never move — always cite the year-specific one. A generic
+   page sends the reader to last year's event while looking verified. The script enforces
+   this (see `references/partner-sources.md`), but the script can only compare years it can
+   see: a generic URL with no year in it is invisible to it unless you record
+   `edition_year`.
 1. **Confirmed** — `verified: true`.
 2. **Partly confirmed** — the organisation is real but the individual's remit could not be
    established. Keep with `verified: false`, and make `next_step` the verification itself.
@@ -417,6 +424,12 @@ Each of these cost a debugging cycle when the skill was built (2026-08-20).
 - **Markers are derived after the dedup loop, not when a row is appended.** A later
   duplicate can upgrade a kept row's priority or add a contact; markers computed at append
   time went stale and silently dropped the `⭐`/`🤝`/`✉️` the upgrade had just earned.
+- **A generic series URL is a stale link waiting to happen.** `…/opentechweek` renders
+  whichever edition the site currently shows; cite the dated page instead. This shipped
+  wrong once — a report linked the 2025 edition of Barcelona Open Tech Week while its own
+  note said the 2026 dates were unconfirmed, and a reader found it. `filter_and_sort.py`
+  now warns and forces `verified: false` on any year mismatch, but it cannot see a year
+  that isn't in the URL — record `edition_year` for generic pages.
 - **An absent `cost` means "not established", never "free".** The renderers print `—`
   and the campaign Budget section names the unpriced partners outright, because an
   unknown cost is a risk and a blank cell reads as a zero. On the anniversary run the two

@@ -194,3 +194,30 @@ Two bugs found while building it:
   word.
 - The Creative table briefly carried both `Rate` and the new shared `Cost`, duplicating
   the same value in two columns.
+
+### Link freshness (2026-08-27)
+
+A reader of the anniversary report found that the Barcelona Open Tech Week row **linked the
+2025 edition** while its own note said the 2026 dates were unconfirmed. The note was honest
+and the link was not: click it and you land on last year's event, which is worse than no
+link because it looks checked.
+
+Two causes, both now addressed:
+
+1. **A generic series page was cited.** `canodrom.barcelona/en/opentechweek` renders
+   whichever edition the site currently shows — it happened to show November 2025. A
+   year-specific page existed on the same domain (`…-open-tech-week-2026-1614276`) and
+   confirms the second edition plus MozFest's 28–30 October dates first-party. The row now
+   cites that, is `verified: true`, and carries Canòdrom's own published address.
+2. **Nothing checked.** `filter_and_sort.py` now compares years found in `url` / `org_url`
+   and the new optional `edition_year` field against the target year, warns, and **forces
+   `verified: false`** on a mismatch — routing the row into the `†` section where the review
+   gate forces a decision.
+
+Two deliberate non-flags, both tested: a **later** year is forward planning, not staleness;
+and `recent_work` is never checked, because old items there are the evidence.
+
+**The residual honesty problem.** The year-specific page confirms the edition and MozFest's
+dates but *not* the full week's 26–31 October range, which only press coverage carries. The
+row says so rather than repeating it as fact. A checker can catch a wrong year in a URL; it
+cannot catch a date that no first-party page states.
