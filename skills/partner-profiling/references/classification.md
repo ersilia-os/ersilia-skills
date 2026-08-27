@@ -127,7 +127,7 @@ de-duplication needed. This was a real bug, caught when campaign mode first put 
 
 **The ribbon is emoji locally and bracketed text for a Drive Doc.** `render_sweep.py
 --markers text` swaps it, because the Drive markdown-to-Doc conversion corrupts emoji
-above U+1FFFF. See the note at the top of that script.
+outside the Basic Multilingual Plane. See the note at the top of that script.
 
 ## Report columns differ by class
 

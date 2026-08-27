@@ -183,6 +183,21 @@ def main():
     check("…in the campaign layout too", tables_consistent(camp))
     check("next_step is never trimmed in table layout",
           "RICH next step, must be the one that survives the merge." in sweep)
+
+    # G15: every trim path must mark the cut. The sentence-boundary path used to return
+    # unmarked, so a trimmed cell read as a complete thought while TRIM_NOTE promised that
+    # trimmed cells end in an ellipsis — the footnote was a lie for that path.
+    g15_row = [l for l in sweep.splitlines()
+               if "First sentence ends here" in l and l.startswith("|")]
+    check("G15 a sentence-boundary trim is marked with an ellipsis, not left looking whole",
+          bool(g15_row) and "…" in g15_row[0]
+          and "the word-boundary fallback." not in g15_row[0],
+          f"row: {g15_row[0][:160] if g15_row else 'not rendered'}")
+
+    # The act-first heading must not carry the urgency marker: its window (21 days) is wider
+    # than the marker's (14), so the emoji would promise a marker some rows do not have.
+    check("the act-first heading carries no urgency emoji",
+          "## Act first" in camp and "## ⏱️ Act first" not in camp)
     check("a Creative table omits the reach column", "| Reach |" not in
           camp.split("Creatives to commission")[1].split("##")[0])
 
@@ -194,7 +209,7 @@ def main():
     drive = drive_md.read_text(encoding="utf-8")
     check("the Drive-safe rendition has no pipe tables",
           not any(l.startswith("|") for l in drive.splitlines()))
-    check("…and no emoji above U+1FFFF, which that conversion corrupts",
+    check("…and no emoji outside the BMP, which that conversion corrupts",
           not re.search(r"[\U0001F300-\U0001FAFF]", drive))
 
     # --- Empty pool ----------------------------------------------------------------

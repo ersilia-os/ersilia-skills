@@ -52,7 +52,7 @@ Slack. That is a deliberate consequence of recording named individuals — see
 
 ## Inputs
 
-- **`mode`** (optional): `sweep` (default) or `dossier`.
+- **`mode`** (optional): `sweep` (default), `dossier` or `campaign`.
 - **`focus`** (sweep) — a lens, e.g. "science journalists covering AMR in Africa",
   "Barcelona institutions", "open-science fellowship programmes". Default: a broad sweep
   across all three classes. **A focus makes the sweep much better** — the axis-driven
@@ -66,7 +66,9 @@ Slack. That is a deliberate consequence of recording named individuals — see
   - sweep: `reports/{YY}-{MM}-{DD}-partner-sweep.md`
   - dossier: `reports/{YY}-{MM}-{DD}-dossier-{slug}.md`
   - campaign: `reports/{YY}-{MM}-{DD}-campaign-{slug}.md`
-- **`--force`** (optional): override the recent-sweep guard in Step 0.
+- **`--force`** (optional): override the recent-sweep guard in Step 0. Campaign mode's
+  prior-work check (Step C1) is advisory and needs no flag — a second plan for the same
+  occasion is an update, not an accident.
 
 If the focus is ambiguous, ask **one** focused question. **Never invent a person, a role,
 a beat, an article or a contact address** — verify each against a live first-party page or
@@ -420,7 +422,7 @@ Each of these cost a debugging cycle when the skill was built (2026-08-20).
   back empty and its cells are demoted into a body row with escaped literal asterisks. This
   is why both renderers use headings and labelled bullets, and why the report format looks
   nothing like event-discovery's tables. Do not "improve" it back into a table.
-- **Emoji above U+1FFFF corrupt in the same conversion.** `🏠🌍💻📣🤝` become mojibake;
+- **Emoji outside the Basic Multilingual Plane corrupt in the same conversion.** `🏠🌍💻📣🤝` become mojibake;
   `⭐` (U+2B50) and `✉️` (U+2709) survive because they are BMP characters. Hence
   `render_sweep.py --markers text`, which swaps the ribbon for bracketed labels. The
   default emoji mode is correct for the local report.

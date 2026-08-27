@@ -244,3 +244,48 @@ defensive, warning rather than crashing if the invariant breaks again.
 The path that crashed was a duplicate pair combined with `--hide-seen`. Every flag had been
 exercised by hand; that *combination* never had. Which is the argument for the fixture in
 one sentence.
+
+## Copilot review on PR #37 (2026-08-27)
+
+Six comments, all six confirmed on inspection. Two were substantive, four were doc/code
+drift — and the drift all came from one cause: the table layout was added after the
+renderers were written, `SKILL.md`, `classification.md` and this file were updated for it,
+and the **module docstrings were not**.
+
+| Claim | Verdict | Fix |
+|---|---|---|
+| `SKILL.md` Inputs omits `campaign` | confirmed | all three modes listed |
+| `render_sweep.py` docstring says "no pipe tables" | confirmed | rewritten for both layouts |
+| `render_campaign.py` docstring, same | confirmed | rewritten |
+| `trim()` does not mark a sentence-boundary cut | confirmed | ellipsis on every cut path |
+| `⏱️ Act first — within 21 days` implies a 14-day marker | confirmed | emoji dropped from the heading |
+| README lists `event-discovery` twice | confirmed | my duplicate row removed |
+
+### The one that mattered
+
+`trim()` appended its ellipsis only on the word-boundary fallback. On the three
+sentence-like stops (`". "`, `"; "`, `" — "`) it returned unmarked, so a trimmed cell read
+as a complete thought — while `TRIM_NOTE` told the reader that trimmed cells end in an
+ellipsis. **That is the same defect, in the same file, as the one that made `next_step`
+untrimmable three commits earlier**: truncated content that looks complete. Fixing that
+one and leaving this one is the interesting failure here — the principle was stated in a
+comment and not applied to the function two lines above it. Now guarded (G15).
+
+### Where the review was incomplete
+
+The README claim was right and under-reported. Beyond the `event-discovery` duplicate
+(which **this PR introduced** — a row was added when one already existed), the catalogue
+also carried a byte-identical duplicate `repository-auditing` row, and omits
+`html-formatting` entirely. The duplicate is removed here because deleting a duplicate is
+in scope; **adding** a catalogue row for another skill is not, so `html-formatting` is
+reported to the team instead. `test-skill` is absent by design.
+
+### An error neither the reviewer nor the author caught until asked
+
+Four places said emoji "above U+1FFFF" corrupt in the Drive conversion. Every corrupting
+emoji is U+1F3xx–U+1F9xx — above U+FFFF, **below** U+1FFFF. The prose was wrong while the
+code was right: `run_guards.py` tests `[\U0001F300-\U0001FAFF]`, so the guard passed and the
+documentation misled. Now "outside the Basic Multilingual Plane" throughout.
+
+Also disentangled: the docstrings conflated `--layout detail` (tables) with `--markers text`
+(emoji). They fix two independent Drive problems and a Drive rendition needs both.

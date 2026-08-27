@@ -9,10 +9,13 @@ with the per-partner detail grouped by class underneath.
 Feed it output from `filter_and_sort.py --order deadline`, which sorts by `contact_by`
 and sets the ⏱️ marker.
 
-Like the other renderers this emits **no markdown pipe tables** — the Drive Doc
-conversion mangles them (see render_sweep.py's docstring). It also reuses that file's
-`--markers text` mode for the same reason: emoji above U+1FFFF corrupt in the same
-conversion, while ⏱️ (U+23F1) and ⭐ (U+2B50) survive.
+Two layouts, as in render_sweep.py. `--layout table` (the DEFAULT) emits one pipe table
+per class, each led by a contact-by column. `--layout detail` emits a bucketed schedule
+plus per-partner blocks and **no pipe tables** — that is the Drive-safe layout, because
+the Drive Doc conversion mangles tables (see render_sweep.py's docstring for the verified
+failure). Pair it with `--markers text`, which handles the separate problem of emoji
+outside the Basic Multilingual Plane being corrupted by the same conversion; ⏱️ (U+23F1)
+and ⭐ (U+2B50) are BMP characters and survive either way.
 
 Usage:
   python scripts/render_campaign.py --in clean.json --out reports/26-08-21-campaign-anniversary.md \
@@ -244,7 +247,13 @@ def render(partners, run_date, occasion, occasion_date, marker_mode="emoji", lay
         urgent = [p for p in partners
                   if (days_until(p.get("contact_by"), today) is not None
                       and days_until(p.get("contact_by"), today) <= ACT_FIRST_DAYS)]
-        out.append(f"## ⏱️ Act first — within {ACT_FIRST_DAYS} days")
+        # No ⏱️ in this heading. ACT_FIRST_DAYS (21) is a LAYOUT parameter — the strip
+        # exists only because per-class tables scatter the deadline ordering — whereas the
+        # ⏱️ marker is an URGENCY signal at URGENT_WINDOW_DAYS (14). They are deliberately
+        # different numbers, and the legend states the 14-day definition three lines above
+        # this heading, so an emoji here would tell the reader that rows due in 15-21 days
+        # carry a marker they do not have.
+        out.append(f"## Act first — within {ACT_FIRST_DAYS} days")
         out.append("")
         if urgent:
             for partner in urgent:

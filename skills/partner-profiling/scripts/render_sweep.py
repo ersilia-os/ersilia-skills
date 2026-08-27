@@ -1,12 +1,22 @@
 #!/usr/bin/env python3
 """Render the cleaned partner pool as the sweep report.
 
-Deliberately emits **no markdown pipe tables**. The Google Drive connector converts
-markdown to a Doc with headings and bullets intact, but mangles pipe tables — the
+Two layouts, one per destination. Keep both working — they are not two styles.
+
+`--layout table` (the DEFAULT) is the local markdown report: one pipe table per class,
+one row per partner, with columns chosen for that class. Scannable in a single pass.
+
+`--layout detail` renders each partner as a subheading with labelled bullet lines and no
+pipe tables at all. That is the layout for a Google Drive Doc: the connector converts
+markdown to a Doc with headings and bullets intact, but **mangles pipe tables** — the
 header row comes back empty and its cells are demoted into a body row with escaped
-literal asterisks. Verified 2026-08-20. Every partner is therefore a subheading with
-labelled bullet lines, which survives conversion and is what you want in a Doc the team
-comments on anyway.
+literal asterisks. Verified 2026-08-20.
+
+A second, independent Drive problem is handled by a separate flag: `--markers text`
+replaces the emoji ribbon with bracketed labels, because that same conversion corrupts
+emoji **outside the Basic Multilingual Plane** (the 🏠🌍💻📣🤝 set, U+1F3xx-U+1F9xx),
+while ⭐ (U+2B50) and ✉️ (U+2709) survive. Layout and markers are orthogonal: a Drive
+rendition needs `--layout detail --markers text`, both.
 
 Usage:
   python scripts/render_sweep.py --in clean.json --out reports/26-08-20-partner-sweep.md \
@@ -127,7 +137,13 @@ def trim(value, limit=CELL_LIMIT):
     for stop in (". ", "; ", " — "):
         idx = window.rfind(stop)
         if idx > limit // 2:
-            return window[:idx + 1].rstrip()
+            # The ellipsis goes on EVERY cut path, not just the word-boundary one. Cutting
+            # at a sentence end produces a cell that reads as a complete thought, which is
+            # the "truncated content looks complete" failure this skill exists to avoid —
+            # and TRIM_NOTE tells the reader that a trimmed cell ends in an ellipsis, so an
+            # unmarked cut makes the footnote a lie. Same suffix as the fallback below, so
+            # there is exactly one ellipsis form in the file.
+            return window[:idx + 1].rstrip() + " …"
     idx = window.rfind(" ")
     return (window[:idx] if idx > 0 else window).rstrip() + " …"
 

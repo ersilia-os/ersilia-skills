@@ -20,8 +20,7 @@ Each set of skills is designed to help us achieve one of these three goals. Some
 | Name | Skill |
 |------|-------|
 | stylia-plotting | Documents how to create Python plots using the `stylia` package — Ersilia's matplotlib wrapper for publication-ready figures. |
-| event-discovery | Discovers events worth Ersilia's time and writes a classified, published digest. |
-| partner-profiling | Discovers and profiles potential partners for visibility and networking — journalists and outlets, open-source organisations, and Barcelona/Catalonia institutions. Runs a broad `sweep` or a single-target `dossier`. |
+| partner-profiling | Discovers and profiles potential partners for visibility and networking — journalists and outlets, open-source organisations, Barcelona/Catalonia institutions, comms teams, community amplifiers and creatives. Runs a broad `sweep`, a single-target `dossier`, or a `campaign` plan for a dated occasion, ordered by contact-by deadline. |
 | event-discovery | Discover interesting events for Ersilia and write a summarised report. Classify between categories: local/global, science/philanthropy, etc. |
 
 ### 2. Ersilia Model Hub Growth
@@ -42,7 +41,6 @@ Several of these skills are designed to be chained together as part of a larger 
 | model-monitoring | Track pending models, stored data, etc |
 | model-fixing | When a model fails a test, reviews where it failed and fixes it automatically. |
 | github-digest | Tracks open issues and produces summaries for tech-tracking meetings. |
-| repository-auditing | Audits a repository to make sure it abides by Ersilia's standards. |
 
 ### 3. Improve scientific literacy
 
