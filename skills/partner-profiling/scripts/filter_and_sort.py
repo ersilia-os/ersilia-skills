@@ -518,7 +518,18 @@ def main(argv=None):
         else:
             partner["known_partner"] = False
 
+        # Ledger first, dedup second. Registering a row as the dedup incumbent and *then*
+        # dropping it with --hide-seen left seen_keys holding an object absent from `kept`,
+        # and the merge's identity lookup crashed on it. Both copies of a duplicate share a
+        # partner_key, so both are independently caught here anyway.
         key = partner_key(partner)
+        seen_before = args.ledger is not None and key in ledger
+        if seen_before and args.hide_seen:
+            counts["seen"] += 1
+            warn(f"hiding already-seen '{partner['name']}' (--hide-seen)")
+            continue
+        partner["seen_before"] = seen_before
+
         if key in seen_keys:
             counts["duplicate"] += 1
             incumbent = seen_keys[key]
@@ -533,21 +544,22 @@ def main(argv=None):
                 # replacement has to happen in both or the report and the ledger diverge.
                 # Search by identity, not equality: `list.index` compares dict *contents*,
                 # which would match a different partner that happens to look the same.
-                position = next(n for n, item in enumerate(kept) if item is incumbent)
-                kept[position] = base
+                position = next((n for n, item in enumerate(kept) if item is incumbent), None)
+                if position is None:
+                    # Invariant broken: the incumbent is registered but not in `kept`.
+                    # Append rather than crash, and say so — a silent swallow here would
+                    # hide a real ordering bug (it did once; see ROADMAP.md).
+                    warn(f"internal: dedup incumbent for key={key} was not in the kept list; "
+                         "appending the merged row instead")
+                    kept.append(base)
+                else:
+                    kept[position] = base
                 seen_keys[key] = base
                 merge_notes.insert(0, "the later copy was more complete and became the base")
             detail = f"; merged: {', '.join(merge_notes)}" if merge_notes else ""
             warn(f"merged duplicate of '{base.get('name')}' (key={key}){detail}")
             continue
         seen_keys[key] = partner
-
-        seen_before = args.ledger is not None and key in ledger
-        if seen_before and args.hide_seen:
-            counts["seen"] += 1
-            warn(f"hiding already-seen '{partner['name']}' (--hide-seen)")
-            continue
-        partner["seen_before"] = seen_before
 
         kept.append(partner)
 

@@ -75,6 +75,17 @@ produce, and it is worse than missing them entirely.
 
 ---
 
+## Verifying the guards
+
+```bash
+python3 examples/run_guards.py
+```
+
+30 assertions over a synthetic fixture — the deterministic half of the skill (screening,
+the contact policy, dedup, the ledger, link years, rendering). Run it after touching any
+script; add an assertion whenever you fix a bug. It cannot test discovery, which needs live
+searches — that is what the review gate is for. See `examples/README.md`.
+
 ## Reference files
 
 Read all five before starting:

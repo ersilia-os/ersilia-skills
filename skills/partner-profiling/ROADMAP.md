@@ -221,3 +221,26 @@ and `recent_work` is never checked, because old items there are the evidence.
 dates but *not* the full week's 26–31 October range, which only press coverage carries. The
 row says so rather than repeating it as fact. A checker can catch a wrong year in a URL; it
 cannot catch a date that no first-party page states.
+
+## Guard fixture, and the crash it found (2026-08-27)
+
+12 of 16 skills in this repo ship `evals/` or `examples/`; this one shipped neither, so
+every guard claimed in a commit message was unverifiable by a reviewer. Added
+`examples/guards.json` (15 deliberately broken synthetic rows) and `examples/run_guards.py`
+(30 assertions over the real scripts).
+
+**It had to be synthetic.** `event-discovery` can commit real digests because events are
+public facts; a partner sweep names journalists and carries contact addresses, which is why
+`reports/` is gitignored and why real output can never be the committed example. Every
+fixture entity is invented on a `.test` domain.
+
+**Its first run found a genuine crash.** `--hide-seen` dropped a row *after* it had been
+registered as the dedup incumbent, so a richer duplicate arriving later searched for that
+incumbent in `kept`, did not find it, and `next()` raised `StopIteration`. Fixed by running
+the ledger check *before* dedup registration — both copies of a duplicate share a
+`partner_key`, so both are caught independently anyway — and the identity lookup is now
+defensive, warning rather than crashing if the invariant breaks again.
+
+The path that crashed was a duplicate pair combined with `--hide-seen`. Every flag had been
+exercised by hand; that *combination* never had. Which is the argument for the fixture in
+one sentence.
