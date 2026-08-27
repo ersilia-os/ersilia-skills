@@ -5,10 +5,13 @@ Reads the JSON array Claude assembled during the sweep, then deterministically:
   * drops partners missing any required field (WARNING, continues);
   * rejects values outside the controlled vocabularies;
   * enforces the contact policy — forbidden channel kinds are stripped, not kept;
+  * flags a primary link citing an older edition, forcing verified=false;
   * drops partners already in the known-partners list (an existing relationship is
     not a new opportunity);
-  * de-duplicates within the run by (org domain or name, person);
-  * tags or drops partners seen in an earlier run, via the ledger;
+  * tags or drops partners seen in an earlier run, via the ledger — BEFORE dedup, see
+    the comment at the dedup site for the crash that ordering fixed;
+  * de-duplicates within the run by (org domain or name, person), keeping the more
+    complete copy;
   * derives the marker ribbon;
   * ranks by priority, then warmth, then reach, then name.
 
@@ -29,16 +32,14 @@ import sys
 from datetime import date
 
 from _common import (
-    ALLOWED_CONTACT_KINDS,
-    FORBIDDEN_CONTACT_KINDS,
     PRIORITY_VALUES,
     REACH_VALUES,
-    RESTRICTED_CONTACT_KINDS,
     WARMTH_VALUES,
     check_vocabulary,
     domain_of,
     normalise_name,
     parse_date,
+    screen_contacts,
     partner_key,
     read_json,
     validate_partner,
@@ -89,54 +90,6 @@ def order_markers(markers):
     for m in ordered:
         leftover = leftover.replace(m, "")
     return "".join(ordered) + leftover
-
-
-def normalise_contacts(partner):
-    """Apply the contact policy in place. Returns a list of policy notes for warnings.
-
-    Accepts either a single ``contact`` object or a ``contacts`` list of
-    ``{"kind": ..., "value": ...}``. An unrecognised kind is treated as forbidden —
-    **fail closed**. A new channel kind must be added to ``ALLOWED_CONTACT_KINDS``
-    deliberately, after someone has decided it is a channel published for the purpose
-    of being contacted; the default for anything unreviewed is to strip it.
-    """
-    raw = partner.get("contacts")
-    if raw is None and partner.get("contact") is not None:
-        raw = [partner["contact"]]
-    if isinstance(raw, dict):
-        raw = [raw]
-    if not isinstance(raw, list):
-        raw = []
-
-    notes = []
-    cleaned = []
-    for entry in raw:
-        if not isinstance(entry, dict):
-            notes.append(f"discarded a non-object contact entry ({entry!r})")
-            continue
-        kind = str(entry.get("kind") or "").strip().lower()
-        value = str(entry.get("value") or "").strip()
-        if kind == "none" or not value:
-            continue
-        if kind in FORBIDDEN_CONTACT_KINDS:
-            notes.append(f"stripped a {kind} contact (forbidden by the contact policy)")
-            continue
-        if kind not in ALLOWED_CONTACT_KINDS and kind not in RESTRICTED_CONTACT_KINDS:
-            notes.append(
-                f"stripped an unrecognised contact kind {kind!r} — the policy fails "
-                "closed; add it to ALLOWED_CONTACT_KINDS only after review"
-            )
-            continue
-        cleaned.append({
-            "kind": kind,
-            "value": value,
-            "restricted": kind in RESTRICTED_CONTACT_KINDS,
-        })
-
-    partner["contacts"] = cleaned
-    partner.pop("contact", None)
-    partner["has_contact"] = any(not c["restricted"] for c in cleaned)
-    return notes
 
 
 def load_known(path):
@@ -488,7 +441,7 @@ def main(argv=None):
             warn(f"dropping '{partner['name']}': {'; '.join(vocab_errors)}")
             continue
 
-        notes = normalise_contacts(partner)
+        notes = screen_contacts(partner)
         for note in notes:
             counts["contacts_stripped"] += 1
             warn(f"'{partner['name']}': {note}")

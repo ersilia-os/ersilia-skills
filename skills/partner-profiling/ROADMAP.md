@@ -289,3 +289,45 @@ documentation misled. Now "outside the Basic Multilingual Plane" throughout.
 
 Also disentangled: the docstrings conflated `--layout detail` (tables) with `--markers text`
 (emoji). They fix two independent Drive problems and a Drive rendition needs both.
+
+### Second round: what a deeper sweep found beyond the review (2026-08-27)
+
+Copilot's six comments were all doc/code drift or small logic mismatches. Sweeping for
+*more instances of the same classes* turned up nine further high-severity items, and one of
+them was not documentation at all.
+
+**The contact policy was enforced in one of three entry points.** `render_dossier.py`
+printed a hand-written target's `contacts` verbatim: a forbidden `personal_email` reached
+the page, and a `scientific_correspondence` address rendered **without** its "not a pitch
+channel" label — while `data-handling.md` claimed the policy applied "on every run" and
+that "both renderers label it". Both claims were false.
+
+Worse, the documented escape hatch could never work. `SKILL.md` said to pipe a dossier
+target through `filter_and_sort.py` first; a dossier target does not carry the six
+`REQUIRED_PARTNER_FIELDS`, so the row was dropped and the renderer received `[]`. The
+Núria Jar dossier was safe only because its author happened to include those fields.
+
+Fixed properly: `screen_contacts()` moved to `scripts/_common.py` and is now called by
+**both** `filter_and_sort.py` (pools) and `render_dossier.py` (single target), so no path
+that renders a contact can skip it. Guarded four ways.
+
+**Cost was trimmed at a bare 72** — an undeclared second cell limit, 24 characters *tighter*
+than `CELL_LIMIT`, whose comment called it "generous". It was actively cutting the live
+anniversary report: `"… (no formal rate card)"` became `"… (no …"`. A cost is a figure, not
+prose, and the informative part (a second cheaper tier, a caveat) sits at the **end**. Cost
+now joins `next_step` as never-trimmed, and `TRIM_NOTE` says so.
+
+**The scope gate contradicted the vocabulary.** "Not in scope" — marked *read this before
+Step 2* — stated the binding definition as three families while the class list carried six.
+Read literally it rejected every `Comms-team`, `Community` and `Creative` candidate the
+skill had just been extended to find, including rows the real anniversary run produced.
+
+**And the docstring of the crash fix described the order that crashed.** `filter_and_sort`'s
+module docstring still listed known-partners → dedup → ledger, hours after the ledger was
+moved *before* dedup to fix a `StopIteration`. The fix had a comment and a ROADMAP entry;
+the docstring twelve lines above it was untouched — the same failure the review had just
+flagged twice.
+
+Stale counts fixed by removing the numbers instead: prose said "30 assertions" and "15
+rows" when the suite had grown to 37 and 16. A count duplicated in four places drifts every
+time; the script prints its own.

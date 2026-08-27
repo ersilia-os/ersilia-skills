@@ -212,3 +212,61 @@ def validate_partner(partner):
         if value is None or (isinstance(value, str) and not value.strip()):
             missing.append(field)
     return missing
+
+def screen_contacts(partner):
+    """Apply the contact policy to ``partner['contacts']`` in place; return warning notes.
+
+    **This lives here, not in filter_and_sort.py, so that every path which RENDERS a
+    contact can enforce it.** It used to live in the screening script alone, which meant
+    `render_dossier.py` printed a hand-written target's contacts verbatim — a forbidden
+    `personal_email` reached the page, and a `scientific_correspondence` address rendered
+    without its "not a pitch channel" label — while `data-handling.md` claimed the policy
+    was enforced "on every run". A policy that only one of three entry points applies is
+    prose with extra steps.
+
+    Accepts either a single ``contact`` object or a ``contacts`` list of
+    ``{"kind": ..., "value": ...}``. An unrecognised kind is treated as forbidden —
+    **fail closed**. A new channel kind must be added to ``ALLOWED_CONTACT_KINDS``
+    deliberately, after someone has decided it is a channel published for the purpose of
+    being contacted; the default for anything unreviewed is to strip it.
+
+    Idempotent: re-screening an already-screened list is a no-op, so piping a pool through
+    the screening script and then rendering it does not double-warn.
+    """
+    raw = partner.get("contacts")
+    if raw is None and partner.get("contact") is not None:
+        raw = [partner["contact"]]
+    if isinstance(raw, dict):
+        raw = [raw]
+    if not isinstance(raw, list):
+        raw = []
+
+    notes = []
+    cleaned = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            notes.append(f"discarded a non-object contact entry ({entry!r})")
+            continue
+        kind = str(entry.get("kind") or "").strip().lower()
+        value = str(entry.get("value") or "").strip()
+        if kind == "none" or not value:
+            continue
+        if kind in FORBIDDEN_CONTACT_KINDS:
+            notes.append(f"stripped a {kind} contact (forbidden by the contact policy)")
+            continue
+        if kind not in ALLOWED_CONTACT_KINDS and kind not in RESTRICTED_CONTACT_KINDS:
+            notes.append(
+                f"stripped an unrecognised contact kind {kind!r} — the policy fails "
+                "closed; add it to ALLOWED_CONTACT_KINDS only after review"
+            )
+            continue
+        cleaned.append({
+            "kind": kind,
+            "value": value,
+            "restricted": kind in RESTRICTED_CONTACT_KINDS,
+        })
+
+    partner["contacts"] = cleaned
+    partner.pop("contact", None)
+    partner["has_contact"] = any(not c["restricted"] for c in cleaned)
+    return notes

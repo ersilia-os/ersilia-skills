@@ -1,12 +1,12 @@
 # examples — synthetic guard fixture
 
 ```bash
-python3 examples/run_guards.py     # prints "30 guards OK", or fails naming the guard
+python3 examples/run_guards.py     # prints "N guards OK", or fails naming the guard
 ```
 
 ## What this is, and what it is not
 
-`guards.json` is **not** sample output. It is 15 deliberately broken partner rows, each
+`guards.json` is **not** sample output. It is deliberately broken partner rows, each
 constructed to trip exactly one of the skill's rejection rules, plus `run_guards.py`, which
 runs the real scripts over them and asserts every guard fired.
 
@@ -34,7 +34,8 @@ duplicate merging preferring the more complete copy · known-partner suppression
 and by name · the ledger with `--hide-seen` · link-year freshness (stale flagged, future
 not, old `recent_work` not) · campaign deadline warnings · `Creative` rows omitting reach ·
 marker-ribbon variation selectors · pipe escaping and table column consistency ·
-`next_step` never being trimmed · the Drive-safe rendition avoiding tables and non-BMP
+`next_step` and `cost` never being trimmed · every trim path marking its cut ·
+the dossier renderer enforcing the contact policy · the Drive-safe rendition avoiding tables and non-BMP
 emoji · the empty-pool path.
 
 ## It has already paid for itself

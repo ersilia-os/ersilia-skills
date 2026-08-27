@@ -83,7 +83,7 @@ produce, and it is worse than missing them entirely.
 python3 examples/run_guards.py
 ```
 
-30 assertions over a synthetic fixture — the deterministic half of the skill (screening,
+The full guard suite over a synthetic fixture — the deterministic half of the skill (screening,
 the contact policy, dedup, the ledger, link years, rendering). Run it after touching any
 script; add an assertion whenever you fix a bug. It cannot test discovery, which needs live
 searches — that is what the review gate is for. See `examples/README.md`.
@@ -107,10 +107,15 @@ Read all five before starting:
 ## Not in scope
 
 **Read this before Step 2, not after someone asks why a row is in the report.** The
-description above is the binding definition: **media and science communication**,
-**open-source / open-science organisations**, and **institutions in Barcelona, Catalonia
-and Spain** (plus Global-South researchers reached through an academic tie). A candidate
-must belong to one of those.
+description above is the binding definition. A candidate must belong to one of the six
+classes in `references/classification.md`: **media and science communication**,
+**open-source / open-science organisations**, **institutions in Barcelona, Catalonia and
+Spain** (plus Global-South researchers reached through an academic tie), **institutional
+comms teams**, **community amplifiers**, and **creatives to commission**.
+
+The last three arrived with campaign mode. This paragraph named only the first three for a
+while, which — read literally, as a gate marked "read this before Step 2" — rejected every
+candidate the skill had just been extended to find.
 
 Out of scope, however relevant they may feel:
 
@@ -300,8 +305,13 @@ python3 scripts/render_dossier.py --in /tmp/target.json \
 ```
 
 The script warns if `background`, `pitch` or `ask` is empty — those three carry the
-document. To apply the contact policy to a dossier target, pass it through
-`filter_and_sort.py` first (it accepts a one-element array).
+document.
+
+**The contact policy is applied by `render_dossier.py` itself** — forbidden kinds are
+stripped and restricted ones labelled, with a warning on stderr naming what was removed.
+No round-trip is needed. (This file used to advise piping the target through
+`filter_and_sort.py` first, which could not work: a dossier target does not carry the six
+required fields, so the row was dropped and the renderer received an empty array.)
 
 ### Step D4 — Review gate
 
@@ -419,9 +429,12 @@ Each of these cost a debugging cycle when the skill was built (2026-08-20).
   separator too — count with a negative lookbehind or you will diagnose a working escape
   as broken.
 - **Markdown pipe tables do not survive conversion to a Google Doc.** The header row comes
-  back empty and its cells are demoted into a body row with escaped literal asterisks. This
-  is why both renderers use headings and labelled bullets, and why the report format looks
-  nothing like event-discovery's tables. Do not "improve" it back into a table.
+  back empty and its cells are demoted into a body row with escaped literal asterisks. That
+  is why `--layout detail` exists and is the only Drive-safe layout in the two list
+  renderers — never send the default `table` layout to Drive. (`render_dossier.py` has no
+  tables in either case.) This bullet used to say "both renderers use headings and bullets…
+  do not improve it back into a table", which stopped being true the moment the table
+  layout landed and directly contradicted the bullet above.
 - **Emoji outside the Basic Multilingual Plane corrupt in the same conversion.** `🏠🌍💻📣🤝` become mojibake;
   `⭐` (U+2B50) and `✉️` (U+2709) survive because they are BMP characters. Hence
   `render_sweep.py --markers text`, which swaps the ribbon for bracketed labels. The

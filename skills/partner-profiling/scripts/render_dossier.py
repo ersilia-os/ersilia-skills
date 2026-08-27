@@ -20,7 +20,7 @@ Exit code 0 on success; 1 on unreadable input or an input array that is not one 
 import argparse
 import sys
 
-from _common import cost_of, read_json
+from _common import cost_of, read_json, screen_contacts
 
 SECTIONS_REQUIRED = ("background", "pitch", "ask")
 
@@ -175,6 +175,13 @@ def main(argv=None):
     if thin:
         print(f"WARNING: dossier is missing {', '.join(thin)} — these carry the whole "
               "document; fill them before sharing", file=sys.stderr)
+
+    # Enforce the contact policy HERE, not only in filter_and_sort.py. A dossier is
+    # usually hand-assembled for one target, so it is exactly the path most likely to
+    # carry an address someone found on a personal site — and it used to print those
+    # verbatim. Warnings go to stderr so the operator sees what was removed.
+    for note in screen_contacts(data):
+        print(f"WARNING: contact policy: {note}", file=sys.stderr)
 
     lines = render(data, args.run_date)
     with open(args.outfile, "w", encoding="utf-8") as handle:

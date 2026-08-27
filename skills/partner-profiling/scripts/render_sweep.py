@@ -152,8 +152,8 @@ def trim(value, limit=CELL_LIMIT):
 # field the whole skill exists to produce, and a truncated instruction is worse than a
 # long cell — a trimmed conditional ("only if X, otherwise drop") reads as an
 # unconditional one.
-TRIM_NOTE = ("*Cells ending in “…” are trimmed for context only — next steps are never "
-             "trimmed. A `—` in **Cost** means not established, **not** free. "
+TRIM_NOTE = ("*Cells ending in “…” are trimmed for context only — next steps and costs are "
+             "never trimmed. A `—` in **Cost** means not established, **not** free. "
              "Full text is in the partner JSON, or re-render with `--layout detail`.*")
 
 
@@ -215,10 +215,13 @@ def render_class_table(partners, class_name, marker_mode, mode="sweep",
     if mode == "sweep":
         cols.append(("Pri", lambda p: cell(p.get("priority"))))
     cols.extend(CLASS_COLUMNS.get(class_name, CLASS_COLUMNS_DEFAULT))
-    # Generous limit: a cost note often carries a second, cheaper tier ("EUR 400-500 for
-    # events under 2-4 hours") which is exactly what a short evening event needs, and a
-    # tight cut dropped it.
-    cols.append(("Cost", lambda p: trim(cost_of(p), 72) if cost_of(p) else COST_UNKNOWN))
+    # Cost is NEVER trimmed, for the same reason next_step is not: it is a figure, not
+    # prose. A cost note routinely carries a second, cheaper tier ("EUR 400-500 for events
+    # under 2-4 hours") or a caveat ("no formal rate card") at the END of the string, so a
+    # cut removes exactly the part a budget needs. It was previously trimmed at a bare 72 —
+    # an undeclared second cell limit, 24 characters TIGHTER than CELL_LIMIT while its
+    # comment called it "generous" — and it was truncating the live anniversary report.
+    cols.append(("Cost", lambda p: cell(cost_of(p)) if cost_of(p) else COST_UNKNOWN))
     cols.append((context_header, lambda p: trim(p.get(context_field) or p.get("hook"))))
     cols.append(("Action", lambda p: f"**{cell(p.get('action'))}**"))
     cols.append(("Next step", lambda p: cell(p.get("next_step"))))

@@ -186,7 +186,7 @@ Produce a JSON **array** of objects with these fields, and pass it to
 | Field | Type | Notes |
 |---|---|---|
 | `name` | string | Display name. For a person, `"Person — Organisation"`; for an organisation, its name. |
-| `class` | string | `Media` · `Open-source` · `Institution` |
+| `class` | string | `Media` · `Open-source` · `Institution` · `Comms-team` · `Community` · `Creative` — the full list lives in `classification.md` |
 | `url` | string | The first-party page that backs this row. |
 | `source` | string | Where you found it, and which pass (`"Pass B — beat query"`). |
 | `hook` | string | The specific audience or capability they give access to, citing their recent work. |
@@ -235,7 +235,8 @@ second is the easy mistake, and it makes the row useless while looking complete.
 
 `background` · `remit` · `audience` · `pitch` · `ask` · `risks` · `sources`. Read by
 `render_dossier.py`; `background`, `pitch` and `ask` carry the document, and the script
-warns when any is empty.
+warns when any is empty. A dossier target does **not** need the six required fields above —
+it is rendered directly, and `render_dossier.py` applies the contact policy itself.
 
 ### A worked row
 

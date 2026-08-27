@@ -212,6 +212,40 @@ def main():
     check("…and no emoji outside the BMP, which that conversion corrupts",
           not re.search(r"[\U0001F300-\U0001FAFF]", drive))
 
+    # --- The dossier renderer must enforce the contact policy itself ---------------
+    # It used to print a hand-written target's contacts verbatim, so a forbidden
+    # personal_email reached the page and a restricted address rendered without its
+    # label — while data-handling.md claimed the policy applied "on every run".
+    dossier_in = tmp / "dossier.json"
+    dossier_in.write_text(json.dumps({
+        "person": "T. Target", "org": "Test Outlet", "url": "https://t.test/about",
+        "background": "b", "pitch": "p", "ask": "a",
+        "contacts": [
+            {"kind": "personal_email", "value": "private@gmail.test"},
+            {"kind": "scientific_correspondence", "value": "corr@uni.test"},
+            {"kind": "institutional", "value": "desk@t.test"},
+        ],
+    }), encoding="utf-8")
+    dossier_md = tmp / "dossier.md"
+    _, derr = run([SCRIPTS / "render_dossier.py", "--in", dossier_in,
+                   "--out", dossier_md, "--date", TODAY])
+    dossier = dossier_md.read_text(encoding="utf-8")
+    check("a dossier strips a forbidden contact instead of printing it",
+          "private@gmail.test" not in dossier and "personal_email" not in dossier)
+    check("…and warns on stderr about what it removed",
+          "forbidden by the contact policy" in derr)
+    check("a dossier labels a restricted address as not a pitch channel",
+          "corr@uni.test" in dossier and "not** a pitch channel" in dossier)
+    check("…while an allowed institutional address passes through",
+          "desk@t.test" in dossier)
+
+    # --- Cost is never trimmed ------------------------------------------------------
+    # It was cut at a bare 72 — tighter than CELL_LIMIT — which removed the trailing
+    # caveat or second rate tier that a budget actually needs.
+    check("a cost string longer than the old 72-char cut is rendered whole",
+          "(no formal rate card)" in camp and "(no …" not in camp,
+          "the trailing caveat is exactly what a budget needs and what the cut removed")
+
     # --- Empty pool ----------------------------------------------------------------
     empty = tmp / "empty.json"
     empty.write_text("[]", encoding="utf-8")
