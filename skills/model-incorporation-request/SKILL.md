@@ -73,7 +73,7 @@ Field rules:
 `<Name>` should be concise (2–5 words), title-case, describing what the model does. The Name field is the same `<Name>` without the emoji prefix.
 
 **Slug**
-Lowercase, hyphens only, **2–4 words maximum**. Keep it short and memorable — it becomes part of the model's permanent identifier. Propose a single best option (e.g. `mt-gnn-adme`, `morgan-fingerprints`). If you find yourself using more than 4 words, trim ruthlessly.
+Lowercase, hyphens only, **2–4 words maximum**. Keep it short and memorable — it becomes part of the model's permanent identifier. Propose a single best option (e.g. `morgan-fingerprints`, `tb-growth-inhibition`). If you find yourself using more than 4 words, trim ruthlessly. Drop a task-type word (`-gen`, `-pred`, etc.) once another word already disambiguates the slug. Prefer a word naming the model's **use case or target** over one naming the underlying ML method/architecture (`-xgboost`, `-gnn`, `-transformer`) — the method is an implementation detail, not something a hub user searches for. Exception: when the method itself is the deliverable and there's no separate use case to name, such as a general-purpose featurizer (`morgan-fingerprints`), keep it.
 
 These rules are **not enforced anywhere**. `BaseInformation.slug` and
 `BaseInformationValidator` check only that the value is lowercase and 5–60 characters long,
