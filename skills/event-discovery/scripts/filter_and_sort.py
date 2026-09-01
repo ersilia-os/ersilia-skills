@@ -119,6 +119,29 @@ def series_key_str(event):
     return f"{name}||{location}||{year}"
 
 
+def add_to_ledger(ledger, events, first_seen):
+    """Record `events` in `ledger` (in place). Returns how many were new.
+
+    Lives here beside the key function so ``update_ledger.py`` records events exactly the
+    way ``--hide-seen`` later looks them up; two implementations would drift and the
+    symptom would be events silently repeating or silently vanishing.
+    """
+    added = 0
+    for event in events:
+        kstr = series_key_str(event)
+        if kstr in ledger:
+            continue
+        start = parse_date(event.get("start_date"))
+        ledger[kstr] = {
+            "name": event.get("name"),
+            "url": event.get("url"),
+            "year": start.year if start is not None else None,
+            "first_seen": first_seen,
+        }
+        added += 1
+    return added
+
+
 def load_ledger(path):
     """Load the seen-events ledger (key_str -> record). Missing/invalid file -> {}."""
     try:
@@ -170,7 +193,13 @@ def main(argv=None):
     parser.add_argument("--to", dest="date_to", required=True, help="window end YYYY-MM-DD")
     parser.add_argument("--ledger", default=None,
                         help="path to a seen-events ledger JSON; events already in it are "
-                             "tagged '(seen)', and the ledger is updated with this run")
+                             "tagged '(seen)'. READ-ONLY unless --update-ledger is passed")
+    parser.add_argument("--update-ledger", dest="update_ledger", action="store_true",
+                        help="also WRITE this run's events into --ledger. Do not use in the "
+                             "normal flow: rendering happens before the Step 7a approval "
+                             "gate, so writing here marks events seen even when the report "
+                             "is never published, and they never resurface. Step 8 calls "
+                             "update_ledger.py after a successful push instead.")
     parser.add_argument("--hide-seen", dest="hide_seen", action="store_true",
                         help="drop events already in the --ledger instead of tagging them "
                              "(for a 'what's new since last run' report)")
@@ -302,22 +331,14 @@ def main(argv=None):
 
     write_json(args.outfile, kept)
 
-    # Update the ledger with this run's surfaced events, then persist it.
-    if args.ledger is not None:
-        new_to_ledger = 0
-        for event in kept:
-            kstr = series_key_str(event)
-            if kstr not in ledger:
-                start = parse_date(event.get("start_date"))
-                ledger[kstr] = {
-                    "name": event.get("name"),
-                    "url": event.get("url"),
-                    "year": start.year if start is not None else None,
-                    "first_seen": args.date_from,
-                }
-                new_to_ledger += 1
+    # The ledger is READ-ONLY here by default. See add_to_ledger's docstring for why.
+    if args.ledger is not None and args.update_ledger:
+        added = add_to_ledger(ledger, kept, args.date_from)
         save_ledger(args.ledger, ledger)
-        warn(f"ledger updated: {new_to_ledger} new, {len(ledger)} total -> {args.ledger}")
+        warn(f"ledger updated: {added} new, {len(ledger)} total -> {args.ledger}")
+    elif args.ledger is not None:
+        warn(f"ledger read-only this run ({len(ledger)} entries); "
+             "run scripts/update_ledger.py after a successful publish (SKILL.md Step 8)")
     unverified = sum(1 for e in kept if not e.get("verified", True))
     print(
         f"kept {len(kept)} / {counts['input']} events "

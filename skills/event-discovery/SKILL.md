@@ -61,7 +61,7 @@ dates, deadlines, or venues** — verify each against its official page or drop 
 
 ## Reference files
 
-Read all four before starting:
+Read all four before starting (`recall-fixture.md` is a fifth, consumed at Step 6a):
 
 - `references/event-sources.md` — where to look per event type, how to query, **and
   the event JSON schema** you must produce. Read before any search.
@@ -70,8 +70,59 @@ Read all four before starting:
 - `references/ersilia-priorities.md` — the four strategic priorities + relevance
   rubric. Read before screening.
 - `references/lmic-countries.md` — the LMIC list behind the 🌍 / Global-South axis.
+- `references/recall-fixture.md` — events the sweep must keep finding, graded at Step 6a.
+  **Do not read this before sweeping**: knowing the answers would bias the sweep toward
+  them, and the fixture would then only ever confirm itself.
 
 ---
+
+## Not in scope
+
+**Read this before Step 2, not after someone asks why an event was included.** The
+description at the top of this file is the binding definition: events relevant to
+**AI/ML for infectious- and neglected-disease drug discovery, Global-South capacity
+building, or open science**. An event must serve at least one of those three. "Worth
+Ersilia's time" is the *lens*, not the scope — an organisation has many interests wider
+than its mission, and this digest covers the mission.
+
+**Out of scope, however relevant they may feel:**
+
+- **Fundraising and corporate-partnership conferences.** Diversified funding is a real
+  organisational need and priority 4 names it — but a fundraising-venue tracker is a
+  *different digest with a different audience*, not a few rows inside the science one.
+- **Grant calls** (unchanged from v1) and fundraising-skills courses — staff training, not
+  mission capacity building.
+- **General startup / VC / impact-investing events**, including those held in our own
+  building. See the Norrsken note in `event-sources.md`.
+- **Nonprofit operations** — HR, CRM, comms, governance — and **award ceremonies**,
+  **vendor trade shows**, and **job adverts**.
+- **General tech conferences** with no drug-discovery, scientific or open-source substance.
+
+**The priority-4 test.** Priorities 1–3 name concrete things; priority 4 (community,
+partnerships, sustainability) can absorb almost anything if read loosely, so **an event
+mapping to priority 4 alone is a drift candidate**. It needs a second, independent reason:
+a named community tie, or Spanish reachability. Priority 4 plus general relevance is
+not enough.
+
+### When someone asks "did we catch this event?"
+
+**That question is not automatically a recall bug.** Answer in this order:
+
+1. **Is it in scope?** Apply the mission lens above *before* diagnosing the sweep. If it
+   fails, the honest answer is "correctly out of scope" — say so, and do not add a source
+   row. **Write the decision down** — in whatever design record the operator keeps — so the
+   same question resolves the same way next time instead of being re-argued from scratch.
+   An out-of-scope answer that leaves no trace is indistinguishable from an oversight, and
+   that is how the scope drifted in the first place.
+2. **If it is in scope, why was it missed?** Then it is a recall question, and the answer
+   is usually a missing query axis rather than a missing row — see Step 2 Pass B.
+
+**This ordering exists because it was got wrong.** Over three days in August 2026, three
+consecutive "did we catch this?" questions each produced a new source class; the third
+(a corporate-charity fundraising conference) was admitted, then reverted a day later for
+contradicting the description above. Nothing in this file pushed back, because it only
+ever said what to collect. A digest that grows by whichever URL arrived most recently
+stops being the thing the team subscribed to.
 
 ## Workflow
 
@@ -116,12 +167,55 @@ Extract the `focus`, resolve the date window (default today → +12 months; toda
 whatever the current date is), and note any explicit type or region signal. Keep the
 resolved `--from`/`--to` — every later step and both scripts use them.
 
-### Step 2 — Sweep sources (web)
+### Step 2 — Sweep sources (web) — two passes, both required
+
+**Pass A alone is what caused the sweep's worst miss.** A source-scoped query can only
+refresh a series the map already names, so an unlisted series is invisible however
+relevant it is — that is how the 2026-08-04 report missed the EDCTP Forum 2027 despite
+its abstract deadline being open. Pass B exists to find what the map does not know.
+
+#### Pass A — source-driven
 
 Work through `references/event-sources.md`. For each in-scope event type run **≥4
 query variants** (source-scoped `WebSearch` plus a couple of open searches for the
 `focus`), anchored to the window's year(s). Events 6–12 months out are often announced
 under the *following* year — query both. Aim for a **raw pool of 30–60 candidates**.
+
+#### Pass B — axis-driven (never scoped to a known venue name)
+
+Query the **mission**, not the map. Every axis below runs **every time**, regardless of
+`focus` — these are floors, not suggestions. Record which ones you ran and pass them to
+`--axes-searched` in Step 7.
+
+**This is enforced, not trusted.** `render_report.py` **refuses to render** unless every
+axis in `AXIS_ORDER` and every continent is claimed, exiting non-zero and naming what is
+missing. That gate exists because this instruction was already written here, in bold, and a
+run skipped ML methods, Asia and Oceania anyway. The footers reported the gap honestly,
+which only helps a reader who checks. Refusing to render is what stops a partial sweep
+shipping as a complete report.
+
+**"Swept" means queried, never found.** An axis that returns nothing is still swept — say
+so and pass it. Completeness therefore costs one more query and can never cost a fabricated
+event. If a sweep genuinely cannot be completed, `--allow-incomplete-sweep` renders it with
+a ⚠️ warning stamped in the report header; tell the user why you used it.
+
+| Axis | Run at least | Shape of query |
+|---|---|---|
+| **Pathogens** — TB, malaria, *Leishmania*/Chagas, schistosomiasis, AMR | one per pathogen (5) | `tuberculosis conference OR congress <year>`, `antimicrobial resistance conference <year>` — see "Priority-pathogen circuits" in `event-sources.md` |
+| **ML methods** | one or two | `machine learning drug discovery workshop <year> call for papers`, `NeurIPS OR ICML OR ICLR <year> AI for science workshop`. **Do not query method names alone** — `QSAR OR graph neural network OR molecular representation conference <year>` returns arXiv papers, not events (verified 2026-08-19). Method venues are mostly *workshops attached to* the big ML conferences, so pair this axis with Pass A's LMRL / MoML / M2D2 rows. |
+| **Spain** — Barcelona, Catalonia & national | one or two, **in Spanish or Catalan** | `congreso OR jornada OR simposio <year> Barcelona`, `Biocat agenda <year>` — see "Spain" in `event-sources.md` |
+| **Open deadlines** | one or two | `call for abstracts <year> global health OR drug discovery`, `abstract deadline <month> <year> tropical medicine` |
+
+The **deadline axis inverts the usual search**: it hunts for a *deadline* rather than an
+event, because the highest-value hit is an event 6–12 months out whose abstract or
+bursary deadline closes in weeks. Those are invisible to a "conference `<year>`" query
+that ranks on event date, and the report's "Act now" block can only ever render what the
+sweep already caught — it never goes looking.
+
+The pathogens and method areas are listed in `ersilia-priorities.md` and were, before
+this pass existed, used only to **screen** at Step 4 and never to **search** here. That
+asymmetry is the recall bug: it left one TB event and no AMR-specific venue in a report
+whose mission is antimicrobial drug discovery.
 
 Also keep events **beyond** the window whose **deadline is already open** — a conference
 in mid-2027 whose abstract or bursary deadline falls inside the window is actionable
@@ -132,19 +226,38 @@ the event date is past `--to`.
 South America, North America, and Oceania — don't let the default sources skew the sweep
 to Europe / North America / Africa. For Asia and Latin America especially, query regional
 bodies (see the "Global-South regional" sources) and in **Spanish / Portuguese** too.
+Spain is **not** covered by that instruction — it has its own axis in Pass B, queried in
+Spanish and Catalan, because "Europe: swept" at continent granularity hid the fact that
+nothing ever queried Ersilia's own city.
 Track which continents you actually queried and pass them to `--continents-searched` in
 Step 7. If a continent genuinely returns nothing verifiable, that's fine — the report
-will mark it "searched, none verified" so the gap is visible, never silently empty.
+will mark it "searched, none verified" so the gap is visible, never silently empty. Asia and
+Oceania in particular return mostly aggregators and vanity `International Conference on
+<topic>` series; "searched, none in report" is the correct honest outcome there, and far
+better than admitting a predatory conference to fill the column.
 
-### Step 2a — Sweep Slack (`#networking`)
+**All six are enforced by `render_report.py`** — see Pass B above. An event turning up *from*
+a continent does not count as having searched it: the flag means you aimed a query there.
+That distinction was got wrong once already, with four continents claimed on the strength of
+events that arrived incidentally through pathogen queries.
 
-Teammates post events in `#networking` that no web sweep will surface. Read them
+### Step 2a — Sweep Slack (`#general`)
+
+Teammates post events in `#general` that no web sweep will surface. Read them
 as a **first-class source**, not a bonus.
 
 ```text
-slack_search_channels(query="networking")   # resolve the id, never hardcode it
+slack_search_channels(query="general")      # resolve the id, never hardcode it
 slack_read_channel(channel_id=<id>, ...)    # messages since the previous digest
 ```
+
+**Check `Is Archived` on the resolved channel before reading.** On 2026-08-07 the
+workspace collapsed to three public channels, and `#networking` — this step's
+original target — was archived into `#general`. Reading an archived channel is the
+nastiest failure mode available here: it returns **no new messages and no error**,
+so the run looks like a quiet month rather than a broken connector. If the resolved
+channel is archived, stop and tell the user which channel superseded it; do not
+silently continue.
 
 Collect the messages to `/tmp/slack_raw.json` (each needs at least `text`, `ts`,
 `user`; add `user_real_name` via `slack_read_user_profile` and `permalink` when
@@ -152,8 +265,7 @@ available), then:
 
 ```bash
 python scripts/fetch_slack.py --raw /tmp/slack_raw.json \
-  --out /tmp/slack_candidates.json --channel "#networking" \
-  --exclude-user <the id that posts the Step 9 alert>
+  --out /tmp/slack_candidates.json --channel "#general"
 ```
 
 **Window: since the previous digest.** Take the date from the newest remote
@@ -161,15 +273,32 @@ report Step 0 already listed. No fixed lookback — that would either re-read
 months of history or miss a delayed run.
 
 **The feedback loop is the trap here.** Step 9 posts this skill's own alert
-*into* `#networking`, so a naive read re-ingests it as a fresh batch of
-candidates every month, compounding. `fetch_slack.py` guards this two ways —
-dropping messages whose text starts with the alert signature, and dropping
-`--exclude-user` ids. Pass the flag; the text match alone is a fallback, not the
-plan.
+*into* `#general`, so a naive read re-ingests it as a fresh batch of candidates
+every month, compounding. `fetch_slack.py` guards this with a prefix match on the
+alert signature over *normalised* text — `normalise_for_match` strips the emoji
+shortcodes and rewritten emphasis that Slack applies on read-back, which is what
+defeated the earlier literal match. Verified against the real 2026-08-04 alert as
+Slack stored it.
+
+**Do not pass `--exclude-user` for a human teammate's ID.** The alert is posted
+under whichever account runs the skill, so excluding that ID would also discard
+that person's own genuine event shares — a real loss now that the channel is
+`#general`, where they post as a normal participant. The signature guard plus the
+`SELF_URL_MARKERS` filter already cover the loop. Reserve `--exclude-user` for a
+dedicated bot identity, if one is ever introduced.
 
 **Candidates are not events.** A Slack message yields a URL and a sharer, never
 the `name` / `start_date` / `location` the schema requires. Each candidate goes
 through Step 3 exactly like a web hit — the difference is only how it entered.
+
+**`#general` is a mixed feed, so most of its links are not events.** The old
+`#networking` was topically curated — nearly every link in it was an event or an
+organisation worth knowing. `#general` also carries papers, blog posts, tool
+releases, job ads, funding calls, publication announcements and congratulations.
+`fetch_slack.py` cannot tell these apart and does not try: it is a normaliser, and
+it emits one candidate per URL. **Step 3 is where a link is judged to be an event**
+— see the participation test there. Expect a majority of `#general` candidates to fall
+out at that step; that is the step working, not a bug.
 
 **If the Slack MCP is unavailable**, skip this step, continue on web sources
 alone, and record `slack:down` in `--connectors` (Step 7) so the header shows 🔴.
@@ -184,11 +313,66 @@ name/dates/URL, keep the event with `verified: false` — it will be flagged wit
 the report rather than silently dropped. If you can't establish a date or an official
 URL at all, drop it (omit, never guess a date).
 
+**Announced but not yet built (from the news-feed sources).** An event found via Pass A's
+news feeds often has no microsite yet — only an announcement naming the city and dates.
+Keep it, with `verified: false` and the **announcement URL** as `url`, and swap in the
+official site on a later run once it exists. Dropping these would defeat the point of
+sweeping announcements at all: they are precisely the 6–18-month-out events the sweep
+used to miss entirely.
+
+Two hard conditions, because this lowers the verification bar:
+
+- **The page you cite must itself state the year or edition.** Never cite a series'
+  generic landing page — `worldleish.org`, `edctpforum.eu` with no year — as
+  confirmation of a specific edition. Those pages outlive every edition and will read as
+  verified for a year that has not been announced. Cite the dated announcement.
+- **Dates must be stated, not inferred** from "next spring" or a previous edition's
+  timing. If the announcement gives a month but no days, treat the date as unknown
+  rather than guessing the first of the month.
+
+**First, the participation test — is this an event at all?** An event is something
+**a person takes part in, bounded in time**. Two shapes qualify:
+
+- A **convening** — conference, congress, symposium, workshop, summer school,
+  hackathon, datathon, webinar, funder forum. You attend it, on dates.
+- A **structured participation opportunity** — fellowship, training programme,
+  prediction challenge or competition, with a cohort and an application deadline.
+  `event-sources.md` puts these in scope for v1 deliberately, so the test cannot be
+  "does it have dates you attend" alone.
+
+These are **not** events, however relevant they are: a paper or preprint, a blog
+post, a tool / library / model release, a **job advert**, an organisation's homepage,
+a network-membership page, a newsletter, or a social-media post *about* something.
+
+**The line between a fellowship (in) and a grant call (out)** is who takes part: a
+fellowship or school trains *people* on a cohort basis, while a grant call funds an
+*institution's* project. v1 keeps the first and excludes the second, while keeping a
+funder's own *forum* in. This matters more since `#funding-opportunities` folded into
+`#general`: grant calls now arrive on the same feed as events. A deadline alone never
+makes something an event — a job advert has one too.
+
+A human-sourced URL therefore has three outcomes, not two:
+
+1. **A specific convening** → a candidate. Continue below.
+2. **An organisation or programme page** → treat it as a **lead, not a candidate**.
+   Look for a specific upcoming convening on that site; if there is one in the
+   window, *that* becomes the candidate and the sharer keeps the credit. If there
+   isn't, carry it to Step 7a as a lead rather than inventing an event from a
+   homepage.
+3. **Neither** → drop it, and list it at Step 7a as dropped-not-an-event. The drop
+   must be **visible**: a colleague posted it, so the user overrules the call, not
+   the skill silently.
+
 **Exception for team-shared candidates (Step 2a).** Verify-or-drop applies to
 machine-discovered events. A candidate a colleague posted is **kept even when it
 cannot be verified at all** — set `verified: false` so it renders with `†`, and
 keep `shared_by`. A human vouched for it; silently discarding that is worse than
 carrying a flagged row the reader can judge at Step 7a.
+
+**This exception covers verification, never the participation test.** "The official page
+is down" and "this is not an event" are different failures. The first is what a
+colleague's vouching can stand in for; the second it cannot — a blog post does not
+become a convening because someone shared it.
 
 **If the official page states no dates**, set `start_date: null` — never guess.
 `validate_event` waives the required `start_date` when `shared_by` is set, and the
@@ -213,6 +397,18 @@ date, or a bursary. Never keep a ticket-reseller or aggregator link as the offic
 Keep only events that map to **≥1 Ersilia strategic priority**
 (`references/ersilia-priorities.md`). Drop the rest. Record which priorities (1–4)
 each surviving event maps to.
+
+**Human-sourced events skip this screen.** A colleague posting a link is relevance
+signal the rubric cannot see — they know what Ersilia is chasing this quarter. So a
+`shared_by` event is kept even when you cannot map it to a priority; record
+`priorities: []` and let the reader judge.
+
+**The screen is skipped, not the participation test.** The bypass is about *relevance*
+only. Anything that failed Step 3's participation test never reaches this step, so
+"shared by a colleague" cannot carry a blog post or a funding call into the report.
+Keeping these two gates distinct is what makes the bypass safe on a mixed channel
+like `#general`: the scorer is overruled about **what matters**, never about **what
+an event is**.
 
 ### Step 5 — Classify and assemble the pool
 
@@ -261,8 +457,13 @@ matters: the ledger exists to stop the *same edition* from being re-shown in a l
 report, not to hide next year's edition just because an earlier year's was already
 reported — "GCC 2026" being seen never suppresses "GCC 2027" once it rolls around,
 even at the same venue. A new calendar-year edition of a recurring series always shows.
-The ledger is updated with every kept event at the end of the run, so next month's run
-won't re-surface the same edition this one already showed. **This is what makes the
+**The ledger is READ-ONLY at this step.** It is written only after Step 8's push
+succeeds, by `scripts/update_ledger.py`. The ledger's job is to stop an event that has
+*already been reported* from being reported again — so writing it here, before the Step 7a
+approval gate, marks events seen even when the report is never published, and they then
+never resurface. That is the exact opposite of what the ledger is for, and it is silent.
+It bit twice on 2026-09-01, once while preparing that day's own digest. `filter_and_sort.py`
+has an `--update-ledger` escape hatch for backfills; do not use it in the normal flow. **This is what makes the
 monthly cadence readable** — without it, every run would repeat the same standing list.
 The
 file lives outside this repo (`~/.ersilia/events_seen.json`, in the user's home
@@ -282,10 +483,40 @@ too costly in practice, the fix is a fingerprint over the
 deadline/bursary/registration fields added to the ledger record — recorded here
 so the tradeoff stays visible instead of being rediscovered as a bug.
 
+### Step 6a — Grade the sweep against the recall fixture
+
+```bash
+python scripts/check_recall.py --fixture references/recall-fixture.md \
+  --pool /tmp/events_pool.json --clean /tmp/events_clean.json --today <today>
+```
+
+**Why this exists.** Every improvement to `event-sources.md` and to Step 2's axis pass is
+otherwise unverifiable. A sweep that quietly degrades produces a thin report, and a thin
+report is indistinguishable from a quiet month — so recall can rot for a year without
+anyone noticing. `references/recall-fixture.md` pins events the sweep is known to be able
+to find, each tagged with the axis or source that should catch it, so a miss names its own
+cause.
+
+**It warns; it never blocks — and that is deliberate**, the opposite of the completeness
+gate in Step 7. A missing query is always the operator's fault and always fixable by
+running it. A fixture miss may just mean the event moved, was renamed, or stopped
+existing. A check that fails on legitimate misses is one people learn to bypass.
+
+- Graded against the **pool**, not the report: the pool is what the sweep *found*, before
+  the window filter and before the ledger hides already-seen editions. Grading the report
+  would make every entry start failing the month after it first appeared.
+- `--clean` additionally grades the "must exclude" rows, which test rules that run after
+  the pool is written.
+- **Carry the result into the Step 7a summary** — found/missed counts, and any missed
+  entry with the lever that should have caught it.
+- **Expired rows are not misses.** When the script says *needs replacing*, replace the
+  entry with the next edition of that series or another event exercising the same lever.
+  Left alone, the fixture becomes a list of false alarms.
+
 ### Step 7 — Render the report (script) + summarise
 
 ```bash
-python scripts/render_report.py --in /tmp/events_clean.json --focus "<focus>" --from <from> --to <to> --today <today> --swept <N> --continents-searched "Africa,Europe,Asia,South America,North America,Oceania" --connectors "web:ok,slack:ok" --out <report path>
+python scripts/render_report.py --in /tmp/events_clean.json --focus "<focus>" --from <from> --to <to> --today <today> --swept <N> --continents-searched "Africa,Europe,Asia,South America,North America,Oceania" --axes-searched "TB,Malaria,Leishmania/Chagas,Schistosomiasis,AMR,ML methods,Spain,Open deadlines" --connectors "web:ok,slack:ok" --out <report path>
 ```
 
 `--connectors "web:ok,slack:ok"` renders the `**Connectors:**` header line, 🟢 for
@@ -309,6 +540,20 @@ into a single **Virtual / online** section at the end.
 continents you queried in Step 2) adds a **Coverage by continent** footer. Continents you
 searched that found nothing show "searched, none verified"; any you skipped show "not
 searched" — so coverage is always explicit. Pass this on every run.
+
+`--axes-searched` does the same job for Step 2's **Pass B** axes and adds a **Sweep axes**
+section. Known axes are `TB, Malaria, Leishmania/Chagas, Schistosomiasis, AMR, ML methods,
+Spain, Open deadlines`; matching is case-insensitive and tolerant (`chagas` matches
+`Leishmania/Chagas`), and a value matching nothing raises a WARNING rather than passing
+silently.
+
+**Both flags are required and completeness is enforced.** Missing either flag, or omitting
+any axis or continent from it, makes the script **exit non-zero without writing a report**,
+listing exactly what was not queried. Do not work around this by padding the flag: claiming
+an axis you skipped is the one outcome worse than the gap itself, because nothing downstream
+can detect it. Go and run the query — an axis that returns nothing still counts as swept.
+`--allow-incomplete-sweep` is the deliberate escape hatch and stamps a ⚠️ line into the
+report header; if you use it, say why in the Step 7a summary.
 
 Output location:
 - **Claude.ai / Cowork:** write to `/mnt/user-data/outputs/events_<focus>_<YYYYMMDD>.md`
@@ -342,13 +587,28 @@ Step 9 posts to a team channel. Neither can be cleanly retracted — the Slack M
 available here has **no edit-message tool**, so a wrong number in the alert
 cannot be corrected in place, only superseded by a later report.
 
-Two things are the user's call at this gate, not the skill's:
+Three things are the user's call at this gate, not the skill's:
 
 - **A run with zero new events.** Publish an empty report as a "nothing new this
   month" signal, or skip this cycle. There is no automatic rule — ask.
 - **Anything the report flags as uncertain**: `†` unverified events (including
   human-sourced ones kept under Step 2a's exception) and any WARNINGs from
   Step 6.
+- **The recall-fixture result** (Step 6a): the found/missed count, each missed entry with
+  the lever that should have caught it, and any row flagged as expired. A miss is not a
+  reason to withhold the report — it is a reason to look at that axis before the next run.
+- **Every human-sourced link that did not become an event.** List them in the
+  in-chat summary — never in the published report — in two groups:
+  - **Leads** — organisation or programme pages with no specific convening found
+    (Step 3, outcome 2).
+  - **Dropped, not an event** — papers, blog posts, tool releases, job ads,
+    funding calls (Step 3, outcome 3), each with one clause saying which.
+
+  Name the sharer to the user here; the published report and the Slack alert still
+  credit sharers only for events that made it in. This list is the price of the
+  participation test: it keeps a teammate's contribution from vanishing silently, and
+  it is the user — not the skill — who overrules a judgement call. Say `none` when
+  there were none, so its absence never reads as an omission.
 
 If the user declines, keep the local file and stop. Do not partially publish —
 never run Step 8 without Step 9, or the report goes live silently.
@@ -397,6 +657,16 @@ gh api -X PUT "repos/ersilia-os/digests/contents/$REMOTE_PATH" \
   `https://ersilia-os.github.io/digests/events/{YY-MM-DD}-event-discovery.html`
   — and hand that to the user and use it in the Slack alert; don't present the
   local path or the raw github.com blob as the primary artefact.
+- **Record the published events in the ledger — only now, after the push succeeded:**
+
+  ```bash
+  python scripts/update_ledger.py --in /tmp/events_clean.json \
+    --ledger ~/.ersilia/events_seen.json --first-seen <YY-MM-DD of the report>
+  ```
+
+  This is what stops next month's digest repeating this month's list. It is idempotent, so
+  re-running after a retry is safe. If the push failed, **do not run it** — the events were
+  not published, so they must stay eligible for the next run.
 - No README index update — the website's navigation is generated directly from
   the files under `events/` (once the site templates support that folder), not
   from a hand-maintained README list.
@@ -408,20 +678,24 @@ step. Never delete the local file before a successful submission.
 ### Step 9 — Post the Slack alert (only after a successful submission)
 
 After (and **only** after) the Step 8 `gh api` call succeeds, post a rich
-notification to `#networking` so the team sees what is in the report without
+notification to `#general` so the team sees what is in the report without
 clicking through.
 
 Resolve the channel by name via the Slack MCP — its ID is not hardcoded here
 (unlike `literature-digest`'s `#literature`):
 
 ```text
-slack_search_channels(query="networking")
+slack_search_channels(query="general")
 ```
 
 - If no matching channel is found, **do not** post elsewhere. Tell the user
-  `#networking` doesn't exist (or isn't visible to this session) and skip the
+  `#general` doesn't exist (or isn't visible to this session) and skip the
   post; the report is still generated and submitted, so nothing is lost — only
   the Slack post is skipped.
+- **If the resolved channel is archived, skip the post the same way.** Unlike the
+  silent read in Step 2a, posting to an archived channel fails outright — but check
+  `Is Archived` first anyway, so the user gets "the target channel was archived"
+  rather than a raw API error.
 - If the Slack MCP isn't available in this session at all, treat this the same
   way — a **soft** skip, not a hard stop. Unlike `literature-digest`,
   event-discovery's core work (`WebSearch`/`WebFetch`) never depended on Slack,
@@ -489,6 +763,8 @@ slack_send_message(
 - **<YYYY-MM-DD>** — [Name](url) · abstract / CFP
 
 ## Coverage by region focus
+
+## Sweep axes
 _Counted by what each event is **about**, not where it is held …_
 - **Africa**: 3 events
 

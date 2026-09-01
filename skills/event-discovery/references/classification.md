@@ -33,7 +33,8 @@ Pick the single most informative value. A summer school in Kenya is `Global-Sout
 - `Science` — AI/ML, cheminformatics, drug discovery, infectious / neglected-disease
   research. The default for most technical conferences.
 - `Philanthropy` — funders, foundations, donors, grant-maker forums, donor-community
-  gatherings.
+  gatherings. Funders convening **about the science or the field**; not the fundraising
+  trade — see "Not in scope" in SKILL.md.
 - `Community` — open-source / open-science community events, networking, partnerships.
 - `Training` — capacity-building, education, hands-on skill transfer.
 
@@ -66,7 +67,7 @@ marker **only when load-bearing — absent beats wrong.**
 | 🌍 | the event is Global-South **by focus** — see the rule below |
 | 🎓 | training / capacity-building event (`type` ∈ {Workshop, Summer school} or `theme` = Training) |
 | 💻 | open-source or AI-methods focus — the event centres on code, models, or ML methods |
-| 💬 | surfaced from the `#networking` Slack sweep rather than the automated web sweep (pairs with `shared_by`) |
+| 💬 | surfaced from the `#general` Slack sweep rather than the automated web sweep (pairs with `shared_by`) |
 | 💰 | the event offers a **bursary / financial aid / travel support** (from the `bursary` field) |
 | 🗓️ | **any** typed deadline (abstract / early-bird / registration / bursary) falls within the report window |
 

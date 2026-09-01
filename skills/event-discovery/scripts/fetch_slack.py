@@ -19,7 +19,7 @@ dropping a teammate's contribution is the worse failure.
 
 Usage:
     python fetch_slack.py --raw /tmp/slack_raw.json --out /tmp/slack_candidates.json \
-        [--exclude-user U0B1L56S3HS] [--channel "#networking"]
+        [--channel "#general"] [--exclude-user <bot-id>]
 """
 
 import argparse
@@ -191,12 +191,14 @@ def main(argv=None):
     parser.add_argument("--raw", required=True,
                         help="JSON file of raw Slack messages collected via the MCP")
     parser.add_argument("--out", required=True, help="output candidates JSON path")
-    parser.add_argument("--channel", default="#networking",
+    parser.add_argument("--channel", default="#general",
                         help="channel name to record when a message omits it")
     parser.add_argument("--exclude-user", dest="exclude_user", default="",
-                        help="comma-separated Slack user IDs whose messages to skip — "
-                             "pass the identity that posts the Step 9 alert so the run "
-                             "cannot re-ingest its own output")
+                        help="comma-separated Slack user IDs whose messages to skip. "
+                             "Reserve this for a dedicated bot identity: the alert is "
+                             "posted under whichever account runs the skill, so "
+                             "excluding a teammate's ID would also discard their own "
+                             "genuine event shares. The signature guard covers the loop.")
     args = parser.parse_args(argv)
 
     exclude_users = {u.strip() for u in args.exclude_user.split(",") if u.strip()}
@@ -239,9 +241,6 @@ def main(argv=None):
              "(feedback-loop guard)")
     if skipped_user:
         warn(f"skipped {skipped_user} message(s) from excluded user IDs")
-    if not exclude_users:
-        warn("no --exclude-user given; relying on text-signature matching alone to avoid "
-             "re-ingesting this skill's own alerts")
     dropped = len(candidates) - len(deduped)
     print(f"slack: {len(deduped)} candidate(s) from {len(raw)} message(s)"
           + (f", {dropped} duplicate URL(s) collapsed" if dropped else ""),
