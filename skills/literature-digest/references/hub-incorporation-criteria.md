@@ -123,9 +123,20 @@ Apply 🤖 when **all of the following hold**:
 3. The model performs one of the six Hub subtasks (use this file as the
    reference taxonomy). Map ambiguous tasks to the most specific subtask, and
    only call it "Generation" if the headline contribution is generative.
-4. The model is **openly available** — code or weights or web server. Mark 🤖
-   even for online-only services (ADMETLab-style entries are a Hub pattern), but
-   prefer code-bearing entries when triaging. This is a hard requirement, not a
+4. The model is **openly available**, and the digest states *in which form* via
+   the mandatory `(weights: …)` qualifier. Ranked strongest to weakest:
+   **weights released** (a downloadable checkpoint — wrapping is the whole job);
+   **code only, no weights**, which still gets 🤖 but is tagged
+   `(weights: none — retrain required)` and ranks below weights-released entries,
+   because incorporation then means reproducing the model, not wrapping it — but
+   still *above* `(weights: pending)`, since released code is an artifact in hand
+   and a promised checkpoint is not; and
+   **web-server / online-only** (ADMETLab-style entries are a Hub pattern),
+   tagged `(weights: none)` plus `(infra: online-only)` — the weights qualifier
+   is mandatory here too — and ranked lowest whatever its weights status. Rationale: releasing *code*
+   is not the same as releasing a runnable *model* — the most common reason a
+   plausible candidate fails incorporation is that no trained checkpoint was
+   ever published. Open availability is itself a hard requirement, not a
    preference: if **none** of code, weights, or a queryable web server/API exists
    — and no dataset is released for a Data-to-model route — there is nothing to
    incorporate from, and the paper does not qualify for 🤖 at all, regardless of

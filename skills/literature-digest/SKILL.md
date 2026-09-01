@@ -359,7 +359,7 @@ in Step 6 must speak to these answers.
 | 2 | **Output** | Produces a numeric score, vector, label, or molecule(s) — i.e. something the Hub `predict` / `featurize` / `generate` interface can return. | No 🤖. |
 | 3 | **Task fit** | Slots into one of: Property prediction, Activity prediction, Featurization, Projection, Similarity search, Generation. | No 🤖; mention task mismatch. |
 | 4 | **Code availability** | A public repo URL (GitHub / GitLab / Codeberg / HuggingFace Space) is named in the paper or in the model/dataset release page. | No 🤖. (Independent of 💻 — see below.) |
-| 5 | **Weights availability** | Trained weights are released (HuggingFace, Zenodo, repo release, or supplementary). | 🤖 with `(weights: pending)` qualifier; flag for follow-up. |
+| 5 | **Weights availability** | Trained weights are released (HuggingFace, Zenodo, GitHub release/LFS, or supplementary) — verified to exist, not a README promise or a `train.py` output. Tag these `(weights: released)`. | 🤖 kept, but tag `(weights: pending)` if authors say they are coming, or `(weights: none — retrain required)` if code-only; rank below weights-released entries. |
 | 6 | **License** | Permissive enough for Ersilia redistribution — MIT, Apache-2.0, BSD-2/3-Clause, CC-BY, CC-BY-SA, MPL-2.0. CC-NC, GPL/AGPL-only, "research-only" or "non-commercial" all fail. | No 🤖. Note the license blocker in the body sentence and surface as context. |
 | 7 | **Inference reproducibility** | Dependencies are tractable — no proprietary library, no hardware lock-in beyond a single GPU, no cloud-API call required for inference — i.e. plausibly runnable inside an Ersilia model container. | 🤖 with `(infra: heavy)` qualifier; flag for follow-up. |
 
@@ -372,13 +372,20 @@ Decision:
   rather than the standard one below — then skip the checklist for that item.
 - Items passing **1–4 and 6** unconditionally get 🤖.
 - Items passing **1–4 + 6** but failing 5 or 7 still get 🤖 (still a candidate),
-  and the body sentence must say so concretely
-  (e.g. "weights not yet released" or "requires a 4×A100 inference budget").
+  and the body sentence must say so concretely via the mandatory `(weights: …)`
+  qualifier ("weights: none — retrain required", "weights: pending") or an
+  `(infra: heavy)` note (e.g. "requires a 4×A100 inference budget"). Rank these
+  below entries that pass 5 and 7.
 - Items failing any of 1–3 or 6 and not matching any C1–C7 trigger do **not**
   get 🤖 or 🤖❓. They may still appear as context in chapter 3 (methods) with
   the failing dimension named.
 - A paper carries **either** 🤖 or 🤖❓, never both. Within a chapter, 🤖
-  entries sort first, then 🤖❓, then unannotated.
+  entries sort first, then 🤖❓, then unannotated. Within the 🤖 block, order by
+  weights status: `released`, then `none — retrain required` (code in hand,
+  retrainable now), then `pending` (a promise, not an artifact). Online-only
+  entries carry `(weights: none)` plus `(infra: online-only)` — the weights
+  qualifier is mandatory there too — and sort last whatever their weights
+  status.
 - 💻 is **independent** of 🤖 / 🤖❓. 💻 applies only when the abstract or paper
   page explicitly names a public repo URL — Crossref/EuropePMC abstracts often
   omit code mentions; do not infer code presence from "this work is open" or
@@ -391,15 +398,17 @@ hook)**:
 
 ```
 Open-source {task} model taking {input modality} → {output type};
-released with {weights/code} under {license}. Plausible Hub addition because {hook}.
+released with {weights/code} under {license}
+(weights: released | none — retrain required | pending).
+Plausible Hub addition because {hook}.
 ```
 
 Worked example:
 
 > Open-source activity-prediction model taking SMILES → IC50 (regression);
-> released with weights and inference code on GitHub under Apache-2.0.
-> Plausible Hub addition because it covers *M. tuberculosis* H37Rv whole-cell,
-> a Hub gap.
+> released with weights and inference code on GitHub under Apache-2.0
+> (weights: released). Plausible Hub addition because it covers
+> *M. tuberculosis* H37Rv whole-cell, a Hub gap.
 
 **Dataset-incorporability checklist (🗃️)**:
 
