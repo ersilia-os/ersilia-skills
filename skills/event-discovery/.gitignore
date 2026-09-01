@@ -10,3 +10,10 @@ seen_events.json
 # Re-commit a specific run locally only if you have a reason:
 #   git add -f reports/26-01-01-event-discovery.md
 reports/
+
+# Design record / working document — deliberately NOT committed (ROADMAP §6.1).
+# It holds the reasoning behind the skill's decisions, including reversals, and is kept
+# local by choice. Ignoring it also means a plain `git clean -fd` will not delete it
+# (only `-fdx` reaches ignored files). Commit a snapshot deliberately if ever needed:
+#   git add -f skills/event-discovery/ROADMAP.md
+ROADMAP.md
