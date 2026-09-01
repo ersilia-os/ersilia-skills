@@ -455,8 +455,13 @@ matters: the ledger exists to stop the *same edition* from being re-shown in a l
 report, not to hide next year's edition just because an earlier year's was already
 reported — "GCC 2026" being seen never suppresses "GCC 2027" once it rolls around,
 even at the same venue. A new calendar-year edition of a recurring series always shows.
-The ledger is updated with every kept event at the end of the run, so next month's run
-won't re-surface the same edition this one already showed. **This is what makes the
+**The ledger is READ-ONLY at this step.** It is written only after Step 8's push
+succeeds, by `scripts/update_ledger.py`. The ledger's job is to stop an event that has
+*already been reported* from being reported again — so writing it here, before the Step 7a
+approval gate, marks events seen even when the report is never published, and they then
+never resurface. That is the exact opposite of what the ledger is for, and it is silent.
+It bit twice on 2026-09-01, once while preparing that day's own digest. `filter_and_sort.py`
+has an `--update-ledger` escape hatch for backfills; do not use it in the normal flow. **This is what makes the
 monthly cadence readable** — without it, every run would repeat the same standing list.
 The
 file lives outside this repo (`~/.ersilia/events_seen.json`, in the user's home
@@ -650,6 +655,16 @@ gh api -X PUT "repos/ersilia-os/digests/contents/$REMOTE_PATH" \
   `https://ersilia-os.github.io/digests/events/{YY-MM-DD}-event-discovery.html`
   — and hand that to the user and use it in the Slack alert; don't present the
   local path or the raw github.com blob as the primary artefact.
+- **Record the published events in the ledger — only now, after the push succeeded:**
+
+  ```bash
+  python scripts/update_ledger.py --in /tmp/events_clean.json \
+    --ledger ~/.ersilia/events_seen.json --first-seen <YY-MM-DD of the report>
+  ```
+
+  This is what stops next month's digest repeating this month's list. It is idempotent, so
+  re-running after a retry is safe. If the push failed, **do not run it** — the events were
+  not published, so they must stay eligible for the next run.
 - No README index update — the website's navigation is generated directly from
   the files under `events/` (once the site templates support that folder), not
   from a hand-maintained README list.
