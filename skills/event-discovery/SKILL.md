@@ -110,8 +110,10 @@ not enough.
 
 1. **Is it in scope?** Apply the mission lens above *before* diagnosing the sweep. If it
    fails, the honest answer is "correctly out of scope" — say so, and do not add a source
-   row. Record the decision in `ROADMAP.md` so the same question resolves the same way
-   next time.
+   row. **Write the decision down** — in whatever design record the operator keeps — so the
+   same question resolves the same way next time instead of being re-argued from scratch.
+   An out-of-scope answer that leaves no trace is indistinguishable from an oversight, and
+   that is how the scope drifted in the first place.
 2. **If it is in scope, why was it missed?** Then it is a recall question, and the answer
    is usually a missing query axis rather than a missing row — see Step 2 Pass B.
 
