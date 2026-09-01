@@ -23,7 +23,7 @@ scans this; they click through for the detail.
 • **Oceania**: {one line}.
 • **Virtual / online**: {one line, or omit if empty}.
 
-Read it: {pages_url}
+Read it: [{report_basename}]({pages_url})
 ```
 
 ## Field rules
@@ -111,8 +111,22 @@ and fills the template.
 
 - **Post once per push.** `--force` overwrite still triggers a single post.
 - **Do not post** on a failed submission, or a generated-but-not-pushed report.
-- The footer `Read it: {pages_url}` is **always** present — it is the call to
-  action.
+- The footer `Read it: [{report_basename}]({pages_url})` is **always** present — it is
+  the call to action. `{report_basename}` is the report filename without its extension.
+
+- **Never end the message with a bare URL, and never put a line directly beneath one.**
+  In markdown a single newline is a *soft* break, so a bare URL and the line under it
+  render as one line and Slack's autolinker swallows the following characters into the
+  href. This shipped on 2026-09-01: the published link came out as
+  `…26-09-01-event-discovery.html*Sent`, because a `*Sent using* Claude` line sat directly
+  below a bare URL. Two defences, use both:
+  1. Write the URL as an explicit markdown link — `[label](url)` — so the autolinker has
+     hard bounds and cannot run past the closing parenthesis.
+  2. If anything follows it, separate it with a **blank line**, never a single newline.
+
+- **Do not hand-append a "Sent using Claude" footer.** It is not part of this template and
+  was added by imitation of an earlier post. Where the workspace appends such a line
+  itself, defence 2 is what keeps it off the end of the link.
 
 ## Worked example
 
@@ -130,5 +144,5 @@ and fills the template.
 • **North America**: ACS Spring meeting (industry-heavy, scout only).
 • **Virtual / online**: three fully-remote training schools with open bursaries, no travel required.
 
-Read it: https://ersilia-os.github.io/digests/events/26-01-01-event-discovery.html
+Read it: [26-01-01-event-discovery](https://ersilia-os.github.io/digests/events/26-01-01-event-discovery.html)
 ```
