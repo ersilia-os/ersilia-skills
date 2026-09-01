@@ -84,9 +84,10 @@ prediction**; (2) addresses an Ersilia-priority endpoint (AMR / Plasmodium / TB 
 ADMET / toxicity / kinetoplastid) or a generic chemistry endpoint with broad
 utility (CYP, hERG, solubility, drug-likeness); (3) ships **open-source or
 openly-distributable** code, ideally with weights — proprietary models can be
-"online-mode" entries but they're a fall-back; (4) lives in J Cheminform, JCIM,
-arXiv, NMI, Nat Comms, or NAR — or, less often, a Nature/Cell-family
-high-impact venue when the work is foundational.
+"online-mode" entries but only when a live API/web server is actually queryable;
+a model with no code, no weights, and no interface at all is not incorporable,
+full stop; (4) lives in J Cheminform, JCIM, arXiv, NMI, Nat Comms, or NAR — or,
+less often, a Nature/Cell-family high-impact venue when the work is foundational.
 
 ## How this translates to the 🤖 marker
 
@@ -106,15 +107,9 @@ Apply 🤖 when **all of the following hold**:
    - pocket-tensor or protein-pocket conditioning
    - multi-omics target-ID pipelines
 
-   **Two-input models (DTI / DTA / CPI / DDI) — apply the single-SMILES test.**
-   A compound–protein or drug–drug model is 🤖-eligible only if it can run from a
-   small molecule alone — i.e. the paper ships a **fixed-target checkpoint** (or a
-   small fixed target panel) so the second entity is baked in. If it genuinely
-   needs a user-supplied protein sequence/structure or a second drug at inference,
-   it is not single-SMILES-in: surface it as context **without 🤖**, tagged
-   `(I/O: drug + target — needs fixed-target wrap)`. Trigger this test whenever the
-   title/abstract carries DTI, DTA, DDI, CPI, drug–target, drug–drug,
-   compound–protein, binding affinity, or interaction prediction. Generative models that emit small
+   Compound–protein interaction models are 🤖-eligible because the *primary*
+   user-facing input is the small molecule; the protein is a condition the Hub
+   handles as a fixed target argument. Generative models that emit small
    molecules are 🤖-eligible even when they have no molecule input, *provided*
    they do not require a non-molecule conditioning input (e.g. a pocket
    tensor) the Hub's generator interface cannot currently supply.
@@ -129,15 +124,22 @@ Apply 🤖 when **all of the following hold**:
    reference taxonomy). Map ambiguous tasks to the most specific subtask, and
    only call it "Generation" if the headline contribution is generative.
 4. The model is **openly available**, and the digest states *in which form* via
-   the mandatory `(weights: …)` qualifier: **weights released** (downloadable
-   checkpoint) is strongest; **code only, no weights** still gets 🤖 but is tagged
-   `(weights: none — retrain required)` and ranked below weights-bearing entries,
-   because incorporation then means reproducing the model, not wrapping it;
-   **web-server / online-only** (ADMETLab-style) is a fall-back, tagged
-   `(infra: online-only)` and ranked lowest; **proprietary / no artifact** is not
-   🤖. Rationale: releasing *code* is not the same as releasing a runnable *model*
-   — the most common reason a plausible candidate fails is that no weights were
-   ever published.
+   the mandatory `(weights: …)` qualifier. Ranked strongest to weakest:
+   **weights released** (a downloadable checkpoint — wrapping is the whole job);
+   **code only, no weights**, which still gets 🤖 but is tagged
+   `(weights: none — retrain required)` and ranks below weights-bearing entries,
+   because incorporation then means reproducing the model, not wrapping it; and
+   **web-server / online-only** (ADMETLab-style entries are a Hub pattern),
+   tagged `(infra: online-only)` and ranked lowest. Rationale: releasing *code*
+   is not the same as releasing a runnable *model* — the most common reason a
+   plausible candidate fails incorporation is that no trained checkpoint was
+   ever published. Open availability is itself a hard requirement, not a
+   preference: if **none** of code, weights, or a queryable web server/API exists
+   — and no dataset is released for a Data-to-model route — there is nothing to
+   incorporate from, and the paper does not qualify for 🤖 at all, regardless of
+   how well it otherwise fits. "Proprietary" only justifies an online-mode 🤖
+   entry when there is still a live API to call; a fully closed model with no
+   interface of any kind is not incorporable.
 5. The endpoint is plausibly Hub-relevant. Cardiology-only or plant-only
    models, for instance, do not fit unless they generalise.
 
@@ -158,3 +160,71 @@ When 🗃️ is the *only* marker (no 🤖), the item still stays in its topical
 chapter — the marker alone tells the reader the dataset is Hub-trainable.
 When a paper carries **both** 🤖 and 🗃️, the model is the primary contribution
 and the dataset gets a mention in the body sentence.
+
+## Conditional incorporation routes (🤖❓)
+
+The 🤖 marker fires only when a paper's *own model* can be directly wrapped.
+But ~21 % of the Hub (Internal + Replicated source types) reached the Hub via an
+**intermediate step** — encoder extraction, fine-tuning, surrogate distillation,
+or data-to-model training. Papers enabling one of these routes are Hub candidates
+too, just conditional ones.
+
+Use **🤖❓** for these. They appear in the same topical chapter as a direct 🤖,
+sorted below 🤖 entries but above unannotated items. A paper carries **either**
+🤖 or 🤖❓, never both.
+
+### Seven trigger questions (C1–C7)
+
+Ask these *before* running the standard 🤖 checklist. Fire 🤖❓ on the first
+trigger that matches.
+
+| ID | Trigger | Route name | Hub precedent |
+|---|---|---|---|
+| C1 | The paper's main contribution is a **pretrained encoder** (molecular transformer, GNN, diffusion backbone) whose hidden-layer embeddings could be exposed as a featurizer, even if the paper does not frame it that way. | Encoder extraction | eos7w6n (GROVER), eos4rw4 (CDDD), eos9zw0 (MolPMoFiT), eos82v1 (SMI-TED), eos3wac (DeBERTaV2), eos39co (Uni-Mol) |
+| C2 | The paper describes **fine-tuning a foundation model** on a new endpoint — the fine-tuning recipe is the contribution, not a new backbone. | Fine-tuned predictor | eos4cxk, eos8c0o, eos6hy3, eos93h2 (ImageMol fine-tunes); eos6m2k (MolE + XGBoost on 40 antimicrobial strains) |
+| C3 | The model is **online/proprietary only**, but the API can be called in bulk to generate labels for a surrogate. Ersilia has used teacher–student distillation for models like this. | Surrogate distillation | eos2gth (MAIP surrogate via teacher–student distillation on 2M ChEMBL molecules) |
+| C4 | The paper releases a **screening dataset without a model** on a Hub-priority endpoint — large enough that LazyQSAR or Chemprop could produce a useful predictor. | Data-to-model (LazyQSAR) | eos4rta, eos2l0q, eos9ivc, eos5bsw, eos7l5m (LazyQSAR models trained on published assay data) |
+| C5 | A single codebase covers **multiple distinct endpoints or organisms** and could be deployed as several separate Hub entries. | One-to-many deployment | ChEMBL antimicrobial family (15 entries); GROVER family (12 entries, eos7w6n + task-specific models); ImageMol family (5 entries, eos4avb + fine-tunes) |
+| C6 | The model is a **multi-task predictor** whose output vector across tasks could serve as a molecular fingerprint, independent of its primary framing. | Multi-task featurizer | eos93h2 (10 GPCR scores as bioactivity embedding); eos1vms (616 ChEMBL target probabilities as fingerprint); eos4u6p (CC Signaturizer, 3200-dim bioactivity spaces) |
+| C7 | The model fails reproducibility because one component is **proprietary or unavailable**, but an open-source substitute benchmarked in the paper would yield comparable performance. | Replication with substitution | eos8d8a (MycPermCheck, replicated with LazyQSAR + Ersilia decoy sampler); eos9n1s (hemozoin inhibition, RDKit replacing proprietary ChemSpyder descriptors) |
+
+### Conditional body-sentence template
+
+```
+Conditional Hub candidate via [Route name].
+Paper contributes: {what the paper actually published — encoder, recipe, data, or API}.
+Hub would do: {the intermediate step} → {expected Hub output type}.
+Prerequisite: {what must exist or happen first}.
+Released under {license}. Priority: {High / Medium / Low} because {specific Hub gap filled}.
+```
+
+**Priority heuristics:**
+- **High** — no Hub coverage of this endpoint/task, or it is a named priority (AMR, Plasmodium, TB, ADMET).
+- **Medium** — partial Hub coverage; this route adds a new organism, endpoint, or meaningfully better accuracy.
+- **Low** — Hub already has adequate coverage; this would be a refinement.
+
+### Worked examples
+
+**C1 — Encoder extraction**
+
+> 🤖❓ Conditional Hub candidate via Encoder extraction.
+> Paper contributes: a SMILES-based molecular transformer pretrained on 77M PubChem compounds.
+> Hub would do: expose the final hidden-layer embedding as a 768-dim fingerprint → Featurization entry.
+> Prerequisite: weights confirmed downloadable (verify Zenodo record resolves).
+> Released under MIT. Priority: Medium because the Hub has featurizers (eos2d9a, eos5axz) but none pretrained at this scale.
+
+**C3 — Surrogate distillation**
+
+> 🤖❓ Conditional Hub candidate via Surrogate distillation.
+> Paper contributes: a proprietary antimalarial activity model accessible via web API (no weights or code released).
+> Hub would do: call the API in bulk → train a surrogate via teacher–student distillation → Activity prediction entry.
+> Prerequisite: API must remain live and allow bulk queries (~50k compounds; see eos2gth precedent).
+> Released under commercial licence (API only). Priority: High because Plasmodium falciparum activity coverage remains a Hub priority.
+
+**C4 — Data-to-model**
+
+> 🤖❓ Conditional Hub candidate via Data-to-model (LazyQSAR).
+> Paper contributes: 23 000 MIC measurements against M. tuberculosis H37Rv (no model shipped).
+> Hub would do: train a QSAR predictor with LazyQSAR → MIC/activity prediction entry for TB whole-cell.
+> Prerequisite: dataset confirmed downloadable under open licence; LazyQSAR training (~1 h on CPU) is the only additional step.
+> Released under CC-BY. Priority: High because TB whole-cell activity prediction is a named Hub gap.

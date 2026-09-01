@@ -1,0 +1,320 @@
+/* ===========================================================================
+   ersilia.css — the canonical Ersilia HTML house style.
+
+   Single light theme, brand-faithful. Distilled from the `stylia` palette
+   (the authoritative Ersilia colour source: plum #50285A is the foreground/ink
+   that "replaces black") and the reference implementation
+   ersilia-os/gradi-target-prioritization (app/styles.css).
+
+   Design contract:
+     - plum #50285A  = brand IDENTITY  (favicon, wordmark accent, score bars)
+     - periwinkle #6C5CE7 = interactive PRIMARY (--brand: links, focus, active)
+     - ink #2C3E50   = body text
+   Every component tint is derived from these tokens via color-mix(), so the
+   palette stays coherent — do not hard-code new hex values in a page.
+
+   Meant to be INLINED into a <style> block (Artifacts block external CSS via
+   CSP). Fonts are named but not loaded — a CSP-safe system fallback ships by
+   default; embed Inter as base64 only if pixel-perfect type is required.
+   =========================================================================== */
+
+:root {
+  /* --- Ersilia brand (official, from stylia) --------------------------- */
+  --plum:#50285A;      /* primary identity — deep plum */
+  --purple:#AA96FA;    /* soft lavender */
+  --mint:#BEE6B4;
+  --blue:#8CC8FA;
+  --yellow:#FAD782;
+  --pink:#DCA0DC;
+  --orange:#FAA08C;
+  --egray:#D2D2D0;
+
+  /* --- Data / axis hues (NPG accent set, shared with stylia "article") -- */
+  --crimson:#E63946;
+  --tangerine:#F4845F;
+  --amber:#FCBF49;
+  --lime:#6BBF59;
+  --turquoise:#2EC4B6;
+  --cobalt:#457B9D;
+  --periwinkle:#6C5CE7;
+  --orchid:#B05CC8;
+  --fuchsia:#E91E8C;
+  --silver:#A0A0A0;
+
+  /* --- Neutrals & surfaces --------------------------------------------- */
+  --ink:#2C3E50;       /* body text (stylia "soft off-black") */
+  --muted:#6B6675;     /* secondary text */
+  --faint:#9A93A6;     /* tertiary / captions / micro-labels */
+  --bg:#FAFAFC;        /* page background (faint cool tint) */
+  --surface:#FFFFFF;   /* cards, panels, sidebar */
+  --surface-2:#F4F4F8; /* recessed fills: inputs, chips, zebra rows */
+  --border:#E6E6EE;    /* light lavender-gray hairline */
+
+  /* --- Interactive primary & semantic ---------------------------------- */
+  --brand:#6C5CE7;     /* periwinkle — links, focus, active, sliders */
+  --accent:var(--brand);
+  --good:#3F9D6B;
+  --warn:#C98A1E;
+  --bad:#D9534F;
+
+  /* --- Shape, depth, motion -------------------------------------------- */
+  --radius:14px;       /* large containers */
+  --radius-sm:8px;     /* controls */
+  --shadow:0 1px 2px rgba(44,62,80,.05), 0 10px 30px rgba(80,40,90,.07); /* plum-tinted */
+  --shadow-sm:0 1px 2px rgba(44,62,80,.06);
+  --tap:.16s cubic-bezier(.2,.6,.2,1);
+
+  /* --- Type ------------------------------------------------------------- */
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+
+/* --- Reset-ish base ---------------------------------------------------- */
+*,*::before,*::after { box-sizing:border-box; }
+html { -webkit-text-size-adjust:100%; }
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:13px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+a { color:var(--brand); text-decoration:none; }
+a:hover { text-decoration:underline; }
+::selection { background:color-mix(in srgb, var(--brand) 22%, #fff); }
+img { max-width:100%; height:auto; }
+hr { border:0; border-top:1px solid var(--border); margin:20px 0; }
+
+/* --- Headings & typographic devices ------------------------------------ */
+h1,h2,h3 { color:var(--ink); line-height:1.15; margin:0 0 .4em; }
+h1 { font-size:22px; font-weight:700; letter-spacing:-.01em; }
+h1 em { font-style:italic; color:var(--brand); }           /* accent word in a wordmark */
+h2 { font-size:16px; font-weight:600; }
+h3 { font-size:13px; font-weight:600; }
+
+/* Quiet sentence-case micro-label — the Ersilia "eyebrow". Sans, not mono; not
+   uppercase. Neutral by default; the .brand variant carries the one accent. */
+.eyebrow, .section > h2.label {
+  font-family:var(--sans);
+  font-size:11.5px;
+  font-weight:600;
+  letter-spacing:.01em;
+  color:var(--muted);
+}
+.eyebrow.brand { color:var(--brand); }
+
+/* Biological nomenclature is always italic. */
+.gene, .organism, i.sci { font-style:italic; }
+
+/* All numbers are mono + tabular. Apply to any numeric cell/value. */
+.num, td.num, .mono { font-family:var(--mono); font-variant-numeric:tabular-nums; }
+
+.muted { color:var(--muted); }
+.faint { color:var(--faint); }
+
+/* --- Layout: app-shell archetype --------------------------------------- */
+.app {
+  display:grid;
+  grid-template-columns:328px 1fr;
+  height:100vh;
+  overflow:hidden;
+}
+.sidebar {
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  padding:22px 20px 40px;
+  overflow-y:auto;
+  height:100vh;
+  position:sticky;
+  top:0;
+}
+.main {
+  padding:18px clamp(16px,3vw,32px) 16px;
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  overflow:hidden;
+}
+/* Data regions scroll internally; the shell itself never scrolls. */
+.scrollwrap { overflow:auto; flex:1; min-height:0; }
+
+/* --- Layout: document / report archetype ------------------------------- */
+.document {
+  max-width:980px;
+  margin:0 auto;
+  padding:40px clamp(16px,4vw,28px) 96px;
+}
+.document > header { margin-bottom:28px; }
+
+/* --- Layout: dashboard / landing archetype ----------------------------- */
+.dashboard {
+  max-width:1160px;
+  margin:0 auto;
+  padding:32px clamp(16px,3vw,32px) 80px;
+}
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:16px;
+}
+
+/* --- Wordmark header --------------------------------------------------- */
+.brandhead { display:flex; flex-direction:column; gap:4px; }
+.wordmark { font-size:clamp(18px,2vw,22px); font-weight:700; letter-spacing:-.01em; }
+.wordmark em { font-style:italic; color:var(--brand); }
+
+/* --- Cards, panels, sections ------------------------------------------- */
+.card, .panel {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px 18px;
+  box-shadow:var(--shadow-sm);
+}
+.section { margin-top:22px; }
+.section > h2 {
+  font-family:var(--sans);
+  font-size:13px; font-weight:600;
+  letter-spacing:0;
+  color:var(--ink);
+  margin:0 0 10px;
+}
+
+/* --- Stat tiles (KPI row) ---------------------------------------------- */
+.stat { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
+.stat .k { font-family:var(--sans); font-size:11px; font-weight:500; letter-spacing:.01em; color:var(--muted); }
+/* Proportional figures, not tabular: equal-width digits make a large standalone
+   number look loose. tabular-nums is for values that line up vertically. */
+.stat .v { font-family:var(--mono); font-size:26px; font-weight:700; font-variant-numeric:normal; color:var(--ink); margin-top:2px; }
+.stat .d { font-size:11.5px; color:var(--muted); margin-top:2px; }
+
+/* --- Buttons & controls ------------------------------------------------ */
+/* Chrome stays light: weight belongs on data, not on furniture. A semi-bold button
+   reads as shouting. Colour carries state instead. */
+button, .btn {
+  font-family:var(--sans); font-size:12px; font-weight:450;
+  color:var(--ink);
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:6px 12px;
+  cursor:pointer;
+  transition:background var(--tap), border-color var(--tap);
+}
+button:hover, .btn:hover { background:var(--surface-2); }
+button.primary, .btn.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
+button.primary:hover, .btn.primary:hover { background:color-mix(in srgb, var(--brand) 88%, #000); }
+input, select, textarea { font-family:var(--sans); font-size:12px; color:var(--ink); background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:5px 8px; }
+input:focus, select:focus, textarea:focus, button:focus-visible { outline:2px solid color-mix(in srgb, var(--brand) 55%, #fff); outline-offset:1px; }
+input[type=range] { accent-color:var(--brand); }
+
+/* Pills / chips (fully rounded). */
+.pill, .chip {
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:var(--sans); font-size:11.5px; font-weight:450; letter-spacing:0;
+  border-radius:999px; padding:3px 11px;
+  border:1px solid var(--border); background:var(--surface-2); color:var(--muted);
+}
+.chip[aria-pressed="true"], .chip.active { background:color-mix(in srgb, var(--brand) 15%, var(--surface)); border-color:var(--brand); color:var(--brand); }
+
+/* Toggle switch. */
+.sw { position:relative; width:34px; height:19px; border-radius:999px; background:var(--border); border:none; cursor:pointer; transition:background var(--tap); }
+.sw::after { content:""; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:#fff; box-shadow:var(--shadow-sm); transition:transform var(--tap); }
+.sw[aria-checked="true"] { background:var(--turquoise); }
+.sw[aria-checked="true"]::after { transform:translateX(15px); }
+
+/* --- Badges (pastel, derived from a data hue) -------------------------- */
+/* Set --c to any axis hue, e.g. style="--c:var(--mint)". */
+.badge {
+  display:inline-block; font-family:var(--mono); font-size:10px; font-weight:600;
+  letter-spacing:.02em; padding:1px 8px; border-radius:999px;
+  background:color-mix(in srgb, var(--c,var(--brand)) 20%, #fff);
+  color:color-mix(in srgb, var(--c,var(--brand)) 72%, #000);
+  border:1px solid color-mix(in srgb, var(--c,var(--brand)) 34%, #fff);
+}
+.badge.good { --c:var(--good); }
+.badge.warn { --c:var(--warn); }
+.badge.bad  { --c:var(--bad); }
+
+/* --- Data tables ------------------------------------------------------- */
+table.data { width:100%; border-collapse:collapse; font-size:12px; }
+table.data th {
+  position:sticky; top:0; z-index:1;
+  font-family:var(--sans); font-size:11px; font-weight:600;
+  letter-spacing:0; color:var(--muted);
+  text-align:left; padding:8px 10px; background:var(--surface);
+  border-bottom:1px solid var(--border);
+}
+table.data td { padding:7px 10px; border-bottom:1px solid var(--surface-2); }
+table.data td.num { text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; }
+table.data tbody tr:nth-child(even) { background:color-mix(in srgb, var(--surface-2) 55%, var(--surface)); }
+table.data tbody tr:hover { background:color-mix(in srgb, var(--brand) 6%, var(--surface)); }
+
+/* --- Tooltip (tier 2: richer than a native title=) --------------------- */
+.hovertip { position:relative; }
+.hovertip[data-tip]::after {
+  content:attr(data-tip);
+  position:absolute; left:0; top:calc(100% + 6px); z-index:30;
+  max-width:280px; width:max-content;
+  background:var(--ink); color:#fff; font-family:var(--sans); font-size:11.5px; line-height:1.4;
+  padding:7px 10px; border-radius:8px; box-shadow:var(--shadow);
+  opacity:0; pointer-events:none; transform:translateY(-2px); transition:opacity var(--tap), transform var(--tap);
+}
+.hovertip[data-tip]:hover::after { opacity:1; transform:translateY(0); }
+
+/* --- Honesty pill: flag provisional / prototype data ------------------- */
+.wip {
+  display:inline-flex; align-items:center; gap:6px;
+  width:fit-content; align-self:flex-start;   /* hug the text, never stretch in a flex column */
+  font-family:var(--sans); font-size:11px; font-weight:500; letter-spacing:0;
+  color:color-mix(in srgb, var(--warn) 80%, #000);
+  background:color-mix(in srgb, var(--warn) 16%, #fff);
+  border:1px solid color-mix(in srgb, var(--warn) 34%, #fff);
+  border-radius:999px; padding:3px 11px;
+}
+/* Neutral metadata pill — a snapshot date, a row count, a "not loaded yet" note.
+   Deliberately NOT .wip: that one is amber and reads as a warning. */
+.meta {
+  display:inline-flex; align-items:center; gap:6px; width:fit-content;
+  font-family:var(--sans); font-size:11px; font-weight:450; letter-spacing:0;
+  color:var(--muted); background:var(--surface-2);
+  border:1px solid var(--border); border-radius:999px; padding:3px 11px;
+}
+
+/* Hatched fill for provisional cells/regions. */
+.provisional { background:repeating-linear-gradient(45deg, transparent, transparent 5px, color-mix(in srgb, var(--warn) 12%, transparent) 5px, color-mix(in srgb, var(--warn) 12%, transparent) 10px); }
+
+/* --- Modal + scrim (tier 3: methods / help, tucked one click deep) ----- */
+.scrim { position:fixed; inset:0; background:rgba(44,62,80,.34); z-index:40; }
+.modal {
+  position:fixed; z-index:41; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:min(680px,92vw); max-height:86vh; overflow:auto;
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  box-shadow:var(--shadow); padding:24px 26px;
+}
+.modal .mrow { border-left:3px solid var(--c,var(--brand)); padding:6px 0 6px 14px; margin:12px 0; }
+
+/* --- Footer credit ----------------------------------------------------- */
+.credit {
+  border-top:1px solid var(--border);
+  margin-top:32px; padding-top:14px;
+  font-size:11.5px; color:var(--muted);
+}
+.credit a { color:var(--brand); font-weight:450; }
+
+/* --- Composite score bar (plum → periwinkle), an identity flourish ----- */
+.cbar { height:8px; border-radius:999px; background:var(--surface-2); overflow:hidden; }
+.cbar .fill { height:100%; background:linear-gradient(90deg, var(--purple), var(--brand)); }
+
+/* --- Responsive: single breakpoint ------------------------------------- */
+@media (max-width:900px) {
+  .app { grid-template-columns:1fr; height:auto; overflow:visible; }
+  .sidebar { height:auto; position:static; border-right:none; border-bottom:1px solid var(--border); }
+  .main { height:auto; overflow:visible; }
+}
+@media (prefers-reduced-motion:reduce) {
+  * { transition:none !important; }
+}

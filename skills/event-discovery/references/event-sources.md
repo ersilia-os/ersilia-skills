@@ -116,10 +116,11 @@ Write the classified pool to `/tmp/events_pool.json` as a JSON array of objects.
 | Field | Type | Notes |
 |---|---|---|
 | `name` | string | **required** — official event name |
-| `start_date` | string | **required** — ISO `YYYY-MM-DD` (first day) |
+| `start_date` | string | **required** — ISO `YYYY-MM-DD` (first day). **Waived only when `shared_by` is set:** a colleague may share a real event whose page has not announced dates yet. Set it to `null` in that case — never guess — and the event renders under "Shared by the team — dates not yet announced" instead of being dropped. A machine-discovered event with no date is still dropped. |
 | `end_date` | string \| null | ISO `YYYY-MM-DD`; null for single-day events |
 | `location` | string | **required** — "City, Country" or "Virtual" |
-| `country` | string \| null | country name, used for the LMIC / Global-South check |
+| `country` | string \| null | country name; drives which **continent section** the event is filed under — i.e. where you would physically travel |
+| `focus_region` | string \| null | **optional** — the region the event is *about*, when it differs from `country`. A country (`"Kenya"`) or a continent (`"Africa"`). An "AMR in Africa" symposium held in London gets `"Africa"`. Drives the 🌍 decision and the "Coverage by region focus" footer; falls back to `country` when omitted. Never causes an event to appear twice — sections stay location-based. |
 | `url` | string | **required** — official event page |
 | `source` | string | **required** — which source it came from (e.g. "GRC", "Indaba") |
 | `cost` | string | attendance cost as stated on the official page — `Free`, a figure with currency (e.g. `~€450`, `$150 student / $350 industry`), or `Unknown` if the page gives none. Never invent a number. |
@@ -129,13 +130,14 @@ Write the classified pool to `/tmp/events_pool.json` as a JSON array of objects.
 | `theme` | string | one of `Science` / `Philanthropy` / `Community` / `Training` |
 | `scope` | string | one of `Local` / `Regional` / `Global-South` / `International` |
 | `priority` | string | `High` / `Medium` / `Low` |
-| `markers` | string | emoji ribbon you set in fixed order `⭐🌍🎓💻`; the script appends 💰 (from `bursary`) and 🗓️ (from `deadlines`) |
+| `markers` | string | emoji ribbon you set in fixed order `⭐🌍🎓💻💬`; the script appends 💰 (from `bursary`) and 🗓️ (from `deadlines`). 🌍 follows `focus_region` when set, else `country`. |
+| `shared_by` | string \| null | **optional** — for candidates from the Slack sweep (Step 2a), the name of the teammate who posted it. Renders as a `💬 Shared by the team` footnote, not a table column, and pairs with the 💬 marker. |
 | `deadlines` | object | typed deadlines, each an ISO `YYYY-MM-DD` string (omit or `null` if unknown). Recognised keys: `abstract` (call for papers / posters), `early_bird` (early-bird registration), `registration` (standard/final registration or an application/interest deadline), `bursary` (financial-aid / scholarship application). Record every date the page states — **including past ones**; the script decides which land in-window (adds 🗓️), and a **past `registration` date on a still-upcoming event** moves it to the report's "registration closed" section. Use `registration` as the catch-all when the type is unclear. |
 | `priorities` | array[int] | which Ersilia strategic priorities (1–4) it maps to |
 | `action` | string | `attend` / `apply` / `partner` / `scout` / `watch` (`scout` = a high-fit event worth sending someone to for methods/partner intel even though it's far/costly) |
 | `engagement` | string | the participation angle — a short phrase (≤6 words) for *what to do there* and, if clear, *who should go*: e.g. `Present Model Hub work`, `Recruit trainees; send a student`, `Meet African partners`, `Scout AI4Science talks`. `—` if there's no distinct angle beyond attending. |
 | `why_ersilia` | string | one line: why it matters (name the priority + action) |
-| `verified` | bool | `true` when you confirmed name/dates/URL on the **official page** via `WebFetch`; `false` for a strong candidate you could not page-verify (e.g. the site failed to load) but whose details agree across independent reputable sources. Defaults to `true` if omitted. Unverified events are kept but flagged with `†` in the report. |
+| `verified` | bool | `true` when you confirmed name/dates/URL on the **official page** via `WebFetch`; `false` for a strong candidate you could not page-verify (e.g. the site failed to load) but whose details agree across independent reputable sources. Defaults to `true` if omitted. Unverified events are kept but flagged with `†` in the report. **Team-shared candidates (`shared_by` set) are kept at `false` even with no corroborating sources** — a colleague vouched for it, so it is flagged for the reader rather than dropped. |
 
 Example object:
 

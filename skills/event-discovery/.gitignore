@@ -4,3 +4,9 @@ scripts/__pycache__/
 # Seen-events ledger (run state, if kept inside the skill folder).
 *events_seen.json
 seen_events.json
+
+# Generated report output — kept local as a working copy. The canonical home for
+# reports is the remote repo `ersilia-os/digests` (submitted via `gh api`, SKILL.md Step 8).
+# Re-commit a specific run locally only if you have a reason:
+#   git add -f reports/26-01-01-event-discovery.md
+reports/

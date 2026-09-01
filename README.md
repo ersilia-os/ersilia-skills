@@ -20,6 +20,7 @@ Each set of skills is designed to help us achieve one of these three goals. Some
 | Name | Skill |
 |------|-------|
 | stylia-plotting | Documents how to create Python plots using the `stylia` package — Ersilia's matplotlib wrapper for publication-ready figures. |
+| event-discovery | Discover interesting events for Ersilia and write a summarised report. Classify between categories: local/global, science/philanthropy, etc. |
 
 ### 2. Ersilia Model Hub Growth
 
@@ -33,11 +34,12 @@ Several of these skills are designed to be chained together as part of a larger 
 | model-incorporation-request | Opens a model request issue on `ersilia-os/ersilia`. |
 | model-incorporation-metadata | Fills in `metadata.yml` from the paper and source repo. |
 | model-incorporation-code | Wires the model code into the Ersilia template. |
+| model-incorporation-reproduce | Verifies model outcomes/performance matches the original work. |
 | repository-auditing | Audits a repository to make sure it abides by Ersilia's standards. |
-| ersilia-model-test | Tests an Ersilia Model Hub model before hub incorporation. 
+| ersilia-model-test | Tests an Ersilia Model Hub model before hub incorporation. |
+| model-monitoring | Track pending models, stored data, etc |
 | model-fixing | When a model fails a test, reviews where it failed and fixes it automatically. |
 | github-digest | Tracks open issues and produces summaries for tech-tracking meetings. |
-| repository-auditing | Audits a repository to make sure it abides by Ersilia's standards. |
 
 ### 3. Improve scientific literacy
 
@@ -46,6 +48,9 @@ Several of these skills are designed to be chained together as part of a larger 
 | literature-review | Given a topic, offers a structured review of the literature, surfacing relevant research/review papers alongside potential ML models and datasets that could be included in Ersilia. |
 | literature-digest | Produces a weekly literature digest for Ersilia. |
 | molecule-auditing | Audits small molecules suggested in Ersilia's screening and scores them according to parameters of interest. |
+| paper-to-model-assesment | Summarize a given paper and put it in context of Ersilia’s interests. |
+| peer-reviewing | Emulate a peer review and suggest how to address changes. |
+
 ---
 
 ## How Skills Are Structured
