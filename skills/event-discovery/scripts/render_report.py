@@ -7,12 +7,21 @@ group, then a Deadlines callout for events whose deadline falls within the windo
 
 Usage:
   python scripts/render_report.py --in clean.json --out report.md \
-      [--focus "AI drug discovery"] [--from 2026-07-11] [--to 2027-04-11] [--swept 18]
+      --from 2026-07-11 --to 2027-04-11 --today 2026-07-11 \
+      --continents-searched "Africa,Europe,Asia,South America,North America,Oceania" \
+      --axes-searched "TB,Malaria,Leishmania/Chagas,Schistosomiasis,AMR,ML methods,Spain,Open deadlines" \
+      [--focus "AI drug discovery"] [--swept 18] [--connectors "web:ok,slack:ok"]
+
+--continents-searched and --axes-searched are effectively REQUIRED: the script refuses to
+render unless every continent and every axis is claimed, so a partial sweep cannot ship as
+a complete report. Pass --allow-incomplete-sweep to override; the report is then stamped
+with a visible warning.
 
 Prints the output path to stdout.
 """
 
 import argparse
+import re
 import sys
 
 from _common import continent_of, focus_continent_of, parse_date, read_json, warn
@@ -229,21 +238,34 @@ def registration_closed(event, today):
     return reg is not None and reg < today
 
 
+def _tokens(text):
+    """Lowercased alphanumeric tokens, so `Leishmania/Chagas` -> {leishmania, chagas}."""
+    return {tok for tok in re.split(r"[^a-z0-9]+", str(text).lower()) if tok}
+
+
 def axis_swept(axis, searched):
     """Was this canonical axis covered by the comma-separated `--axes-searched` value?
 
-    Tolerant on purpose: the flag is hand-typed, so ``chagas`` must satisfy
-    ``Leishmania/Chagas`` and ``methods`` must satisfy ``ML methods``. Matching is
-    case-insensitive, substring-either-way, and slash-aware.
+    Tolerant, because the flag is hand-typed: ``chagas`` must satisfy
+    ``Leishmania/Chagas`` and ``methods`` must satisfy ``ML methods``. But tolerant on
+    **whole tokens**, never raw substrings.
+
+    Raw substring matching was the first implementation and it was too loose in the one
+    direction that matters: ``TBD`` contains ``TB``, so a typo silently satisfied the TB
+    axis and the completeness gate passed a sweep that had not run. Since this function
+    *is* the gate, a permissive match is worse than a strict one — a value matching
+    nothing already produces a loud WARNING naming the known axes, so the operator is told
+    exactly what to fix.
+
+    A claim matches when its tokens are a subset of the axis's (``chagas`` ⊆
+    {leishmania, chagas}) or the axis's are a subset of the claim's (``TB axis`` ⊇ {tb}).
     """
-    a = axis.strip().lower()
-    parts = [p.strip() for p in a.split("/") if p.strip()]
+    want = _tokens(axis)
+    if not want:
+        return False
     for s in searched:
-        if not s:
-            continue
-        if s == a or s in a or a in s:
-            return True
-        if any(s == p or s in p or p in s for p in parts):
+        got = _tokens(s)
+        if got and (got <= want or want <= got):
             return True
     return False
 

@@ -21,7 +21,7 @@ import re
 import sys
 from datetime import date
 
-from _common import parse_date, read_json, warn
+from _common import parse_date, warn
 from filter_and_sort import normalise_series_key
 
 SECTIONS = {
@@ -29,6 +29,22 @@ SECTIONS = {
     "must exclude": "exclude",
     "must never become an event": "never",
 }
+
+
+def read_json_soft(path):
+    """Read JSON, warning and returning None on failure instead of exiting.
+
+    ``_common.read_json`` calls ``sys.exit(1)``, which is correct for the scripts whose
+    output the run depends on. This one is advisory, so a missing or malformed input must
+    degrade to "not graded" rather than take the digest down.
+    """
+    import json
+    try:
+        with open(path, encoding="utf-8") as handle:
+            return json.load(handle)
+    except (OSError, json.JSONDecodeError) as exc:
+        warn(f"cannot read {path}: {exc} — skipping that part of the check")
+        return None
 
 
 def name_tokens(name):
@@ -70,7 +86,15 @@ def parse_fixture(path):
     """
     out = {"find": [], "exclude": [], "never": []}
     current = None
-    for line in open(path, encoding="utf-8"):
+    try:
+        lines = open(path, encoding="utf-8").readlines()
+    except OSError as exc:
+        # Must not raise: this script's contract is that it never blocks a run. A wrong
+        # --fixture path (typically a different working directory) would otherwise take
+        # the whole digest down over an advisory check.
+        warn(f"cannot read fixture {path}: {exc} — recall not graded this run")
+        return out
+    for line in lines:
         if line.startswith("## "):
             heading = line[3:].strip().lower()
             current = next((v for k, v in SECTIONS.items() if heading.startswith(k)), None)
@@ -117,9 +141,9 @@ def main(argv=None):
 
     today = parse_date(args.today) or date.today()
     fixture = parse_fixture(args.fixture)
-    pool = read_json(args.pool) or []
+    pool = read_json_soft(args.pool)
     if not isinstance(pool, list):
-        print("ERROR: --pool must be a JSON array of events", file=sys.stderr)
+        warn("--pool did not yield a JSON array of events — recall not graded this run")
         return 0  # still non-blocking
     pool_idx, pool_hay = index_events(pool), haystack(pool)
 
@@ -149,7 +173,7 @@ def main(argv=None):
 
     excluded_bad = []
     if args.clean:
-        clean_idx = index_events(read_json(args.clean) or [])
+        clean_idx = index_events(read_json_soft(args.clean) or [])
         for row in fixture["exclude"]:
             when = parse_date(row["date"])
             if when is not None and when < today:
