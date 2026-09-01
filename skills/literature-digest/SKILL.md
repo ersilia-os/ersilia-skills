@@ -381,8 +381,9 @@ Decision:
   the failing dimension named.
 - A paper carries **either** 🤖 or 🤖❓, never both. Within a chapter, 🤖
   entries sort first, then 🤖❓, then unannotated. Within the 🤖 block, order by
-  weights status: `released`, then `pending`, then `none — retrain required`,
-  then `(infra: online-only)`.
+  weights status: `released`, then `none — retrain required` (code in hand,
+  retrainable now), then `pending` (a promise, not an artifact), then
+  `(infra: online-only)`.
 - 💻 is **independent** of 🤖 / 🤖❓. 💻 applies only when the abstract or paper
   page explicitly names a public repo URL — Crossref/EuropePMC abstracts often
   omit code mentions; do not infer code presence from "this work is open" or

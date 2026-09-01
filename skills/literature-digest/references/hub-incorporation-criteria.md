@@ -127,8 +127,10 @@ Apply 🤖 when **all of the following hold**:
    the mandatory `(weights: …)` qualifier. Ranked strongest to weakest:
    **weights released** (a downloadable checkpoint — wrapping is the whole job);
    **code only, no weights**, which still gets 🤖 but is tagged
-   `(weights: none — retrain required)` and ranks below weights-bearing entries,
-   because incorporation then means reproducing the model, not wrapping it; and
+   `(weights: none — retrain required)` and ranks below weights-released entries,
+   because incorporation then means reproducing the model, not wrapping it — but
+   still *above* `(weights: pending)`, since released code is an artifact in hand
+   and a promised checkpoint is not; and
    **web-server / online-only** (ADMETLab-style entries are a Hub pattern),
    tagged `(infra: online-only)` and ranked lowest. Rationale: releasing *code*
    is not the same as releasing a runnable *model* — the most common reason a
