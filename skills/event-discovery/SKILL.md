@@ -61,7 +61,7 @@ dates, deadlines, or venues** — verify each against its official page or drop 
 
 ## Reference files
 
-Read all four before starting:
+Read all four before starting (`recall-fixture.md` is a fifth, consumed at Step 6a):
 
 - `references/event-sources.md` — where to look per event type, how to query, **and
   the event JSON schema** you must produce. Read before any search.
@@ -70,6 +70,9 @@ Read all four before starting:
 - `references/ersilia-priorities.md` — the four strategic priorities + relevance
   rubric. Read before screening.
 - `references/lmic-countries.md` — the LMIC list behind the 🌍 / Global-South axis.
+- `references/recall-fixture.md` — events the sweep must keep finding, graded at Step 6a.
+  **Do not read this before sweeping**: knowing the answers would bias the sweep toward
+  them, and the fixture would then only ever confirm itself.
 
 ---
 
@@ -473,6 +476,36 @@ too costly in practice, the fix is a fingerprint over the
 deadline/bursary/registration fields added to the ledger record — recorded here
 so the tradeoff stays visible instead of being rediscovered as a bug.
 
+### Step 6a — Grade the sweep against the recall fixture
+
+```bash
+python scripts/check_recall.py --fixture references/recall-fixture.md \
+  --pool /tmp/events_pool.json --clean /tmp/events_clean.json --today <today>
+```
+
+**Why this exists.** Every improvement to `event-sources.md` and to Step 2's axis pass is
+otherwise unverifiable. A sweep that quietly degrades produces a thin report, and a thin
+report is indistinguishable from a quiet month — so recall can rot for a year without
+anyone noticing. `references/recall-fixture.md` pins events the sweep is known to be able
+to find, each tagged with the axis or source that should catch it, so a miss names its own
+cause.
+
+**It warns; it never blocks — and that is deliberate**, the opposite of the completeness
+gate in Step 7. A missing query is always the operator's fault and always fixable by
+running it. A fixture miss may just mean the event moved, was renamed, or stopped
+existing. A check that fails on legitimate misses is one people learn to bypass.
+
+- Graded against the **pool**, not the report: the pool is what the sweep *found*, before
+  the window filter and before the ledger hides already-seen editions. Grading the report
+  would make every entry start failing the month after it first appeared.
+- `--clean` additionally grades the "must exclude" rows, which test rules that run after
+  the pool is written.
+- **Carry the result into the Step 7a summary** — found/missed counts, and any missed
+  entry with the lever that should have caught it.
+- **Expired rows are not misses.** When the script says *needs replacing*, replace the
+  entry with the next edition of that series or another event exercising the same lever.
+  Left alone, the fixture becomes a list of false alarms.
+
 ### Step 7 — Render the report (script) + summarise
 
 ```bash
@@ -554,6 +587,9 @@ Three things are the user's call at this gate, not the skill's:
 - **Anything the report flags as uncertain**: `†` unverified events (including
   human-sourced ones kept under Step 2a's exception) and any WARNINGs from
   Step 6.
+- **The recall-fixture result** (Step 6a): the found/missed count, each missed entry with
+  the lever that should have caught it, and any row flagged as expired. A miss is not a
+  reason to withhold the report — it is a reason to look at that axis before the next run.
 - **Every human-sourced link that did not become an event.** List them in the
   in-chat summary — never in the published report — in two groups:
   - **Leads** — organisation or programme pages with no specific convening found
