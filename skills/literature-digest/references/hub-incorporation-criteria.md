@@ -132,7 +132,8 @@ Apply 🤖 when **all of the following hold**:
    still *above* `(weights: pending)`, since released code is an artifact in hand
    and a promised checkpoint is not; and
    **web-server / online-only** (ADMETLab-style entries are a Hub pattern),
-   tagged `(infra: online-only)` and ranked lowest. Rationale: releasing *code*
+   tagged `(weights: none)` plus `(infra: online-only)` — the weights qualifier
+   is mandatory here too — and ranked lowest whatever its weights status. Rationale: releasing *code*
    is not the same as releasing a runnable *model* — the most common reason a
    plausible candidate fails incorporation is that no trained checkpoint was
    ever published. Open availability is itself a hard requirement, not a

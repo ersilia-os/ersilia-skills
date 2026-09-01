@@ -359,7 +359,7 @@ in Step 6 must speak to these answers.
 | 2 | **Output** | Produces a numeric score, vector, label, or molecule(s) — i.e. something the Hub `predict` / `featurize` / `generate` interface can return. | No 🤖. |
 | 3 | **Task fit** | Slots into one of: Property prediction, Activity prediction, Featurization, Projection, Similarity search, Generation. | No 🤖; mention task mismatch. |
 | 4 | **Code availability** | A public repo URL (GitHub / GitLab / Codeberg / HuggingFace Space) is named in the paper or in the model/dataset release page. | No 🤖. (Independent of 💻 — see below.) |
-| 5 | **Weights availability** | Trained weights are released (HuggingFace, Zenodo, GitHub release/LFS, or supplementary) — verified to exist, not a README promise or a `train.py` output. | 🤖 kept, but tag `(weights: pending)` if authors say they are coming, or `(weights: none — retrain required)` if code-only; rank below weights-released entries. |
+| 5 | **Weights availability** | Trained weights are released (HuggingFace, Zenodo, GitHub release/LFS, or supplementary) — verified to exist, not a README promise or a `train.py` output. Tag these `(weights: released)`. | 🤖 kept, but tag `(weights: pending)` if authors say they are coming, or `(weights: none — retrain required)` if code-only; rank below weights-released entries. |
 | 6 | **License** | Permissive enough for Ersilia redistribution — MIT, Apache-2.0, BSD-2/3-Clause, CC-BY, CC-BY-SA, MPL-2.0. CC-NC, GPL/AGPL-only, "research-only" or "non-commercial" all fail. | No 🤖. Note the license blocker in the body sentence and surface as context. |
 | 7 | **Inference reproducibility** | Dependencies are tractable — no proprietary library, no hardware lock-in beyond a single GPU, no cloud-API call required for inference — i.e. plausibly runnable inside an Ersilia model container. | 🤖 with `(infra: heavy)` qualifier; flag for follow-up. |
 
@@ -382,8 +382,10 @@ Decision:
 - A paper carries **either** 🤖 or 🤖❓, never both. Within a chapter, 🤖
   entries sort first, then 🤖❓, then unannotated. Within the 🤖 block, order by
   weights status: `released`, then `none — retrain required` (code in hand,
-  retrainable now), then `pending` (a promise, not an artifact), then
-  `(infra: online-only)`.
+  retrainable now), then `pending` (a promise, not an artifact). Online-only
+  entries carry `(weights: none)` plus `(infra: online-only)` — the weights
+  qualifier is mandatory there too — and sort last whatever their weights
+  status.
 - 💻 is **independent** of 🤖 / 🤖❓. 💻 applies only when the abstract or paper
   page explicitly names a public repo URL — Crossref/EuropePMC abstracts often
   omit code mentions; do not infer code presence from "this work is open" or
@@ -396,7 +398,8 @@ hook)**:
 
 ```
 Open-source {task} model taking {input modality} → {output type};
-released with {weights/code} under {license} (weights: released | pending | none).
+released with {weights/code} under {license}
+(weights: released | none — retrain required | pending).
 Plausible Hub addition because {hook}.
 ```
 
