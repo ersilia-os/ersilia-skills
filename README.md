@@ -21,13 +21,12 @@ Each set of skills is designed to help us achieve one of these three goals. Some
 |------|-------|
 | stylia-plotting | Documents how to create Python plots using the `stylia` package — Ersilia's matplotlib wrapper for publication-ready figures. |
 | event-discovery | Discover interesting events for Ersilia and write a summarised report. Classify between categories: local/global, science/philanthropy, etc. |
-| model-incorporation-announcement | Drafts the LinkedIn post announcing a new Hub model, giving the model's original authors more prominence than Ersilia. Lints the draft against the attribution rules before anything is published. Deliverable is the post text only. |
 
 ### 2. Ersilia Model Hub Growth
 
 Several of these skills are designed to be chained together as part of a larger workflow rather than run in isolation:
 
-- **Model incorporation pipeline** — `model-incorporation-request`, `model-incorporation-metadata`, `model-incorporation-code`, and `model-incorporation-reproduce` cover the full lifecycle of bringing a new model into the Hub, from opening the initial request to verifying it reproduces the original paper's results. `model-incorporation-announcement` closes the chain once the model is live, drafting the post that credits the model's original authors. They are meant to be run in sequence.
+- **Model incorporation pipeline** — `model-incorporation-request`, `model-incorporation-metadata`, `model-incorporation-code`, and `model-incorporation-reproduce` cover the full lifecycle of bringing a new model into the Hub, from opening the initial request to verifying it reproduces the original paper's results. They are meant to be run in sequence, with `technology-internal-report` summarising the month's completed incorporations afterwards.
 - **Hub maintenance workflow** — `model-discovery`, `ersilia-model-test`, `model-monitoring`, `model-fixing`, and `github-digest` work together as a recurring maintenance loop: discovering new candidate models, testing them before incorporation, monitoring the state of models and stored data, fixing what fails, and digesting GitHub activity to keep track of it all. We recommend running these as a bundled workflow rather than as standalone skills.
 
 | Name | Skill |
@@ -41,6 +40,7 @@ Several of these skills are designed to be chained together as part of a larger 
 | model-monitoring | Track pending models, stored data, etc |
 | model-fixing | When a model fails a test, reviews where it failed and fixes it automatically. |
 | github-digest | Tracks open issues and produces summaries for tech-tracking meetings. |
+| technology-internal-report | Summarises every model incorporated into the Hub during a month — table, a paragraph per model crediting its original authors, metadata defects worth fixing, and a draft LinkedIn round-up for internal review. |
 
 ### 3. Improve scientific literacy
 

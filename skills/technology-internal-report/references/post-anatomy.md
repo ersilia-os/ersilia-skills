@@ -6,42 +6,35 @@ Everything here is platform behaviour rather than taste. The credit rules live i
 ## The shape
 
 ```
-[1]  Title — "New in the Ersilia Model Hub: <model name>"
-[2]  Announcement — "We are very excited to announce the incorporation of <model>,
-     <one line saying what kind of model it is>, into the Hub."
-[3]  Credit — "Thanks to <authors> at <institutions>, <model> <what it produces>."
-[4]  Method — 2–3 sentences. Every claim checked against the paper abstract.
-[5]  Paper: <DOI>          (or "Preprint:" when Publication Type is Preprint)
-     The authors' code: <Source Code>
-[6]  What it enables — one sentence, then the command
-     ersilia fetch <slug>
-     https://github.com/ersilia-os/<eosXXXX>
-[7]  Why it matters — one sentence with the LMIC / access lens, only if honest here
-[8]  #Hashtags
+[1]  Title — "New in the Ersilia Model Hub: <n> models from <Month>"
+[2]  Announcement — "We are very excited to announce <n> new models incorporated last
+     month — <the span, e.g. featurizers, generative models and an activity predictor>."
+[3]  "With thanks to the authors of each:"
+[4]  One line per model, blank line between:
+     <Model name> — <First Author> and colleagues at <Institution> — <one clause on what
+     it does>: <paper DOI>
+[5]  One sentence on what they now enable
+[6]  Full catalogue: <link>
+[7]  #Hashtags
 ```
 
-Blocks 1–6 are mandatory. Block 7 is dropped rather than forced: a global-health framing
-that does not actually fit the model reads as boilerplate, and readers notice. For a
-domain-agnostic featurizer (`Biomedical Area: Any`) there is usually nothing honest to say,
-so say nothing.
+Blocks 1–4 are mandatory. Block 5 is one sentence, not a paragraph — the models have
+already spoken for themselves.
 
-**Each block adds; none repeats.** This is the discipline the structure lives or dies by,
-because blocks 2, 3, 4 and 6 are all circling the same model:
+**Each block adds; none repeats.** Blocks 1, 2 and 5 all circle the same fact:
 
 | Block | Its job | Not its job |
 |---|---|---|
-| 2 Announcement | that it is in the Hub, and what kind of model it is | how it works |
-| 3 Credit | who made it, and what it **produces** | how it was trained |
-| 4 Method | **how** it works and what it was trained on | restating the output |
-| 6 Enables | what a reader can now **do** | restating the incorporation |
+| 1 Title | the month, the count, and that it is the Hub | what any model does |
+| 2 Announcement | the *span* of the month — which kinds of model | naming models |
+| 4 Model lines | who made each one and what it does | Ersilia |
+| 5 Enables | what a reader can now do | restating the incorporation |
 
-The failure mode is block 6 saying "their model is now packaged in the Ersilia Model Hub"
-when block 1 and block 2 have already said exactly that. Block 6 starts from "It now
-runs…" and goes straight to the capability. R11 fails a post that names the Ersilia Model
-Hub more than once, which forces the fix.
+R11 fails a post that names the Ersilia Model Hub more than once, which forces block 5 to
+start from the capability rather than from where the models live.
 
 There is no caveat block, no second explanation of Ersilia's role beyond the announcement
-(R10), and no credit to the Ersilia contributor who did the incorporation — see
+(R10), and no credit to the Ersilia contributors who did the incorporations — see
 `attribution-rules.md`.
 
 ## Character budgets
@@ -49,11 +42,13 @@ There is no caveat block, no second explanation of Ersilia's role beyond the ann
 | | |
 |---|---|
 | Hook, before "…see more" | **~210 chars** (varies by device; treat 210 as the ceiling) |
-| House target, whole post | **900–1,500 chars** |
+| House target, a monthly round-up | **900–2,500 chars** |
 | LinkedIn hard limit | 3,000 chars |
 
-Below 900 there is not room to credit twenty authors and say what the model does. Above
-1,500 the post stops being read. `check_post.py` R5 warns outside the window.
+Below 900 there is not room to credit a month of authors. Above 2,500 the post stops
+being read, and LinkedIn's own ceiling is 3,000. The window is wider than a single-model
+post's because nine or ten models of credit will not fit in 1,500. `check_post.py` R5
+warns outside it.
 
 ## No formatting
 

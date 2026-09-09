@@ -1,0 +1,232 @@
+#!/usr/bin/env python3
+"""render_report.py — turn a month context into the internal technology report.
+
+    python render_report.py month-context.json --out reports/2026-08-technology.md
+
+Rendering is deterministic: everything factual comes straight out of the context JSON, so
+two runs of the same month produce the same document and nothing drifts in the retelling.
+
+The one part that needs judgement is the per-model paragraph, and that is not invented
+here. Each model record in the JSON may carry a ``"summary"`` string, written by whoever
+runs the skill after reading the abstract; a model without one renders a visible TODO and
+the script exits non-zero. That keeps the split honest — the script never writes prose
+about a model, and an unfinished report cannot pass as a finished one.
+
+Standard library only, and no clock unless --date is omitted.
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from datetime import date
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _common import read_json, warn  # noqa: E402
+
+TODO = "**TODO — no `summary` written for this model.**"
+ROUNDUP_TODO = "**TODO — no `roundup` written in the context JSON.**"
+PROFILES_TODO = "**TODO — no `profiles` worksheet in the context JSON.**"
+
+
+def author_phrase(credit):
+    """Compact credit for a table cell: first author, et al., and the count."""
+    authors = [a["name"] for a in credit.get("authors", []) if a.get("name")]
+    if not authors:
+        return "*unresolved*"
+    if len(authors) == 1:
+        return authors[0]
+    return f"{authors[0]} et al. ({len(authors)})"
+
+
+def full_credit(credit):
+    """Every author for a paper with five or fewer; first, last and a count beyond."""
+    authors = [a["name"] for a in credit.get("authors", []) if a.get("name")]
+    if not authors:
+        return "*authors unresolved — see the defects section*"
+    if len(authors) == 1:
+        return authors[0]
+    if len(authors) <= 5:
+        return ", ".join(authors[:-1]) + " and " + authors[-1]
+    return f"{authors[0]}, {authors[-1]} and {len(authors) - 2} colleagues"
+
+
+def institutions(credit, limit=3):
+    """The leading institutions, in first-author-first order."""
+    names = credit.get("lead_institutions") or []
+    return " · ".join(names[:limit]) if names else None
+
+
+def paper_link(publication):
+    """A markdown link to the paper, falling back to whatever the metadata holds."""
+    if publication.get("doi_url"):
+        label = publication.get("doi") or publication["doi_url"]
+        return f"[{label}]({publication['doi_url']})"
+    raw = publication.get("raw_publication_field")
+    return f"[{raw}]({raw})" if raw else "*none*"
+
+
+def render(context, prepared_on):
+    """Build the whole report as one markdown string."""
+    models = context.get("models", [])
+    lines = []
+
+    label = context.get("month_label", context.get("month", "unknown month"))
+    lines.append(f"# Ersilia technology report — {label}")
+    lines.append("")
+
+    tasks = ", ".join(f"{n} {task}" for task, n in (context.get("by_task") or {}).items())
+    statuses = ", ".join(
+        f"{n} {status}" for status, n in (context.get("by_status") or {}).items()
+    )
+    lines.append(f"**Models incorporated:** {context.get('n_models', 0)}" + (f" — {tasks}" if tasks else ""))
+    lines.append(f"**Status:** {statuses or 'unknown'}")
+    if context.get("n_global_south"):
+        lines.append(
+            f"**Global-South-led:** {context['n_global_south']} of "
+            f"{context.get('n_models', 0)} have an author at an LMIC institution"
+        )
+    lines.append(
+        f"**Prepared:** {prepared_on} from the Hub catalogue "
+        f"({context.get('catalog_size', '?')} models)"
+    )
+    lines.append("")
+
+    if not models:
+        lines.append(f"No models were incorporated in {label}.")
+        lines.append("")
+        return "\n".join(lines)
+
+    # ---- summary table ----
+    lines.append("## Summary")
+    lines.append("")
+    lines.append("| Model | Title | Task | Authors | Paper |")
+    lines.append("|---|---|---|---|---|")
+    for record in models:
+        model, credit = record["model"], record["credit"]
+        lines.append(
+            f"| [`{record['identifier']}`]({model.get('github')}) "
+            f"| {model.get('title') or '—'} "
+            f"| {model.get('subtask') or model.get('task') or '—'} "
+            f"| {author_phrase(credit)} "
+            f"| {paper_link(record['publication'])} |"
+        )
+    lines.append("")
+
+    # ---- one section per model ----
+    lines.append("## The models")
+    lines.append("")
+    for record in models:
+        model, credit, publication = record["model"], record["credit"], record["publication"]
+        lines.append(f"### `{record['identifier']}` · {model.get('title') or model.get('slug')}")
+        lines.append("")
+
+        byline = full_credit(credit)
+        where = institutions(credit)
+        venue = " ".join(
+            str(p) for p in (publication.get("journal"), publication.get("year")) if p
+        )
+        if publication.get("type") == "Preprint" and not publication.get("journal"):
+            venue = f"preprint {publication.get('year') or ''}".strip()
+        lines.append(f"**{byline}**" + (f" — {where}" if where else "") + (f" · {venue}" if venue else ""))
+        lines.append("")
+
+        summary = (record.get("summary") or "").strip()
+        lines.append(summary or TODO)
+        lines.append("")
+
+        facts = [
+            f"Paper: {paper_link(publication)}",
+            f"Authors' code: {model.get('source_code') or '—'}",
+            f"Run it: `ersilia fetch {model.get('slug') or record['identifier']}`",
+        ]
+        if model.get("license"):
+            facts.append(f"Licence: {model['license']}")
+        lines.append(" · ".join(facts))
+        lines.append("")
+
+    # ---- defects ----
+    flagged = [r for r in models if r.get("defects")]
+    lines.append("## Metadata to fix")
+    lines.append("")
+    if not flagged:
+        lines.append("Nothing flagged this month.")
+    else:
+        lines.append(
+            "Each of these is a `/model-incorporation-metadata` gap in a model already "
+            "marked live. They are listed here because whoever reads this report can go "
+            "and fix them."
+        )
+        lines.append("")
+        for record in flagged:
+            lines.append(f"- **`{record['identifier']}`** — " + "; ".join(record["defects"]))
+    lines.append("")
+
+    # ---- the round-up post, reviewed in the same document ----
+    lines.append("## Draft LinkedIn round-up")
+    lines.append("")
+    roundup = (context.get("roundup") or "").strip()
+    if roundup:
+        lines.append("Lint it with `scripts/check_post.py` before anyone posts it.")
+        lines.append("")
+        lines.append("```text")
+        lines.append(roundup)
+        lines.append("```")
+    else:
+        lines.append(ROUNDUP_TODO)
+    lines.append("")
+
+    # ---- tagging worksheet ----
+    lines.append("## Profiles to tag")
+    lines.append("")
+    rows = context.get("profiles") or []
+    if rows:
+        lines.append(
+            "Authors only — Ersilia does not tag institutions. Tag by typing the name into "
+            "the composer and picking the profile; never tag a row marked `ambiguous` or "
+            "`unverified`."
+        )
+        lines.append("")
+        lines.append("| Author | Model | Profile | Status |")
+        lines.append("|---|---|---|---|")
+        for row in rows:
+            lines.append(
+                f"| {row.get('author', '—')} | `{row.get('model', '—')}` "
+                f"| {row.get('profile', '—')} | {row.get('status', '—')} |"
+            )
+    else:
+        lines.append(PROFILES_TODO)
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("context", help="month context JSON from fetch_month_models.py")
+    parser.add_argument("--out", required=True, help="path to write the report markdown")
+    parser.add_argument("--date", help="preparation date as YYYY-MM-DD (default: today)")
+    args = parser.parse_args(argv)
+
+    context = read_json(args.context)
+    prepared = args.date or date.today().isoformat()
+    body = render(context, prepared)
+
+    missing = [r["identifier"] for r in context.get("models", []) if not (r.get("summary") or "").strip()]
+    if not (context.get("roundup") or "").strip():
+        missing.append("<roundup>")
+    if not context.get("profiles"):
+        missing.append("<profiles>")
+    Path(args.out).write_text(body + "\n", encoding="utf-8")
+    print(f"wrote {args.out}", file=sys.stderr)
+
+    if missing:
+        warn(f"no summary written for: {', '.join(missing)} — the report has TODO markers")
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

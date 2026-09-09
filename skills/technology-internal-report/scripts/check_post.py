@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """check_post.py — lint an announcement draft against the attribution rules.
 
-    python check_post.py drafts/26-09-08-eos4e40.md --context context.json
+    python check_post.py reports/2026-08-technology.md --context month-context.json
 
-Extracts the post body from the draft's ``## Post`` fenced block and checks the rules
+Extracts the round-up post from the report's ``## Draft LinkedIn round-up`` fenced block
+and checks the rules
 in references/attribution-rules.md that can be checked mechanically. Exits 1 if any
 FAIL, 0 otherwise; warnings never fail the run.
 
@@ -33,14 +34,13 @@ from _common import read_json, surname  # noqa: E402
 # announcement, so authors are not required this early.
 HOOK_CHARS = 210
 
-# Authors must be named by the end of the thanks sentence — the third block. Past this
-# the credit is buried under the announcement.
-CREDIT_CHARS = 400
+# A round-up covers a whole month, so per-model credit cannot all sit in the opening 400
+# characters the way a single-model announcement's could. Instead every model the post
+# names must carry its first author, wherever in the post that falls.
+LENGTH_MIN, LENGTH_MAX = 900, 2500
 
 # LinkedIn's hard ceiling; the house target is much shorter.
-MAX_CHARS = 3000
-TARGET_MIN = 900
-TARGET_MAX = 1500
+MAX_CHARS = 3000  # LinkedIn's hard ceiling
 
 # Phrases that claim the authors' work for Ersilia. See references/attribution-rules.md.
 # Phrases that claim the authors' science. Announcing an incorporation is not claiming
@@ -121,9 +121,16 @@ def extract_section(text, heading):
     return match.group(1) if match else None
 
 
+POST_HEADINGS = ("Draft LinkedIn round-up", "Post", "Round-up")
+
+
 def extract_post(text):
-    """Pull the post body out of the first fenced block under ``## Post``."""
-    section = extract_section(text, "Post")
+    """Pull the post body out of the first fenced block under a round-up heading."""
+    section = None
+    for heading in POST_HEADINGS:
+        section = extract_section(text, heading)
+        if section is not None:
+            break
     if section is None:
         return None
     fence = re.search(r"```[a-zA-Z]*\n(.*?)```", section, re.S)
@@ -160,32 +167,82 @@ def strip_accents(text):
 
 def check(post, draft_text, context, report):
     """Run every rule, adding a row per rule to ``report``."""
-    credit = (context or {}).get("credit", {})
-    publication = (context or {}).get("publication", {})
+    # A month context carries a list of models; each contributes its own credit and its
+    # own paper, and the rules below are written against that list rather than one model.
+    entries = (context or {}).get("models", [])
     folded = strip_accents(post).lower()
     hook = post[:HOOK_CHARS]
     hook_folded = strip_accents(hook).lower()
 
-    surnames = [surname(a.get("name")) for a in credit.get("authors", []) if a.get("name")]
-    surnames = [strip_accents(s).lower() for s in surnames if len(s) > 2]
+    # Per model: the identifier, its first author's surname, and its DOI.
+    per_model = []
+    for record in entries:
+        credit = record.get("credit", {})
+        authors = [a.get("name") for a in credit.get("authors", []) if a.get("name")]
+        per_model.append(
+            {
+                "identifier": record.get("identifier"),
+                "title": (record.get("model") or {}).get("title") or "",
+                "slug": (record.get("model") or {}).get("slug") or "",
+                "first_author": authors[0] if authors else None,
+                "first_surname": strip_accents(surname(authors[0])).lower() if authors else None,
+                "doi": (record.get("publication") or {}).get("doi"),
+            }
+        )
 
-    # R1 — the authors are credited in the opening blocks, not buried below the fold.
-    credit_window = folded[:CREDIT_CHARS]
-    if not surnames:
-        report.add("WARN", "R1-CREDIT-EARLY", "no author list in context; cannot verify")
-    elif any(s in credit_window for s in surnames):
-        named = [s for s in surnames if s in credit_window]
+    # Every author of every model, for the loose "is anyone credited" checks.
+    surnames = []
+    for record in entries:
+        for author in record.get("credit", {}).get("authors", []):
+            token = strip_accents(surname(author.get("name"))).lower()
+            if len(token) > 2 and token not in surnames:
+                surnames.append(token)
+
+    # A model counts as "named in the post" if its identifier, slug or title appears.
+    def is_named(entry):
+        for token in (entry["identifier"], entry["slug"]):
+            if token and token.lower() in folded:
+                return True
+        title = entry["title"]
+        # Titles are long; the leading word is the model's name in Hub practice.
+        lead = strip_accents(title.split()[0]).lower() if title.split() else ""
+        return bool(lead) and len(lead) > 2 and lead in folded
+
+    named = [e for e in per_model if is_named(e)]
+
+    # R1 — every model the post names carries its own first author.
+    if not per_model:
+        report.add("WARN", "R1-CREDIT-EVERY-MODEL", "no models in context; cannot verify")
+    elif not named:
         report.add(
-            "PASS", "R1-CREDIT-EARLY",
-            f"authors named within {CREDIT_CHARS} chars: {', '.join(named[:3])}"
-            + (" (also in the visible hook)" if any(s in hook_folded for s in surnames) else ""),
+            "FAIL", "R1-CREDIT-EVERY-MODEL",
+            "the post names none of the month's models — a round-up that credits nobody "
+            "in particular credits nobody",
         )
     else:
-        report.add(
-            "FAIL", "R1-CREDIT-EARLY",
-            f"no author surname in the first {CREDIT_CHARS} chars — the thanks sentence "
-            f"belongs in the third block, not below the method",
-        )
+        uncredited = [
+            e for e in named if not e["first_surname"] or e["first_surname"] not in folded
+        ]
+        unresolvable = [e for e in uncredited if not e["first_surname"]]
+        missing = [e for e in uncredited if e["first_surname"]]
+        if missing:
+            report.add(
+                "FAIL", "R1-CREDIT-EVERY-MODEL",
+                "named without crediting its first author: "
+                + ", ".join(f"{e['identifier']} ({e['first_author']})" for e in missing),
+            )
+        elif unresolvable:
+            report.add(
+                "WARN", "R1-CREDIT-EVERY-MODEL",
+                "named but its author list never resolved, so credit cannot be checked: "
+                + ", ".join(e["identifier"] for e in unresolvable)
+                + " — get the names from the paper before posting",
+            )
+        else:
+            report.add(
+                "PASS", "R1-CREDIT-EVERY-MODEL",
+                f"{len(named)} model(s) named, each with its first author",
+            )
 
     # R2 — what Ersilia enables comes after who made it. The announcement may open the
     # post, but the packaging detail must not precede the credit.
@@ -223,32 +280,37 @@ def check(post, draft_text, context, report):
     else:
         report.add("PASS", "R3-VERBS", "no work-claiming or credit-narrating phrasing")
 
-    # R4 — the paper is linked before the Hub.
-    doi = publication.get("doi")
-    doi_at = folded.find(doi.lower()) if doi else -1
+    # R4 — every named model's paper is linked, and all of them before any Ersilia link.
     ersilia_link = ERSILIA_LINK_RE.search(post)
-    if doi_at < 0:
+    dois = [(e["identifier"], e["doi"]) for e in named if e["doi"]]
+    absent = [ident for ident, doi in dois if doi.lower() not in folded]
+    if not named:
+        report.add("WARN", "R4-LINK-ORDER", "no models named; nothing to check")
+    elif absent:
         report.add(
             "FAIL", "R4-LINK-ORDER",
-            f"the publication DOI ({doi or 'unknown'}) is not linked in the post",
-        )
-    elif ersilia_link and ersilia_link.start() < doi_at:
-        report.add(
-            "FAIL", "R4-LINK-ORDER",
-            f"an Ersilia link at char {ersilia_link.start()} precedes the paper DOI at "
-            f"char {doi_at}",
+            f"named without linking its paper: {', '.join(absent)}",
         )
     else:
-        report.add("PASS", "R4-LINK-ORDER", f"paper DOI at char {doi_at}, before any Ersilia link")
+        positions = [folded.find(doi.lower()) for _, doi in dois]
+        last_doi = max(positions) if positions else -1
+        if ersilia_link and last_doi >= 0 and ersilia_link.start() < last_doi:
+            report.add(
+                "FAIL", "R4-LINK-ORDER",
+                f"an Ersilia link at char {ersilia_link.start()} precedes a paper link at "
+                f"char {last_doi} — every paper comes first",
+            )
+        else:
+            report.add("PASS", "R4-LINK-ORDER", f"{len(dois)} paper link(s), all before any Ersilia link")
 
     # R5 — length.
     length = len(post)
     if length > MAX_CHARS:
         report.add("FAIL", "R5-LENGTH", f"{length} chars exceeds LinkedIn's {MAX_CHARS} limit")
-    elif not TARGET_MIN <= length <= TARGET_MAX:
+    elif not LENGTH_MIN <= length <= LENGTH_MAX:
         report.add(
             "WARN", "R5-LENGTH",
-            f"{length} chars is outside the {TARGET_MIN}–{TARGET_MAX} house target",
+            f"{length} chars is outside the {LENGTH_MIN}–{LENGTH_MAX} round-up target",
         )
     else:
         report.add("PASS", "R5-LENGTH", f"{length} chars")
@@ -288,25 +350,17 @@ def check(post, draft_text, context, report):
     else:
         report.add("PASS", "R7-HANDLES", f"{len(mentions)} @-mentions, all confirmed")
 
-    # R12 — the profile lookup is mandatory, and its result belongs in the draft.
-    author_names = [a.get("name") for a in credit.get("authors", []) if a.get("name")]
-    named_positions = [
-        a for a in credit.get("authors", []) if a.get("position") in ("first", "last")
-    ]
-    # Whoever the post names must have a row: everyone for a small author list, else the
-    # first and last author.
-    required = author_names if 0 < len(author_names) <= 5 else [
-        a["name"] for a in named_positions if a.get("name")
-    ]
+    # R12 — the profile lookup is mandatory for whoever the post names.
+    required = [e["first_author"] for e in named if e["first_author"]]
     if not profiles.strip():
         report.add(
             "FAIL", "R12-PROFILES",
-            "no 'Profiles to tag' section — the author lookup (Step 5) is not optional",
+            "no 'Profiles to tag' section — the author lookup is not optional",
         )
     else:
         profiles_folded = strip_accents(profiles).lower()
         stale = [ph for ph in PLACEHOLDERS if ph in profiles_folded]
-        missing = [
+        absent = [
             name
             for name in required
             if strip_accents(surname(name)).lower() not in profiles_folded
@@ -317,16 +371,29 @@ def check(post, draft_text, context, report):
                 f"placeholder rows left in the worksheet: {', '.join(repr(x) for x in stale)}"
                 f" — look the author up and record the result, even if it is 'unverified'",
             )
-        elif missing:
+        elif absent:
             report.add(
                 "FAIL", "R12-PROFILES",
-                f"no row for {', '.join(missing)} — every author the post names needs one",
+                f"no row for {', '.join(absent)} — every author the post names needs one",
             )
         else:
-            rows = [r for r in profiles.splitlines() if r.strip().startswith("|")]
+            # Report what the rows actually say. This rule can confirm a row exists; it
+            # cannot confirm anyone looked, so it must not claim they did.
+            tally = {}
+            for status in ("confirmed", "corroborated", "ambiguous", "unverified"):
+                hits = sum(
+                    1
+                    for row in profiles.splitlines()
+                    if row.strip().startswith("|") and status in row.lower()
+                )
+                if hits:
+                    tally[status] = hits
+            breakdown = ", ".join(f"{n} {k}" for k, n in tally.items()) or "no status recorded"
+            level = "WARN" if not tally or set(tally) <= {"unverified"} else "PASS"
             report.add(
-                "PASS", "R12-PROFILES",
-                f"{max(len(rows) - 2, 0)} author row(s), all looked up",
+                level, "R12-PROFILES",
+                f"{len(required)} named author(s), all with a row — {breakdown}"
+                + ("; none is taggable yet" if level == "WARN" else ""),
             )
 
     # R8 — LinkedIn renders no markdown, and pseudo-bold breaks screen readers.

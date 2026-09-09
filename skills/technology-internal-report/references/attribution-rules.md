@@ -10,43 +10,41 @@ So the ordering is not politeness. It is the *claim* the post makes, and it is c
 
 ## The credit hierarchy
 
-The post opens as an announcement — Ersilia names the model and says it is now in the Hub
-— and then hands the rest over. The announcement is the frame; the authors are the content.
+The round-up opens as an announcement — Ersilia says how many models went into the Hub —
+and then hands the rest over. The announcement is the frame; the month's authors are the
+content.
 
-1. **The announcement.** A title naming the model, and one sentence saying it has been
-   incorporated. Two short blocks: that is all the room Ersilia gets at the top.
-2. **The authors.** Named individuals, then their institutions, opened with "Thanks to …"
-   — which is both the credit and the transition out of the announcement.
-3. **The work.** What they trained, on what data, and what they showed.
-4. **What it enables.** One sentence on what a reader can now do, plus the command.
+1. **The announcement.** A title with the month and the count, and one sentence saying
+   what was incorporated. Two short blocks: that is all the room Ersilia gets.
+2. **The authors.** One line per model, each naming its own first author and institution.
+3. **What each model does.** One clause per model, and its paper link.
+4. **What they enable.** One sentence, plus where the catalogue lives.
 
-If a reader skims the post and comes away thinking Ersilia built the model, the post
+If a reader skims and comes away thinking Ersilia built ten models last month, the post
 failed regardless of what it technically said. Announcing an incorporation is not claiming
-authorship — but the difference has to survive a skim, which is why the authors get a
-whole block and a verb of their own by the third paragraph.
+authorship — but the difference has to survive a skim, which is why every model carries a
+name.
 
-## R1 — the authors are credited by the third block
+## R1 — every model you name carries its own first author
 
-The credit block must arrive within the **first 400 characters** — in practice, the third
-paragraph, straight after the announcement. Past that, the credit is below the method and
-the post has become an Ersilia notice with an acknowledgement attached.
+A round-up covers a whole month, so credit cannot be concentrated in one opening block the
+way a single-model announcement's could. The rule is per model: **name a model, name its
+first author.** `check_post.py` resolves each named model's first author from OpenAlex and
+fails on any model named without one.
 
-LinkedIn truncates the feed preview at roughly **210 characters**. A short title and a
-short announcement leave the "Thanks to …" opening visible above the fold, which is worth
-protecting: every word added to blocks 1 and 2 pushes the authors behind "…see more".
-`check_post.py` reports whether the names made the visible window, and says so.
+A model counts as named if its name, slug or identifier appears in the post. So:
 
-Name **at least the first and last author**. Those are the two positions that carry
-credit in the life sciences — first author did the work, last author ran the lab.
-OpenAlex labels both (`author_position`), so there is no excuse for guessing.
+- **One line per model** — the model's name, its first author and institution, one clause
+  on what it does, and the paper link.
+- **≤5 authors on the paper?** The one-line form still names only the first author; the
+  full list belongs in the report's per-model section, where there is room.
+- **Author list never resolved?** Then **do not name the model in the post.** Publicising
+  work you cannot attribute is the single thing this skill exists to prevent. It still
+  appears in the internal report, with the gap stated — `SKILL.md` Step 3.
+- Institutions are **named** in the post and **never tagged**.
 
-- ≤5 authors → **name them all**, inline in the thanks sentence. It makes for a long
-  sentence; that is the correct trade. Middle authors of small papers are usually
-  early-career, and a named credit is worth most to them.
-- >5 → first author, last author, "and N colleagues". Never silently drop the rest, and
-  never promote a middle author above their place in the list.
-- Where the paper marks a corresponding author, they are usually the easiest to find on
-  LinkedIn and the most appropriate to tag first.
+Where the paper marks a corresponding author, they are usually the easiest to find on
+LinkedIn, but the round-up names the first author for consistency across models.
 
 ## R2 — the credit comes before the packaging detail
 
