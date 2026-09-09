@@ -23,7 +23,7 @@
 
 ### `eos5g6m` · GLACIER Molecular Embeddings
 
-**Emily Nguyen, Yongchan Hong, Harsh Toshniwal, Yan Liu and Andreas Luttens** · 2026
+**Emily Nguyen, Yongchan Hong, Harsh Toshniwal, Yan Liu and Andreas Luttens** — University of Southern California · Karolinska Institutet · 2026
 
 A multimodal student-teacher foundation model that turns a SMILES string into a 512-dimensional embedding. It fuses three views of a molecule — a message-passing graph encoder, a SMILES transformer and physicochemical descriptors — through a geometry-aware module, distilled from larger teacher models by contrastive learning. Intended as a general-purpose featurizer for downstream property prediction.
 
@@ -80,7 +80,7 @@ Paper: [10.1093/nar/gkae904](https://doi.org/10.1093/nar/gkae904) · Authors' co
 
 ### `eos3xhm` · HADES Oral Drug-Likeness
 
-**Narek Petrosyan, Hovakim Zakaryan and 6 colleagues** — Institute of Molecular Biology of the Slovak Academy of Sciences · Denso (United States) · Qatar Science and Technology Park · Journal of Chemical Information
+**Narek Petrosyan, Hovakim Zakaryan and 6 colleagues** — Denovo Sciences Inc (Yerevan) · Institute of Molecular Biology of NAS (Yerevan) · Journal of Chemical Information
 and Modeling 2026
 
 Scores how closely a compound resembles an approved oral drug, with 0.63 as the authors' recommended cut-off. Averages probabilities from five tree and boosting classifiers over 298 features combining Mordred descriptors, ADMET-AI predictions and QED terms, trained on 1,177 approved oral drugs against 5,307 non-drugs from ChEMBL, ZINC and GDB. The authors show scores rising across clinical phases and falling for orally toxic and chemically implausible structures.
@@ -107,7 +107,9 @@ Paper: [10.1038/s42256-026-01229-5](https://doi.org/10.1038/s42256-026-01229-5) 
 
 Each of these is a `/model-incorporation-metadata` gap in a model already marked live. They are listed here because whoever reads this report can go and fix them.
 
+- **`eos5g6m`** — Publication cites the arXiv preprint (10.48550/arXiv.2606.11382) but a peer-reviewed version exists — KDD 2026, 10.1145/3770855.3819032 — which is what Publication and Publication Type should carry
 - **`eos5mnx`** — Publication is not a DOI URL and no DOI could be derived (https://openreview.net/forum?id=pB6WAdnRDR)
+- **`eos3xhm`** — OpenAlex mis-resolves this paper's affiliations, returning 'Institute of Molecular Biology of the Slovak Academy of Sciences' and 'Denso (United States)'; the paper says Denovo Sciences and the Armenian NAS. Institutions here were taken from the paper
 
 ## Draft LinkedIn round-up
 
@@ -120,7 +122,7 @@ We are very excited to announce nine new models incorporated last month — mole
 
 With thanks to the authors of each:
 
-GLACIER — Emily Nguyen and colleagues — multimodal embeddings distilled from larger teacher models: https://doi.org/10.48550/arXiv.2606.11382
+GLACIER — Emily Nguyen and colleagues at USC and Karolinska Institutet — multimodal embeddings distilled from larger teacher models: https://doi.org/10.48550/arXiv.2606.11382
 
 NaFM — Yuheng Ding and colleagues at Peking University — scaffold-aware embeddings for natural products: https://doi.org/10.1038/s42256-026-01226-8
 
@@ -149,12 +151,12 @@ Authors only — Ersilia does not tag institutions. Tag by typing the name into 
 
 | Author | Model | Profile | Status |
 |---|---|---|---|
-| Emily Nguyen | `eos5g6m` | — | **unverified** — lookup pending |
-| Yuheng Ding | `eos6pj2` | — | **unverified** — lookup pending |
-| Sergey Sosnin | `eos19dk` | — | **unverified** — lookup pending |
-| Seul Lee | `eos84nf` | — | **unverified** — lookup pending |
-| Bruno N. Falcone | `eos8zvb` | — | **unverified** — lookup pending |
-| Manuel Ruiz-Botella | `eos55vx / eos6a1h` | — | **unverified** — lookup pending |
-| Narek Petrosyan | `eos3xhm` | — | **unverified** — lookup pending |
-| Ctibor Škuta | `eos3f8h` | — | **unverified** — lookup pending |
+| Emily Nguyen | `eos5g6m` | *none found* | **unverified** — no profile surfaced, including a linkedin.com-restricted search. Her site `eemokey.github.io` matches the model's own source repo (`github.com/eemokey/glacier`), and she is at USC Computer Science, but that is identity, not a profile |
+| Yuheng Ding | `eos6pj2` | `in/yuheng-ding-374398226` (NVIDIA) **or** `in/yuheng-ding` (CMU) | **ambiguous** — neither title matches Peking University, and the name is common. Do not tag |
+| Sergey Sosnin | `eos19dk` | `in/serg-sosnin` | **corroborated** — the title shows his current employer (Elpisor Ltd), not the paper's Vienna affiliation; ResearchGate confirms Senior Scientist at the University of Vienna, Dept of Pharmaceutical Sciences, and the GitHub handle behind MolCompass (`github.com/sergsb`) matches the profile slug |
+| Seul Lee | `eos84nf` | `in/seul-lee-408a69309` | **corroborated** — title 'Research Intern — NVIDIA'; a KAIST PhD student and GenMol's first author, with NVIDIA co-authors on the paper |
+| Bruno N. Falcone | `eos8zvb` | *none found* | **unverified** — the only 'Bruno Falcone' is a Honeywell marketing profile, a different person. The paper's last author Jonathan Hirst is on the platform (`in/jonathan-hirst-13b2354`, University of Nottingham) if this model needs a taggable name |
+| Manuel Ruiz-Botella | `eos55vx / eos6a1h` | `in/manuel-ruiz-botella` | **corroborated** — title 'Universitat Rovira i Virgili', and the profile's own content describes CoCoGraph's result (a public database of 8.2 million synthetic molecules, fewer parameters than existing methods) |
+| Narek Petrosyan | `eos3xhm` | `in/narek-petrosyan-02632232a` | **corroborated** — title 'American University of Armenia, Yerevan'; `aua.academia.edu/NarekPetrosyan` and the JCIM author list agree |
+| Ctibor Škuta | `eos3f8h` | *none found* | **unverified** — only the Institute of Molecular Genetics company page surfaced; no personal profile |
 

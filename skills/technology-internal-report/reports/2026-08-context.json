@@ -102,14 +102,19 @@
         "first_author": "Emily Nguyen",
         "last_author": "Andreas Luttens",
         "n_authors": 5,
-        "lead_institutions": [],
+        "lead_institutions": [
+          "University of Southern California",
+          "Karolinska Institutet"
+        ],
         "countries": [],
         "has_global_south_author": false,
         "global_south_institutions": [],
         "source": "openalex",
         "corresponding_authors": null
       },
-      "defects": [],
+      "defects": [
+        "Publication cites the arXiv preprint (10.48550/arXiv.2606.11382) but a peer-reviewed version exists — KDD 2026, 10.1145/3770855.3819032 — which is what Publication and Publication Type should carry"
+      ],
       "summary": "A multimodal student-teacher foundation model that turns a SMILES string into a 512-dimensional embedding. It fuses three views of a molecule — a message-passing graph encoder, a SMILES transformer and physicochemical descriptors — through a geometry-aware module, distilled from larger teacher models by contrastive learning. Intended as a general-purpose featurizer for downstream property prediction."
     },
     {
@@ -1136,9 +1141,8 @@
         "last_author": "Hovakim Zakaryan",
         "n_authors": 8,
         "lead_institutions": [
-          "Institute of Molecular Biology of the Slovak Academy of Sciences",
-          "Denso (United States)",
-          "Qatar Science and Technology Park"
+          "Denovo Sciences Inc (Yerevan)",
+          "Institute of Molecular Biology of NAS (Yerevan)"
         ],
         "countries": [
           "SK",
@@ -1152,7 +1156,9 @@
           "Hovakim Zakaryan"
         ]
       },
-      "defects": [],
+      "defects": [
+        "OpenAlex mis-resolves this paper's affiliations, returning 'Institute of Molecular Biology of the Slovak Academy of Sciences' and 'Denso (United States)'; the paper says Denovo Sciences and the Armenian NAS. Institutions here were taken from the paper"
+      ],
       "summary": "Scores how closely a compound resembles an approved oral drug, with 0.63 as the authors' recommended cut-off. Averages probabilities from five tree and boosting classifiers over 298 features combining Mordred descriptors, ADMET-AI predictions and QED terms, trained on 1,177 approved oral drugs against 5,307 non-drugs from ChEMBL, ZINC and GDB. The authors show scores rising across clinical phases and falling for orally toxic and chemically implausible structures."
     },
     {
@@ -1362,55 +1368,55 @@
       "summary": "The inpainting counterpart to the formula-preserving model above: it attaches a small fragment of 2–5 heavy atoms, drawn from a library of frequent substructures, then refines the result with the same constrained graph diffusion. Bond-pair swapping keeps every intermediate valence-valid, so chemical validity is guaranteed rather than filtered for afterwards."
     }
   ],
-  "roundup": "New in the Ersilia Model Hub: nine models from August\n\nWe are very excited to announce nine new models incorporated last month — molecular featurizers, generative models and an antimicrobial activity predictor.\n\nWith thanks to the authors of each:\n\nGLACIER — Emily Nguyen and colleagues — multimodal embeddings distilled from larger teacher models: https://doi.org/10.48550/arXiv.2606.11382\n\nNaFM — Yuheng Ding and colleagues at Peking University — scaffold-aware embeddings for natural products: https://doi.org/10.1038/s42256-026-01226-8\n\nMolCompass — Sergey Sosnin, University of Vienna — deterministic 2D projection of chemical space: https://doi.org/10.1186/s13321-024-00888-z\n\nGenMol — Seul Lee and colleagues — scaffold decoration by masked discrete diffusion: https://doi.org/10.48550/arXiv.2501.06158\n\nPyMolGen — Bruno N. Falcone and colleagues at Nottingham — analogue generation from ChEMBL fragment statistics: https://doi.org/10.1021/acs.jcim.6c00689\n\nCoCoGraph — Manuel Ruiz-Botella and colleagues at Universitat Rovira i Virgili — graph diffusion where chemical validity is guaranteed by construction, in two variants: https://doi.org/10.1038/s42256-026-01229-5\n\nHADES — Narek Petrosyan and colleagues — oral drug-likeness scoring across 298 features: https://doi.org/10.1021/acs.jcim.5c02953\n\nEU OpenScreen antimicrobials — Ctibor Škuta and colleagues at the Czech Academy of Sciences built the screening database of ~100,000 compounds against seven pathogens; these classifiers were trained on it: https://doi.org/10.1093/nar/gkae904\n\nEvery one runs in one command, with no need to rebuild the original environment.\n\nFull catalogue: https://github.com/ersilia-os/ersilia\n\n#DrugDiscovery #MachineLearning #OpenScience #Cheminformatics",
+  "roundup": "New in the Ersilia Model Hub: nine models from August\n\nWe are very excited to announce nine new models incorporated last month — molecular featurizers, generative models and an antimicrobial activity predictor.\n\nWith thanks to the authors of each:\n\nGLACIER — Emily Nguyen and colleagues at USC and Karolinska Institutet — multimodal embeddings distilled from larger teacher models: https://doi.org/10.48550/arXiv.2606.11382\n\nNaFM — Yuheng Ding and colleagues at Peking University — scaffold-aware embeddings for natural products: https://doi.org/10.1038/s42256-026-01226-8\n\nMolCompass — Sergey Sosnin, University of Vienna — deterministic 2D projection of chemical space: https://doi.org/10.1186/s13321-024-00888-z\n\nGenMol — Seul Lee and colleagues — scaffold decoration by masked discrete diffusion: https://doi.org/10.48550/arXiv.2501.06158\n\nPyMolGen — Bruno N. Falcone and colleagues at Nottingham — analogue generation from ChEMBL fragment statistics: https://doi.org/10.1021/acs.jcim.6c00689\n\nCoCoGraph — Manuel Ruiz-Botella and colleagues at Universitat Rovira i Virgili — graph diffusion where chemical validity is guaranteed by construction, in two variants: https://doi.org/10.1038/s42256-026-01229-5\n\nHADES — Narek Petrosyan and colleagues — oral drug-likeness scoring across 298 features: https://doi.org/10.1021/acs.jcim.5c02953\n\nEU OpenScreen antimicrobials — Ctibor Škuta and colleagues at the Czech Academy of Sciences built the screening database of ~100,000 compounds against seven pathogens; these classifiers were trained on it: https://doi.org/10.1093/nar/gkae904\n\nEvery one runs in one command, with no need to rebuild the original environment.\n\nFull catalogue: https://github.com/ersilia-os/ersilia\n\n#DrugDiscovery #MachineLearning #OpenScience #Cheminformatics",
   "profiles": [
     {
       "author": "Emily Nguyen",
       "model": "eos5g6m",
-      "profile": "—",
-      "status": "**unverified** — lookup pending"
+      "profile": "*none found*",
+      "status": "**unverified** — no profile surfaced, including a linkedin.com-restricted search. Her site `eemokey.github.io` matches the model's own source repo (`github.com/eemokey/glacier`), and she is at USC Computer Science, but that is identity, not a profile"
     },
     {
       "author": "Yuheng Ding",
       "model": "eos6pj2",
-      "profile": "—",
-      "status": "**unverified** — lookup pending"
+      "profile": "`in/yuheng-ding-374398226` (NVIDIA) **or** `in/yuheng-ding` (CMU)",
+      "status": "**ambiguous** — neither title matches Peking University, and the name is common. Do not tag"
     },
     {
       "author": "Sergey Sosnin",
       "model": "eos19dk",
-      "profile": "—",
-      "status": "**unverified** — lookup pending"
+      "profile": "`in/serg-sosnin`",
+      "status": "**corroborated** — the title shows his current employer (Elpisor Ltd), not the paper's Vienna affiliation; ResearchGate confirms Senior Scientist at the University of Vienna, Dept of Pharmaceutical Sciences, and the GitHub handle behind MolCompass (`github.com/sergsb`) matches the profile slug"
     },
     {
       "author": "Seul Lee",
       "model": "eos84nf",
-      "profile": "—",
-      "status": "**unverified** — lookup pending"
+      "profile": "`in/seul-lee-408a69309`",
+      "status": "**corroborated** — title 'Research Intern — NVIDIA'; a KAIST PhD student and GenMol's first author, with NVIDIA co-authors on the paper"
     },
     {
       "author": "Bruno N. Falcone",
       "model": "eos8zvb",
-      "profile": "—",
-      "status": "**unverified** — lookup pending"
+      "profile": "*none found*",
+      "status": "**unverified** — the only 'Bruno Falcone' is a Honeywell marketing profile, a different person. The paper's last author Jonathan Hirst is on the platform (`in/jonathan-hirst-13b2354`, University of Nottingham) if this model needs a taggable name"
     },
     {
       "author": "Manuel Ruiz-Botella",
       "model": "eos55vx / eos6a1h",
-      "profile": "—",
-      "status": "**unverified** — lookup pending"
+      "profile": "`in/manuel-ruiz-botella`",
+      "status": "**corroborated** — title 'Universitat Rovira i Virgili', and the profile's own content describes CoCoGraph's result (a public database of 8.2 million synthetic molecules, fewer parameters than existing methods)"
     },
     {
       "author": "Narek Petrosyan",
       "model": "eos3xhm",
-      "profile": "—",
-      "status": "**unverified** — lookup pending"
+      "profile": "`in/narek-petrosyan-02632232a`",
+      "status": "**corroborated** — title 'American University of Armenia, Yerevan'; `aua.academia.edu/NarekPetrosyan` and the JCIM author list agree"
     },
     {
       "author": "Ctibor Škuta",
       "model": "eos3f8h",
-      "profile": "—",
-      "status": "**unverified** — lookup pending"
+      "profile": "*none found*",
+      "status": "**unverified** — only the Institute of Molecular Genetics company page surfaced; no personal profile"
     }
   ]
 }

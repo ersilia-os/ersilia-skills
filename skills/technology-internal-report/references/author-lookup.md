@@ -39,6 +39,12 @@ publisher's own deposit) and OpenAlex for *order and affiliation*.
 - **DOI resolves in neither API** — very new DOIs can lag by days. Read the author list off
   the PDF instead, and record in the draft that names were transcribed by hand so a
   reviewer knows to check them.
+- **Wrong affiliations, not just missing ones.** OpenAlex can resolve an institution
+  *incorrectly*, and a wrong institution reads as authoritative in a report. For eos3xhm
+  (HADES) it returned "Institute of Molecular Biology of the Slovak Academy of Sciences"
+  and "Denso (United States)"; the paper says Denovo Sciences in Yerevan and the Armenian
+  NAS — one country wrong, one company name mangled. So **check the institutions against
+  the paper even when the API supplies them**, at least for the authors the post names.
 - **Empty affiliations in both** — take institutions from the paper's title page. This is
   the normal case for **arXiv preprints**, which deposit no affiliation data at all: for
   eos9q2i (Mol-JEPA) OpenAlex returns five correctly ordered authors and zero institutions,
@@ -95,12 +101,35 @@ The protocol:
 | Status | Means | Taggable |
 |---|---|---|
 | `confirmed` | a human opened the profile and it matches | yes |
-| `corroborated` | title affiliation matches **and** ≥1 independent source ties the person to this paper or lab | yes — human confirms in the composer |
+| `corroborated` | title affiliation matches the paper — **or** an independent source explains why it differs — **and** ≥1 independent source ties the person to this paper or lab | yes — human confirms in the composer |
 | `ambiguous` | several candidate profiles, or a common name with nothing distinguishing | **no** |
 | `unverified` | nothing found | **no** |
 
 Only a human can write `confirmed`; the best this skill produces on its own is
 `corroborated`. `check_post.py` R7 accepts either and fails on the other two.
+
+### A title that shows the current job, not the paper's
+
+Researchers move, and the profile title tracks the present. Sergey Sosnin's reads
+"Elpisor, Ltd" while MolCompass was published from the University of Vienna — so the title
+alone would fail the affiliation check on a profile that is certainly the right person.
+What settled it was two independent links: ResearchGate listing him as Senior Scientist at
+Vienna's Department of Pharmaceutical Sciences, and the GitHub handle behind MolCompass
+(`github.com/sergsb`) matching the profile slug `in/serg-sosnin`.
+
+A **code-repository handle matching a profile slug** is among the strongest signals
+available for this kind of work, and it costs nothing to check: the model's `Source Code`
+URL is already in the metadata. It is what identified GLACIER's first author too
+(`github.com/eemokey/glacier` ↔ `eemokey.github.io`), even though she has no LinkedIn
+profile at all.
+
+### When the first author is not on the platform
+
+Three of August's nine first authors had no profile — a normal rate, not a failure. Record
+`unverified` and say what was searched. Where a model needs a taggable name, **check the
+last author**: PyMolGen's first author has no profile while its last author, Jonathan
+Hirst, does. Offer that to the user rather than deciding alone, since it changes who gets
+tagged.
 
 ### Two traps that came up on the first real lookup
 
