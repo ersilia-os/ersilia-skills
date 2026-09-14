@@ -1,0 +1,70 @@
+{
+  "skill_name": "isaura-retrieval",
+  "evals": [
+    {
+      "id": 0,
+      "name": "all-present-locally",
+      "prompt": "I have a set of molecules in library_8.csv and I want the eos19mt predictions for them. Can you get them out of isaura for me?",
+      "expected_output": "All 8 molecules found in the local store, no remote pull needed. A results CSV with 8 rows containing the eos19mt output columns, and a report stating all 8 were found locally and nothing was missing.",
+      "files": [
+        "fixtures/library_8.csv"
+      ],
+      "assertions": [
+        "Produced a results CSV containing all 8 requested molecules",
+        "Results CSV contains eos19mt output columns, not just key/input",
+        "Report states all 8 molecules were found in the local store",
+        "Report correctly indicates no remote pull was needed",
+        "Used only the isaura CLI - no direct MinIO/boto3/mc/DuckDB access to the store",
+        "Report states which model version was used"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "partial-needs-remote-pull",
+      "prompt": "can you check isaura for eos11sm precalculations for the smiles in mixed_8.csv? pull whatever we're missing",
+      "expected_output": "3 molecules already in the local store, the other 5 found in the remote store and pulled down. A results CSV with 8 rows of eos11sm output, and a report distinguishing what was already local from what was pulled.",
+      "files": [
+        "fixtures/mixed_8.csv"
+      ],
+      "assertions": [
+        "Produced a results CSV containing all 8 requested molecules",
+        "Results CSV contains the eos11sm output column (abx_score)",
+        "Report distinguishes molecules already in the local store from those pulled from remote",
+        "Recovered from partial local coverage instead of failing on the all-or-nothing read abort",
+        "Used only the isaura CLI - no direct MinIO/boto3/mc/DuckDB access to the store",
+        "Report states which model version was used"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "molecules-not-in-library",
+      "prompt": "does isaura have the eos19mt result for CC(=O)Oc1ccccc1C(=O)O ?",
+      "expected_output": "The molecule is not in isaura for eos19mt (it is outside the stored reference library), but eos19mt itself IS precalculated. The report should make that distinction clear and suggest running inference, rather than implying the model has no data.",
+      "files": [],
+      "assertions": [
+        "Correctly reports the molecule is NOT stored in isaura for eos19mt",
+        "Distinguishes 'molecule not in the stored library' from 'model has no precalculations' - states eos19mt IS precalculated",
+        "Does not fabricate or invent a prediction value for the molecule",
+        "Used only the isaura CLI - no direct MinIO/boto3/mc/DuckDB access to the store",
+        "Report states which model version was used"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "model-absent-from-both-stores",
+      "prompt": "grab the eos69e6 precalculations for the molecules in small_5.csv",
+      "expected_output": "eos69e6 is in neither the local nor the remote isaura store. The report should say the model has no precalculations at all (as opposed to the molecules being missing), and should not produce a bogus empty results file presented as success.",
+      "files": [
+        "fixtures/small_5.csv"
+      ],
+      "assertions": [
+        "Correctly reports eos69e6 is absent from both the local and the remote store",
+        "States the model has no precalculations at all, rather than blaming the molecules",
+        "Does not present an empty results CSV as a successful retrieval",
+        "Suggests a sensible next step (run inference / request precalculation)",
+        "Used only the isaura CLI - no direct MinIO/boto3/mc/DuckDB access to the store",
+        "Report states which model version was used"
+      ]
+    }
+  ]
+}
