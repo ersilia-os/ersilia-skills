@@ -12,7 +12,7 @@
   "by_status": {
     "Ready": 10
   },
-  "n_with_defects": 1,
+  "n_with_defects": 3,
   "n_global_south": 0,
   "models": [
     {
@@ -150,8 +150,8 @@
         "doi": null,
         "doi_url": null,
         "raw_publication_field": "https://openreview.net/forum?id=pB6WAdnRDR",
-        "title": null,
-        "journal": null,
+        "title": "Learning Compressed Shape-Aware Molecular Representations for Virtual Screening",
+        "journal": "ICML",
         "year": 2026,
         "type": "Preprint",
         "open_access": null,
@@ -159,19 +159,56 @@
         "abstract": null
       },
       "credit": {
-        "authors": [],
-        "first_author": null,
-        "last_author": null,
-        "n_authors": 0,
-        "lead_institutions": [],
+        "authors": [
+          {
+            "name": "Robin Winter",
+            "position": "first",
+            "orcid": null,
+            "institutions": [
+              "Pfizer"
+            ],
+            "countries": [],
+            "is_corresponding": true
+          },
+          {
+            "name": "Julian Cremer",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0001-6319-7283",
+            "institutions": [
+              "Pfizer"
+            ],
+            "countries": [],
+            "is_corresponding": false
+          },
+          {
+            "name": "Djork-Arné Clevert",
+            "position": "last",
+            "orcid": "https://orcid.org/0000-0003-4191-2156",
+            "institutions": [
+              "Pfizer"
+            ],
+            "countries": [],
+            "is_corresponding": false
+          }
+        ],
+        "first_author": "Robin Winter",
+        "last_author": "Djork-Arné Clevert",
+        "n_authors": 3,
+        "lead_institutions": [
+          "Pfizer"
+        ],
         "countries": [],
         "has_global_south_author": false,
         "global_south_institutions": [],
-        "source": null,
-        "corresponding_authors": null
+        "source": "manual",
+        "corresponding_authors": [
+          "Robin Winter"
+        ],
+        "note": "Transcribed by hand on 2026-09-15: OpenReview answers both its page and its API with a browser challenge (HTTP 403), and the paper is indexed by neither OpenAlex, Crossref, arXiv nor Semantic Scholar. Names and order come from the Lacuna index of the OpenReview record; the first author's ICML poster post and the SAND README contact (robin.winter@pfizer.com) agree. Cremer's and Clevert's ORCIDs are Pfizer-affiliated. Verify against the OpenReview page before anyone posts."
       },
       "defects": [
-        "Publication is not a DOI URL and no DOI could be derived (https://openreview.net/forum?id=pB6WAdnRDR)"
+        "Publication is not a DOI URL and no DOI could be derived (https://openreview.net/forum?id=pB6WAdnRDR); OpenReview blocks automated lookup, so the author list (Winter, Cremer, Clevert — Pfizer) was transcribed by hand from a third-party index and should be verified against the paper",
+        "Publication Type is `Preprint`, but the paper is an ICML 2026 conference paper — if the acceptance is confirmed, Publication Type should be `Peer reviewed`"
       ],
       "summary": "Turns a molecule's 2D structure into a fixed-length embedding that captures its 3D shape without generating any conformers, so cosine similarity between vectors approximates 3D shape overlap. Useful for rapid retrieval of shape-similar molecules in ligand-based virtual screening. A GINE graph encoder producing 512 dimensions, trained at Pfizer and presented at ICML 2026."
     },
@@ -1368,13 +1405,19 @@
       "summary": "The inpainting counterpart to the formula-preserving model above: it attaches a small fragment of 2–5 heavy atoms, drawn from a library of frequent substructures, then refines the result with the same constrained graph diffusion. Bond-pair swapping keeps every intermediate valence-valid, so chemical validity is guaranteed rather than filtered for afterwards."
     }
   ],
-  "roundup": "New in the Ersilia Model Hub: nine models from August\n\nWe are very excited to announce nine new models incorporated last month — molecular featurizers, generative models and an antimicrobial activity predictor.\n\nWith thanks to the authors of each:\n\nGLACIER — Emily Nguyen and colleagues at USC and Karolinska Institutet — multimodal embeddings distilled from larger teacher models: https://doi.org/10.48550/arXiv.2606.11382\n\nNaFM — Yuheng Ding and colleagues at Peking University — scaffold-aware embeddings for natural products: https://doi.org/10.1038/s42256-026-01226-8\n\nMolCompass — Sergey Sosnin, University of Vienna — deterministic 2D projection of chemical space: https://doi.org/10.1186/s13321-024-00888-z\n\nGenMol — Seul Lee and colleagues — scaffold decoration by masked discrete diffusion: https://doi.org/10.48550/arXiv.2501.06158\n\nPyMolGen — Bruno N. Falcone and colleagues at Nottingham — analogue generation from ChEMBL fragment statistics: https://doi.org/10.1021/acs.jcim.6c00689\n\nCoCoGraph — Manuel Ruiz-Botella and colleagues at Universitat Rovira i Virgili — graph diffusion where chemical validity is guaranteed by construction, in two variants: https://doi.org/10.1038/s42256-026-01229-5\n\nHADES — Narek Petrosyan and colleagues — oral drug-likeness scoring across 298 features: https://doi.org/10.1021/acs.jcim.5c02953\n\nEU OpenScreen antimicrobials — Ctibor Škuta and colleagues at the Czech Academy of Sciences built the screening database of ~100,000 compounds against seven pathogens; these classifiers were trained on it: https://doi.org/10.1093/nar/gkae904\n\nEvery one runs in one command, with no need to rebuild the original environment.\n\nFull catalogue: https://github.com/ersilia-os/ersilia\n\n#DrugDiscovery #MachineLearning #OpenScience #Cheminformatics",
+  "roundup": "New in the Ersilia Model Hub: ten models from August\n\nWe are very excited to announce ten new models incorporated last month — molecular featurizers, generative models and an antimicrobial activity predictor.\n\nWith thanks to the authors of each:\n\nGLACIER — Emily Nguyen and colleagues at USC and Karolinska Institutet — multimodal embeddings distilled from larger teacher models: https://doi.org/10.48550/arXiv.2606.11382\n\nSAND — Robin Winter and colleagues at Pfizer — shape-aware embeddings whose cosine similarity approximates 3D shape overlap, from the 2D graph alone: https://openreview.net/forum?id=pB6WAdnRDR\n\nNaFM — Yuheng Ding and colleagues at Peking University — scaffold-aware embeddings for natural products: https://doi.org/10.1038/s42256-026-01226-8\n\nMolCompass — Sergey Sosnin, University of Vienna — deterministic 2D projection of chemical space: https://doi.org/10.1186/s13321-024-00888-z\n\nGenMol — Seul Lee and colleagues — scaffold decoration by masked discrete diffusion: https://doi.org/10.48550/arXiv.2501.06158\n\nPyMolGen — Bruno N. Falcone and colleagues at Nottingham — analogue generation from ChEMBL fragment statistics: https://doi.org/10.1021/acs.jcim.6c00689\n\nCoCoGraph — Manuel Ruiz-Botella and colleagues at Universitat Rovira i Virgili — graph diffusion where chemical validity is guaranteed by construction, in two variants: https://doi.org/10.1038/s42256-026-01229-5\n\nHADES — Narek Petrosyan and colleagues — oral drug-likeness scoring across 298 features: https://doi.org/10.1021/acs.jcim.5c02953\n\nEU OpenScreen antimicrobials — Ctibor Škuta and colleagues at the Czech Academy of Sciences built the screening database of ~100,000 compounds against seven pathogens; these classifiers were trained on it: https://doi.org/10.1093/nar/gkae904\n\nEvery one runs in one command, with no need to rebuild the original environment.\n\nFull catalogue: https://github.com/ersilia-os/ersilia\n\n#DrugDiscovery #MachineLearning #OpenScience #Cheminformatics",
   "profiles": [
     {
       "author": "Emily Nguyen",
       "model": "eos5g6m",
       "profile": "*none found*",
       "status": "**unverified** — no profile surfaced, including a linkedin.com-restricted search. Her site `eemokey.github.io` matches the model's own source repo (`github.com/eemokey/glacier`), and she is at USC Computer Science, but that is identity, not a profile"
+    },
+    {
+      "author": "Robin Winter",
+      "model": "eos5mnx",
+      "profile": "`in/robin-winter-852762169`",
+      "status": "**corroborated** — a linkedin.com-restricted search returns 'Robin Winter - Pfizer' with a post presenting the SAND poster at ICML; the SAND README lists robin.winter@pfizer.com as contact, and theorg.com lists him as a Machine Learning Research Scientist at Pfizer"
     },
     {
       "author": "Yuheng Ding",

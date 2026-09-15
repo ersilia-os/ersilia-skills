@@ -2,14 +2,14 @@
 
 **Models incorporated:** 10 — 4 Representation, 4 Sampling, 2 Annotation
 **Status:** 10 Ready
-**Prepared:** 2026-09-09 from the Hub catalogue (254 models)
+**Prepared:** 2026-09-15 from the Hub catalogue (254 models)
 
 ## Summary
 
 | Model | Title | Task | Authors | Paper |
 |---|---|---|---|---|
 | [`eos5g6m`](https://github.com/ersilia-os/eos5g6m) | GLACIER Molecular Embeddings | Featurization | Emily Nguyen et al. (5) | [10.48550/arXiv.2606.11382](https://doi.org/10.48550/arXiv.2606.11382) |
-| [`eos5mnx`](https://github.com/ersilia-os/eos5mnx) | SAND Shape-Aware Descriptor | Featurization | *unresolved* | [https://openreview.net/forum?id=pB6WAdnRDR](https://openreview.net/forum?id=pB6WAdnRDR) |
+| [`eos5mnx`](https://github.com/ersilia-os/eos5mnx) | SAND Shape-Aware Descriptor | Featurization | Robin Winter et al. (3) | [https://openreview.net/forum?id=pB6WAdnRDR](https://openreview.net/forum?id=pB6WAdnRDR) |
 | [`eos6pj2`](https://github.com/ersilia-os/eos6pj2) | NaFM Natural Product Embeddings | Featurization | Yuheng Ding et al. (11) | [10.1038/s42256-026-01226-8](https://doi.org/10.1038/s42256-026-01226-8) |
 | [`eos84nf`](https://github.com/ersilia-os/eos84nf) | GenMol Scaffold Decoration | Generation | Seul Lee et al. (9) | [10.48550/arXiv.2501.06158](https://doi.org/10.48550/arXiv.2501.06158) |
 | [`eos8zvb`](https://github.com/ersilia-os/eos8zvb) | PyMolGen Drug-Like Molecule Generation | Generation | Bruno N. Falcone et al. (11) | [10.1021/acs.jcim.6c00689](https://doi.org/10.1021/acs.jcim.6c00689) |
@@ -31,7 +31,7 @@ Paper: [10.48550/arXiv.2606.11382](https://doi.org/10.48550/arXiv.2606.11382) ·
 
 ### `eos5mnx` · SAND Shape-Aware Descriptor
 
-***authors unresolved — see the defects section*** · preprint 2026
+**Robin Winter, Julian Cremer and Djork-Arné Clevert** — Pfizer · ICML 2026
 
 Turns a molecule's 2D structure into a fixed-length embedding that captures its 3D shape without generating any conformers, so cosine similarity between vectors approximates 3D shape overlap. Useful for rapid retrieval of shape-similar molecules in ligand-based virtual screening. A GINE graph encoder producing 512 dimensions, trained at Pfizer and presented at ICML 2026.
 
@@ -108,7 +108,7 @@ Paper: [10.1038/s42256-026-01229-5](https://doi.org/10.1038/s42256-026-01229-5) 
 Each of these is a `/model-incorporation-metadata` gap in a model already marked live. They are listed here because whoever reads this report can go and fix them.
 
 - **`eos5g6m`** — Publication cites the arXiv preprint (10.48550/arXiv.2606.11382) but a peer-reviewed version exists — KDD 2026, 10.1145/3770855.3819032 — which is what Publication and Publication Type should carry
-- **`eos5mnx`** — Publication is not a DOI URL and no DOI could be derived (https://openreview.net/forum?id=pB6WAdnRDR)
+- **`eos5mnx`** — Publication is not a DOI URL and no DOI could be derived (https://openreview.net/forum?id=pB6WAdnRDR); OpenReview blocks automated lookup, so the author list (Winter, Cremer, Clevert — Pfizer) was transcribed by hand from a third-party index and should be verified against the paper; Publication Type is `Preprint`, but the paper is an ICML 2026 conference paper — if the acceptance is confirmed, Publication Type should be `Peer reviewed`
 - **`eos3xhm`** — OpenAlex mis-resolves this paper's affiliations, returning 'Institute of Molecular Biology of the Slovak Academy of Sciences' and 'Denso (United States)'; the paper says Denovo Sciences and the Armenian NAS. Institutions here were taken from the paper
 
 ## Draft LinkedIn round-up
@@ -116,13 +116,15 @@ Each of these is a `/model-incorporation-metadata` gap in a model already marked
 Lint it with `scripts/check_post.py` before anyone posts it.
 
 ```text
-New in the Ersilia Model Hub: nine models from August
+New in the Ersilia Model Hub: ten models from August
 
-We are very excited to announce nine new models incorporated last month — molecular featurizers, generative models and an antimicrobial activity predictor.
+We are very excited to announce ten new models incorporated last month — molecular featurizers, generative models and an antimicrobial activity predictor.
 
 With thanks to the authors of each:
 
 GLACIER — Emily Nguyen and colleagues at USC and Karolinska Institutet — multimodal embeddings distilled from larger teacher models: https://doi.org/10.48550/arXiv.2606.11382
+
+SAND — Robin Winter and colleagues at Pfizer — shape-aware embeddings whose cosine similarity approximates 3D shape overlap, from the 2D graph alone: https://openreview.net/forum?id=pB6WAdnRDR
 
 NaFM — Yuheng Ding and colleagues at Peking University — scaffold-aware embeddings for natural products: https://doi.org/10.1038/s42256-026-01226-8
 
@@ -152,6 +154,7 @@ Authors only — Ersilia does not tag institutions. Tag by typing the name into 
 | Author | Model | Profile | Status |
 |---|---|---|---|
 | Emily Nguyen | `eos5g6m` | *none found* | **unverified** — no profile surfaced, including a linkedin.com-restricted search. Her site `eemokey.github.io` matches the model's own source repo (`github.com/eemokey/glacier`), and she is at USC Computer Science, but that is identity, not a profile |
+| Robin Winter | `eos5mnx` | `in/robin-winter-852762169` | **corroborated** — a linkedin.com-restricted search returns 'Robin Winter - Pfizer' with a post presenting the SAND poster at ICML; the SAND README lists robin.winter@pfizer.com as contact, and theorg.com lists him as a Machine Learning Research Scientist at Pfizer |
 | Yuheng Ding | `eos6pj2` | `in/yuheng-ding-374398226` (NVIDIA) **or** `in/yuheng-ding` (CMU) | **ambiguous** — neither title matches Peking University, and the name is common. Do not tag |
 | Sergey Sosnin | `eos19dk` | `in/serg-sosnin` | **corroborated** — the title shows his current employer (Elpisor Ltd), not the paper's Vienna affiliation; ResearchGate confirms Senior Scientist at the University of Vienna, Dept of Pharmaceutical Sciences, and the GitHub handle behind MolCompass (`github.com/sergsb`) matches the profile slug |
 | Seul Lee | `eos84nf` | `in/seul-lee-408a69309` | **corroborated** — title 'Research Intern — NVIDIA'; a KAIST PhD student and GenMol's first author, with NVIDIA co-authors on the paper |
