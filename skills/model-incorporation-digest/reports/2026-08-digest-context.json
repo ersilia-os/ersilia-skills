@@ -207,7 +207,7 @@
       "defects": [
         "Publication is not a DOI URL and no DOI could be derived (https://openreview.net/forum?id=pB6WAdnRDR)"
       ],
-      "summary": "Turns a molecule's 2D structure into a fixed-length embedding that captures its 3D shape without generating any conformers, so cosine similarity between vectors approximates 3D shape overlap. Useful for rapid retrieval of shape-similar molecules in ligand-based virtual screening. A GINE graph encoder producing 512 dimensions, trained at Pfizer and presented at ICML 2026. Its Publication field is an OpenReview URL, which mints no DOI, so the author list could not be resolved automatically; the three names above were transcribed by hand from a third-party index and should be checked against the paper before being relied on."
+      "summary": "Turns a molecule's 2D structure into a fixed-length embedding that captures its 3D shape without generating any conformers, so cosine similarity between vectors approximates 3D shape overlap. Useful for rapid retrieval of shape-similar molecules in ligand-based virtual screening. A GINE graph encoder producing 512 dimensions, trained at Pfizer and presented at ICML 2026."
     },
     {
       "identifier": "eos6pj2",
@@ -1017,7 +1017,7 @@
         ]
       },
       "defects": [],
-      "summary": "Predicts activity against seven reference pathogens — *A. baumannii*, *C. albicans*, *E. coli*, *E. faecalis*, *K. pneumoniae*, *P. aeruginosa* and *S. aureus* — from single-point inhibition screens of the ~100,000-compound EU OpenScreen library, taken from the European Chemical Biology Database. The credit here is for the **screening data**, not the model: Škuta and colleagues produced the database, and Ersilia trained these classifiers on it with LazyQSAR v3, reporting a mean AUROC of 0.94 across 5-fold cross-validation."
+      "summary": "Predicts activity against seven reference pathogens — *A. baumannii*, *C. albicans*, *E. coli*, *E. faecalis*, *K. pneumoniae*, *P. aeruginosa* and *S. aureus* — from single-point inhibition screens of the ~100,000-compound EU OpenScreen library, taken from the European Chemical Biology Database. Škuta and colleagues produced that database; Ersilia trained these classifiers on it with LazyQSAR v3, reporting a mean AUROC of 0.94 across 5-fold cross-validation."
     },
     {
       "identifier": "eos3xhm",
@@ -1191,7 +1191,7 @@
         ]
       },
       "defects": [],
-      "summary": "Scores how closely a compound resembles an approved oral drug, with 0.63 as the authors' recommended cut-off. Averages probabilities from five tree and boosting classifiers over 298 features combining Mordred descriptors, ADMET-AI predictions and QED terms, trained on 1,177 approved oral drugs against 5,307 non-drugs from ChEMBL, ZINC and GDB. The authors show scores rising across clinical phases and falling for orally toxic and chemically implausible structures. The institutions in the byline were taken from the paper: OpenAlex mis-resolves them to a Slovak institute, to Denso and to a Qatari science park."
+      "summary": "Scores how closely a compound resembles an approved oral drug, with 0.63 as the authors' recommended cut-off. Averages probabilities from five tree and boosting classifiers over 298 features combining Mordred descriptors, ADMET-AI predictions and QED terms, trained on 1,177 approved oral drugs against 5,307 non-drugs from ChEMBL, ZINC and GDB. The authors show scores rising across clinical phases and falling for orally toxic and chemically implausible structures."
     },
     {
       "identifier": "eos55vx",
@@ -1397,7 +1397,7 @@
         ]
       },
       "defects": [],
-      "summary": "The inpainting counterpart to the formula-preserving model above: it attaches a small fragment of 2–5 heavy atoms, drawn from a library of frequent substructures, then refines the result with the same constrained graph diffusion. Bond-pair swapping keeps every intermediate valence-valid, so chemical validity is guaranteed rather than filtered for afterwards."
+      "summary": "The inpainting counterpart to CoCoGraph's formula-preserving model: it attaches a small fragment of 2–5 heavy atoms, drawn from a library of frequent substructures, then refines the result with the same constrained graph diffusion. Bond-pair swapping keeps every intermediate valence-valid, so chemical validity is guaranteed rather than filtered for afterwards."
     }
   ]
 }

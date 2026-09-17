@@ -78,6 +78,30 @@ Don't:
 The second says nothing a reader could act on, and "leverages state-of-the-art" is the
 tell. Name the method, the scale and the intended use.
 
+### The paragraph is about the model, and only the model
+
+Everything in it should be a fact a reader could use to decide whether to run the model.
+Not how the digest was assembled. These all appeared in a real draft and are all wrong
+here:
+
+> ✗ The institutions in the byline were taken from the paper: OpenAlex mis-resolves them
+>   to a Slovak institute and to Denso.
+> ✗ Its Publication field is an OpenReview URL, which mints no DOI, so the author list
+>   could not be resolved automatically.
+> ✗ …which is the paper the table above cites.
+> ✗ The credit here is for the screening data, not the model.
+
+The first two are about this skill's plumbing. The third points at the document, and
+breaks the moment the ordering changes. The fourth narrates the crediting instead of
+crediting: state who did what and let the reader draw the conclusion.
+
+For the same reason, never locate a model by position — "the model above" — because the
+entries are grouped by task and the ordering is not stable. Name the sibling model.
+
+Where a name or an affiliation had to be established by hand, fix it in the context JSON
+so the byline is right, and tell the user when you present. That belongs in the
+conversation, not in the digest.
+
 ### Models Ersilia trained itself
 
 Where `Source Type` is `Replicated` or `Internal`, the paper's authors produced the data or

@@ -41,6 +41,15 @@ TODO = "**TODO — no `summary` written for this model.**"
 TASK_ORDER = ("Annotation", "Representation", "Sampling")
 
 
+def cell(text):
+    """Flatten a value into a markdown table cell.
+
+    Newlines end a table row and an unescaped pipe starts a new column, so both have to
+    go before a paragraph can live inside a cell.
+    """
+    return " ".join(str(text or "").split()).replace("|", "\\|")
+
+
 def task_of(record):
     """The model's task category, falling back to a visible placeholder."""
     return (record.get("model") or {}).get("task") or "Uncategorised"
@@ -170,70 +179,54 @@ def render(context, prepared_on, public=False):
         lines.append("")
         return "\n".join(lines)
 
-    # ---- summary, one table per task category ----
-    # Grouped rather than one flat table, the way the event report groups by continent:
-    # "four featurizers and four generative models" is the shape of a month, and a single
-    # ordered list makes the reader count it themselves.
-    # No paper column: every model's section below carries its DOI, and a second copy
-    # here only crowded the four columns that answer "what shipped".
-    lines.append("## Summary")
+    # ---- one table per task category ----
+    # Table-first, the way the event report is: one row per model, grouped under its task
+    # the way that report groups by continent. The table carries the description rather
+    # than a separate prose section, because a summary table above prose sections meant
+    # the identifier, title and authors of every model appeared twice on one page.
+    lines.append("## The models")
     lines.append("")
     for task, records in task_groups(models):
         lines.append(f"### {task} — {len(records)} model{'s' if len(records) != 1 else ''}")
         lines.append("")
-        lines.append("| Model | Title | Task | Authors |")
+        lines.append("| Model | Authors | What it does | Links |")
         lines.append("|---|---|---|---|")
         for record in records:
-            model, credit = record["model"], record["credit"]
-            lines.append(
-                f"| [`{record['identifier']}`]({model.get('github')}) "
-                f"| {model.get('title') or '—'} "
-                f"| {model.get('subtask') or model.get('task') or '—'} "
-                f"| `{author_phrase(credit)}` |"
-            )
-        lines.append("")
-
-    # ---- one section per model ----
-    lines.append("## The models")
-    lines.append("")
-    # Same task grouping as the summary, so the two sections read as one sequence.
-    # The count sits only on the summary's headings; repeating it here says it twice
-    # on one page.
-    for task, records in task_groups(models):
-        lines.append(f"### {task}")
-        lines.append("")
-        for record in records:
             model, credit, publication = record["model"], record["credit"], record["publication"]
-            lines.append(f"#### `{record['identifier']}` · {model.get('title') or model.get('slug')}")
-            lines.append("")
 
-            byline = full_credit(credit)
-            where = institutions(credit)
-            # Crossref deposits some journal names with embedded newlines, which would
-            # otherwise break the byline across two lines.
+            ident = f"[`{record['identifier']}`]({model.get('github')})"
+            title = cell(model.get("title") or model.get("slug"))
+            subtask = cell(model.get("subtask") or model.get("task"))
+            first = f"{ident}<br>{title}<br>_{subtask}_"
+
+            where = institutions(credit, limit=2)
             venue = " ".join(
-                " ".join(str(p).split())
-                for p in (publication.get("journal"), publication.get("year"))
-                if p
+                " ".join(str(part).split())
+                for part in (publication.get("journal"), publication.get("year"))
+                if part
             )
             if publication.get("type") == "Preprint" and not publication.get("journal"):
                 venue = f"preprint {publication.get('year') or ''}".strip()
-            lines.append(f"**{byline}**" + (f" — {where}" if where else "") + (f" · {venue}" if venue else ""))
-            lines.append("")
+            who = [f"**{cell(full_credit(credit))}**"]
+            if where:
+                who.append(cell(where))
+            if venue:
+                who.append(cell(venue))
+            second = "<br>".join(who)
 
-            summary = (record.get("summary") or "").strip()
-            lines.append(summary or TODO)
-            lines.append("")
+            third = cell(record.get("summary")) or TODO
 
-            facts = [
+            links = [
                 f"Paper: {paper_link(publication)}",
-                f"Authors' code: {code_link(model.get('source_code'))}",
-                f"Run it: `ersilia fetch {model.get('slug') or record['identifier']}`",
+                f"Code: {code_link(model.get('source_code'))}",
+                f"`ersilia fetch {model.get('slug') or record['identifier']}`",
             ]
             if model.get("license"):
-                facts.append(f"Licence: {model['license']}")
-            lines.append(" · ".join(facts))
-            lines.append("")
+                links.append(cell(model["license"]))
+            fourth = "<br>".join(links)
+
+            lines.append(f"| {first} | {second} | {third} | {fourth} |")
+        lines.append("")
 
     # ---- defects (internal only) ----
     if public:

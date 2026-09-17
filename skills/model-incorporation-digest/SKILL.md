@@ -99,14 +99,20 @@ which did what.
 
 ## Step 3 — Handle models whose authors did not resolve
 
-A model with `n_authors == 0` cannot be credited. It still goes in the digest, with the
-gap stated plainly, so nobody mistakes an unresolved author list for an absent one.
+A model with `n_authors == 0` cannot be credited automatically. It still goes in the
+digest, with whatever names you could establish.
 
 Try, in order: the DOI (arXiv `abs`/`pdf` URLs are converted automatically), then the
 paper's own page, then a web search. `references/author-lookup.md` covers the traps.
 Some venues genuinely have no machine-readable route — OpenReview sits behind a browser
 check and answers its API with 403 — so ask the user for the author list rather than
-guessing, and record the gap in the defects section.
+guessing.
+
+**Report the gap to the user in Step 6; do not write it into the model's paragraph.** How
+a name was obtained is a fact about this skill's plumbing, not about the model, and the
+paragraphs are read by people who want to know what the model does. The same goes for an
+affiliation you had to correct off the paper because OpenAlex resolved it wrongly: fix it
+in the context JSON so the byline is right, and say so when you present, not in the prose.
 
 ## Step 4 — Render
 
@@ -217,3 +223,6 @@ Show the user:
   `references/attribution-rules.md`.
 - Do not write around a metadata defect. Report it — and report it in the defects section,
   which carries what `fetch_month_models.py` flagged, not findings from elsewhere.
+- Do not write commentary into a model's paragraph. It describes the model: what it does,
+  what it was trained on, what the authors showed. Not where a name or an affiliation came
+  from, not what the metadata says, and not where anything sits in this document.
