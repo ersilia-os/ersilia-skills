@@ -40,6 +40,40 @@ TODO = "**TODO — no `summary` written for this model.**"
 # it does not belong to.
 TASK_ORDER = ("Annotation", "Representation", "Sampling")
 
+# The literature digest's own task vocabulary, reused verbatim: a reader who knows one
+# digest should not have to learn a second set of symbols for the same six things.
+SUBTASK_EMOJI = {
+    "Property calculation or prediction": "🧪",
+    "Activity prediction": "🎯",
+    "Featurization": "🧩",
+    "Projection": "🗺️",
+    "Similarity search": "🔍",
+    "Generation": "🎨",
+}
+
+# Licences that place no condition on reuse beyond attribution. The digest names a licence
+# only when it constrains — see references/attribution-rules.md. Printing "MIT" on every
+# entry buries the one that actually restricts something.
+PERMISSIVE_LICENCES = {
+    "mit", "apache-2.0", "apache 2.0", "bsd-2-clause", "bsd-3-clause", "isc",
+    "cc0-1.0", "unlicense", "mit-0",
+}
+
+
+def restrictive_licence(value):
+    """The licence, but only when it constrains reuse. Otherwise ``None``."""
+    if not value:
+        return None
+    return None if str(value).strip().lower() in PERMISSIVE_LICENCES else str(value).strip()
+
+
+def short_byline(credit):
+    """``First Author et al.`` — the compact form a bullet's leading link carries."""
+    names = [a["name"] for a in credit.get("authors", []) if a.get("name")]
+    if not names:
+        return "Authors unresolved"
+    return names[0] if len(names) == 1 else f"{names[0]} et al."
+
 
 def cell(text):
     """Flatten a value into a markdown table cell.
@@ -161,17 +195,30 @@ def render(context, prepared_on, public=False):
     statuses = ", ".join(
         f"{n} {status}" for status, n in (context.get("by_status") or {}).items()
     )
-    lines.append(f"**Models incorporated:** {context.get('n_models', 0)}" + (f" — {tasks}" if tasks else ""))
-    lines.append(f"**Status:** {statuses or 'unknown'}")
+    # One paragraph of short lines directly under the H1 — the site styles that block
+    # specially. Markdown needs two trailing spaces to keep them as separate lines.
+    header = [
+        f"**Models incorporated:** {context.get('n_models', 0)}" + (f" — {tasks}" if tasks else ""),
+        f"**Status:** {statuses or 'unknown'}",
+    ]
     if context.get("n_global_south"):
-        lines.append(
+        header.append(
             f"**Global-South-led:** {context['n_global_south']} of "
             f"{context.get('n_models', 0)} have an author at an LMIC institution"
         )
-    lines.append(
+    header.append(
         f"**Prepared:** {prepared_on} from the Hub catalogue "
         f"({context.get('catalog_size', '?')} models)"
     )
+    present = [
+        (sub, SUBTASK_EMOJI[sub])
+        for sub in SUBTASK_EMOJI
+        if any((r.get("model") or {}).get("subtask") == sub for r in models)
+    ]
+    if present:
+        header.append("**Tasks:** " + " · ".join(f"{e} {sub}" for sub, e in present))
+    lines.extend(line + "  " for line in header[:-1])
+    lines.append(header[-1])
     lines.append("")
 
     if not models:
@@ -179,27 +226,18 @@ def render(context, prepared_on, public=False):
         lines.append("")
         return "\n".join(lines)
 
-    # ---- one table per task category ----
-    # Table-first, the way the event report is: one row per model, grouped under its task
-    # the way that report groups by continent. The table carries the description rather
-    # than a separate prose section, because a summary table above prose sections meant
-    # the identifier, title and authors of every model appeared twice on one page.
+    # ---- one bullet per model, grouped by task category ----
+    # The literature digest's shape: link first, bold title, the description inline, and
+    # the rest trailing after middle dots. A month of incorporations is a list of items
+    # with a short description each, which is the problem that layout already solves.
     lines.append("## The models")
     lines.append("")
     for task, records in task_groups(models):
         lines.append(f"### {task} — {len(records)} model{'s' if len(records) != 1 else ''}")
         lines.append("")
-        lines.append("| Model | Authors | What it does | Links |")
-        lines.append("|---|---|---|---|")
         for record in records:
             model, credit, publication = record["model"], record["credit"], record["publication"]
 
-            ident = f"[`{record['identifier']}`]({model.get('github')})"
-            title = cell(model.get("title") or model.get("slug"))
-            subtask = cell(model.get("subtask") or model.get("task"))
-            first = f"{ident}<br>{title}<br>_{subtask}_"
-
-            where = institutions(credit, limit=2)
             venue = " ".join(
                 " ".join(str(part).split())
                 for part in (publication.get("journal"), publication.get("year"))
@@ -207,26 +245,30 @@ def render(context, prepared_on, public=False):
             )
             if publication.get("type") == "Preprint" and not publication.get("journal"):
                 venue = f"preprint {publication.get('year') or ''}".strip()
-            who = [f"**{cell(full_credit(credit))}**"]
-            if where:
-                who.append(cell(where))
-            if venue:
-                who.append(cell(venue))
-            second = "<br>".join(who)
+            head = f"{short_byline(credit)}" + (f", *{venue}*" if venue else "")
+            link = publication.get("doi_url") or publication.get("raw_publication_field")
+            head = f"[{head}]({link})" if link else head
 
-            third = cell(record.get("summary")) or TODO
+            emoji = SUBTASK_EMOJI.get(model.get("subtask"), "")
+            where = institutions(credit, limit=1)
+            ident = f"[`{record['identifier']}`]({model.get('github')})"
+            title = f"**{cell(model.get('title') or model.get('slug'))}**"
+            provenance = f"({ident}" + (f", {cell(where)}" if where else "") + ")"
 
-            links = [
-                f"Paper: {paper_link(publication)}",
-                f"Code: {code_link(model.get('source_code'))}",
-                f"`ersilia fetch {model.get('slug') or record['identifier']}`",
-            ]
-            if model.get("license"):
-                links.append(cell(model["license"]))
-            fourth = "<br>".join(links)
+            tail = [f"`ersilia fetch {model.get('slug') or record['identifier']}`"]
+            if model.get("source_code"):
+                tail.insert(0, f"[code]({model['source_code']})")
+            licence = restrictive_licence(model.get("license"))
+            if licence:
+                tail.append(cell(licence))
 
-            lines.append(f"| {first} | {second} | {third} | {fourth} |")
-        lines.append("")
+            summary = cell(record.get("summary")) or TODO
+            bits = [head]
+            if emoji:
+                bits.append(emoji)
+            bits.append(f"— {title} {provenance}. {summary}")
+            lines.append("- " + " ".join(bits) + " · " + " · ".join(tail))
+            lines.append("")
 
     # ---- defects (internal only) ----
     if public:

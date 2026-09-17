@@ -10,29 +10,35 @@ is about those.
 # Ersilia model incorporation digest — <Month Year>
   headline counts: models, tasks, statuses, Global-South-led, catalogue size
 
-## Summary
-  one `### <Task>` group per task category, each a table: identifier, title, subtask, authors
+(no separate summary — the entries below carry it)
 
 ## The models
-  the same `### <Task>` groups, each holding one `#### <model>` section:
-  byline, paragraph, then facts (paper, authors' code, fetch, licence)
+  one `### <Task>` group per task category, each a bulleted list:
+  one bullet per model — paper link, task emoji, title, identifier, institution,
+  the description, then code, fetch command and a licence only when it constrains
 
 ## Metadata to fix
   the defects fetch_month_models.py found, per model
 ```
 
 Models are ordered by task category — Annotation, Representation, Sampling, then anything
-unrecognised — and the summary is grouped under one heading per category, the way the event
-report groups by continent. "Four featurizers and four generative models" is the shape of a
-month; a single flat list makes the reader count it themselves. **The models** repeats the same
-groups and the same order, so moving between the two sections is not a search. Its task
-headings carry no count — the summary's already did, and saying it twice on one page is
-noise. Model entries sit at `####` beneath their task heading.
+unrecognised — and grouped under one heading per category, the way the event report groups
+by continent. "Four featurizers and four generative models" is the shape of a month; a flat
+list makes the reader count it themselves.
 
-The summary carries no paper column: every model's own section below gives its DOI, and a
-second copy crowded the four columns that answer "what shipped". Links there are written as
-explicit markdown links, never bare URLs — the digests site renders with kramdown, which
-does not autolink, so a bare address publishes as unclickable text.
+Each model is **one bullet**, following the literature digest's line: the paper link first,
+then the task emoji, the bold title, the identifier and lead institution, the description,
+and the trailing links. A month of incorporations is a list of items with a short
+description each, which is the problem that layout already solves, and using the same shape
+means a reader of one digest already knows how to read this one. The task emoji come from
+the literature digest's own vocabulary, unchanged.
+
+Two things that bite:
+
+- **Name a licence only when it constrains reuse.** MIT and Apache need no mention.
+  Printing one on every entry buries the single GPL that actually restricts something.
+- **Write every link explicitly.** The digests site renders with kramdown, which does not
+  autolink, so a bare URL publishes as unclickable text while the DOI beside it works.
 
 The order is deliberate. The **table** answers "what shipped" for someone skimming before
 a meeting. **The models** answers "what is each of these". **Metadata to fix** is the

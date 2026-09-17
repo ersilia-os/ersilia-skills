@@ -12,7 +12,7 @@
   "by_status": {
     "Ready": 10
   },
-  "n_with_defects": 1,
+  "n_with_defects": 3,
   "n_global_south": 0,
   "models": [
     {
@@ -112,7 +112,10 @@
         "source": "openalex",
         "corresponding_authors": null
       },
-      "defects": [],
+      "defects": [
+        "Publication cites an arXiv preprint (10.48550/arXiv.2606.11382) — check whether a peer-reviewed version has appeared since, and cite that instead",
+        "Publication Type is 'Peer reviewed' but the publication record reports a preprint — one of the two is wrong"
+      ],
       "summary": "A multimodal student-teacher foundation model that turns a SMILES string into a 512-dimensional embedding. It fuses three views of a molecule — a message-passing graph encoder, a SMILES transformer and physicochemical descriptors — through a geometry-aware module, distilled from larger teacher models by contrastive learning. Intended as a general-purpose featurizer for downstream property prediction."
     },
     {
@@ -539,7 +542,9 @@
         "source": "openalex",
         "corresponding_authors": null
       },
-      "defects": [],
+      "defects": [
+        "Publication cites an arXiv preprint (10.48550/arXiv.2501.06158) — check whether a peer-reviewed version has appeared since, and cite that instead"
+      ],
       "summary": "Given a scaffold with attachment points, decorates it with novel side fragments to produce new drug-like molecules, using masked discrete diffusion over the fragment-based SAFE representation. Trained on ZINC and UniChem. The authors report better validity, quality and diversity than the earlier autoregressive SAFE-GPT, and substantially faster sampling through non-autoregressive parallel decoding — aimed at hit-to-lead exploration around a known scaffold."
     },
     {

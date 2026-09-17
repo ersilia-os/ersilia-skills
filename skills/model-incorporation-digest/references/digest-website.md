@@ -71,7 +71,7 @@ is the tested diff, built and previewed locally against that repo; the shape is:
 | `website/_config.yml` | `- scope: {path: "models"}` → `layout: digest`, `wide: true` |
 | `website/_layouts/base.html` | gather `modeldigests`, add the sidebar group and its dot |
 | `website/index.md` | calendar: gather, date→URL lookup, a cell branch, a legend swatch, a "Recent" list |
-| `website/assets/style.css` | `--digest-models` / `-hover`, `.has-mod`, `.swatch.mod`, `.nav-dot.is-models`, this family's column widths, and an `h4` rule |
+| `website/assets/style.css` | `--digest-models` / `-hover`, `.has-mod`, `.swatch.mod`, `.nav-dot.is-models`, and scoping the existing column widths to `.family-events` |
 
 ### The colour
 
@@ -82,6 +82,10 @@ Ersilia brand amber `#e2a72e`. Amber is the one warm hue not already spoken for,
 the calendar's 13px cell it stays distinct from the coral.
 
 ### Table column widths are per family
+
+This family no longer emits a table, so it sets no widths and takes no `wide` column — the
+config's own note is that widening prose only makes line length worse. The scoping below
+still matters for any family that does add one.
 
 The site's column widths were written for event-discovery's ten-column table but were
 scoped to `.content`, so every family's table inherited them. A four-column digest was
@@ -97,19 +101,6 @@ This family's four columns sum to 100% (Model 12, Title 40, Task 20, Authors 28)
 table carries the body font size rather than the compressed size the ten-column event table
 needs. Inline code in a cell is set to `1em` with no background, so the identifier and
 author columns sit level with the prose columns instead of shrinking away from them.
-
-### `h4` had no style
-
-The site styled `h1` to `h3` only, so an `h4` fell back to the browser default: smaller
-than body text and in the body colour, which read as less prominent than the paragraph
-under it. This family groups its entries under a task heading and puts each model at `h4`,
-so the patch adds the missing rule.
-
-### `wide: true`
-
-The site caps prose at 720px but lets table-first documents use a 1100px column. This
-digest opens with a one-row-per-model summary table, so it takes the wide column for the
-same reason the event reports do.
 
 ## A dating collision worth knowing about
 

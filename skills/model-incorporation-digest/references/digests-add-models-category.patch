@@ -11,7 +11,7 @@ index 2ead120..9808583 100644
        - uses: ruby/setup-ruby@v1
          with:
 diff --git a/website/_config.yml b/website/_config.yml
-index f6ccebd..44e6de0 100644
+index f6ccebd..a633916 100644
 --- a/website/_config.yml
 +++ b/website/_config.yml
 @@ -11,7 +11,7 @@ kramdown:
@@ -23,7 +23,7 @@ index f6ccebd..44e6de0 100644
  defaults:
    - scope:
        path: "literature"
-@@ -21,10 +21,19 @@ defaults:
+@@ -21,10 +21,18 @@ defaults:
        path: "github"
      values:
        layout: digest
@@ -31,9 +31,8 @@ index f6ccebd..44e6de0 100644
 +      path: "models"
 +    values:
 +      layout: digest
-+      # Model incorporation digests open with a one-row-per-model summary table, so
-+      # they take the wide column for the same reason the event reports do.
-+      wide: true
++      # No `wide` here: this family is a bulleted list, not a table, and the config's own
++      # note is that widening prose to 1100px only makes line length worse.
 +      family: models
    - scope:
        path: "events"
@@ -92,25 +91,10 @@ index 569383e..f70db1b 100644
        </article>
      </main>
 diff --git a/website/assets/style.css b/website/assets/style.css
-index b99232c..cc533b3 100644
+index b99232c..a76c52a 100644
 --- a/website/assets/style.css
 +++ b/website/assets/style.css
-@@ -135,6 +135,14 @@ main {
-   letter-spacing: -0.01em;
- }
- .content h3 { font-size: 1rem; font-weight: 600; color: var(--text-strong); margin: 26px 0 10px; }
-+/* h4 had no rule, so it fell back to the browser default — smaller than body text and
-+   in the body colour, which read as less prominent than the paragraph under it. The
-+   model incorporation digest groups its entries under a task heading and puts each
-+   model at h4, so this is now a level the digests actually use. */
-+.content h4 {
-+  font-size: 0.95rem; font-weight: 600; color: var(--text-strong);
-+  margin: 22px 0 8px;
-+}
- .content p { margin: 0 0 14px; }
- .content strong { color: var(--text-strong); font-weight: 600; }
- 
-@@ -204,16 +212,40 @@ main {
+@@ -204,16 +204,21 @@ main {
    color: var(--text-strong);
    font-weight: 600;
  }
@@ -139,29 +123,10 @@ index b99232c..cc533b3 100644
 +.family-events th:nth-child(9),  .family-events td:nth-child(9)  { width: 12%; } /* Engagement */
 +.family-events th:nth-child(10), .family-events td:nth-child(10) { width: 20%; } /* Why it matters */
 +
-+/* Model incorporations: four columns that add up to 100%, so nothing is left to the
-+   browser to guess. Title takes the most because it is the only free text; the two
-+   code-set columns are sized to their content — an eos identifier is eight characters,
-+   and an author cell is "Name et al. (n)". */
-+.family-models th:nth-child(1), .family-models td:nth-child(1) { width: 12%; } /* Model */
-+.family-models th:nth-child(2), .family-models td:nth-child(2) { width: 40%; } /* Title */
-+.family-models th:nth-child(3), .family-models td:nth-child(3) { width: 20%; } /* Task */
-+.family-models th:nth-child(4), .family-models td:nth-child(4) { width: 28%; } /* Authors */
-+
-+/* This family's table is four wide columns of short strings rather than ten narrow ones,
-+   so it can carry the body size instead of the compressed 0.78rem the event table needs.
-+   Inline code in a cell is set to the same size, so the identifier and author columns do
-+   not shrink away from the two prose columns beside them. */
-+.family-models table { font-size: 0.845rem; }
-+.family-models td code, .family-models th code {
-+  font-size: 1em;
-+  background: none;
-+  padding: 0;
-+}
  
  /* landing "card" list */
  .card-list { list-style: none; padding: 0; margin: 0; }
-@@ -283,6 +315,8 @@ main {
+@@ -283,6 +288,8 @@ main {
    --digest-both-hover: #6e3a7d;
    --digest-events: #8cc8fa;       /* blue  — event digests */
    --digest-events-hover: #6bb0f0;
@@ -170,7 +135,7 @@ index b99232c..cc533b3 100644
  }
  
  .calendar {
-@@ -337,6 +371,7 @@ main {
+@@ -337,6 +344,7 @@ main {
  a.cal-cell.has-lit,
  a.cal-cell.has-gh,
  a.cal-cell.has-ev,
@@ -178,7 +143,7 @@ index b99232c..cc533b3 100644
  a.cal-cell.has-multi {
    transition: transform .1s ease, box-shadow .1s ease;
  }
-@@ -367,6 +402,15 @@ a.cal-cell.has-ev:hover {
+@@ -367,6 +375,15 @@ a.cal-cell.has-ev:hover {
    transform: scale(1.35); z-index: 2;
    box-shadow: 0 0 0 1px rgba(80,40,90,0.35), 0 3px 8px rgba(80,40,90,0.35);
  }
@@ -194,7 +159,7 @@ index b99232c..cc533b3 100644
  /* Two or more digests on the same day. One colour for any combination: with three
     families a per-combination palette needs seven shades, which is unreadable at 13px. */
  a.cal-cell.has-multi {
-@@ -396,6 +440,7 @@ a.cal-cell.has-multi:hover {
+@@ -396,6 +413,7 @@ a.cal-cell.has-multi:hover {
  .cal-legend .swatch.lit { background: var(--digest-lit); }
  .cal-legend .swatch.gh { background: var(--digest-gh); }
  .cal-legend .swatch.ev { background: var(--digest-events); }
@@ -202,7 +167,7 @@ index b99232c..cc533b3 100644
  .cal-legend .swatch.multi { background: var(--digest-both); }
  .cal-legend .sep { color: var(--border); }
  
-@@ -408,3 +453,4 @@ a.cal-cell.has-multi:hover {
+@@ -408,3 +426,4 @@ a.cal-cell.has-multi:hover {
  .nav-dot.is-lit { background: var(--digest-lit); }
  .nav-dot.is-gh { background: var(--digest-gh); }
  .nav-dot.is-events { background: var(--digest-events); }
