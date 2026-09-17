@@ -1,13 +1,13 @@
-# Report template — what goes in each section
+# Digest template — what goes in each section
 
 `scripts/render_report.py` builds every section from the month context, so the shape is
-fixed and only two things are written by hand: the per-model `summary` paragraphs and the
-`roundup` post. This file is about those.
+fixed and only one thing is written by hand: the per-model `summary` paragraphs. This file
+is about those.
 
 ## The sections
 
 ```
-# Ersilia technology report — <Month Year>
+# Ersilia model incorporation digest — <Month Year>
   headline counts: models, tasks, statuses, Global-South-led, catalogue size
 
 ## Summary
@@ -18,18 +18,14 @@ fixed and only two things are written by hand: the per-model `summary` paragraph
 
 ## Metadata to fix
   the defects fetch_month_models.py found, per model
-
-## Draft LinkedIn round-up
-  the post, in a fenced block, for the team to review
-
-## Profiles to tag
-  first author of every model the round-up names
 ```
 
 The order is deliberate. The **table** answers "what shipped" for someone skimming before
 a meeting. **The models** answers "what is each of these". **Metadata to fix** is the
-action list. The **round-up** sits last but one so it is reviewed with the month's facts
-still in view, rather than in a separate document nobody opens.
+action list, and it closes the digest because it is the only section anyone has to act on.
+
+The digest carries no announcement draft and no tagging worksheet. It is an internal
+document; nothing in it is written to be published.
 
 ## Writing a per-model paragraph
 
@@ -65,8 +61,7 @@ Where `Source Type` is `Replicated` or `Internal`, the paper's authors produced 
 the method — not the model being served. Say which. `eos3f8h` in August 2026 is the worked
 case: the credit belongs to Škuta and colleagues for the EU OpenScreen screening database,
 and the classifiers on top were trained by Ersilia with LazyQSAR. A paragraph that let a
-reader think the authors built the model would be wrong, and a round-up line that did so
-would be worse.
+reader think the authors built the model would be wrong.
 
 ### Length and honesty
 
@@ -91,4 +86,9 @@ would be worse.
 | `Output Dimension` missing | must equal the row count of `run_columns.csv` |
 
 Do not fix these from inside this skill and do not write around them. List them, so
-whoever reads the report can go and repair the model.
+whoever reads the digest can go and repair the model.
+
+This section carries what `fetch_month_models.py` flagged, and only that. A problem you
+found by reading the paper is not a scanner defect: if it changes who the model credits,
+it belongs in that model's paragraph; if it is a repair for someone else to make, it
+belongs in an issue against the model, not here.

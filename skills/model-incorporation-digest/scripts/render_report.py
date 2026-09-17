@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""render_report.py — turn a month context into the internal technology report.
+"""render_report.py — turn a month context into the internal model-incorporation digest.
 
-    python render_report.py month-context.json --out reports/2026-08-technology.md
+    python render_report.py month-context.json --out reports/2026-08-digest.md
 
 Rendering is deterministic: everything factual comes straight out of the context JSON, so
 two runs of the same month produce the same document and nothing drifts in the retelling.
+
+The digest is internal and carries no announcement draft: what it reports is what went
+into the Hub, who made it, and what the metadata scan flagged.
 
 The one part that needs judgement is the per-model paragraph, and that is not invented
 here. Each model record in the JSON may carry a ``"summary"`` string, written by whoever
@@ -27,8 +30,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _common import read_json, warn  # noqa: E402
 
 TODO = "**TODO — no `summary` written for this model.**"
-ROUNDUP_TODO = "**TODO — no `roundup` written in the context JSON.**"
-PROFILES_TODO = "**TODO — no `profiles` worksheet in the context JSON.**"
 
 
 def author_phrase(credit):
@@ -74,7 +75,7 @@ def render(context, prepared_on):
     lines = []
 
     label = context.get("month_label", context.get("month", "unknown month"))
-    lines.append(f"# Ersilia technology report — {label}")
+    lines.append(f"# Ersilia model incorporation digest — {label}")
     lines.append("")
 
     tasks = ", ".join(f"{n} {task}" for task, n in (context.get("by_task") or {}).items())
@@ -164,42 +165,6 @@ def render(context, prepared_on):
             lines.append(f"- **`{record['identifier']}`** — " + "; ".join(record["defects"]))
     lines.append("")
 
-    # ---- the round-up post, reviewed in the same document ----
-    lines.append("## Draft LinkedIn round-up")
-    lines.append("")
-    roundup = (context.get("roundup") or "").strip()
-    if roundup:
-        lines.append("Lint it with `scripts/check_post.py` before anyone posts it.")
-        lines.append("")
-        lines.append("```text")
-        lines.append(roundup)
-        lines.append("```")
-    else:
-        lines.append(ROUNDUP_TODO)
-    lines.append("")
-
-    # ---- tagging worksheet ----
-    lines.append("## Profiles to tag")
-    lines.append("")
-    rows = context.get("profiles") or []
-    if rows:
-        lines.append(
-            "Authors only — Ersilia does not tag institutions. Tag by typing the name into "
-            "the composer and picking the profile; never tag a row marked `ambiguous` or "
-            "`unverified`."
-        )
-        lines.append("")
-        lines.append("| Author | Model | Profile | Status |")
-        lines.append("|---|---|---|---|")
-        for row in rows:
-            lines.append(
-                f"| {row.get('author', '—')} | `{row.get('model', '—')}` "
-                f"| {row.get('profile', '—')} | {row.get('status', '—')} |"
-            )
-    else:
-        lines.append(PROFILES_TODO)
-    lines.append("")
-
     return "\n".join(lines)
 
 
@@ -215,10 +180,6 @@ def main(argv=None):
     body = render(context, prepared)
 
     missing = [r["identifier"] for r in context.get("models", []) if not (r.get("summary") or "").strip()]
-    if not (context.get("roundup") or "").strip():
-        missing.append("<roundup>")
-    if not context.get("profiles"):
-        missing.append("<profiles>")
     Path(args.out).write_text(body + "\n", encoding="utf-8")
     print(f"wrote {args.out}", file=sys.stderr)
 

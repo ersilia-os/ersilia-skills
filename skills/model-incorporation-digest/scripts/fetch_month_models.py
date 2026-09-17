@@ -11,7 +11,7 @@ abstract.
 Two things it does beyond fetching:
 
 * It records **who the authors are, in order**. OpenAlex tags first/middle/last, which is
-  what lets the report and the round-up credit the right people without guessing.
+  what lets the digest credit the right people without guessing.
 * It records **metadata defects** per model — a placeholder Interpretation, a Publication
   field that is not a DOI, a Description outside the enforced length. An internal report
   is the right place for these to surface, because someone reading it can go and fix them.

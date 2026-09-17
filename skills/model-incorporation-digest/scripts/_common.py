@@ -87,7 +87,7 @@ def fetch_json(url, timeout=30):
 
 
 def surname(display_name):
-    """Best-effort surname from a display name, for the hook check in check_post.py.
+    """Best-effort surname from a display name, for matching authors across sources.
 
     Takes the last whitespace-separated token, keeping particles attached when they
     are capitalised mid-name (``van der Waals`` -> ``Waals`` is wrong but harmless

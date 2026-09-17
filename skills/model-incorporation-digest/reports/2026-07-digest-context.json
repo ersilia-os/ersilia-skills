@@ -1,0 +1,343 @@
+{
+  "month": "2026-07",
+  "month_label": "July 2026",
+  "catalog_url": "https://ersilia-model-hub.s3.eu-central-1.amazonaws.com/models.json",
+  "catalog_size": 256,
+  "n_models": 1,
+  "by_task": {
+    "Annotation": 1
+  },
+  "by_status": {
+    "Ready": 1
+  },
+  "n_with_defects": 0,
+  "n_global_south": 0,
+  "models": [
+    {
+      "identifier": "eos5jv3",
+      "model": {
+        "slug": "mycopermenet",
+        "title": "MycoPermeNet mycobacterial membrane permeation",
+        "description": "Predicts the permeation of small molecules across the mycomembrane (outer membrane) of _Mycobacterium tuberculosis_ from a SMILES string. This MycoPermeNet-v2 model fuses a graph neural network embedding with normalized RDKit descriptors and a multilayer perceptron, trained with a Fusion Noisy Student Self-Distillation strategy. Lower scores indicate higher permeability. Applicability domain -- trained on small azide-tagged compounds (MW ~82-570, up to ~50 heavy atoms); predictions for larger, out-of-domain molecules may fall outside the -3.1 to +1.6 output range and be unreliable.\n",
+        "interpretation": "Predicted standardized residual of mycomembrane permeation; lower values indicate higher permeability in M. tuberculosis.",
+        "task": "Annotation",
+        "subtask": "Activity prediction",
+        "output_dimension": 1,
+        "tags": [
+          "Permeability",
+          "Antimicrobial activity"
+        ],
+        "biomedical_area": [
+          "Tuberculosis"
+        ],
+        "target_organism": [
+          "Mycobacterium tuberculosis"
+        ],
+        "license": "MIT",
+        "status": "Ready",
+        "source_type": "External",
+        "source_code": "https://github.com/Nevbarunegbe/Mycomembrane-permeability-project",
+        "incorporation_date": "2026-07-09",
+        "github": "https://github.com/ersilia-os/eos5jv3",
+        "dockerhub": "https://hub.docker.com/r/ersiliaos/eos5jv3"
+      },
+      "publication": {
+        "doi": "10.1038/s41564-026-02412-5",
+        "doi_url": "https://doi.org/10.1038/s41564-026-02412-5",
+        "raw_publication_field": "https://doi.org/10.1038/s41564-026-02412-5",
+        "title": "Identification of chemical features for improved outer membrane permeation in mycobacteria using machine learning",
+        "journal": "Nature Microbiology",
+        "year": 2026,
+        "type": "Peer reviewed",
+        "open_access": "hybrid",
+        "cited_by_count": 2,
+        "abstract": "The ability of compounds to permeate and accumulate in bacterial cells is a critical determinant of antibiotic efficacy. Better therapeutics are urgently needed for the human pathogen Mycobacterium tuberculosis, yet the cell envelope, including the mycobacterial outer membrane, represents a significant barrier for drug entry, and the chemical features governing permeation remain poorly understood. Here we used the bioorthogonal click chemistry-based PAC-MAN assay to profile mycomembrane permeation of 1,572 azide-tagged compounds in M. tuberculosis and the model organism M. smegmatis. Cheminformatics and machine learning identified chemical features associated with mycomembrane permeation, which in turn had predictive value in three molecule series. Chemical predictors of mycomembrane permeation include nitrogen-containing aromatic scaffolds, such as indole, which in some cases were associated with increased anti-M. tuberculosis activity. Our data suggest a rational framework for improving mycomembrane permeation and whole-cell activity of antibiotics targeting M. tuberculosis."
+      },
+      "credit": {
+        "authors": [
+          {
+            "name": "Irene Lepori",
+            "position": "first",
+            "orcid": "https://orcid.org/0000-0002-1602-0490",
+            "institutions": [
+              "University of Massachusetts Amherst"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": true
+          },
+          {
+            "name": "Z W Liu",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "University of Virginia"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Nelson Iyore Evbarunegbe",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0003-0408-5016",
+            "institutions": [
+              "Amherst College",
+              "University of Massachusetts Amherst"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Shasha Feng",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0003-3394-6911",
+            "institutions": [
+              "Merck & Co., Inc., Rahway, NJ, USA (United States)",
+              "Lehigh University"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Turner P. Brown",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Lehigh University"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Kishor Mane",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Rutgers, The State University of New Jersey",
+              "Rutgers New Jersey Medical School"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Rachita Dash",
+            "position": "middle",
+            "orcid": "https://orcid.org/0009-0008-1830-1318",
+            "institutions": [
+              "University of Virginia"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Shivangi",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Rutgers, The State University of New Jersey",
+              "Rutgers New Jersey Medical School"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Mitchell Wong",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "University of Massachusetts Amherst"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Ananya Naick",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "University of Virginia"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Amir George",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Rutgers, The State University of New Jersey",
+              "Rutgers New Jersey Medical School"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Taijie Guo",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0002-2676-2746",
+            "institutions": [
+              "Shanghai Jiao Tong University",
+              "Shanghai Advanced Research Institute"
+            ],
+            "countries": [
+              "CN"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Anil M. Shelke",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Rutgers, The State University of New Jersey",
+              "Rutgers New Jersey Medical School"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "K. Barry Sharpless",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0001-6051-1599",
+            "institutions": [
+              "Scripps Research Institute"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Jiajia Dong",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0003-2767-9124",
+            "institutions": [
+              "Shanghai Jiao Tong University",
+              "Shanghai Advanced Research Institute"
+            ],
+            "countries": [
+              "CN"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Joel S. Freundlich",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0002-3411-3455",
+            "institutions": [
+              "Rutgers, The State University of New Jersey"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": true
+          },
+          {
+            "name": "Wonpil Im",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0001-5642-6041",
+            "institutions": [
+              "Lehigh University"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": true
+          },
+          {
+            "name": "Anna G. Green",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0001-7548-3682",
+            "institutions": [
+              "Amherst College",
+              "University of Massachusetts Amherst"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": true
+          },
+          {
+            "name": "Marcos M. Pires",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0002-5676-0725",
+            "institutions": [
+              "University of Virginia"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": true
+          },
+          {
+            "name": "M. Sloan Siegrist",
+            "position": "last",
+            "orcid": "https://orcid.org/0000-0002-8232-3246",
+            "institutions": [
+              "University of Massachusetts Amherst"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": true
+          }
+        ],
+        "first_author": "Irene Lepori",
+        "last_author": "M. Sloan Siegrist",
+        "n_authors": 20,
+        "lead_institutions": [
+          "University of Massachusetts Amherst",
+          "University of Virginia",
+          "Amherst College",
+          "Merck & Co., Inc., Rahway, NJ, USA (United States)",
+          "Lehigh University",
+          "Rutgers, The State University of New Jersey",
+          "Rutgers New Jersey Medical School",
+          "Shanghai Jiao Tong University",
+          "Shanghai Advanced Research Institute",
+          "Scripps Research Institute"
+        ],
+        "countries": [
+          "US",
+          "CN"
+        ],
+        "has_global_south_author": false,
+        "global_south_institutions": [],
+        "source": "openalex",
+        "corresponding_authors": [
+          "Irene Lepori",
+          "Joel S. Freundlich",
+          "Wonpil Im",
+          "Anna G. Green",
+          "Marcos M. Pires",
+          "M. Sloan Siegrist"
+        ]
+      },
+      "defects": [],
+      "summary": "Predicts how readily a small molecule crosses the mycomembrane, the outer membrane of *Mycobacterium tuberculosis* that is a principal barrier to antibiotic entry, returning a standardised permeation residual in which lower values mean higher permeability. The model served is MycoPermeNet-v2, which fuses a graph neural network embedding with normalised RDKit descriptors and adds Noisy Student self-distillation to cope with scarce labels, learning from the 1,572 azide-tagged compounds profiled by the PAC-MAN click-chemistry assay in *M. tuberculosis* and *M. smegmatis*. Credit splits across two papers: the assay, the dataset and the original MycoPermeNet are Lepori and colleagues in *Nature Microbiology*, which is the paper this report's table cites, while the v2 architecture actually served is Evbarunegbe, Wa, Karn and Green in *J. Chem. Inf. Model.* (10.1021/acs.jcim.5c02435), who report a modest but statistically significant RMSE improvement over the original — so the round-up credits both. The model card sets a narrow applicability domain — small azide-tagged compounds of roughly 82–570 Da — outside which predictions may leave the −3.1 to +1.6 output range."
+    }
+  ]
+}
