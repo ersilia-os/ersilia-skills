@@ -158,6 +158,17 @@ defects section, the filename does not record which is which, and the script can
 them apart. Publishing the internal copy puts a list of unrepaired defects in live models
 on a public page.
 
+**To check the publish path without publishing** — it needs no network, credentials or
+`gh`, standing up a fake `gh` over a temporary directory instead:
+
+```bash
+python scripts/selftest_publish.py
+```
+
+It drives the whole sequence: both renders, the staleness guard, a first upload, the
+refusal to overwrite, `--force`, the README index and its ordering, and the refusal of a
+non-canonical filename. Run it after touching either script.
+
 **One-time setup (first models digest only):** the Jekyll site needs the `models/`
 category registered once in `ersilia-os/digests` `website/_config.yml`:
 
