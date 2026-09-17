@@ -45,6 +45,9 @@ governs how — in particular the verb discipline, the honesty rules, the handli
   honesty rules, and what changes for a `Replicated` or `Internal` model
 - **`references/author-lookup.md`** — how the author list is resolved and how to get
   names right
+- **`references/digest-website.md`** — how the digests site renders these files, how to
+  preview it locally, and what adding the `models/` category takes (only needed when
+  publishing)
 
 ---
 
@@ -169,20 +172,25 @@ It drives the whole sequence: both renders, the staleness guard, a first upload,
 refusal to overwrite, `--force`, the README index and its ordering, and the refusal of a
 non-canonical filename. Run it after touching either script.
 
-**One-time setup (first models digest only):** the Jekyll site needs the `models/`
-category registered once in `ersilia-os/digests` `website/_config.yml`:
+**One-time setup (first models digest only).** The `models/` category does not exist on
+the digests site yet, and adding one touches five files in `ersilia-os/digests`, not the
+one an earlier version of this note claimed. Everything below was worked out by building
+that site locally with an August digest in it; `references/digest-website.md` has the
+detail and the tested patch.
 
-```yaml
-defaults:
-  - scope: { path: "literature" }
-    values: { layout: digest }
-  - scope: { path: "models" }        # add this block once
-    values: { layout: digest }
-```
+1. `.github/workflows/pages.yml` — stage the folder. The workflow copies each category by
+   name, so a `models/` directory is **not** picked up automatically.
+2. `website/_config.yml` — a `- scope: {path: "models"}` block mapping to the `digest`
+   layout, with `wide: true`. This family opens with a summary table, which is exactly the
+   case that flag exists for.
+3. `website/_layouts/base.html` — a sidebar nav group and its colour dot.
+4. `website/index.md` — the year calendar: gather the family, add its date/URL lookup, add
+   a branch to the per-day cell logic, a legend swatch, and a "Recent" list.
+5. `website/assets/style.css` — `--digest-models` and its hover, plus `.has-mod`,
+   `.swatch.mod` and `.nav-dot.is-models`.
 
-The Pages workflow already copies every top-level category folder into the site, so no
-workflow change is needed. Until this block exists the page still uploads and renders,
-just without the shared layout. Make it a small PR to the digests repo.
+Until this lands the file still uploads, but nothing links to it and it renders without the
+site layout. Make it a PR to the digests repo.
 
 ## Step 6 — Present
 

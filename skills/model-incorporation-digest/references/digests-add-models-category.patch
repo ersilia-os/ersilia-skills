@@ -1,0 +1,240 @@
+diff --git a/.github/workflows/pages.yml b/.github/workflows/pages.yml
+index 2ead120..9808583 100644
+--- a/.github/workflows/pages.yml
++++ b/.github/workflows/pages.yml
+@@ -28,6 +28,7 @@ jobs:
+           cp -r literature website/literature
+           cp -r github website/github
+           if [ -d events ]; then cp -r events website/events; fi
++          if [ -d models ]; then cp -r models website/models; fi
+ 
+       - uses: ruby/setup-ruby@v1
+         with:
+diff --git a/website/_config.yml b/website/_config.yml
+index f6ccebd..e958f94 100644
+--- a/website/_config.yml
++++ b/website/_config.yml
+@@ -11,7 +11,7 @@ kramdown:
+   input: GFM
+ 
+ # Render the digest Markdown with our layout without touching the source files.
+-# (The digests are copied into ./literature, ./github, and ./events at build time — see .github/workflows/pages.yml)
++# (The digests are copied into ./literature, ./github, ./events and ./models at build time — see .github/workflows/pages.yml)
+ defaults:
+   - scope:
+       path: "literature"
+@@ -21,6 +21,13 @@ defaults:
+       path: "github"
+     values:
+       layout: digest
++  - scope:
++      path: "models"
++    values:
++      layout: digest
++      # Model incorporation digests open with a one-row-per-model summary table, so
++      # they take the wide column for the same reason the event reports do.
++      wide: true
+   - scope:
+       path: "events"
+     values:
+diff --git a/website/_layouts/base.html b/website/_layouts/base.html
+index 569383e..adeaf02 100644
+--- a/website/_layouts/base.html
++++ b/website/_layouts/base.html
+@@ -16,6 +16,7 @@
+   {% assign digests = site.pages | where_exp: "p", "p.path contains 'literature/'" | sort: "path" | reverse %}
+   {% assign ghdigests = site.pages | where_exp: "p", "p.path contains 'github/'" | sort: "path" | reverse %}
+   {% assign eventdigests = site.pages | where_exp: "p", "p.path contains 'events/'" | sort: "path" | reverse %}
++  {% assign modeldigests = site.pages | where_exp: "p", "p.path contains 'models/'" | sort: "path" | reverse %}
+ 
+   <input type="checkbox" id="nav-toggle" class="nav-toggle">
+ 
+@@ -53,6 +54,19 @@
+         </ul>
+         {% endif %}
+ 
++        {% if modeldigests.size > 0 %}
++        <p class="nav-group-title"><span class="nav-dot is-models"></span>Model incorporations</p>
++        <ul>
++          {% for d in modeldigests %}
++          <li>
++            <a href="{{ d.url | relative_url }}"{% if page.url == d.url %} class="active"{% endif %}>
++              {{ d.name | replace: '-models-digest.md', '' | prepend: '20' }}
++            </a>
++          </li>
++          {% endfor %}
++        </ul>
++        {% endif %}
++
+         {% if eventdigests.size > 0 %}
+         <p class="nav-group-title"><span class="nav-dot is-events"></span>Event digests</p>
+         <ul>
+@@ -69,8 +83,8 @@
+     </aside>
+ 
+     <main>
+-      {% comment %} `wide` is set per family in _config.yml defaults (currently events
+-           only). Table-first reports get one shared width so the header block,
++      {% comment %} `wide` is set per family in _config.yml defaults (events and model
++           incorporations). Table-first reports get one shared width so the header block,
+            headings and bullet lists end flush with their tables. Keyed on the flag
+            rather than on layout == 'digest': literature and github digests have no
+            tables, and widening prose to 1100px only hurts line length. {% endcomment %}
+diff --git a/website/assets/style.css b/website/assets/style.css
+index b99232c..8557b07 100644
+--- a/website/assets/style.css
++++ b/website/assets/style.css
+@@ -283,6 +283,8 @@ main {
+   --digest-both-hover: #6e3a7d;
+   --digest-events: #8cc8fa;       /* blue  — event digests */
+   --digest-events-hover: #6bb0f0;
++  --digest-models: #eec95f;       /* amber — model incorporations */
++  --digest-models-hover: #e2a72e;
+ }
+ 
+ .calendar {
+@@ -337,6 +339,7 @@ main {
+ a.cal-cell.has-lit,
+ a.cal-cell.has-gh,
+ a.cal-cell.has-ev,
++a.cal-cell.has-mod,
+ a.cal-cell.has-multi {
+   transition: transform .1s ease, box-shadow .1s ease;
+ }
+@@ -367,6 +370,15 @@ a.cal-cell.has-ev:hover {
+   transform: scale(1.35); z-index: 2;
+   box-shadow: 0 0 0 1px rgba(80,40,90,0.35), 0 3px 8px rgba(80,40,90,0.35);
+ }
++a.cal-cell.has-mod {
++  background: var(--digest-models);
++  box-shadow: 0 0 0 1px rgba(80,40,90,0.18), 0 1px 3px rgba(80,40,90,0.20);
++}
++a.cal-cell.has-mod:hover {
++  background: var(--digest-models-hover);
++  transform: scale(1.35); z-index: 2;
++  box-shadow: 0 0 0 1px rgba(80,40,90,0.35), 0 3px 8px rgba(80,40,90,0.35);
++}
+ /* Two or more digests on the same day. One colour for any combination: with three
+    families a per-combination palette needs seven shades, which is unreadable at 13px. */
+ a.cal-cell.has-multi {
+@@ -396,6 +408,7 @@ a.cal-cell.has-multi:hover {
+ .cal-legend .swatch.lit { background: var(--digest-lit); }
+ .cal-legend .swatch.gh { background: var(--digest-gh); }
+ .cal-legend .swatch.ev { background: var(--digest-events); }
++.cal-legend .swatch.mod { background: var(--digest-models); }
+ .cal-legend .swatch.multi { background: var(--digest-both); }
+ .cal-legend .sep { color: var(--border); }
+ 
+@@ -408,3 +421,4 @@ a.cal-cell.has-multi:hover {
+ .nav-dot.is-lit { background: var(--digest-lit); }
+ .nav-dot.is-gh { background: var(--digest-gh); }
+ .nav-dot.is-events { background: var(--digest-events); }
++.nav-dot.is-models { background: var(--digest-models); }
+diff --git a/website/index.md b/website/index.md
+index d99e220..64043b7 100644
+--- a/website/index.md
++++ b/website/index.md
+@@ -14,9 +14,10 @@ global health.
+ {% assign litdigests = site.pages | where_exp: "p", "p.path contains 'literature/'" | sort: "path" %}
+ {% assign ghdigests = site.pages | where_exp: "p", "p.path contains 'github/'" | sort: "path" %}
+ {% assign eventdigests = site.pages | where_exp: "p", "p.path contains 'events/'" | sort: "path" %}
++{% assign modeldigests = site.pages | where_exp: "p", "p.path contains 'models/'" | sort: "path" %}
+ 
+ {% comment %} ---------- figure out the year from the most recent digest/report of any kind ---------- {% endcomment %}
+-{% assign alldigests = litdigests | concat: ghdigests | concat: eventdigests | sort: "name" %}
++{% assign alldigests = litdigests | concat: ghdigests | concat: eventdigests | concat: modeldigests | sort: "name" %}
+ {% assign latest = alldigests | last %}
+ {% if latest %}
+   {% assign year = latest.name | slice: 0, 2 | prepend: '20' %}
+@@ -60,6 +61,17 @@ global health.
+ {% assign evkeys = evkeys | split: "," %}
+ {% assign evurls = evurls | split: "," %}
+ 
++{% comment %} ---------- model incorporations: date -> url lookup ---------- {% endcomment %}
++{% assign modkeys = "" %}
++{% assign modurls = "" %}
++{% for d in modeldigests %}
++  {% assign full = d.name | replace: '-models-digest.md', '' | prepend: '20' %}
++  {% assign modkeys = modkeys | append: full | append: "," %}
++  {% assign modurls = modurls | append: d.url | append: "," %}
++{% endfor %}
++{% assign modkeys = modkeys | split: "," %}
++{% assign modurls = modurls | split: "," %}
++
+ {% comment %} ---------- date geometry for the grid ---------- {% endcomment %}
+ {% assign jan1 = year | append: '-01-01' %}
+ {% assign base_unix = jan1 | append: ' 12:00:00' | date: "%s" | plus: 0 %}
+@@ -88,8 +100,8 @@ global health.
+ 
+            A day can carry more than one digest, so cells are classified by how many
+            landed that day: exactly one gets that family's colour, two or more get a
+-           single "multiple" colour rather than a per-combination palette — three
+-           families would otherwise need seven colours, which stops being readable at
++           single "multiple" colour rather than a per-combination palette — four
++           families would otherwise need fifteen colours, which stops being readable at
+            13px. A multi-digest cell can only carry one href, so it opens the first
+            family present in the order literature -> github -> events, and the tooltip
+            names everything published that day so nothing is hidden.
+@@ -109,6 +121,8 @@ global health.
+           {% for k in ghkeys %}{% if k == ds %}{% assign gu = ghurls[forloop.index0] %}{% endif %}{% endfor %}
+           {% assign eu = "" %}
+           {% for k in evkeys %}{% if k == ds %}{% assign eu = evurls[forloop.index0] %}{% endif %}{% endfor %}
++          {% assign mu = "" %}
++          {% for k in modkeys %}{% if k == ds %}{% assign mu = modurls[forloop.index0] %}{% endif %}{% endfor %}
+ 
+           {% assign n = 0 %}
+           {% assign names = "" %}
+@@ -128,6 +142,12 @@ global health.
+             {% assign names = names | append: "Events" %}
+             {% if href == "" %}{% assign href = eu %}{% endif %}
+           {% endif %}
++          {% if mu != "" %}
++            {% assign n = n | plus: 1 %}
++            {% if names != "" %}{% assign names = names | append: " + " %}{% endif %}
++            {% assign names = names | append: "Model incorporations" %}
++            {% if href == "" %}{% assign href = mu %}{% endif %}
++          {% endif %}
+ 
+           {% if n > 1 %}
+             <a class="cal-cell has-multi" href="{{ href | relative_url }}" title="{{ names }} digests — {{ nice }} ({{ n }} published; opens the first)" aria-label="{{ names }} digests published {{ nice }}"></a>
+@@ -137,6 +157,8 @@ global health.
+             <a class="cal-cell has-gh" href="{{ gu | relative_url }}" title="GitHub digest — {{ nice }}" aria-label="GitHub digest published {{ nice }}"></a>
+           {% elsif eu != "" %}
+             <a class="cal-cell has-ev" href="{{ eu | relative_url }}" title="Event digest — {{ nice }}" aria-label="Event digest published {{ nice }}"></a>
++          {% elsif mu != "" %}
++            <a class="cal-cell has-mod" href="{{ mu | relative_url }}" title="Model incorporation digest — {{ nice }}" aria-label="Model incorporation digest published {{ nice }}"></a>
+           {% elsif ts > today_noon %}
+             <span class="cal-cell is-future" title="{{ nice }}"></span>
+           {% elsif ts == today_noon %}
+@@ -156,6 +178,8 @@ global health.
+     <span class="sep">·</span>
+     <span class="swatch ev"></span> events
+     <span class="sep">·</span>
++    <span class="swatch mod"></span> model incorporations
++    <span class="sep">·</span>
+     <span class="swatch multi"></span> multiple
+     <span class="sep">·</span>
+     <span class="swatch empty"></span> no digest
+@@ -192,6 +216,22 @@ global health.
+ </ul>
+ {% endif %}
+ 
++{% if modeldigests.size > 0 %}
++## Recent model incorporation digests
++
++{% assign recentmodels = modeldigests | reverse %}
++<ul class="card-list">
++{% for d in recentmodels limit: 8 %}
++  <li>
++    <a href="{{ d.url | relative_url }}">
++      <span>{{ d.name | replace: '-models-digest.md', '' | prepend: '20' }}</span>
++      <span class="arrow">→</span>
++    </a>
++  </li>
++{% endfor %}
++</ul>
++{% endif %}
++
+ {% if eventdigests.size > 0 %}
+ ## Recent event digests
+ 
