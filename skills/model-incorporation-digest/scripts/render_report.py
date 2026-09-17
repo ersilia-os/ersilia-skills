@@ -196,38 +196,44 @@ def render(context, prepared_on, public=False):
     # ---- one section per model ----
     lines.append("## The models")
     lines.append("")
-    for record in ordered_models(models):
-        model, credit, publication = record["model"], record["credit"], record["publication"]
-        lines.append(f"### `{record['identifier']}` · {model.get('title') or model.get('slug')}")
+    # Same task grouping as the summary, so the two sections read as one sequence.
+    # The count sits only on the summary's headings; repeating it here says it twice
+    # on one page.
+    for task, records in task_groups(models):
+        lines.append(f"### {task}")
         lines.append("")
+        for record in records:
+            model, credit, publication = record["model"], record["credit"], record["publication"]
+            lines.append(f"#### `{record['identifier']}` · {model.get('title') or model.get('slug')}")
+            lines.append("")
 
-        byline = full_credit(credit)
-        where = institutions(credit)
-        # Crossref deposits some journal names with embedded newlines, which would
-        # otherwise break the byline across two lines.
-        venue = " ".join(
-            " ".join(str(p).split())
-            for p in (publication.get("journal"), publication.get("year"))
-            if p
-        )
-        if publication.get("type") == "Preprint" and not publication.get("journal"):
-            venue = f"preprint {publication.get('year') or ''}".strip()
-        lines.append(f"**{byline}**" + (f" — {where}" if where else "") + (f" · {venue}" if venue else ""))
-        lines.append("")
+            byline = full_credit(credit)
+            where = institutions(credit)
+            # Crossref deposits some journal names with embedded newlines, which would
+            # otherwise break the byline across two lines.
+            venue = " ".join(
+                " ".join(str(p).split())
+                for p in (publication.get("journal"), publication.get("year"))
+                if p
+            )
+            if publication.get("type") == "Preprint" and not publication.get("journal"):
+                venue = f"preprint {publication.get('year') or ''}".strip()
+            lines.append(f"**{byline}**" + (f" — {where}" if where else "") + (f" · {venue}" if venue else ""))
+            lines.append("")
 
-        summary = (record.get("summary") or "").strip()
-        lines.append(summary or TODO)
-        lines.append("")
+            summary = (record.get("summary") or "").strip()
+            lines.append(summary or TODO)
+            lines.append("")
 
-        facts = [
-            f"Paper: {paper_link(publication)}",
-            f"Authors' code: {code_link(model.get('source_code'))}",
-            f"Run it: `ersilia fetch {model.get('slug') or record['identifier']}`",
-        ]
-        if model.get("license"):
-            facts.append(f"Licence: {model['license']}")
-        lines.append(" · ".join(facts))
-        lines.append("")
+            facts = [
+                f"Paper: {paper_link(publication)}",
+                f"Authors' code: {code_link(model.get('source_code'))}",
+                f"Run it: `ersilia fetch {model.get('slug') or record['identifier']}`",
+            ]
+            if model.get("license"):
+                facts.append(f"Licence: {model['license']}")
+            lines.append(" · ".join(facts))
+            lines.append("")
 
     # ---- defects (internal only) ----
     if public:

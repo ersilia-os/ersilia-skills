@@ -14,7 +14,8 @@ is about those.
   one `### <Task>` group per task category, each a table: identifier, title, subtask, authors
 
 ## The models
-  one section each: byline, paragraph, then facts (paper, authors' code, fetch, licence)
+  the same `### <Task>` groups, each holding one `#### <model>` section:
+  byline, paragraph, then facts (paper, authors' code, fetch, licence)
 
 ## Metadata to fix
   the defects fetch_month_models.py found, per model
@@ -23,8 +24,10 @@ is about those.
 Models are ordered by task category — Annotation, Representation, Sampling, then anything
 unrecognised — and the summary is grouped under one heading per category, the way the event
 report groups by continent. "Four featurizers and four generative models" is the shape of a
-month; a single flat list makes the reader count it themselves. **The models** repeats that
-same order, so moving between the two sections is not a search.
+month; a single flat list makes the reader count it themselves. **The models** repeats the same
+groups and the same order, so moving between the two sections is not a search. Its task
+headings carry no count — the summary's already did, and saying it twice on one page is
+noise. Model entries sit at `####` beneath their task heading.
 
 The summary carries no paper column: every model's own section below gives its DOI, and a
 second copy crowded the four columns that answer "what shipped". Links there are written as
