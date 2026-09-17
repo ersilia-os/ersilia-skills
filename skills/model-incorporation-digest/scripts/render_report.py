@@ -2,6 +2,7 @@
 """render_report.py — turn a month context into the internal model-incorporation digest.
 
     python render_report.py month-context.json --out reports/2026-08-digest.md
+    python render_report.py month-context.json --out /tmp/26-08-31-models-digest.md --public
 
 Rendering is deterministic: everything factual comes straight out of the context JSON, so
 two runs of the same month produce the same document and nothing drifts in the retelling.
@@ -21,6 +22,7 @@ Standard library only, and no clock unless --date is omitted.
 from __future__ import annotations
 
 import argparse
+import calendar
 import sys
 from datetime import date
 from pathlib import Path
@@ -69,8 +71,15 @@ def paper_link(publication):
     return f"[{raw}]({raw})" if raw else "*none*"
 
 
-def render(context, prepared_on):
-    """Build the whole report as one markdown string."""
+def render(context, prepared_on, public=False):
+    """Build the whole digest as one markdown string.
+
+    ``public`` drops the metadata-defects section. That section lists repairs owed on
+    models that are already live and is addressed to whoever can make them, so it is
+    written for the team and does not belong on a public page. Everything else — the
+    counts, the table, the per-model paragraphs and their author credit — is the same
+    document either way, rendered from the same context.
+    """
     models = context.get("models", [])
     lines = []
 
@@ -152,7 +161,10 @@ def render(context, prepared_on):
         lines.append(" · ".join(facts))
         lines.append("")
 
-    # ---- defects ----
+    # ---- defects (internal only) ----
+    if public:
+        return "\n".join(lines)
+
     flagged = [r for r in models if r.get("defects")]
     lines.append("## Metadata to fix")
     lines.append("")
@@ -172,20 +184,41 @@ def render(context, prepared_on):
     return "\n".join(lines)
 
 
+def public_filename(context):
+    """Canonical name for the published copy: YY-MM-DD-models-digest.md, month-end.
+
+    The sibling digests date a file by the end of the window it covers, so a month's
+    digest is dated the last day of that month.
+    """
+    year, month = (int(part) for part in str(context["month"]).split("-")[:2])
+    last_day = calendar.monthrange(year, month)[1]
+    return f"{year % 100:02d}-{month:02d}-{last_day:02d}-models-digest.md"
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("context", help="month context JSON from fetch_month_models.py")
     parser.add_argument("--out", required=True, help="path to write the report markdown")
     parser.add_argument("--date", help="preparation date as YYYY-MM-DD (default: today)")
+    parser.add_argument(
+        "--public",
+        action="store_true",
+        help="omit the metadata-defects section, for the copy published to the digests site",
+    )
     args = parser.parse_args(argv)
 
     context = read_json(args.context)
     prepared = args.date or date.today().isoformat()
-    body = render(context, prepared)
+    body = render(context, prepared, public=args.public)
 
     missing = [r["identifier"] for r in context.get("models", []) if not (r.get("summary") or "").strip()]
     Path(args.out).write_text(body + "\n", encoding="utf-8")
     print(f"wrote {args.out}", file=sys.stderr)
+
+    if args.public:
+        # upload_digest.py enforces this name and refuses anything else, and a month-end
+        # day computed by hand is exactly the kind of thing that is wrong every February.
+        print(f"canonical public filename: {public_filename(context)}", file=sys.stderr)
 
     if missing:
         warn(f"no summary written for: {', '.join(missing)} — the report has TODO markers")

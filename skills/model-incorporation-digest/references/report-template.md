@@ -24,8 +24,17 @@ The order is deliberate. The **table** answers "what shipped" for someone skimmi
 a meeting. **The models** answers "what is each of these". **Metadata to fix** is the
 action list, and it closes the digest because it is the only section anyone has to act on.
 
-The digest carries no announcement draft and no tagging worksheet. It is an internal
-document; nothing in it is written to be published.
+The digest carries no announcement draft and no tagging worksheet.
+
+There are two renders of this one document. The default is **internal**. `--public` emits
+the same file without `## Metadata to fix`, and that copy is published to the digests site
+at `ersilia-os/digests` under `models/`. The defects section is the only difference: it
+lists repairs owed on models that are already live, addressed to whoever can make them, so
+it is written for the team and does not belong on a public page.
+
+Everything above it is the same in both, which is deliberate. The per-model paragraphs
+credit each model's original authors by name and institution, and that is precisely what a
+public page should carry.
 
 ## Writing a per-model paragraph
 

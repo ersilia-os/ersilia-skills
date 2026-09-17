@@ -5,13 +5,14 @@ description: >
   model incorporated into the Ersilia Model Hub during a calendar month, with a table, a
   paragraph per model crediting its original authors, and the metadata defects worth
   fixing. Use this skill whenever the user asks for the monthly technology report, the
-  model incorporation digest, or a summary of the month's model incorporations. Triggers
-  include: "technology report", "/model-incorporation-digest", "monthly report", "model
+  model incorporation digest, or a summary of the month's model incorporations, and also
+  when they ask to publish that digest to the Ersilia digests site. Triggers include:
+  "technology report", "/model-incorporation-digest", "monthly report", "model
   incorporation digest", "what models did we incorporate last month", "summarise the
-  month's models", "model incorporation summary", "what shipped to the Hub in August".
-  Always use this skill for monthly incorporation-digest requests even if the ask seems
-  simple.
-argument-hint: [YYYY-MM]
+  month's models", "model incorporation summary", "what shipped to the Hub in August",
+  "publish the digest", "put the monthly digest on the website". Always use this skill for
+  monthly incorporation-digest requests even if the ask seems simple.
+argument-hint: "[YYYY-MM] [--publish]"
 allowed-tools: [Bash, Read, Write, WebFetch, WebSearch, AskUserQuestion]
 ---
 
@@ -20,8 +21,11 @@ allowed-tools: [Bash, Read, Write, WebFetch, WebSearch, AskUserQuestion]
 Your job is to produce the month's incorporation digest: **what went into the Ersilia
 Model Hub, who made it, and what still needs fixing.**
 
-The digest is internal, so it says whatever is useful to the team. It publishes nothing
-and drafts nothing for publication. What it must still get right is **credit**: a month's
+The digest has two audiences and two renders from one context. The **internal** one is the
+default and says whatever is useful to the team. The **public** one, `--public`, is the
+same document minus the metadata-defects section, and it is published to the Ersilia
+digests site alongside the literature and GitHub digests. What both must get right is
+**credit**: a month's
 incorporations are a month of other people's science that Ersilia packaged, and the
 per-model paragraphs name the authors who did that science. `references/attribution-rules.md`
 governs how — in particular the verb discipline, the honesty rules, the handling of a
@@ -30,6 +34,8 @@ governs how — in particular the verb discipline, the honesty rules, the handli
 ## Parse arguments
 
 - `[YYYY-MM]` (optional) — the month to report on. Defaults to the **last complete month**.
+- `--publish` (optional) — after rendering, also publish the public copy to the digests
+  site (Step 5). Without it the skill renders locally and stops.
 
 ## Read these first
 
@@ -109,7 +115,65 @@ python scripts/render_report.py /tmp/2026-08-context.json \
 `render_report.py` exits non-zero while any `summary` is missing. Fix the context and
 re-render rather than hand-editing the output, which the next render would overwrite.
 
-## Step 5 — Present
+## Step 5 — Publish, if the user asked for it
+
+Publishing is **not** automatic. The digest is useful internally on its own, and the
+public copy is a separate act the user asks for. When they do:
+
+**Check nothing recent is already published.** Re-running would clobber it.
+
+```bash
+python scripts/check_remote_digest.py
+```
+
+If it prints a path, **stop** and tell the user. Only `--force` past it on their say-so.
+If it exits 1, the check itself failed: treat that as a hard block, because a run that
+skips the check can overwrite published work.
+
+**Render the public copy** under the canonical name, which `--public` prints for you:
+
+```bash
+python scripts/render_report.py /tmp/2026-08-context.json \
+    --out /tmp/26-08-31-models-digest.md --public
+```
+
+The name is `YY-MM-DD-models-digest.md` dated the **last day of the month reported**,
+matching the window-end convention the sibling digests use. `upload_digest.py` refuses
+any other name.
+
+**Upload it:**
+
+```bash
+python scripts/upload_digest.py --digest /tmp/26-08-31-models-digest.md
+```
+
+This goes to `ersilia-os/digests` at `models/`, and updates that repo's `README.md` under
+`## Model incorporation digests`. It refuses to overwrite without `--force`; on exit code
+2 the file already exists, so surface that and ask rather than forcing. On success it
+prints the canonical **GitHub Pages URL** on line 1 — that is the link to hand the user,
+not the local path.
+
+**Upload the `--public` render, never the internal one.** The two differ only in the
+defects section, the filename does not record which is which, and the script cannot tell
+them apart. Publishing the internal copy puts a list of unrepaired defects in live models
+on a public page.
+
+**One-time setup (first models digest only):** the Jekyll site needs the `models/`
+category registered once in `ersilia-os/digests` `website/_config.yml`:
+
+```yaml
+defaults:
+  - scope: { path: "literature" }
+    values: { layout: digest }
+  - scope: { path: "models" }        # add this block once
+    values: { layout: digest }
+```
+
+The Pages workflow already copies every top-level category folder into the site, so no
+workflow change is needed. Until this block exists the page still uploads and renders,
+just without the shared layout. Make it a small PR to the digests repo.
+
+## Step 6 — Present
 
 Show the user:
 
@@ -117,10 +181,14 @@ Show the user:
 2. The digest path
 3. The metadata defects, as a short list — these are the actionable items
 4. Any model whose authors did not resolve, and what you need from them
+5. If published, the Pages URL — the remote is canonical, not the local file
 
 ## What not to do
 
-- Do not publish, post or schedule anything. This skill produces an internal document.
+- Do not publish unless the user asked. Rendering the digest is the job; putting it on a
+  public page is a separate decision that is theirs.
+- Do not publish the internal render. The public copy comes from `--public`, and the
+  defects section never goes on a public page.
 - Do not credit the Ersilia contributor who did the incorporation. `Contributor` is in the
   metadata and is deliberately unused: internal credit is handled elsewhere.
 - Do not invent an author name, an institution or a figure.

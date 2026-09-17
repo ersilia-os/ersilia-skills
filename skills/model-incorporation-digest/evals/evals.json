@@ -40,6 +40,21 @@
       "id": 7,
       "prompt": "The August report says eos3xhm is from the Slovak Academy of Sciences. Fix it.",
       "expected_output": "The skill explains that OpenAlex mis-resolves this paper's affiliations (returning 'Institute of Molecular Biology of the Slovak Academy of Sciences' and 'Denso (United States)') and that the paper says Denovo Sciences in Yerevan and the Armenian NAS. It corrects the institutions in the context JSON from the paper and re-renders, rather than editing the rendered markdown, which the next render would overwrite."
+    },
+    {
+      "id": 8,
+      "prompt": "Produce the August 2026 digest and publish it.",
+      "expected_output": "Runs check_remote_digest.py before anything is uploaded and stops if it prints a path or exits 1. Renders twice from one context: the internal digest to reports/, and the --public copy to the canonical name 26-08-31-models-digest.md (month-end, printed by --public rather than computed by hand). Uploads only the public copy via upload_digest.py to ersilia-os/digests under models/. Hands the user the GitHub Pages URL from stdout line 1, not the local path. Mentions the one-time website/_config.yml scope block if this is the first models digest."
+    },
+    {
+      "id": 9,
+      "prompt": "Publish the July digest to the website.",
+      "expected_output": "The published copy contains the summary table and the per-model paragraphs and does NOT contain the 'Metadata to fix' section. The skill does not upload the internal render, and says why the two differ if asked. July's canonical name is 26-07-31-models-digest.md."
+    },
+    {
+      "id": 10,
+      "prompt": "Do the August digest.",
+      "expected_output": "Renders locally and stops. No publish step runs, check_remote_digest.py is not called, and nothing is uploaded, because publishing is opt-in via --publish or an explicit ask. The skill may mention that the digest can be published, but does not do it."
     }
   ]
 }
