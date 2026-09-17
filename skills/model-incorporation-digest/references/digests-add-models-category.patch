@@ -11,7 +11,7 @@ index 2ead120..9808583 100644
        - uses: ruby/setup-ruby@v1
          with:
 diff --git a/website/_config.yml b/website/_config.yml
-index f6ccebd..e958f94 100644
+index f6ccebd..44e6de0 100644
 --- a/website/_config.yml
 +++ b/website/_config.yml
 @@ -11,7 +11,7 @@ kramdown:
@@ -23,7 +23,7 @@ index f6ccebd..e958f94 100644
  defaults:
    - scope:
        path: "literature"
-@@ -21,6 +21,13 @@ defaults:
+@@ -21,10 +21,19 @@ defaults:
        path: "github"
      values:
        layout: digest
@@ -34,11 +34,17 @@ index f6ccebd..e958f94 100644
 +      # Model incorporation digests open with a one-row-per-model summary table, so
 +      # they take the wide column for the same reason the event reports do.
 +      wide: true
++      family: models
    - scope:
        path: "events"
      values:
+       layout: digest
++      family: events
+       # Event reports are table-first documents: they get the wide column so the
+       # header block, headings and bullet lists line up with their tables instead of
+       # stopping at the 720px prose width. Opt-in per family on purpose — literature
 diff --git a/website/_layouts/base.html b/website/_layouts/base.html
-index 569383e..adeaf02 100644
+index 569383e..f70db1b 100644
 --- a/website/_layouts/base.html
 +++ b/website/_layouts/base.html
 @@ -16,6 +16,7 @@
@@ -69,7 +75,7 @@ index 569383e..adeaf02 100644
          {% if eventdigests.size > 0 %}
          <p class="nav-group-title"><span class="nav-dot is-events"></span>Event digests</p>
          <ul>
-@@ -69,8 +83,8 @@
+@@ -69,12 +83,12 @@
      </aside>
  
      <main>
@@ -80,11 +86,67 @@ index 569383e..adeaf02 100644
             headings and bullet lists end flush with their tables. Keyed on the flag
             rather than on layout == 'digest': literature and github digests have no
             tables, and widening prose to 1100px only hurts line length. {% endcomment %}
+-      <article class="content{% if page.wide %} content-wide{% endif %}">
++      <article class="content{% if page.wide %} content-wide{% endif %}{% if page.family %} family-{{ page.family }}{% endif %}">
+         {{ content }}
+       </article>
+     </main>
 diff --git a/website/assets/style.css b/website/assets/style.css
-index b99232c..8557b07 100644
+index b99232c..be29d45 100644
 --- a/website/assets/style.css
 +++ b/website/assets/style.css
-@@ -283,6 +283,8 @@ main {
+@@ -204,16 +204,40 @@ main {
+   color: var(--text-strong);
+   font-weight: 600;
+ }
+-.content th:nth-child(1),  .content td:nth-child(1)  { width: 14%; } /* Event */
+-.content th:nth-child(2),  .content td:nth-child(2)  { width: 5%; }  /* Markers */
+-.content th:nth-child(3),  .content td:nth-child(3)  { width: 9%; }  /* Dates */
+-.content th:nth-child(4),  .content td:nth-child(4)  { width: 9%; }  /* Location */
+-.content th:nth-child(5),  .content td:nth-child(5)  { width: 8%; }  /* Format · Type */
+-.content th:nth-child(6),  .content td:nth-child(6)  { width: 7%; }  /* Cost */
+-.content th:nth-child(7),  .content td:nth-child(7)  { width: 10%; } /* Bursary */
+-.content th:nth-child(8),  .content td:nth-child(8)  { width: 6%; }  /* Priority */
+-.content th:nth-child(9),  .content td:nth-child(9)  { width: 12%; } /* Engagement */
+-.content th:nth-child(10), .content td:nth-child(10) { width: 20%; } /* Why it matters */
++/* Column widths are per family. These were written for event-discovery's ten-column
++   table, but were scoped to `.content`, so every other family's table inherited them —
++   a four-column digest was handed 14%/5%/9%/9% and rendered with a 5% column and a
++   third of the width unallocated. Each family now sets its own. */
++.family-events th:nth-child(1),  .family-events td:nth-child(1)  { width: 14%; } /* Event */
++.family-events th:nth-child(2),  .family-events td:nth-child(2)  { width: 5%; }  /* Markers */
++.family-events th:nth-child(3),  .family-events td:nth-child(3)  { width: 9%; }  /* Dates */
++.family-events th:nth-child(4),  .family-events td:nth-child(4)  { width: 9%; }  /* Location */
++.family-events th:nth-child(5),  .family-events td:nth-child(5)  { width: 8%; }  /* Format · Type */
++.family-events th:nth-child(6),  .family-events td:nth-child(6)  { width: 7%; }  /* Cost */
++.family-events th:nth-child(7),  .family-events td:nth-child(7)  { width: 10%; } /* Bursary */
++.family-events th:nth-child(8),  .family-events td:nth-child(8)  { width: 6%; }  /* Priority */
++.family-events th:nth-child(9),  .family-events td:nth-child(9)  { width: 12%; } /* Engagement */
++.family-events th:nth-child(10), .family-events td:nth-child(10) { width: 20%; } /* Why it matters */
++
++/* Model incorporations: four columns that add up to 100%, so nothing is left to the
++   browser to guess. Title takes the most because it is the only free text; the two
++   code-set columns are sized to their content — an eos identifier is eight characters,
++   and an author cell is "Name et al. (n)". */
++.family-models th:nth-child(1), .family-models td:nth-child(1) { width: 12%; } /* Model */
++.family-models th:nth-child(2), .family-models td:nth-child(2) { width: 40%; } /* Title */
++.family-models th:nth-child(3), .family-models td:nth-child(3) { width: 20%; } /* Task */
++.family-models th:nth-child(4), .family-models td:nth-child(4) { width: 28%; } /* Authors */
++
++/* This family's table is four wide columns of short strings rather than ten narrow ones,
++   so it can carry the body size instead of the compressed 0.78rem the event table needs.
++   Inline code in a cell is set to the same size, so the identifier and author columns do
++   not shrink away from the two prose columns beside them. */
++.family-models table { font-size: 0.845rem; }
++.family-models td code, .family-models th code {
++  font-size: 1em;
++  background: none;
++  padding: 0;
++}
+ 
+ /* landing "card" list */
+ .card-list { list-style: none; padding: 0; margin: 0; }
+@@ -283,6 +307,8 @@ main {
    --digest-both-hover: #6e3a7d;
    --digest-events: #8cc8fa;       /* blue  — event digests */
    --digest-events-hover: #6bb0f0;
@@ -93,7 +155,7 @@ index b99232c..8557b07 100644
  }
  
  .calendar {
-@@ -337,6 +339,7 @@ main {
+@@ -337,6 +363,7 @@ main {
  a.cal-cell.has-lit,
  a.cal-cell.has-gh,
  a.cal-cell.has-ev,
@@ -101,7 +163,7 @@ index b99232c..8557b07 100644
  a.cal-cell.has-multi {
    transition: transform .1s ease, box-shadow .1s ease;
  }
-@@ -367,6 +370,15 @@ a.cal-cell.has-ev:hover {
+@@ -367,6 +394,15 @@ a.cal-cell.has-ev:hover {
    transform: scale(1.35); z-index: 2;
    box-shadow: 0 0 0 1px rgba(80,40,90,0.35), 0 3px 8px rgba(80,40,90,0.35);
  }
@@ -117,7 +179,7 @@ index b99232c..8557b07 100644
  /* Two or more digests on the same day. One colour for any combination: with three
     families a per-combination palette needs seven shades, which is unreadable at 13px. */
  a.cal-cell.has-multi {
-@@ -396,6 +408,7 @@ a.cal-cell.has-multi:hover {
+@@ -396,6 +432,7 @@ a.cal-cell.has-multi:hover {
  .cal-legend .swatch.lit { background: var(--digest-lit); }
  .cal-legend .swatch.gh { background: var(--digest-gh); }
  .cal-legend .swatch.ev { background: var(--digest-events); }
@@ -125,7 +187,7 @@ index b99232c..8557b07 100644
  .cal-legend .swatch.multi { background: var(--digest-both); }
  .cal-legend .sep { color: var(--border); }
  
-@@ -408,3 +421,4 @@ a.cal-cell.has-multi:hover {
+@@ -408,3 +445,4 @@ a.cal-cell.has-multi:hover {
  .nav-dot.is-lit { background: var(--digest-lit); }
  .nav-dot.is-gh { background: var(--digest-gh); }
  .nav-dot.is-events { background: var(--digest-events); }

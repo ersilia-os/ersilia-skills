@@ -35,7 +35,11 @@ TODO = "**TODO — no `summary` written for this model.**"
 
 
 def author_phrase(credit):
-    """Compact credit for a table cell: first author, et al., and the count."""
+    """Compact credit for a table cell: first author, et al., and the count.
+
+    Rendered in the table as inline code, matching the identifier column, so the two
+    data-ish columns read alike instead of one being prose.
+    """
     authors = [a["name"] for a in credit.get("authors", []) if a.get("name")]
     if not authors:
         return "*unresolved*"
@@ -112,16 +116,17 @@ def render(context, prepared_on, public=False):
     # ---- summary table ----
     lines.append("## Summary")
     lines.append("")
-    lines.append("| Model | Title | Task | Authors | Paper |")
-    lines.append("|---|---|---|---|---|")
+    # No paper column: every model's section below carries its DOI, and a second copy
+    # here only crowded the four columns that answer "what shipped".
+    lines.append("| Model | Title | Task | Authors |")
+    lines.append("|---|---|---|---|")
     for record in models:
         model, credit = record["model"], record["credit"]
         lines.append(
             f"| [`{record['identifier']}`]({model.get('github')}) "
             f"| {model.get('title') or '—'} "
             f"| {model.get('subtask') or model.get('task') or '—'} "
-            f"| {author_phrase(credit)} "
-            f"| {paper_link(record['publication'])} |"
+            f"| `{author_phrase(credit)}` |"
         )
     lines.append("")
 

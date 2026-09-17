@@ -71,7 +71,7 @@ is the tested diff, built and previewed locally against that repo; the shape is:
 | `website/_config.yml` | `- scope: {path: "models"}` → `layout: digest`, `wide: true` |
 | `website/_layouts/base.html` | gather `modeldigests`, add the sidebar group and its dot |
 | `website/index.md` | calendar: gather, date→URL lookup, a cell branch, a legend swatch, a "Recent" list |
-| `website/assets/style.css` | `--digest-models` / `-hover`, `.has-mod`, `.swatch.mod`, `.nav-dot.is-models` |
+| `website/assets/style.css` | `--digest-models` / `-hover`, `.has-mod`, `.swatch.mod`, `.nav-dot.is-models`, and this family's column widths |
 
 ### The colour
 
@@ -80,6 +80,23 @@ The calendar encodes each family by colour, and the four in use are literature m
 carrying more than one. Model incorporations take **amber `#eec95f`**, hovering to the
 Ersilia brand amber `#e2a72e`. Amber is the one warm hue not already spoken for, and at
 the calendar's 13px cell it stays distinct from the coral.
+
+### Table column widths are per family
+
+The site's column widths were written for event-discovery's ten-column table but were
+scoped to `.content`, so every family's table inherited them. A four-column digest was
+handed 14%/5%/9%/9%, which put the Title column at 5% and left a third of the table
+unallocated — with `table-layout: fixed`, nothing reclaims it.
+
+The patch scopes those rules to `.family-events` and gives this family its own, keyed off
+a `family:` value set in the `_config.yml` defaults and emitted onto the article element by
+`base.html`. Any family adding a table from now on sets its own widths the same way rather
+than inheriting somebody else's.
+
+This family's four columns sum to 100% (Model 12, Title 40, Task 20, Authors 28) and the
+table carries the body font size rather than the compressed size the ten-column event table
+needs. Inline code in a cell is set to `1em` with no background, so the identifier and
+author columns sit level with the prose columns instead of shrinking away from them.
 
 ### `wide: true`
 
