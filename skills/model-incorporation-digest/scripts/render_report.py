@@ -33,6 +33,47 @@ from _common import read_json, warn  # noqa: E402
 
 TODO = "**TODO — no `summary` written for this model.**"
 
+# The Hub's task families, in the order the digest presents them. `Task` is the category
+# over `Subtask`: Annotation covers activity and property prediction, Representation covers
+# featurization and projection, Sampling covers generation. Anything unrecognised sorts
+# after these, alphabetically, so a new family shows up rather than vanishing into a group
+# it does not belong to.
+TASK_ORDER = ("Annotation", "Representation", "Sampling")
+
+
+def task_of(record):
+    """The model's task category, falling back to a visible placeholder."""
+    return (record.get("model") or {}).get("task") or "Uncategorised"
+
+
+def task_rank(task):
+    """Sort key putting the known families in TASK_ORDER, then the rest alphabetically."""
+    return (TASK_ORDER.index(task), "") if task in TASK_ORDER else (len(TASK_ORDER), task)
+
+
+def ordered_models(models):
+    """Every model, grouped by task category and stably ordered inside each group.
+
+    One ordering is used for both the summary and the per-model sections, so a reader
+    moving between them finds the models in the same sequence.
+    """
+    return sorted(
+        models,
+        key=lambda r: (
+            task_rank(task_of(r)),
+            (r.get("model") or {}).get("subtask") or "",
+            r.get("identifier") or "",
+        ),
+    )
+
+
+def task_groups(models):
+    """``[(task, [records])]`` in presentation order — the digest's task categories."""
+    groups = {}
+    for record in ordered_models(models):
+        groups.setdefault(task_of(record), []).append(record)
+    return sorted(groups.items(), key=lambda kv: task_rank(kv[0]))
+
 
 def author_phrase(credit):
     """Compact credit for a table cell: first author, et al., and the count.
@@ -64,6 +105,22 @@ def institutions(credit, limit=3):
     """The leading institutions, in first-author-first order."""
     names = credit.get("lead_institutions") or []
     return " · ".join(names[:limit]) if names else None
+
+
+def code_link(url):
+    """A clickable link to the authors' repository, labelled without the scheme.
+
+    Written out as an explicit markdown link rather than left bare: the digests site
+    renders with kramdown, which does not autolink a plain URL, so a bare address came
+    out as unclickable text on the published page.
+    """
+    if not url:
+        return "—"
+    url = str(url).strip()
+    if not url.startswith(("http://", "https://")):
+        return url
+    label = url.split("://", 1)[1].rstrip("/")
+    return f"[{label}]({url})"
 
 
 def paper_link(publication):
@@ -113,27 +170,33 @@ def render(context, prepared_on, public=False):
         lines.append("")
         return "\n".join(lines)
 
-    # ---- summary table ----
-    lines.append("## Summary")
-    lines.append("")
+    # ---- summary, one table per task category ----
+    # Grouped rather than one flat table, the way the event report groups by continent:
+    # "four featurizers and four generative models" is the shape of a month, and a single
+    # ordered list makes the reader count it themselves.
     # No paper column: every model's section below carries its DOI, and a second copy
     # here only crowded the four columns that answer "what shipped".
-    lines.append("| Model | Title | Task | Authors |")
-    lines.append("|---|---|---|---|")
-    for record in models:
-        model, credit = record["model"], record["credit"]
-        lines.append(
-            f"| [`{record['identifier']}`]({model.get('github')}) "
-            f"| {model.get('title') or '—'} "
-            f"| {model.get('subtask') or model.get('task') or '—'} "
-            f"| `{author_phrase(credit)}` |"
-        )
+    lines.append("## Summary")
     lines.append("")
+    for task, records in task_groups(models):
+        lines.append(f"### {task} — {len(records)} model{'s' if len(records) != 1 else ''}")
+        lines.append("")
+        lines.append("| Model | Title | Task | Authors |")
+        lines.append("|---|---|---|---|")
+        for record in records:
+            model, credit = record["model"], record["credit"]
+            lines.append(
+                f"| [`{record['identifier']}`]({model.get('github')}) "
+                f"| {model.get('title') or '—'} "
+                f"| {model.get('subtask') or model.get('task') or '—'} "
+                f"| `{author_phrase(credit)}` |"
+            )
+        lines.append("")
 
     # ---- one section per model ----
     lines.append("## The models")
     lines.append("")
-    for record in models:
+    for record in ordered_models(models):
         model, credit, publication = record["model"], record["credit"], record["publication"]
         lines.append(f"### `{record['identifier']}` · {model.get('title') or model.get('slug')}")
         lines.append("")
@@ -158,7 +221,7 @@ def render(context, prepared_on, public=False):
 
         facts = [
             f"Paper: {paper_link(publication)}",
-            f"Authors' code: {model.get('source_code') or '—'}",
+            f"Authors' code: {code_link(model.get('source_code'))}",
             f"Run it: `ersilia fetch {model.get('slug') or record['identifier']}`",
         ]
         if model.get("license"):

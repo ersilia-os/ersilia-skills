@@ -11,7 +11,7 @@ is about those.
   headline counts: models, tasks, statuses, Global-South-led, catalogue size
 
 ## Summary
-  one table row per model: identifier, title, subtask, authors, paper
+  one `### <Task>` group per task category, each a table: identifier, title, subtask, authors
 
 ## The models
   one section each: byline, paragraph, then facts (paper, authors' code, fetch, licence)
@@ -19,6 +19,17 @@ is about those.
 ## Metadata to fix
   the defects fetch_month_models.py found, per model
 ```
+
+Models are ordered by task category — Annotation, Representation, Sampling, then anything
+unrecognised — and the summary is grouped under one heading per category, the way the event
+report groups by continent. "Four featurizers and four generative models" is the shape of a
+month; a single flat list makes the reader count it themselves. **The models** repeats that
+same order, so moving between the two sections is not a search.
+
+The summary carries no paper column: every model's own section below gives its DOI, and a
+second copy crowded the four columns that answer "what shipped". Links there are written as
+explicit markdown links, never bare URLs — the digests site renders with kramdown, which
+does not autolink, so a bare address publishes as unclickable text.
 
 The order is deliberate. The **table** answers "what shipped" for someone skimming before
 a meeting. **The models** answers "what is each of these". **Metadata to fix** is the
