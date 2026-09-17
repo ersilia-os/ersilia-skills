@@ -126,8 +126,12 @@ def render(context, prepared_on):
 
         byline = full_credit(credit)
         where = institutions(credit)
+        # Crossref deposits some journal names with embedded newlines, which would
+        # otherwise break the byline across two lines.
         venue = " ".join(
-            str(p) for p in (publication.get("journal"), publication.get("year")) if p
+            " ".join(str(p).split())
+            for p in (publication.get("journal"), publication.get("year"))
+            if p
         )
         if publication.get("type") == "Preprint" and not publication.get("journal"):
             venue = f"preprint {publication.get('year') or ''}".strip()
@@ -157,7 +161,7 @@ def render(context, prepared_on):
     else:
         lines.append(
             "Each of these is a `/model-incorporation-metadata` gap in a model already "
-            "marked live. They are listed here because whoever reads this report can go "
+            "marked live. They are listed here because whoever reads this digest can go "
             "and fix them."
         )
         lines.append("")
