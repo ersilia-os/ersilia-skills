@@ -235,10 +235,15 @@ def render(context, prepared_on, public=False):
             f"**Global-South-led:** {context['n_global_south']} of "
             f"{context.get('n_models', 0)} have an author at an LMIC institution"
         )
-    header.append(
-        f"**Prepared:** {prepared_on} from the Hub catalogue "
-        f"({context.get('catalog_size', '?')} models)"
-    )
+    # Not len(catalogue): that counts models still in progress, and it is a snapshot of
+    # whenever the fetch ran, so the same month re-rendered later reports a different Hub.
+    # The digest reports on a month, so its total is the month's.
+    hub = context.get("hub_size_at_month_end")
+    if hub:
+        header.append(
+            f"**Hub total:** {hub} models incorporated by {context.get('month_last_day')}"
+        )
+    header.append(f"**Prepared:** {prepared_on} from the Hub catalogue")
     lines.extend(line + "  " for line in header[:-1])
     lines.append(header[-1])
     lines.append("")

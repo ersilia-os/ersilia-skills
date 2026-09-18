@@ -2,7 +2,8 @@
 
 **Models incorporated:** 10 — 4 Representation, 4 Sampling, 2 Annotation  
 **Status:** 10 Ready  
-**Prepared:** 2026-09-18 from the Hub catalogue (254 models)
+**Hub total:** 248 models incorporated by 2026-08-31  
+**Prepared:** 2026-09-18 from the Hub catalogue
 
 ## The models
 

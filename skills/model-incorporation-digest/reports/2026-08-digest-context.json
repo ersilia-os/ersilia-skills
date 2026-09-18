@@ -1446,5 +1446,7 @@
       "defects": [],
       "summary": "The inpainting counterpart to CoCoGraph's formula-preserving model: it attaches a small fragment of 2–5 heavy atoms, drawn from a library of frequent substructures, then refines the result with the same constrained graph diffusion. Bond-pair swapping keeps every intermediate valence-valid, so chemical validity is guaranteed rather than filtered for afterwards."
     }
-  ]
+  ],
+  "hub_size_at_month_end": 248,
+  "month_last_day": "2026-08-31"
 }

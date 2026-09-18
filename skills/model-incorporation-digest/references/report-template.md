@@ -8,7 +8,8 @@ is about those.
 
 ```
 # Ersilia model incorporation digest — <Month Year>
-  headline counts: models, tasks, statuses, Global-South-led, catalogue size
+  headline counts: models, tasks, statuses, Global-South-led, and the Hub total as of
+  the month's last day (`hub_size_at_month_end`, never `catalog_size`)
 
 (no separate summary — the entries below carry it)
 

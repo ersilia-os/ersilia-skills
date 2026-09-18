@@ -339,5 +339,7 @@
       "defects": [],
       "summary": "Predicts how readily a small molecule crosses the mycomembrane, the outer membrane of *Mycobacterium tuberculosis* that is a principal barrier to antibiotic entry, returning a standardised permeation residual in which lower values mean higher permeability. The model served is MycoPermeNet-v2, which fuses a graph neural network embedding with normalised RDKit descriptors and adds Noisy Student self-distillation to cope with scarce labels. It learns from the 1,572 azide-tagged compounds profiled by the PAC-MAN click-chemistry assay in *M. tuberculosis* and *M. smegmatis*, which Lepori and colleagues published in *Nature Microbiology* along with the original MycoPermeNet; the v2 architecture is Evbarunegbe, Wa, Karn and Green in *J. Chem. Inf. Model.* (10.1021/acs.jcim.5c02435), who report a modest but statistically significant RMSE improvement over it. Applicability is narrow — small azide-tagged compounds of roughly 82–570 Da — outside which predictions may leave the −3.1 to +1.6 output range."
     }
-  ]
+  ],
+  "hub_size_at_month_end": 238,
+  "month_last_day": "2026-07-31"
 }

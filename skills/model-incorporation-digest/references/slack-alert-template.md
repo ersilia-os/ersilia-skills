@@ -15,7 +15,7 @@ reference, the literature digest posts to `#literature` = `C010067BP2Q`.)
 ```markdown
 📦 *New model incorporation digest — {Month YYYY}*
 
-{n} models incorporated. The Hub now holds {catalog_size}.
+{n} models incorporated. {hub_size_at_month_end} models in the Hub by the end of {Month}.
 
 *{Task}* ({n})
 • {Title} — {First Author}, {Institution}
@@ -36,8 +36,12 @@ Use it, not the github.com blob URL, which is the raw markdown.
 ## Field rules
 
 - **Month** is the month reported on, not the month it was published.
-- Counts come straight from the context JSON: `n_models`, `catalog_size`, `by_status`,
-  and the per-task counts from `task_groups()`. Never recount them by hand.
+- Counts come straight from the context JSON: `n_models`, `hub_size_at_month_end`,
+  `by_status`, and the per-task counts from `task_groups()`. Never recount them by hand.
+- **The Hub total is the month's, not today's.** Use `hub_size_at_month_end` and say "by the
+  end of {Month}" — never `catalog_size`, which counts every catalogue row including models
+  still in progress and is a snapshot of whenever the fetch ran. A digest that reports a
+  different Hub size each time it is re-rendered is reporting the fetch, not the month.
 - **List every model**, grouped by task in the same order the digest uses, so the alert and
   the page agree. A reader should be able to tell what shipped without clicking.
 - **Name every model's first author and their institution**, using the same trimmed form
@@ -72,7 +76,7 @@ Use it, not the github.com blob URL, which is the raw markdown.
 ```text
 📦 *New model incorporation digest — August 2026*
 
-10 models incorporated. The Hub now holds 254.
+10 models incorporated. 248 models in the Hub by the end of August.
 
 *Annotation* (2)
 • Antimicrobial activity prediction from EU OpenScreen data — database by Ctibor Škuta, Czech Academy of Sciences; model trained by Ersilia

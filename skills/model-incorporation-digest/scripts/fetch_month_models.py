@@ -226,6 +226,26 @@ def resolve_one(entry):
     }
 
 
+def hub_size_at(catalog, last_day):
+    """How many models had been incorporated by ``last_day`` (a ``YYYY-MM-DD`` string).
+
+    Not ``len(catalog)``. That counts every row — models still in progress, models since
+    archived — and it is a snapshot of whenever the fetch ran, so it drifts every time the
+    same month is re-rendered. A digest reports on a month, so its total is the month's:
+    a historical count from the incorporation dates, which does not move.
+
+    Deliberately not filtered by `Status`, which is a *current* field. "Incorporated by 31
+    August and Ready today" mixes two points in time and would quietly shrink as models are
+    archived.
+    """
+    return sum(
+        1
+        for entry in catalog
+        if entry.get("Incorporation Date")
+        and str(entry["Incorporation Date"])[:10] <= last_day
+    )
+
+
 def tally(models, key):
     """Count models by a `model` sub-key, for the report's summary line."""
     counts = {}
@@ -244,7 +264,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     month = args.month or previous_month()
-    _, _, label = parse_month(month)
+    year, month_num, label = parse_month(month)
+    last_day = f"{year:04d}-{month_num:02d}-{calendar.monthrange(year, month_num)[1]:02d}"
 
     catalog = fetch_json(CATALOG_URL)
     if not isinstance(catalog, list):
@@ -275,7 +296,9 @@ def main(argv=None):
         "month": month,
         "month_label": label,
         "catalog_url": CATALOG_URL,
-        "catalog_size": len(catalog),
+        "catalog_size": len(catalog),          # every row today, in-progress ones included
+        "hub_size_at_month_end": hub_size_at(catalog, last_day),
+        "month_last_day": last_day,
         "n_models": len(models),
         "by_task": tally(models, "task"),
         "by_status": tally(models, "status"),
