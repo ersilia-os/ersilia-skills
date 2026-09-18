@@ -23,7 +23,7 @@ reference, the literature digest posts to `#literature` = `C010067BP2Q`.)
 
 {one block per task category, in the digest's own order}
 
-{status line} {defects line}
+{status line}
 
 Read it: {pages_url}
 ```
@@ -46,14 +46,14 @@ Use it, not the github.com blob URL, which is the raw markdown.
   line carries a short parenthetical — "trained by Ersilia on their data",
   "re-implemented by Ersilia" — for the same reason the digest's paragraph does. Without it
   the alert reads as though the named authors built the served model.
-- **Name the flagged models, not just how many.** `eos5g6m, eos5mnx, eos84nf` is actionable;
-  "3 flagged" sends the reader to the digest to find out which.
-- **The defects line is the one thing the public page does not carry.** The digest published
-  to the site has no defects section; this channel is internal, and the count is the part a
-  reader can act on. Write `"{n} flagged for metadata repair."`, or `"Nothing flagged."` when
-  the scan came back clean.
+- **Never mention metadata defects.** Not the count, not the identifiers, not a hint that
+  any exist. They are repairs owed on somebody's model, they belong to
+  `/model-incorporation-metadata` and not to this skill, and a channel post naming models as
+  defective is the wrong place for them however internal the channel is. The alert points at
+  a digest; it does not file work against other people.
 - Where a status is anything other than `Ready`, say so plainly rather than writing "All
-  Ready" — a model that is not fetchable is the most important thing in the alert.
+  Ready" — a model that is not fetchable is the most important thing in the alert. That is a
+  fact about whether the models work, which is not the same as a metadata defect.
 - It is longer than the other digests' alerts on purpose. A month of incorporations is ten
   or so items, and the first version of this alert said only how many there were, which told
   a reader nothing they could act on. Around 1,100 characters for a ten-model month is the
@@ -82,7 +82,7 @@ Use it, not the github.com blob URL, which is the raw markdown.
 • GenMol Scaffold Decoration — Seul Lee, KAIST
 • PyMolGen Drug-Like Molecule Generation — Bruno N. Falcone, University of Nottingham
 
-All 10 Ready. 3 flagged for metadata repair: eos5g6m, eos5mnx, eos84nf.
+All 10 Ready.
 
 Read it: https://ersilia-os.github.io/digests/models/26-08-31-models-digest.html
 ```

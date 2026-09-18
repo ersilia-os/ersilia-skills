@@ -189,8 +189,9 @@ slack_send_message(channel_id = "C0100L3DRCM", message = <rendered template>)
 
 That is `#technology`. Do not post if the upload exited non-zero, and do not post a digest
 that was rendered but never uploaded — the alert's whole job is to point at a live page.
-The counts come from the context JSON, and the defects count goes in the alert even though
-the published page omits it: the channel is internal, and that is the line a reader acts on.
+The counts come from the context JSON. **The alert never mentions metadata defects** — not
+the count, not the identifiers. Those belong to `/model-incorporation-metadata`, and a
+channel post naming models as defective is not this skill's business.
 
 **One-time setup (first models digest only).** The `models/` category does not exist on
 the digests site yet, and adding one touches five files in `ersilia-os/digests`, not the
