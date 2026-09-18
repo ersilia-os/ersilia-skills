@@ -28,8 +28,11 @@ list makes the reader count it themselves.
 
 Each model is **one row**. What goes in the cells is as much about what is left out:
 
-- **Author names one person** — the first author. The full list is in the paper, one click
-  away, and a cell carrying eleven names is a cell nobody reads.
+- **Author names one person** — the first author, with "et al." when the list continues.
+  The full list is in the paper one click away, and a cell carrying eleven names is a cell
+  nobody reads. No author count after the "et al.": that was ours alone and matches no
+  citation style. The given name stays, unlike the literature digest's bare surnames —
+  its author string is a citation link, this is a credit field.
 - **The institution is trimmed, never abbreviated.** Sub-units after a comma, legal
   suffixes and parenthetical cities come off, so "Denovo Sciences Inc (Yerevan)" reads
   "Denovo Sciences". Nothing is shortened into an acronym: an institution's name is part

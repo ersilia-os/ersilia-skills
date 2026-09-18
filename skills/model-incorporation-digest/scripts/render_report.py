@@ -69,13 +69,21 @@ def restrictive_licence(value):
 
 
 def first_author(credit):
-    """The first author's name, alone.
+    """``First Author et al.`` — the first author's full name, marked when there are more.
 
-    The table names one person per model. The full list lives in the paper, which is one
-    click away, and a cell carrying eleven names is a cell nobody reads.
+    The table names one person per model; a cell carrying eleven names is a cell nobody
+    reads, and the full list lives in the paper one click away. "et al." is the convention
+    that says the list continues. There is deliberately no author count after it: that was
+    ours alone and matches no citation style.
+
+    The given name is kept, unlike the literature digest's bare surnames. Its author string
+    sits inside a citation-style link, where a surname is right; this is a credit field,
+    and a credit carries the whole name.
     """
     names = [a["name"] for a in credit.get("authors", []) if a.get("name")]
-    return names[0] if names else "*authors unresolved*"
+    if not names:
+        return "*authors unresolved*"
+    return names[0] if len(names) == 1 else f"{names[0]} et al."
 
 
 # Sub-units, legal suffixes and parenthetical cities make an institution unreadable in a
