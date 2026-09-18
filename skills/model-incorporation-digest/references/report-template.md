@@ -128,8 +128,8 @@ reader think the authors built the model would be wrong.
 - Do not quote a metric the paper does not contain.
 - Where the model's `Description` and the paper's abstract disagree, prefer the abstract
   and say so.
-- State a licence only when it constrains reuse — non-commercial or research-only. MIT and
-  Apache need no mention.
+- Do not state a licence. The row links to the model, and its page carries the terms. Raise
+  a restrictive one with the user when presenting instead — see `attribution-rules.md`.
 
 ## Metadata defects
 

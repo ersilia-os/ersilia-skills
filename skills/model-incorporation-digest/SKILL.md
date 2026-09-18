@@ -169,6 +169,17 @@ defects section, the filename does not record which is which, and the script can
 them apart. Publishing the internal copy puts a list of unrepaired defects in live models
 on a public page.
 
+**To check the renderer** — synthetic month, no network, no files on disk:
+
+```bash
+python scripts/selftest_render.py
+```
+
+It covers the public and internal split, the task grouping and ordering, the licence
+rule, the byline and institution forms, the Hub total, and the two guards: a missing
+summary must exit non-zero, and an empty month must render cleanly. Run it after touching
+`render_report.py`.
+
 **To check the publish path without publishing** — it needs no network, credentials or
 `gh`, standing up a fake `gh` over a temporary directory instead:
 

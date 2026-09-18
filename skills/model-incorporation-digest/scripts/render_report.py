@@ -52,22 +52,6 @@ SUBTASK_EMOJI = {
     "Generation": "🎨",
 }
 
-# Licences that place no condition on reuse beyond attribution. The digest names a licence
-# only when it constrains — see references/attribution-rules.md. Printing "MIT" on every
-# entry buries the one that actually restricts something.
-PERMISSIVE_LICENCES = {
-    "mit", "apache-2.0", "apache 2.0", "bsd-2-clause", "bsd-3-clause", "isc",
-    "cc0-1.0", "unlicense", "mit-0",
-}
-
-
-def restrictive_licence(value):
-    """The licence, but only when it constrains reuse. Otherwise ``None``."""
-    if not value:
-        return None
-    return None if str(value).strip().lower() in PERMISSIVE_LICENCES else str(value).strip()
-
-
 def first_author(credit):
     """``First Author et al.`` — the first author's full name, marked when there are more.
 

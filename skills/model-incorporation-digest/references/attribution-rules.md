@@ -53,9 +53,11 @@ These are not mechanically checkable, so they are on you.
 - **Do not imply a collaboration that does not exist.** Packaging a public model is not a
   partnership.
 - **Do not imply clinical validity.** These are early-discovery models.
-- **Name the licence when it constrains reuse.** MIT or Apache needs no mention; anything
-  non-commercial or research-only does, in one clause, so nobody builds on a wrong
-  assumption.
+- **The digest carries no licence.** It was on every row, which buried the one that
+  mattered, and every row links to the model, whose own page states its terms. The cost is
+  real: a copyleft or non-commercial licence now has no signal in the digest. So when a
+  month contains one, **say so when you present** — that is the moment somebody can decide
+  whether it belongs back on the page.
 - **Say what we changed — and only if we changed something.** If Ersilia re-trained,
   sliced, or defaulted a parameter, one clause says so. Silent modification presented as
   the authors' model is the worst outcome available. When nothing changed, say nothing.
