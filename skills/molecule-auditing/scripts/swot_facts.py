@@ -23,7 +23,8 @@ from drug_criteria import structural_alerts  # noqa: E402
 
 # ---- structural motif + confident class detection (reused from the Mtb build) ----
 MOTIFS = {
-    "nitro": ["[NX3+](=O)[O-]"], "aniline": ["[NX3;H2,H1][c]"],
+    "nitro": ["[NX3+](=O)[O-]"],
+    "aniline": ["[NX3;H2,H1;!$([NX3][CX3]=[OX1]);!$([NX3][SX4](=[OX1])=[OX1])][c]"],
     "sulfonamide": ["[SX4](=O)(=O)[NX3]"], "hydrazone": ["[NX3][NX2]=[CX3]"],
     "acylhydrazide": ["[CX3](=O)[NX3][NX3]"], "michael_acceptor": ["[CX3]=[CX3][CX3]=[OX1]"],
     "thiophene": ["c1ccsc1"], "furan": ["c1ccoc1"], "tetrazole": ["c1nnnn1"],
@@ -32,7 +33,7 @@ MOTIFS = {
 }
 _COMPILED = [(n, [p for p in (Chem.MolFromSmarts(x) for x in sm) if p]) for n, sm in MOTIFS.items()]
 _AROM_NITRO = Chem.MolFromSmarts("c[NX3+](=O)[O-]")
-_ANILINE = Chem.MolFromSmarts("c[NX3;H1,H2;!$([NX3][CX3]=[OX1])]")
+_ANILINE = Chem.MolFromSmarts("c[NX3;H1,H2;!$([NX3][CX3]=[OX1]);!$([NX3][SX4](=[OX1])=[OX1])]")
 _SULFONAMIDE = Chem.MolFromSmarts("c[SX4](=O)(=O)[NX3]")
 _BENZIMIDAZOLE = Chem.MolFromSmarts("c1ccc2[nH]cnc2c1")
 _BENZOTRIAZOLE = Chem.MolFromSmarts("c1ccc2nnnc2c1")

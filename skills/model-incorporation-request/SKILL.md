@@ -86,6 +86,18 @@ Plain English, focused on what a user gets from running this model on a molecule
 start with "This model...". Do not include a character count in the table — just show the
 description text.
 
+**This limit is enforced server-side, not just by convention.** The `/approve` GitHub
+Actions workflow that a maintainer triggers on the issue runs
+`update_metadata_from_model_request.py`, which raises `ValueError` and fails the whole
+workflow if the description is outside 200–600 characters. Never eyeball the length —
+after drafting the description (and after any later edit to it, including one made in
+response to user feedback), count it explicitly, e.g.:
+```bash
+python3 -c "print(len('''<description text>'''))"
+```
+If it's out of range, shorten/lengthen and recount before presenting the table. Do not
+present or submit a description you have not just counted.
+
 For structure, prohibitions and worked examples, read
 `model-incorporation-metadata/references/writing-descriptions.md` — the single source of
 truth for this field. The description written here is a first draft;
@@ -161,6 +173,38 @@ gh issue create \
 EOF
 )"
 ```
+
+---
+
+## Phase 3.5 – If `/approve` Fails
+
+A maintainer approves the request by commenting `/approve` on the issue, which triggers
+the `Approve Command Dispatch` workflow. If that workflow fails (a `github-actions` bot
+comment appears saying "Workflow Failure ❌"), do this:
+
+1. **Read the actual error**, don't guess. Get the run ID from the bot comment's log link
+   or from `gh issue view <n> --repo ersilia-os/ersilia --json comments`, then:
+   ```bash
+   gh run view <run-id> --repo ersilia-os/ersilia --log-failed
+   ```
+   The most common cause is exactly the description-length check above — the traceback
+   ends in `ValueError: Model description is N characters, which exceeds the 600-character
+   limit.` Fix by editing the issue body (`gh issue edit <n> --repo ersilia-os/ersilia
+   --body "..."`, same heading format as Phase 3) with a re-counted description, then
+   comment `/approve` again.
+2. **Don't assume the failure-notice repo was actually created.** The bot's failure
+   comment says "you may need to delete the following repo... since the run was not fully
+   successful" *unconditionally* — it does not know whether repo creation itself
+   succeeded before the later step failed. Check before doing anything about it:
+   ```bash
+   gh api repos/ersilia-os/<mentioned-repo> --jq '{created_at}'
+   ```
+   A 404 means it was never created (nothing to clean up). Only if it returns real data
+   should you consider deleting it — and deleting a repo under the `ersilia-os` org is a
+   destructive, shared-system action, so confirm with the user first regardless.
+3. After a successful re-run, confirm the new repo by reading the issue's latest comment
+   (`gh issue view <n> --repo ersilia-os/ersilia --json comments --jq '.comments[-1]'`) —
+   the success comment names the new `eosXXXX` repo directly.
 
 ---
 
