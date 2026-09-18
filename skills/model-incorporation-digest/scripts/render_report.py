@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import calendar
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -67,12 +68,32 @@ def restrictive_licence(value):
     return None if str(value).strip().lower() in PERMISSIVE_LICENCES else str(value).strip()
 
 
-def short_byline(credit):
-    """``First Author et al.`` — the compact form a bullet's leading link carries."""
+def first_author(credit):
+    """The first author's name, alone.
+
+    The table names one person per model. The full list lives in the paper, which is one
+    click away, and a cell carrying eleven names is a cell nobody reads.
+    """
     names = [a["name"] for a in credit.get("authors", []) if a.get("name")]
+    return names[0] if names else "*authors unresolved*"
+
+
+# Sub-units, legal suffixes and parenthetical cities make an institution unreadable in a
+# narrow cell. Trimming them is structural — nothing is abbreviated or invented, so the
+# name that survives is still the institution's own.
+_LEGAL_SUFFIX = re.compile(r"[,\s]+(?:Inc\.?|Ltd\.?|LLC|GmbH|S\.A\.|PLC)\b", re.I)
+
+
+def concise_institution(credit):
+    """The lead institution, trimmed to something that fits a table cell."""
+    names = credit.get("lead_institutions") or []
     if not names:
-        return "Authors unresolved"
-    return names[0] if len(names) == 1 else f"{names[0]} et al."
+        return None
+    name = str(names[0])
+    name = re.sub(r"\s*\([^)]*\)", "", name)     # trailing "(Yerevan)", "(United States)"
+    name = _LEGAL_SUFFIX.sub("", name)
+    name = name.split(",")[0]                      # drop the sub-unit after the comma
+    return " ".join(name.split()).strip(" .,")
 
 
 def cell(text):
@@ -210,13 +231,6 @@ def render(context, prepared_on, public=False):
         f"**Prepared:** {prepared_on} from the Hub catalogue "
         f"({context.get('catalog_size', '?')} models)"
     )
-    present = [
-        (sub, SUBTASK_EMOJI[sub])
-        for sub in SUBTASK_EMOJI
-        if any((r.get("model") or {}).get("subtask") == sub for r in models)
-    ]
-    if present:
-        header.append("**Tasks:** " + " · ".join(f"{e} {sub}" for sub, e in present))
     lines.extend(line + "  " for line in header[:-1])
     lines.append(header[-1])
     lines.append("")
@@ -226,49 +240,52 @@ def render(context, prepared_on, public=False):
         lines.append("")
         return "\n".join(lines)
 
-    # ---- one bullet per model, grouped by task category ----
-    # The literature digest's shape: link first, bold title, the description inline, and
-    # the rest trailing after middle dots. A month of incorporations is a list of items
-    # with a short description each, which is the problem that layout already solves.
+    # ---- one table per task category ----
     lines.append("## The models")
     lines.append("")
     for task, records in task_groups(models):
         lines.append(f"### {task} — {len(records)} model{'s' if len(records) != 1 else ''}")
         lines.append("")
+        lines.append("| Model | Tag | Author | What it does | Links |")
+        lines.append("|---|---|---|---|---|")
         for record in records:
             model, credit, publication = record["model"], record["credit"], record["publication"]
+
+            ident = f"[`{record['identifier']}`]({model.get('github')})"
+            first = f"{ident}<br>{cell(model.get('title') or model.get('slug'))}"
+
+            subtask = model.get("subtask") or model.get("task") or "—"
+            emoji = SUBTASK_EMOJI.get(subtask, "")
+            tag = f"{emoji} {cell(subtask)}".strip()
 
             venue = " ".join(
                 " ".join(str(part).split())
                 for part in (publication.get("journal"), publication.get("year"))
                 if part
             )
-            if publication.get("type") == "Preprint" and not publication.get("journal"):
+            if not publication.get("journal"):
+                # No container title means no journal version was deposited. Keyed on the
+                # record rather than on `Publication Type`, which is itself a field the
+                # scan flags as unreliable — eos5g6m declares "Peer reviewed" over an
+                # arXiv DOI, and a bare year told the reader nothing.
                 venue = f"preprint {publication.get('year') or ''}".strip()
-            head = f"{short_byline(credit)}" + (f", *{venue}*" if venue else "")
-            link = publication.get("doi_url") or publication.get("raw_publication_field")
-            head = f"[{head}]({link})" if link else head
+            who = [f"**{cell(first_author(credit))}**"]
+            where = concise_institution(credit)
+            if where:
+                who.append(cell(where))
+            if venue:
+                who.append(f"*{cell(venue)}*")
+            author = "<br>".join(who)
 
-            emoji = SUBTASK_EMOJI.get(model.get("subtask"), "")
-            where = institutions(credit, limit=1)
-            ident = f"[`{record['identifier']}`]({model.get('github')})"
-            title = f"**{cell(model.get('title') or model.get('slug'))}**"
-            provenance = f"({ident}" + (f", {cell(where)}" if where else "") + ")"
+            what = cell(record.get("summary")) or TODO
 
-            tail = [f"`ersilia fetch {model.get('slug') or record['identifier']}`"]
+            links = [f"[Paper]({publication['doi_url']})"] if publication.get("doi_url") else []
             if model.get("source_code"):
-                tail.insert(0, f"[code]({model['source_code']})")
-            licence = restrictive_licence(model.get("license"))
-            if licence:
-                tail.append(cell(licence))
+                links.append(f"[Code]({model['source_code']})")
+            joined = "<br>".join(links) or "—"
 
-            summary = cell(record.get("summary")) or TODO
-            bits = [head]
-            if emoji:
-                bits.append(emoji)
-            bits.append(f"— {title} {provenance}. {summary}")
-            lines.append("- " + " ".join(bits) + " · " + " · ".join(tail))
-            lines.append("")
+            lines.append(f"| {first} | {tag} | {author} | {what} | {joined} |")
+        lines.append("")
 
     # ---- defects (internal only) ----
     if public:

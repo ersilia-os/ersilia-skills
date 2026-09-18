@@ -13,9 +13,9 @@ is about those.
 (no separate summary — the entries below carry it)
 
 ## The models
-  one `### <Task>` group per task category, each a bulleted list:
-  one bullet per model — paper link, task emoji, title, identifier, institution,
-  the description, then code, fetch command and a licence only when it constrains
+  one `### <Task>` group per task category, each a table:
+  Model (identifier + title) · Tag (task emoji + subtask) · Author (first author,
+  institution, journal and year) · What it does · Links (paper, code)
 
 ## Metadata to fix
   the defects fetch_month_models.py found, per model
@@ -26,17 +26,20 @@ unrecognised — and grouped under one heading per category, the way the event r
 by continent. "Four featurizers and four generative models" is the shape of a month; a flat
 list makes the reader count it themselves.
 
-Each model is **one bullet**, following the literature digest's line: the paper link first,
-then the task emoji, the bold title, the identifier and lead institution, the description,
-and the trailing links. A month of incorporations is a list of items with a short
-description each, which is the problem that layout already solves, and using the same shape
-means a reader of one digest already knows how to read this one. The task emoji come from
-the literature digest's own vocabulary, unchanged.
+Each model is **one row**. What goes in the cells is as much about what is left out:
 
-Two things that bite:
-
-- **Name a licence only when it constrains reuse.** MIT and Apache need no mention.
-  Printing one on every entry buries the single GPL that actually restricts something.
+- **Author names one person** — the first author. The full list is in the paper, one click
+  away, and a cell carrying eleven names is a cell nobody reads.
+- **The institution is trimmed, never abbreviated.** Sub-units after a comma, legal
+  suffixes and parenthetical cities come off, so "Denovo Sciences Inc (Yerevan)" reads
+  "Denovo Sciences". Nothing is shortened into an acronym: an institution's name is part
+  of the credit.
+- **The venue is the journal and the year, nothing else.** A record with no journal is
+  labelled a preprint, keyed on the record rather than on `Publication Type`, which the
+  scan itself flags as unreliable.
+- **No fetch command and no licence.** Both were on every row, and neither is what the
+  table is for. The licence only ever mattered when it constrained reuse, and by the time
+  it does the reader is on the model's own page.
 - **Write every link explicitly.** The digests site renders with kramdown, which does not
   autolink, so a bare URL publishes as unclickable text while the DOI beside it works.
 

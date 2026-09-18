@@ -11,7 +11,7 @@ index 2ead120..9808583 100644
        - uses: ruby/setup-ruby@v1
          with:
 diff --git a/website/_config.yml b/website/_config.yml
-index f6ccebd..a633916 100644
+index f6ccebd..9e6dc53 100644
 --- a/website/_config.yml
 +++ b/website/_config.yml
 @@ -11,7 +11,7 @@ kramdown:
@@ -23,7 +23,7 @@ index f6ccebd..a633916 100644
  defaults:
    - scope:
        path: "literature"
-@@ -21,10 +21,18 @@ defaults:
+@@ -21,10 +21,19 @@ defaults:
        path: "github"
      values:
        layout: digest
@@ -31,8 +31,9 @@ index f6ccebd..a633916 100644
 +      path: "models"
 +    values:
 +      layout: digest
-+      # No `wide` here: this family is a bulleted list, not a table, and the config's own
-+      # note is that widening prose to 1100px only makes line length worse.
++      # One row per model, so it takes the wide column for the same reason the event
++      # reports do.
++      wide: true
 +      family: models
    - scope:
        path: "events"
@@ -91,10 +92,10 @@ index 569383e..f70db1b 100644
        </article>
      </main>
 diff --git a/website/assets/style.css b/website/assets/style.css
-index b99232c..a76c52a 100644
+index b99232c..9967246 100644
 --- a/website/assets/style.css
 +++ b/website/assets/style.css
-@@ -204,16 +204,21 @@ main {
+@@ -204,16 +204,38 @@ main {
    color: var(--text-strong);
    font-weight: 600;
  }
@@ -123,10 +124,27 @@ index b99232c..a76c52a 100644
 +.family-events th:nth-child(9),  .family-events td:nth-child(9)  { width: 12%; } /* Engagement */
 +.family-events th:nth-child(10), .family-events td:nth-child(10) { width: 20%; } /* Why it matters */
 +
++/* Model incorporations: five columns adding up to 100%, so nothing is left to the browser
++   to guess. "What it does" carries a paragraph and takes most of it; the rest hold short
++   strings, a tag, or stacked links. */
++.family-models th:nth-child(1), .family-models td:nth-child(1) { width: 14%; } /* Model */
++.family-models th:nth-child(2), .family-models td:nth-child(2) { width: 12%; } /* Tag */
++.family-models th:nth-child(3), .family-models td:nth-child(3) { width: 16%; } /* Author */
++.family-models th:nth-child(4), .family-models td:nth-child(4) { width: 46%; } /* What it does */
++.family-models th:nth-child(5), .family-models td:nth-child(5) { width: 12%; } /* Links */
++.family-models table { font-size: 0.8rem; }
++/* Inline code sits level with the prose beside it rather than shrinking away from it. */
++.family-models td code { font-size: 1em; background: none; padding: 0; }
++/* The Model, Author and Links cells stack short lines with <br>; a little more leading
++   keeps those stacks legible as lists. */
++.family-models td:nth-child(1),
++.family-models td:nth-child(3),
++.family-models td:nth-child(5) { line-height: 1.65; }
++
  
  /* landing "card" list */
  .card-list { list-style: none; padding: 0; margin: 0; }
-@@ -283,6 +288,8 @@ main {
+@@ -283,6 +305,8 @@ main {
    --digest-both-hover: #6e3a7d;
    --digest-events: #8cc8fa;       /* blue  — event digests */
    --digest-events-hover: #6bb0f0;
@@ -135,7 +153,7 @@ index b99232c..a76c52a 100644
  }
  
  .calendar {
-@@ -337,6 +344,7 @@ main {
+@@ -337,6 +361,7 @@ main {
  a.cal-cell.has-lit,
  a.cal-cell.has-gh,
  a.cal-cell.has-ev,
@@ -143,7 +161,7 @@ index b99232c..a76c52a 100644
  a.cal-cell.has-multi {
    transition: transform .1s ease, box-shadow .1s ease;
  }
-@@ -367,6 +375,15 @@ a.cal-cell.has-ev:hover {
+@@ -367,6 +392,15 @@ a.cal-cell.has-ev:hover {
    transform: scale(1.35); z-index: 2;
    box-shadow: 0 0 0 1px rgba(80,40,90,0.35), 0 3px 8px rgba(80,40,90,0.35);
  }
@@ -159,7 +177,7 @@ index b99232c..a76c52a 100644
  /* Two or more digests on the same day. One colour for any combination: with three
     families a per-combination palette needs seven shades, which is unreadable at 13px. */
  a.cal-cell.has-multi {
-@@ -396,6 +413,7 @@ a.cal-cell.has-multi:hover {
+@@ -396,6 +430,7 @@ a.cal-cell.has-multi:hover {
  .cal-legend .swatch.lit { background: var(--digest-lit); }
  .cal-legend .swatch.gh { background: var(--digest-gh); }
  .cal-legend .swatch.ev { background: var(--digest-events); }
@@ -167,7 +185,7 @@ index b99232c..a76c52a 100644
  .cal-legend .swatch.multi { background: var(--digest-both); }
  .cal-legend .sep { color: var(--border); }
  
-@@ -408,3 +426,4 @@ a.cal-cell.has-multi:hover {
+@@ -408,3 +443,4 @@ a.cal-cell.has-multi:hover {
  .nav-dot.is-lit { background: var(--digest-lit); }
  .nav-dot.is-gh { background: var(--digest-gh); }
  .nav-dot.is-events { background: var(--digest-events); }
