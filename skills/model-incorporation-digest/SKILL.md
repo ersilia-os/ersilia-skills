@@ -48,6 +48,8 @@ governs how — in particular the verb discipline, the honesty rules, the handli
 - **`references/digest-website.md`** — how the digests site renders these files, how to
   preview it locally, and what adding the `models/` category takes (only needed when
   publishing)
+- **`references/slack-alert-template.md`** — the notification posted after a successful
+  publish, and what it may and may not say
 
 ---
 
@@ -178,6 +180,18 @@ It drives the whole sequence: both renders, the staleness guard, a first upload,
 refusal to overwrite, `--force`, the README index and its ordering, and the refusal of a
 non-canonical filename. Run it after touching either script.
 
+**Post the Slack alert, and only after a successful upload.** Render
+`references/slack-alert-template.md` and post it once:
+
+```text
+slack_send_message(channel_id = "C0100L3DRCM", message = <rendered template>)
+```
+
+That is `#technology`. Do not post if the upload exited non-zero, and do not post a digest
+that was rendered but never uploaded — the alert's whole job is to point at a live page.
+The counts come from the context JSON, and the defects count goes in the alert even though
+the published page omits it: the channel is internal, and that is the line a reader acts on.
+
 **One-time setup (first models digest only).** The `models/` category does not exist on
 the digests site yet, and adding one touches five files in `ersilia-os/digests`, not the
 one an earlier version of this note claimed. Everything below was worked out by building
@@ -206,7 +220,8 @@ Show the user:
 2. The digest path
 3. The metadata defects, as a short list — these are the actionable items
 4. Any model whose authors did not resolve, and what you need from them
-5. If published, the Pages URL — the remote is canonical, not the local file
+5. If published, the Pages URL — the remote is canonical, not the local file — and
+   whether the Slack alert went out
 
 ## What not to do
 
