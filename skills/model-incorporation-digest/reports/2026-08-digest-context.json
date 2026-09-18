@@ -463,80 +463,122 @@
             "name": "Seul Lee",
             "position": "first",
             "orcid": "https://orcid.org/0000-0002-2171-3697",
-            "institutions": [],
-            "countries": [],
+            "institutions": [
+              "KAIST"
+            ],
+            "countries": [
+              "KR"
+            ],
             "is_corresponding": false
           },
           {
             "name": "Karsten Kreis",
             "position": "middle",
             "orcid": null,
-            "institutions": [],
-            "countries": [],
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
             "is_corresponding": false
           },
           {
             "name": "Srimukh Prasad Veccham",
             "position": "middle",
             "orcid": "https://orcid.org/0000-0002-6158-2126",
-            "institutions": [],
-            "countries": [],
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
             "is_corresponding": false
           },
           {
             "name": "Meng Liu",
             "position": "middle",
             "orcid": null,
-            "institutions": [],
-            "countries": [],
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
             "is_corresponding": false
           },
           {
             "name": "Danny Reidenbach",
             "position": "middle",
             "orcid": null,
-            "institutions": [],
-            "countries": [],
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
             "is_corresponding": false
           },
           {
             "name": "Yuxing Peng",
             "position": "middle",
             "orcid": "https://orcid.org/0009-0002-2501-4276",
-            "institutions": [],
-            "countries": [],
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
             "is_corresponding": false
           },
           {
             "name": "Saee Paliwal",
             "position": "middle",
             "orcid": null,
-            "institutions": [],
-            "countries": [],
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
             "is_corresponding": false
           },
           {
             "name": "Weili Nie",
             "position": "middle",
             "orcid": "https://orcid.org/0000-0002-0030-3189",
-            "institutions": [],
-            "countries": [],
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
             "is_corresponding": false
           },
           {
             "name": "Arash Vahdat",
             "position": "last",
             "orcid": "https://orcid.org/0009-0005-9476-1306",
-            "institutions": [],
-            "countries": [],
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
             "is_corresponding": false
           }
         ],
         "first_author": "Seul Lee",
         "last_author": "Arash Vahdat",
         "n_authors": 9,
-        "lead_institutions": [],
-        "countries": [],
+        "lead_institutions": [
+          "KAIST",
+          "NVIDIA"
+        ],
+        "countries": [
+          "KR",
+          "US"
+        ],
         "has_global_south_author": false,
         "global_south_institutions": [],
         "source": "openalex",
