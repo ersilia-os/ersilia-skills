@@ -205,7 +205,7 @@
         "corresponding_authors": [
           "Robin Winter"
         ],
-        "note": "Transcribed by hand on 2026-09-15: OpenReview answers both its page and its API with a browser challenge (HTTP 403), and the paper is indexed by neither OpenAlex, Crossref, arXiv nor Semantic Scholar. Names and order come from the Lacuna index of the OpenReview record; the first author's ICML poster post and the SAND README contact (robin.winter@pfizer.com) agree. Cremer's and Clevert's ORCIDs are Pfizer-affiliated. Verify against the OpenReview page before anyone posts."
+        "note": "Transcribed by hand on 2026-09-15: OpenReview answers both its page and its API with a browser challenge (HTTP 403), and the paper is indexed by neither OpenAlex, Crossref, arXiv nor Semantic Scholar. Names and order come from the Lacuna index of the OpenReview record; the first author's ICML poster post and the SAND README contact agree. Cremer's and Clevert's ORCIDs are Pfizer-affiliated. Verify against the OpenReview page before anyone posts."
       },
       "defects": [
         "Publication is not a DOI URL and no DOI could be derived (https://openreview.net/forum?id=pB6WAdnRDR)"

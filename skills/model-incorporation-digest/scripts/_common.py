@@ -1,4 +1,4 @@
-"""Shared helpers for the model-incorporation-announcement scripts.
+"""Shared helpers for the model-incorporation-digest scripts.
 
 Standard library only — no third-party imports. Mirrors the pattern of
 event-discovery/scripts/_common.py: stdout is reserved for machine-readable
@@ -15,7 +15,7 @@ import urllib.request
 # public address, not a team member's, so the scripts stay attributable to the org.
 POLITE_MAILTO = "hello@ersilia.io"
 
-USER_AGENT = f"ersilia-skills/model-incorporation-announcement (mailto:{POLITE_MAILTO})"
+USER_AGENT = f"ersilia-skills/model-incorporation-digest (mailto:{POLITE_MAILTO})"
 
 # ISO2 codes for World Bank low- and lower-middle-income economies, used to spot
 # Global-South author institutions. The canonical list — with tiers, source URL and
@@ -173,6 +173,72 @@ def reconstruct_abstract(openalex, crossref):
     return " ".join(text.split()) or None
 
 
+
+def _openalex_authors(openalex):
+    """Ordered authors from an OpenAlex record; ``[]`` when it names nobody."""
+    authors = []
+    for entry in (openalex or {}).get("authorships", []):
+        author = entry.get("author") or {}
+        if not author.get("display_name"):
+            continue
+        authors.append(
+            {
+                "name": author.get("display_name"),
+                "position": entry.get("author_position"),
+                "orcid": author.get("orcid"),
+                "institutions": [
+                    inst.get("display_name")
+                    for inst in entry.get("institutions", [])
+                    if inst.get("display_name")
+                ],
+                "countries": [c for c in entry.get("countries", []) if c],
+                "is_corresponding": bool(entry.get("is_corresponding")),
+            }
+        )
+    return authors
+
+
+def _crossref_authors(crossref):
+    """Ordered authors from a Crossref record, with first/last positions derived."""
+    raw = (crossref or {}).get("author", []) or []
+    authors = []
+    for index, author in enumerate(raw):
+        name = " ".join(p for p in (author.get("given"), author.get("family")) if p)
+        authors.append(
+            {
+                "name": name or None,
+                "position": "first" if index == 0 else ("last" if index == len(raw) - 1 else "middle"),
+                "orcid": author.get("ORCID"),
+                "institutions": [
+                    a.get("name") for a in author.get("affiliation", []) if a.get("name")
+                ],
+                "countries": [],
+                "is_corresponding": False,
+            }
+        )
+    return authors
+
+
+def _prefer_crossref_spelling(openalex_authors, crossref):
+    """Keep OpenAlex's order and affiliations, take Crossref's spelling of each name.
+
+    references/author-lookup.md says to prefer Crossref for spelling — it is the
+    publisher's own deposit — and OpenAlex for order and affiliation. Only the name is
+    swapped, and only when the two records agree on the surname and list the same number of
+    authors, so a mismatched record can never reorder or rename anybody.
+    """
+    crossref_authors = _crossref_authors(crossref)
+    if len(crossref_authors) != len(openalex_authors):
+        return openalex_authors
+    merged = []
+    for oa, cr in zip(openalex_authors, crossref_authors):
+        author = dict(oa)
+        if cr.get("name") and surname(cr["name"]).lower() == surname(oa["name"]).lower():
+            author["name"] = cr["name"]
+        merged.append(author)
+    return merged
+
+
 def build_credit(openalex, crossref):
     """Assemble the author-credit block the post is written from.
 
@@ -193,44 +259,15 @@ def build_credit(openalex, crossref):
         "source": None,
     }
 
-    if openalex:
+    openalex_authors = _openalex_authors(openalex)
+    if openalex_authors:
         credit["source"] = "openalex"
-        for entry in openalex.get("authorships", []):
-            author = entry.get("author") or {}
-            institutions = [
-                inst.get("display_name")
-                for inst in entry.get("institutions", [])
-                if inst.get("display_name")
-            ]
-            countries = [c for c in entry.get("countries", []) if c]
-            credit["authors"].append(
-                {
-                    "name": author.get("display_name"),
-                    "position": entry.get("author_position"),
-                    "orcid": author.get("orcid"),
-                    "institutions": institutions,
-                    "countries": countries,
-                    "is_corresponding": bool(entry.get("is_corresponding")),
-                }
-            )
+        credit["authors"] = _prefer_crossref_spelling(openalex_authors, crossref)
     elif crossref:
+        # OpenAlex can hold a record with an empty authorships list. Falling through means
+        # a usable Crossref list is used instead of reporting the credit unresolved.
         credit["source"] = "crossref"
-        raw = crossref.get("author", []) or []
-        for index, author in enumerate(raw):
-            name = " ".join(p for p in (author.get("given"), author.get("family")) if p)
-            position = "first" if index == 0 else ("last" if index == len(raw) - 1 else "middle")
-            credit["authors"].append(
-                {
-                    "name": name or None,
-                    "position": position,
-                    "orcid": author.get("ORCID"),
-                    "institutions": [
-                        a.get("name") for a in author.get("affiliation", []) if a.get("name")
-                    ],
-                    "countries": [],
-                    "is_corresponding": False,
-                }
-            )
+        credit["authors"] = _crossref_authors(crossref)
 
     authors = credit["authors"]
     credit["n_authors"] = len(authors)

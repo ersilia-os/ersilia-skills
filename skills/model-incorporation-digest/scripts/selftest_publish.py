@@ -163,6 +163,13 @@ def main():
         b = run(["upload_digest.py", "--digest", str(bad)], env)
         check("non-canonical filename refused", b.returncode == 1 and "non-canonical" in b.stderr)
 
+        # --- a shaped-but-impossible date never reaches the network ----------
+        impossible = tmp / "99-99-99-models-digest.md"
+        impossible.write_text(public.read_text())
+        i = run(["upload_digest.py", "--digest", str(impossible)], env)
+        check("impossible date refused", i.returncode == 1 and "not a real date" in i.stderr,
+              i.stderr.strip()[:120])
+
     print()
     if failures:
         print(f"{len(failures)} check(s) failed: {', '.join(failures)}")

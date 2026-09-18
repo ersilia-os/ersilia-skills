@@ -115,7 +115,10 @@ def find_recent_remote(
             candidates.append((d, entry))
     if not candidates:
         return None, None
-    candidates.sort(reverse=True)
+    # Sort on the date alone. Sorting the tuples compares the dict when two filenames
+    # share a date — which the regex allows, since it accepts both the legacy and the
+    # `models-` spelling — and raises TypeError instead of picking one.
+    candidates.sort(key=lambda candidate: candidate[0], reverse=True)
     entry = candidates[0][1]
     return entry.get("path"), entry.get("html_url")
 

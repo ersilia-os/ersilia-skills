@@ -30,7 +30,8 @@ HERE = Path(__file__).resolve().parent
 
 def model(identifier, task, subtask, *, title=None, licence="MIT", summary="A fixture model.",
           authors=None, institutions=None, journal="Journal of Tests", year=2026,
-          defects=None, source_code="https://example.invalid/code"):
+          defects=None, source_code="https://example.invalid/code", doi="10.0000/test",
+          raw_publication=None):
     return {
         "identifier": identifier,
         "model": {
@@ -39,7 +40,9 @@ def model(identifier, task, subtask, *, title=None, licence="MIT", summary="A fi
             "github": f"https://github.com/ersilia-os/{identifier}",
         },
         "publication": {
-            "doi": "10.0000/test", "doi_url": "https://doi.org/10.0000/test",
+            "doi": doi,
+            "doi_url": f"https://doi.org/{doi}" if doi else None,
+            "raw_publication_field": raw_publication,
             "journal": journal, "year": year, "type": "Peer reviewed",
         },
         "credit": {
@@ -54,7 +57,7 @@ def model(identifier, task, subtask, *, title=None, licence="MIT", summary="A fi
 CONTEXT = {
     "month": "2026-08", "month_label": "August 2026", "catalog_size": 999,
     "hub_size_at_month_end": 248, "month_last_day": "2026-08-31",
-    "n_models": 5, "by_task": {"Representation": 2, "Annotation": 2, "Sampling": 1},
+    "n_models": 6, "by_task": {"Representation": 3, "Annotation": 2, "Sampling": 1},
     "by_status": {"Ready": 5}, "n_with_defects": 1, "n_global_south": 0,
     "models": [
         # deliberately out of order, and Sampling first, to prove the renderer sorts
@@ -67,6 +70,9 @@ CONTEXT = {
         model("eosANN1", "Annotation", "Activity prediction", authors=["Solo Author"]),
         model("eosREP2", "Representation", "Projection", journal=None, year=2025,
               institutions=[]),
+        # no DOI, only a raw Publication field — the eos5mnx / OpenReview case
+        model("eosNODOI", "Representation", "Featurization", doi=None,
+              raw_publication="https://openreview.net/forum?id=ABC123"),
     ],
 }
 
@@ -110,7 +116,7 @@ def main():
         # --- task grouping and order ---------------------------------------
         order = [ln for ln in text.splitlines() if ln.startswith("### ")]
         check("groups are Annotation, Representation, Sampling",
-              order == ["### Annotation — 2 models", "### Representation — 2 models",
+              order == ["### Annotation — 2 models", "### Representation — 3 models",
                         "### Sampling — 1 model"], str(order))
         check("singular for a one-model group", "1 model\n" in text + "\n")
         ann = text.split("### Annotation")[1].split("### Representation")[0]
@@ -136,6 +142,8 @@ def main():
         check("the Hub total is the month's, not the catalogue's",
               "248 models incorporated by 2026-08-31" in text and "999" not in text)
         check("tag column carries the task emoji", "🎯 Activity prediction" in text)
+        check("a record with no DOI still gets a paper link",
+              "[Paper](https://openreview.net/forum?id=ABC123)" in text)
 
         # --- the guard against an unfinished digest -------------------------
         half = dict(CONTEXT)

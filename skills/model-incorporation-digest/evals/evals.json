@@ -34,7 +34,7 @@
     {
       "id": 6,
       "prompt": "August 2026 report. Tell me about GLACIER, NaFM and SAND.",
-      "expected_output": "GLACIER and NaFM get paragraphs crediting their first authors (Emily Nguyen, Yuheng Ding). SAND's paragraph states that its author list never resolved and why (Publication is an OpenReview URL, which mints no DOI, and OpenReview answers its API with 403 and its forum pages with a browser check), points at the metadata defect, and asks the user for the author list rather than guessing."
+      "expected_output": "GLACIER and NaFM get rows crediting their first authors (Emily Nguyen, Yuheng Ding). SAND is credited from the names already in the context, which were transcribed by hand. Its paragraph does NOT explain the OpenReview/DOI plumbing — the skill forbids that in a model's description. The skill reports the credit gap to the user when presenting instead, and says what it would need to verify the names against the paper."
     },
     {
       "id": 7,

@@ -276,7 +276,11 @@ def render(context, prepared_on, public=False):
 
             what = cell(record.get("summary")) or TODO
 
-            links = [f"[Paper]({publication['doi_url']})"] if publication.get("doi_url") else []
+            # Fall back to whatever Publication holds. A record with no DOI — eos5mnx's
+            # OpenReview URL — otherwise published with a Code link and no paper at all,
+            # which is the one case where the paper is hardest to find by other means.
+            paper = publication.get("doi_url") or publication.get("raw_publication_field")
+            links = [f"[Paper]({paper})"] if paper else []
             if model.get("source_code"):
                 links.append(f"[Code]({model['source_code']})")
             joined = "<br>".join(links) or "—"

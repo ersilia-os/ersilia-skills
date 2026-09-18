@@ -27,7 +27,7 @@ passed.
 Exit codes:
 - 0 on successful upload + README update. URLs are printed to stdout, one per line, so
   the skill can hand the user clickable links: line 1 is the canonical GitHub **Pages**
-  URL (the rendered page — use this for Slack and for the user), line 2 the github.com
+  URL (the rendered page — the one to hand the user and put in the alert), line 2 the github.com
   source blob, then the download URL (if any) and the README URL.
 - 2 if the remote digest file already exists and `--force` was not passed.
 - 1 on any other error (auth, network, malformed input). If the file upload
@@ -44,8 +44,9 @@ Usage:
 NOTE on the Jekyll site: the `models/` category must be registered once in
 `website/_config.yml` of the digests repo (a `- scope: {path: "models"}` mapping to the
 `digest` layout) for the page to render with the shared layout. The Pages workflow already
-copies every top-level category folder into the site, so no workflow change is needed. See
-the skill's SKILL.md "One-time setup" note.
+layout. The Pages workflow copies each category **by name**, so `models/` also needs its own
+line there — a new folder is not picked up on its own. See the skill's SKILL.md "One-time
+setup" note.
 """
 
 from __future__ import annotations
@@ -57,6 +58,7 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 from _common import warn
@@ -302,11 +304,19 @@ def main(argv: list[str] | None = None) -> int:
     if not local.exists():
         warn(f"digest file not found: {local}")
         return 1
-    if not FILENAME_RE.match(local.name):
+    match = FILENAME_RE.match(local.name)
+    if not match:
         warn(
             f"digest filename {local.name!r} does not match "
             f"YY-MM-DD-models-digest.md — refusing to upload to a non-canonical name"
         )
+        return 1
+    # The regex only checks digit shape, so 99-99-99 would upload and index as 2099-99-99
+    # while the remote guard silently ignored it as an unparseable date.
+    try:
+        date(2000 + int(match.group("yy")), int(match.group("mm")), int(match.group("dd")))
+    except ValueError as exc:
+        warn(f"digest filename {local.name!r} is not a real date ({exc}) — refusing to upload")
         return 1
 
     content_bytes = local.read_bytes()

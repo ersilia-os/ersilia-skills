@@ -13,7 +13,7 @@ description: >
   "publish the digest", "put the monthly digest on the website". Always use this skill for
   monthly incorporation-digest requests even if the ask seems simple.
 argument-hint: "[YYYY-MM] [--publish]"
-allowed-tools: [Bash, Read, Write, WebFetch, WebSearch, AskUserQuestion]
+allowed-tools: [Bash, Read, Write, WebFetch, WebSearch, AskUserQuestion, slack_send_message]
 ---
 
 # Ersilia Model Incorporation Digest

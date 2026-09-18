@@ -83,9 +83,9 @@ the calendar's 13px cell it stays distinct from the coral.
 
 ### Table column widths are per family
 
-This family no longer emits a table, so it sets no widths and takes no `wide` column — the
-config's own note is that widening prose only makes line length worse. The scoping below
-still matters for any family that does add one.
+This family emits one table per task category and takes the `wide` column, so it sets its
+own widths: 14/12/16/46/12 for Model, Tag, Author, What it does and Links. The scoping below
+is what keeps those from reaching the event reports, and theirs from reaching this.
 
 The site's column widths were written for event-discovery's ten-column table but were
 scoped to `.content`, so every family's table inherited them. A four-column digest was
