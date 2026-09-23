@@ -41,7 +41,7 @@ Several of these skills are designed to be chained together as part of a larger 
 | model-monitoring | Track pending models, stored data, etc |
 | model-fixing | When a model fails a test, reviews where it failed and fixes it automatically. |
 | github-digest | Tracks open issues and produces summaries for tech-tracking meetings. |
-| model-incorporation-digest | Internal digest of every model incorporated into the Hub during a month — table, a paragraph per model crediting its original authors, and the metadata defects worth fixing. |
+| model-incorporation-digest | Monthly digest of the models incorporated into the Hub, crediting each model's original authors. |
 
 ### 3. Improve scientific literacy
 
