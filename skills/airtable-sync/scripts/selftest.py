@@ -12,7 +12,8 @@ Each file in `examples/cases/*.json` is one case:
 must appear in the plan and no ``expect_absent`` item may. When feedback changes
 behaviour, add a case here that reproduces it (see record_feedback.py).
 
-A final check confirms build_writes.py refuses flags and unfilled judgement fields.
+A final check confirms build_writes.py refuses flags, unfilled judgement fields,
+choices without a side, unknown items or fields, and rejections of existing rows.
 
 Usage:
     python selftest.py [-k name-substring]
@@ -85,7 +86,7 @@ def run_case(path: Path) -> list[str]:
 
 
 def check_build_writes_guards() -> list[str]:
-    """build_writes must refuse flags and creates with judgement fields left out."""
+    """build_writes must refuse anything that is not a clean, approved, known write."""
     plan = {
         "items": [
             {
@@ -117,18 +118,41 @@ def check_build_writes_guards() -> list[str]:
                 "fields": {},
                 "judgement": [],
                 "ignore_key": None,
-                "options": {"airtable": {"fields": {"status": ["Idle"]}}},
+                "options": {"use-github": {"fields": {"status": ["Idle"]}}},
+            },
+            {
+                "n": 4,
+                "table": "publications",
+                "action": "create",
+                "record_id": None,
+                "label": "p",
+                "fields": {"title": "p", "year": "2026", "status": "Preprint"},
+                "judgement": ["topic"],
+                "ignore_key": "doi:10.1/p",
             },
         ]
     }
+    refusals = (
+        (["--approve", "1"], "a flag"),
+        (["--approve", "2"], "a create without its category"),
+        (["--approve", "3"], "a choice without --choose"),
+        (["--approve", "3", "--choose", "3"], "a malformed --choose"),
+        (["--approve", "9"], "an unknown item number"),
+        (["--reject", "1"], "rejecting an item that is not a new row"),
+        (["--approve", "2", "--judgements", "{tmp}/j.json"], "an unknown field name"),
+        (["--approve", "4", "--judgements", "{tmp}/typo.json"], "a select typo"),
+        (
+            ["--reject", "2", "--approve", "1"],
+            "a run with a refusal (and saves nothing)",
+        ),
+    )
     fails = []
     with tempfile.TemporaryDirectory() as tmp:
         write_json(Path(tmp) / "plan.json", plan)
-        for approve, why in (
-            ("1", "a flag"),
-            ("2", "a create without its category"),
-            ("3", "a choice without --choose"),
-        ):
+        write_json(Path(tmp) / "j.json", {"2": {"category": ["News"], "colour": "red"}})
+        write_json(Path(tmp) / "typo.json", {"4": {"topic": "Chemoinformatic"}})
+        for extra, why in refusals:
+            args = [a.replace("{tmp}", tmp) for a in extra]
             try:
                 with (
                     contextlib.redirect_stderr(io.StringIO()),
@@ -138,18 +162,74 @@ def check_build_writes_guards() -> list[str]:
                         [
                             "--plan",
                             f"{tmp}/plan.json",
-                            "--approve",
-                            approve,
                             "--out",
                             f"{tmp}/w.json",
                             "--ignore",
                             f"{tmp}/i.json",
+                            *args,
                         ]
                     )
                 fails.append(f"build_writes accepted {why}")
             except SystemExit as exc:
                 if exc.code == 0:
                     fails.append(f"build_writes accepted {why}")
+        if (Path(tmp) / "i.json").exists():
+            fails.append("a refused run still wrote the ignore list")
+
+        # A repeated number is one write; a known year needs no typecast, a new one does.
+        write_json(Path(tmp) / "t.json", {"4": {"topic": "Chemoinformatics"}})
+        for year, want in (("2026", False), ("2031", True)):
+            plan["items"][3]["fields"]["year"] = year
+            write_json(Path(tmp) / "plan.json", plan)
+            with contextlib.redirect_stdout(io.StringIO()):
+                build_writes.main(
+                    [
+                        "--plan",
+                        f"{tmp}/plan.json",
+                        "--approve",
+                        "4,4",
+                        "--judgements",
+                        f"{tmp}/t.json",
+                        "--out",
+                        f"{tmp}/w.json",
+                        "--ignore",
+                        f"{tmp}/i.json",
+                    ]
+                )
+            call = read_json(Path(tmp) / "w.json")["calls"][0]
+            if len(call["records"]) != 1:
+                fails.append("a repeated item number was written twice")
+            if call["typecast"] is not want:
+                fails.append(
+                    f"year {year}: typecast {call['typecast']}, expected {want}"
+                )
+
+        # And a clean approval must still go through, mapped to field IDs.
+        write_json(Path(tmp) / "ok.json", {"2": {"category": ["News"]}})
+        with contextlib.redirect_stdout(io.StringIO()):
+            build_writes.main(
+                [
+                    "--plan",
+                    f"{tmp}/plan.json",
+                    "--approve",
+                    "2",
+                    "--judgements",
+                    f"{tmp}/ok.json",
+                    "--out",
+                    f"{tmp}/w.json",
+                    "--ignore",
+                    f"{tmp}/i.json",
+                ]
+            )
+        call = read_json(Path(tmp) / "w.json")["calls"][0]
+        wanted = {"fldy4IdDdGDlvusvx": "y", "fld5t5MIGbE6e8G2B": ["News"]}
+        if (
+            call["tool"] != "create_records_for_table"
+            or call["records"][0]["fields"] != wanted
+        ):
+            fails.append(
+                f"build_writes built the wrong call for a valid approval: {call}"
+            )
     return fails
 
 

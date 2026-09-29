@@ -1,5 +1,5 @@
 {
-  "about": "A known post id is never re-created; tracking queries are stripped; a post moved into the publication is repointed; a new post links its author via the alias map. Lesson 8: an id-only or tracking URL is replaced by the full URL from the feed.",
+  "about": "A known post id is never re-created; tracking queries are stripped; a post moved into the publication is repointed; a new post links its author via the alias map. Lesson 8: an id-only or tracking URL is replaced by the full URL from the feed. Review finding #5: a publication URL is never swapped for a personal-feed one.",
   "inputs": {
     "community": [
       {
@@ -62,6 +62,23 @@
         "category": [
           "News"
         ]
+      },
+      {
+        "id": "rec00000000000004",
+        "slug": "old-pub",
+        "title": "x",
+        "date": "2024-01-01",
+        "url": "https://medium.com/ersiliaio/old-pub-eeeeeeeeeeee",
+        "author": [
+          {
+            "id": "recCOMMUNITY00001",
+            "name": "Gemma Turon Rodrigo"
+          }
+        ],
+        "publisher": "Ersilia",
+        "category": [
+          "News"
+        ]
       }
     ],
     "medium": {
@@ -114,6 +131,18 @@
           "feeds": [
             "f"
           ]
+        },
+        {
+          "post_id": "eeeeeeeeeeee",
+          "title": "Old Pub",
+          "date": "2024-01-01",
+          "url": "https://medium.com/@someone/old-pub-eeeeeeeeeeee",
+          "in_publication": false,
+          "author": "Gemma Turon",
+          "tags": [],
+          "feeds": [
+            "personal"
+          ]
         }
       ]
     }
@@ -160,6 +189,11 @@
       "table": "blogposts",
       "action": "flag",
       "label": "moved"
+    },
+    {
+      "table": "blogposts",
+      "action": "update",
+      "label": "old-pub"
     }
   ]
 }

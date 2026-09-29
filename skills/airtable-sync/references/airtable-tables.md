@@ -2,6 +2,8 @@
 
 Base **Ersilia Content**, `app1iYv78K6xbHkmL`. Verified live on 2026-09-29. The same IDs are in `scripts/_common.py` (`TABLES`), so keep the two in step.
 
+Select options are also in `scripts/_common.py` (`CHOICES`, `KNOWN_YEARS`). `build_writes.py` refuses any other value, so update both when an option is added in Airtable.
+
 "Stats" marks the fields the ersilia-stats site reads: an empty one drops the row from a chart. "Writes" is the policy in `rules.json`: `overwrite`, `fill_empty`, `flag` (never written), or `create` (set only on a new row).
 
 ## Repositories `tbluZtI3W9pseCSPH`

@@ -61,6 +61,14 @@
       "kind": "code",
       "change": "rules.json blogposts.prefer_feed_url = true; plan_sync proposes the feed's canonical URL when the stored one differs.",
       "fixture": "blogposts"
+    },
+    {
+      "n": 9,
+      "date": "2026-09-30",
+      "feedback": "Make sure this skill is clean and well done.",
+      "kind": "code",
+      "change": "Independent review, 11 fixes: repeated item numbers no longer double-write; select values are validated against CHOICES and typecast is set only for a new Publication Year; rejections are saved only after a run validates; choice sides renamed use-airtable/use-github; a published version suppresses rival fills and is flagged if its DOI already has a row; publication URLs never swapped for personal ones; renames never pair a row whose repo still exists; normaliser handles plain-id links and refuses name-keyed cells; review steps show values in full; stale docstrings fixed.",
+      "fixture": "publication-published-version,blogposts,repo-renames-and-subsets"
     }
   ]
 }

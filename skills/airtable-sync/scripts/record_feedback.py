@@ -12,7 +12,8 @@ are applied before a new plan is shown. Each entry says where the fix lives:
 
 Usage:
     python record_feedback.py add --text "what the user said" --kind rule \
-        --change "rules.json: repositories.require_description = true" [--fixture name]
+        --change "rules.json: repositories.require_description = true" \
+        [--fixture case-name[,other-case]]
     python record_feedback.py list
 """
 
@@ -25,6 +26,7 @@ from datetime import date
 from _common import SKILL_DIR, die, read_json, write_json
 
 LOG = SKILL_DIR / "references" / "feedback-log.json"
+CASES = SKILL_DIR / "examples" / "cases"
 KINDS = ("rule", "source", "ignore", "code", "process")
 
 
@@ -46,6 +48,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "add":
         if args.kind == "code" and not args.fixture:
             die("a code change needs --fixture: add a selftest case that reproduces it")
+        missing = [
+            f
+            for f in (args.fixture or "").split(",")
+            if f.strip() and not (CASES / f"{f.strip()}.json").exists()
+        ]
+        if missing:
+            die(f"no such selftest case in examples/cases/: {', '.join(missing)}")
         entry = {
             "n": len(log["entries"]) + 1,
             "date": date.today().isoformat(),

@@ -18,11 +18,16 @@ Output ``writes.json``: ``{"calls": [...]}``. Airtable calls carry ``tool``
 most 50 per call. GitHub calls carry ``tool: "gh"`` and are run by `apply_github.py`,
 never by hand.
 
-A ``choice`` item needs ``--choose <n>:airtable`` (the GitHub value is right, so update
-Airtable) or ``<n>:github`` (the Airtable value is right, so update GitHub).
+A ``choice`` item needs a side, named after the value the user says is right:
+``--choose <n>:use-airtable`` keeps Airtable's value and writes it to GitHub;
+``--choose <n>:use-github`` takes GitHub's value and writes it to Airtable.
+
+Every select value is checked against `_common.CHOICES` before anything is built, so
+``typecast`` is only ever needed, and only set, for a Publication Year that has no
+option yet.
 
 Usage:
-    python build_writes.py --approve 3,4,9-11 [--choose 13:github] [--judgements j.json] \
+    python build_writes.py --approve 3,4,9-11 [--choose 13:use-airtable] [--judgements j.json] \
         [--reject 12,13 --reason "not Ersilia work"] [--plan ...] [--out ...]
 """
 
@@ -34,23 +39,21 @@ from datetime import date
 
 from _common import (
     BASE_ID,
+    CHOICES,
+    KNOWN_YEARS,
     SKILL_DIR,
     TABLES,
     WORK_DIR,
     die,
-    field_id,
     read_json,
     write_json,
 )
 
-# Publication Year is a single select whose options are added one year at a time, so
-# writing a new year must be allowed to create the option. Every other select is
-# written strictly: an unknown option is an error, not a silent new choice.
-TYPECAST_FIELDS = {("publications", "year")}
+SIDES = ("use-airtable", "use-github")
 
 
 def parse_numbers(spec: str | None) -> list[int]:
-    """Parse '3,4,9-11' into [3, 4, 9, 10, 11]."""
+    """Parse '3,4,9-11' into [3, 4, 9, 10, 11], without repeats, in order."""
     out: list[int] = []
     for part in (spec or "").split(","):
         part = part.strip()
@@ -61,7 +64,44 @@ def parse_numbers(spec: str | None) -> list[int]:
             out.extend(range(int(a), int(b) + 1))
         else:
             out.append(int(part))
+    return list(dict.fromkeys(out))
+
+
+def parse_choices(spec: str) -> dict[int, str]:
+    """Parse '13:github,17:airtable' into {13: 'github', 17: 'airtable'}."""
+    out: dict[int, str] = {}
+    for part in (spec or "").split(","):
+        if not part.strip():
+            continue
+        n, sep, side = part.partition(":")
+        if not sep or side.strip() not in SIDES:
+            die(f"bad --choose entry {part!r}: use <n>:use-airtable or <n>:use-github")
+        out[int(n)] = side.strip()
     return out
+
+
+def to_field_ids(table: str, fields: dict, n: int) -> dict:
+    """Map field keys to Airtable field IDs, refusing unknown keys and select values."""
+    known = TABLES[table]["fields"]
+    unknown = [k for k in fields if k not in known]
+    if unknown:
+        die(f"item {n}: {table} has no field {', '.join(unknown)}")
+    for key, value in fields.items():
+        allowed = CHOICES.get((table, key))
+        values = value if isinstance(value, list) else [value]
+        bad = [v for v in values if allowed is not None and v not in allowed]
+        if bad:
+            die(f"item {n}: {bad} is not a {table}.{key} option ({sorted(allowed)})")
+        if (table, key) == ("publications", "year") and not str(value).isdigit():
+            die(f"item {n}: year {value!r} is not a year")
+    return {known[k][0]: v for k, v in fields.items()}
+
+
+def needs_typecast(table: str, fields: dict) -> bool:
+    """Only a Publication Year without an existing option needs Airtable typecast."""
+    return table == "publications" and str(fields.get("year") or "") not in (
+        KNOWN_YEARS | {""}
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -95,17 +135,21 @@ def main(argv: list[str] | None = None) -> int:
     approve, reject = parse_numbers(args.approve), parse_numbers(args.reject)
     if set(approve) & set(reject):
         die(f"items both approved and rejected: {sorted(set(approve) & set(reject))}")
+    unknown = sorted(n for n in [*approve, *reject] if n not in by_n)
+    if unknown:
+        die(f"no such item(s): {unknown}")
+    not_new = [n for n in reject if by_n[n]["action"] != "create"]
+    if not_new:
+        die(f"only new rows can be rejected; skip these instead: {not_new}")
 
-    if reject:
+    def save_rejections() -> None:
+        if not reject:
+            return
         ignore = read_json(args.ignore) or {"entries": []}
         known = {e["key"] for e in ignore["entries"]}
         for n in reject:
-            item = by_n.get(n) or die(f"no item {n}")
-            if (
-                item["action"] == "create"
-                and item["ignore_key"]
-                and item["ignore_key"] not in known
-            ):
+            item = by_n[n]
+            if item["ignore_key"] and item["ignore_key"] not in known:
                 ignore["entries"].append(
                     {
                         "key": item["ignore_key"],
@@ -118,23 +162,25 @@ def main(argv: list[str] | None = None) -> int:
         write_json(args.ignore, ignore)
         print(f"ignore-list: {len(ignore['entries'])} entries")
 
-    choose = dict(
-        (int(a), b.strip())
-        for a, b in (x.split(":") for x in args.choose.split(",") if x)
-    )
+    # Rejections are saved only at the end, once every approval has been validated,
+    # so a refused run leaves the ignore list untouched.
+
+    choose = parse_choices(args.choose)
     groups: dict[tuple, list] = {}
     gh_calls: list[dict] = []
     for n in approve:
-        item = by_n.get(n) or die(f"no item {n}")
+        item = by_n[n]
         action = item["action"]
         if action == "flag":
             die(f"item {n} is report-only (flag) and cannot be written")
         if action == "choice":
-            side = choose.get(n) or die(
-                f"item {n} is a choice: pass --choose {n}:airtable|github"
-            )
-            opt = item["options"].get(side) or die(f"item {n} has no option {side!r}")
-            if side == "github":
+            if n not in choose:
+                die(
+                    f"item {n} is a choice: pass --choose {n}:use-airtable or {n}:use-github"
+                )
+            side = choose[n]
+            opt = item["options"][side]
+            if side == "use-airtable":
                 gh_calls.append(
                     {
                         "tool": "gh",
@@ -176,10 +222,10 @@ def main(argv: list[str] | None = None) -> int:
             fields.update({k: v for k, v in given.items() if v not in (None, "", [])})
         else:
             fields.update(judgements.get(n, {}))
-        record = {"fields": {field_id(item["table"], k): v for k, v in fields.items()}}
+        record = {"fields": to_field_ids(item["table"], fields, n)}
         if action == "update":
             record["id"] = item["record_id"]
-        typecast = any((item["table"], k) in TYPECAST_FIELDS for k in fields)
+        typecast = needs_typecast(item["table"], fields)
         groups.setdefault((item["table"], action, typecast), []).append((n, record))
 
     tools = {
@@ -204,6 +250,7 @@ def main(argv: list[str] | None = None) -> int:
                 call["records"] = [r for _, r in chunk]
             calls.append(call)
     calls += gh_calls
+    save_rejections()
     write_json(args.out, {"calls": calls})
     total = sum(len(c["items"]) for c in calls)
     print(f"writes: {total} record(s) in {len(calls)} call(s) -> {args.out}")

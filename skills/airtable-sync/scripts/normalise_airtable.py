@@ -54,16 +54,29 @@ def _flatten(value, kind: str):
     if kind == "multi":
         return [v.get("name") if isinstance(v, dict) else v for v in value]
     if kind == "links":
-        return [{"id": v.get("id"), "name": v.get("name")} for v in value]
+        return [
+            {"id": v.get("id"), "name": v.get("name")}
+            if isinstance(v, dict)
+            else {"id": v, "name": None}
+            for v in value
+        ]
     return value
 
 
 def normalise(table: str, records: list[dict]) -> list[dict]:
     """Map raw connector records to ``{"id", <key>: value}`` rows for ``table``."""
     fields = TABLES[table]["fields"]
+    ids = {fid for fid, _ in fields.values()}
     rows = []
     for rec in records:
         cells = rec.get("cellValuesByFieldId") or rec.get("fields") or {}
+        if cells and not set(cells) & ids:
+            # Keyed by field name, or by the wrong table's IDs: every value would be
+            # None and every row would look empty, so refuse rather than mislead.
+            die(
+                f"record {rec.get('id')}: no known {table} field IDs in its cells;"
+                " request the table with fieldIds from airtable-tables.md"
+            )
         row = {"id": rec.get("id")}
         for key, (fid, kind) in fields.items():
             row[key] = _flatten(cells.get(fid), kind)

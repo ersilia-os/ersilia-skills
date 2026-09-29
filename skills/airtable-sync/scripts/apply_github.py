@@ -26,11 +26,11 @@ def check(call: dict) -> str | None:
     """Return a problem description, or None if GitHub now holds the approved value."""
     repo, want = call["repo"], call.get("check") or {}
     if "description" in want:
-        data, err = run_gh_json(["api", f"repos/ersilia-os/{repo}"])
+        data, _ = run_gh_json(["api", f"repos/ersilia-os/{repo}"])
         got = (data or {}).get("description")
         return None if got == want["description"] else f"description is {got!r}"
     if "property" in want:
-        data, err = run_gh_json(["api", f"repos/ersilia-os/{repo}/properties/values"])
+        data, _ = run_gh_json(["api", f"repos/ersilia-os/{repo}/properties/values"])
         values = {p.get("property_name"): p.get("value") for p in data or []}
         got = values.get(want["property"])
         got = got if isinstance(got, list) else [got] if got else []

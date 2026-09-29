@@ -1,0 +1,177 @@
+{
+  "about": "Review findings #3 and #6: a preprint's published version is one update (no rival journal/year fill from the preprint DOI), and a published DOI that already has its own row is flagged as a duplicate instead.",
+  "inputs": {
+    "publications": [
+      {
+        "id": "rec00000000000001",
+        "slug": "pre",
+        "title": "Deep learning for TB",
+        "doi": "https://doi.org/10.1101/tb",
+        "status": "Preprint",
+        "year": null,
+        "journal": null,
+        "affiliation": "Yes",
+        "topic": "Bioinformatics",
+        "type": "Research",
+        "african_collaboration": "No"
+      },
+      {
+        "id": "rec00000000000002",
+        "slug": "pre2",
+        "title": "Malaria models at scale",
+        "doi": "https://doi.org/10.1101/mal",
+        "status": "Preprint",
+        "year": null,
+        "journal": null,
+        "affiliation": "Yes",
+        "topic": "Bioinformatics",
+        "type": "Research",
+        "african_collaboration": "No"
+      },
+      {
+        "id": "rec00000000000003",
+        "slug": "pub2",
+        "title": "Malaria models at scale",
+        "doi": "https://doi.org/10.1038/mal",
+        "status": "Peer reviewed",
+        "year": "2026",
+        "journal": "Nature",
+        "affiliation": "Yes",
+        "topic": "Bioinformatics",
+        "type": "Research",
+        "african_collaboration": "No"
+      }
+    ],
+    "openalex": {
+      "errors": [],
+      "works": [],
+      "by_doi": {
+        "10.1101/tb": {
+          "openalex_id": "W1",
+          "doi": "10.1101/tb",
+          "title": "Deep learning for TB",
+          "year": 2025,
+          "type": "article",
+          "source_name": "bioRxiv",
+          "source_type": "repository",
+          "landing_url": null,
+          "authors": [
+            "A B"
+          ],
+          "author_ids": [],
+          "institution_hit": true,
+          "countries": [
+            "ES"
+          ]
+        },
+        "10.1101/mal": {
+          "openalex_id": "W2",
+          "doi": "10.1101/mal",
+          "title": "Malaria models at scale",
+          "year": 2025,
+          "type": "article",
+          "source_name": "bioRxiv",
+          "source_type": "repository",
+          "landing_url": null,
+          "authors": [
+            "A B"
+          ],
+          "author_ids": [],
+          "institution_hit": true,
+          "countries": [
+            "ES"
+          ]
+        },
+        "10.1038/mal": {
+          "openalex_id": "W3",
+          "doi": "10.1038/mal",
+          "title": "Malaria models at scale",
+          "year": 2026,
+          "type": "article",
+          "source_name": "Nature",
+          "source_type": "journal",
+          "landing_url": null,
+          "authors": [
+            "A B"
+          ],
+          "author_ids": [],
+          "institution_hit": true,
+          "countries": [
+            "ES"
+          ]
+        }
+      },
+      "title_matches": {
+        "rec00000000000001": [
+          {
+            "openalex_id": "W4",
+            "doi": "10.1038/tb",
+            "title": "Deep learning for TB",
+            "year": 2026,
+            "type": "article",
+            "source_name": "Nature",
+            "source_type": "journal",
+            "landing_url": null,
+            "authors": [
+              "A B"
+            ],
+            "author_ids": [],
+            "institution_hit": true,
+            "countries": [
+              "ES"
+            ]
+          }
+        ],
+        "rec00000000000002": [
+          {
+            "openalex_id": "W3",
+            "doi": "10.1038/mal",
+            "title": "Malaria models at scale",
+            "year": 2026,
+            "type": "article",
+            "source_name": "Nature",
+            "source_type": "journal",
+            "landing_url": null,
+            "authors": [
+              "A B"
+            ],
+            "author_ids": [],
+            "institution_hit": true,
+            "countries": [
+              "ES"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "expect": [
+    {
+      "table": "publications",
+      "action": "update",
+      "label": "pre",
+      "field": "journal",
+      "value": "Nature"
+    },
+    {
+      "table": "publications",
+      "action": "flag",
+      "label": "pre2",
+      "reason_has": "already the row pub2"
+    }
+  ],
+  "expect_absent": [
+    {
+      "table": "publications",
+      "action": "update",
+      "label": "pre",
+      "field": "journal",
+      "value": "bioRxiv"
+    },
+    {
+      "table": "publications",
+      "action": "update",
+      "label": "pre2"
+    }
+  ]
+}

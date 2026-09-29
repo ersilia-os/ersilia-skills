@@ -1,5 +1,5 @@
 {
-  "about": "A renamed repository becomes a Name update (not a 'gone' flag plus a new row); a GitHub Status/Type that is a subset of Airtable's is not a mismatch, a disjoint one is. Lesson 4: a real Status/Type disagreement is a choice (which side is right), not a flag. Lesson 7: a repo recreated under a new name (no redirect) is matched by creation date plus description or name prefix, and proposed as a rename.",
+  "about": "A renamed repository becomes a Name update (not a 'gone' flag plus a new row); a GitHub Status/Type that is a subset of Airtable's is not a mismatch, a disjoint one is. Lesson 4: a real Status/Type disagreement is a choice (which side is right), not a flag. Lesson 7: a repo recreated under a new name (no redirect) is matched by creation date plus description or name prefix, and proposed as a rename. Review finding #11: a row whose repo still exists (here a fork) is never paired as a rename.",
   "inputs": {
     "github": {
       "org": "ersilia-os",
@@ -61,6 +61,28 @@
           "fork": false,
           "archived": false,
           "created_at": "2026-09-07",
+          "gh_status": [],
+          "gh_type": [],
+          "is_model": false
+        },
+        {
+          "name": "forked-tool",
+          "description": "d",
+          "private": false,
+          "fork": true,
+          "archived": false,
+          "created_at": "2025-05-05",
+          "gh_status": [],
+          "gh_type": [],
+          "is_model": false
+        },
+        {
+          "name": "forked-tool-v2",
+          "description": "d",
+          "private": false,
+          "fork": false,
+          "archived": false,
+          "created_at": "2025-05-05",
           "gh_status": [],
           "gh_type": [],
           "is_model": false
@@ -128,6 +150,21 @@
         "visibility": "Public",
         "projects": [],
         "creation_date": "2026-09-07"
+      },
+      {
+        "id": "rec00000000000008",
+        "name": "forked-tool",
+        "title": "x",
+        "description": "d",
+        "status": [
+          "Idle"
+        ],
+        "type": [
+          "Package"
+        ],
+        "visibility": "Public",
+        "projects": [],
+        "creation_date": "2025-05-05"
       }
     ]
   },
@@ -151,6 +188,11 @@
       "label": "workshop",
       "field": "name",
       "value": "workshop-2026"
+    },
+    {
+      "table": "repositories",
+      "action": "create",
+      "label": "forked-tool-v2"
     }
   ],
   "expect_absent": [
@@ -178,6 +220,12 @@
       "table": "repositories",
       "action": "delete",
       "label": "workshop"
+    },
+    {
+      "table": "repositories",
+      "action": "update",
+      "label": "forked-tool",
+      "field": "name"
     }
   ]
 }

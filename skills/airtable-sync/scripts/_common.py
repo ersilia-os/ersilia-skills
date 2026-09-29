@@ -79,6 +79,51 @@ TABLES: dict[str, dict] = {
     },
 }
 
+# Select options per field, as configured in Airtable (see airtable-tables.md).
+# build_writes.py refuses any other value, so a typo can never become a new option.
+# Publication Year is the one select that grows: a year not listed here is written
+# with typecast so Airtable creates the option; add it here after the run.
+CHOICES: dict[tuple[str, str], set[str]] = {
+    ("repositories", "status"): {
+        "Todo",
+        "In progress",
+        "Completed",
+        "Archived",
+        "Discontinued",
+        "Idle",
+    },
+    ("repositories", "type"): {
+        "Workshop",
+        "Package",
+        "Analysis",
+        "Automation",
+        "Template",
+        "App",
+        "Documentation",
+    },
+    ("repositories", "visibility"): {"Public", "Private"},
+    ("publications", "status"): {"In progress", "Preprint", "Peer reviewed"},
+    ("publications", "affiliation"): {"Yes", "No"},
+    ("publications", "senior"): {"Yes", "No"},
+    ("publications", "african_collaboration"): {"Yes", "No"},
+    ("publications", "topic"): {
+        "Bioinformatics",
+        "Chemoinformatics",
+        "Medical informatics",
+        "Molecular biology",
+    },
+    ("publications", "type"): {"Research", "Review"},
+    ("blogposts", "publisher"): {"Ersilia", "Other"},
+    ("blogposts", "category"): {
+        "Technology",
+        "Training",
+        "News",
+        "Global Health",
+        "Science",
+    },
+}
+KNOWN_YEARS = {"2013", "2014"} | {str(y) for y in range(2017, 2027)}
+
 # Fields the ersilia-stats site reads from each table. An empty one silently drops the
 # row out of a chart, so it is reported as a gap for a person to fill.
 STATS_FIELDS: dict[str, list[str]] = {
@@ -108,11 +153,6 @@ AFRICA_ISO2 = frozenset(
 # Model repositories live in the "Ersilia Model Hub" base, never in Repositories.
 # Stricter than ^eos[0-9a-z]{4}$ on purpose: eosvc, eosbench, eosdev... are not models.
 MODEL_REPO_RE = re.compile(r"^eos[0-9][0-9a-z]{3}$")
-
-
-def field_id(table: str, key: str) -> str:
-    """Return the Airtable field ID for ``key`` in ``table``."""
-    return TABLES[table]["fields"][key][0]
 
 
 def warn(message: str) -> None:

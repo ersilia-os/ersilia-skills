@@ -34,6 +34,19 @@ Scripts decide; you explain, fill the judgement fields and ask. Everything deter
 
 Scripts run from `scripts/` with the Python 3 standard library only, and work in `/tmp/airtable_sync/`.
 
+| Script | Does |
+|---|---|
+| `check_references_freshness.py` | Says whether the reference files are due for a re-check |
+| `record_feedback.py` | Lists the lessons (`list`) or logs a new one (`add`) |
+| `normalise_airtable.py` | Turns connector dumps into one clean JSON list per table |
+| `fetch_github.py`, `fetch_openalex.py`, `fetch_medium.py` | Read the sources (read-only) |
+| `plan_sync.py` | Compares tables with sources and writes the numbered plan |
+| `render_plan.py` | Shows the plan as review steps (`--steps`, `--step k`, `--gaps`) |
+| `build_writes.py` | Turns approved item numbers into connector calls; records rejections |
+| `apply_github.py` | Runs approved `gh` commands and reads the values back |
+| `verify_writes.py` | Checks re-read records against what was written |
+| `selftest.py` | Offline regression test over `examples/cases/` |
+
 ## Workflow
 
 ### 0. Pre-flight
@@ -113,8 +126,8 @@ For each step `k` in order:
    - **Approve some**: the user lists the item numbers.
    - **Skip this step**
    - **Reject** (only for new-row steps): not wanted, and never proposed again. Ask for a one-line reason.
-   - For a `choice` step, ask which side is right for each item.
-   - For a `delete` step, point out any row that looks like the same thing as a new row, and offer to merge it into the curated row instead.
+   - For a `choice` step, ask which side is right for each item, then pass it as `--choose <n>:use-airtable` (Airtable's value is right, so GitHub is changed) or `<n>:use-github` (GitHub's value is right, so Airtable is changed). The option names say whose value survives.
+   - For a `delete` step, check whether the row looks like the same thing as a new row. The planner already turns a matching creation date and description into a rename, so this is only for looser matches. If it does, offer to merge it into the curated row instead of deleting it.
 4. For a report-only step (flags), there is nothing to approve. Show it and ask whether any of it should become a rule (Step 8).
 
 Keep each message short. Don't show the next step until the current one is answered.
@@ -122,7 +135,7 @@ Keep each message short. Don't show the next step until the current one is answe
 ### 6. Write what was approved, straight after each approval
 
 ```
-python build_writes.py --approve <numbers> [--choose <n>:airtable|github,...] \
+python build_writes.py --approve <numbers> [--choose <n>:use-airtable|use-github,...] \
     [--judgements /tmp/airtable_sync/judgements.json] [--reject <numbers> --reason "<why>"]
 ```
 
@@ -136,10 +149,16 @@ Read `/tmp/airtable_sync/writes.json`. For each call, tell the user in one line 
 Then verify, cheaply:
 
 - **Preferred, a filter:** one `list_records_for_table` call that must come back empty. For example, filter `isEmpty` on the field you just filled, or `contains "?"` on URLs after a tracking cleanup. Add a `recordIds` read of one or two records to spot-check the values.
-- **Otherwise, the full check:** re-read the records by `recordIds`, write them compacted, then run `normalise_airtable.py --out /tmp/airtable_sync/<table>.after.json` and `python verify_writes.py`. Deleted records must be absent.
+- **Otherwise, the full check:** re-read the records by `recordIds`, requesting every field that was written. New rows have no id until the create call returns one, so use the ids from its response. Write the records compacted, then run `normalise_airtable.py --out /tmp/airtable_sync/<table>.after.json` and `python verify_writes.py`. Deleted records must be absent.
 - Report the result. If anything mismatches, show it and ask before any further write.
 
-`build_writes.py` refuses flags, unknown numbers, and new rows with judgement fields missing. Don't work around a refusal.
+`build_writes.py` refuses:
+
+- flags, unknown item numbers or fields, and new rows with judgement fields missing;
+- a choice without a side, and rejecting anything other than a new row;
+- any select value that isn't an existing option.
+
+It sets `typecast` only for a Publication Year that has no option yet. Once that year is created, add it to `KNOWN_YEARS` in `_common.py`. Don't work around a refusal.
 
 ### 7. Summary
 

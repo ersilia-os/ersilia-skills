@@ -4,11 +4,14 @@ The skill walks the user through the plan one step at a time and asks for approv
 each step before anything is written. This script decides the steps, so the order and
 the grouping are the same on every run:
 
-    per table (Repositories, Publications, Blogposts):
-      1. urgent fixes     updates with priority 1
-      2. corrections      the other updates
-      3. new rows         creates
-      4. for your info    flags (never written; a person decides)
+    per table (Repositories, Publications, Blogposts), in this order:
+      urgent fixes          updates with priority 1 (renames, private repos shown as public)
+      corrections           the other updates
+      new rows              creates
+      which side is right?  choices between Airtable and GitHub
+      GitHub fixes          gh commands
+      rows to delete        rows whose repository is gone
+      for your info         flags (never written; a person decides)
 
 At most ``--max`` items per step; a longer group is split into parts.
 
@@ -71,11 +74,8 @@ def _show(value) -> str:
         return ", ".join(
             str(v.get("name", v)) if isinstance(v, dict) else str(v) for v in value
         )
-    text = str(value)
-    if len(text) <= 90:
-        return text
-    # Keep both ends: for a URL the tail (post id, query string) is what changed.
-    return text[:50] + "..." + text[-37:]
+    # Shown in full: the user approves exactly what is displayed, so nothing is cut.
+    return str(value)
 
 
 def describe(item: dict) -> list[str]:

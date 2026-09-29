@@ -6,12 +6,14 @@ Three lookups, all read-only against the public OpenAlex API:
    by the team authors in `references/sources.json` from their ``since`` year. These are
    the candidates for new rows.
 2. **Existing rows.** Each Airtable row with a DOI, looked up by DOI (50 per request),
-   so Year and Journal can be checked and filled.
+   so Year, Journal and African collaboration can be checked and filled.
 3. **Preprints.** Each Airtable row whose Status is Preprint, searched by title, so a
    published version can be proposed.
 
 Writes ``{"works": [...], "by_doi": {doi: work}, "title_matches": {record_id: [...]},
-"errors": [...]}``, where every work is reduced to the fields `plan_sync.py` uses.
+"errors": [...]}``, where every work is reduced by `compact` to the fields
+`plan_sync.py` uses: authors and their ids, which of them are Ersilia-affiliated and
+which are last or corresponding, and the institution countries.
 
 Usage:
     python fetch_openalex.py --airtable /tmp/airtable_sync/publications.json \

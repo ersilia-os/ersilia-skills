@@ -7,17 +7,25 @@ scripts leave in the work directory:
     repositories.json publications.json blogposts.json community.json   (normalise_airtable.py)
     github.json openalex.json medium.json                                (fetch_*.py)
 
+community.json is optional: authors already linked on Blogposts rows are used first.
 A table whose inputs are missing is skipped and listed under ``skipped``. Output:
 
-    {"items": [{"n", "table", "action", "record_id", "label", "fields", "judgement",
-                "reason", "priority", "ignore_key"}],
+    {"items": [{"n", "table", "action", "record_id", "label", "fields", "current",
+                "judgement", "reason", "priority", "ignore_key", ...}],
      "gaps": [{"table", "record_id", "label", "missing"}],
      "skipped": [...], "counts": {...}}
 
-``action`` is ``create`` or ``update`` (both writable once approved) or ``flag``
-(report only). ``fields`` uses the keys of `_common.TABLES`, not field IDs;
-`build_writes.py` maps them. ``judgement`` lists fields the model must fill before
-writing. ``priority`` 1 means "fix first".
+``action`` is one of:
+
+    update  change fields of a row            create  add a row
+    choice  Airtable and GitHub disagree:     github  a gh command (``command``)
+            the user picks a side (``options``)
+    delete  the row's repo is gone             flag    report only, never written
+
+Everything except ``flag`` is written only after the user approves it.
+``fields`` and ``current`` use the keys of `_common.TABLES`, not field IDs;
+`build_writes.py` maps them. ``judgement`` lists fields the model must fill before a
+create is written. ``priority`` 1 means "fix first".
 
 Usage:
     python plan_sync.py [--work /tmp/airtable_sync] [--rules ...] [--ignore ...] \
@@ -87,6 +95,13 @@ def similar(a: str, b: str, threshold: float) -> bool:
     if na == nb or (min(len(na), len(nb)) > 40 and (na in nb or nb in na)):
         return True
     return difflib.SequenceMatcher(None, na, nb).ratio() >= threshold
+
+
+def african_collaboration(work: dict) -> str | None:
+    """Yes/No from the author institution countries OpenAlex recorded, or None."""
+    if "countries" not in work:
+        return None
+    return "Yes" if set(work["countries"]) & AFRICA_ISO2 else "No"
 
 
 def _surnames(authors) -> set[str]:
@@ -301,12 +316,12 @@ def ask_which_side(pl: Planner, row, name, key, gh_value, rules):
         record_id=row["id"],
         extra={
             "options": {
-                "airtable": {
+                "use-github": {
                     "label": f"GitHub is right: set Airtable {key} to {', '.join(gh_value)}",
                     "fields": {key: gh_value},
                     "current": {key: at_value},
                 },
-                "github": {
+                "use-airtable": {
                     "label": f"Airtable is right: set GitHub {key} to {', '.join(at_value)}",
                     "command": [
                         "gh",
@@ -325,7 +340,7 @@ def ask_which_side(pl: Planner, row, name, key, gh_value, rules):
     )
 
 
-def infer_renames(rows, tracked, by_name, known) -> dict[str, str]:
+def infer_renames(rows, all_gh, tracked, by_name, known) -> dict[str, str]:
     """Pair a row whose repo is gone with an untracked repo that is clearly the same.
 
     GitHub only redirects a renamed repository; one that was recreated under a new
@@ -338,7 +353,7 @@ def infer_renames(rows, tracked, by_name, known) -> dict[str, str]:
     out: dict[str, str] = {}
     for row in rows:
         old = row.get("name") or ""
-        if not old or old in tracked or old in known:
+        if not old or old in all_gh or old in known:
             continue
         for name, repo in sorted(untracked.items()):
             if name in taken or repo["created_at"] != row.get("creation_date"):
@@ -372,7 +387,7 @@ def plan_repositories(pl: Planner, rows, gh, rules):
         old: new for old, new in (gh.get("renames") or {}).items() if new in all_gh
     }
     if r.get("infer_renames"):
-        renames.update(infer_renames(rows, tracked, by_name, renames))
+        renames.update(infer_renames(rows, all_gh, tracked, by_name, renames))
     renamed_to = set(renames.values())
     props_ok = gh.get("properties_ok", True)
     if not props_ok:
@@ -534,13 +549,56 @@ def _pub_fields(work: dict, rules: dict, team_ids: set[str] = frozenset()) -> di
         "type": rules["type_map"].get(work.get("type") or "", "Research"),
         "affiliation": "Yes" if work.get("institution_hit") else "No",
     }
-    if "countries" in work:
-        african = set(work["countries"]) & AFRICA_ISO2
-        fields["african_collaboration"] = "Yes" if african else "No"
+    fields["african_collaboration"] = african_collaboration(work)
     if "senior_author_ids" in work:
         ours = team_ids | set(work.get("ersilia_author_ids") or [])
         fields["senior"] = "Yes" if ours & set(work["senior_author_ids"]) else "No"
     return {k: v for k, v in fields.items() if not _empty(v)}
+
+
+def published_version(pl: Planner, row, label, oa, r, by_doi_row) -> bool:
+    """Propose the journal version of a Preprint row, if OpenAlex found one.
+
+    Returns True when an item was added for this row (an update, or a flag when the
+    published DOI already belongs to another row), so the caller skips the ordinary
+    fill-ins that would otherwise compete with it for DOI, journal and year.
+    """
+    for cand in oa.get("title_matches", {}).get(row["id"], []):
+        if not (
+            cand.get("source_type") == "journal"
+            and cand.get("doi")
+            and cand["doi"] != normalise_doi(row.get("doi"))
+            and similar(cand["title"], row.get("title"), r["title_match_threshold"])
+        ):
+            continue
+        owner = by_doi_row.get(cand["doi"])
+        if owner is not None:
+            pl.add(
+                "publications",
+                "flag",
+                label,
+                f"published version {cand['doi']} is already the row"
+                f" {owner.get('slug') or owner['id']}: one of the two is a duplicate",
+                record_id=row["id"],
+            )
+            return True
+        fields = {
+            k: v
+            for k, v in _pub_fields(cand, r).items()
+            if k in ("doi", "url", "journal", "year", "status")
+        }
+        pl.add(
+            "publications",
+            "update",
+            label,
+            f"published version found in {cand.get('source_name')}",
+            record_id=row["id"],
+            fields=fields,
+            current={k: row.get(k) for k in fields},
+            priority=1,
+        )
+        return True
+    return False
 
 
 def plan_publications(pl: Planner, rows, oa, rules, sources):
@@ -556,6 +614,8 @@ def plan_publications(pl: Planner, rows, oa, rules, sources):
 
     for row in rows:
         label = row.get("slug") or row.get("title") or row["id"]
+        if published_version(pl, row, label, oa, r, by_doi_row):
+            continue  # that update sets DOI, journal and year; don't propose rivals
         work = oa["by_doi"].get(normalise_doi(row.get("doi")) or "")
         if work is None and not row.get("doi"):
             work = next(
@@ -571,10 +631,8 @@ def plan_publications(pl: Planner, rows, oa, rules, sources):
                 "year": str(work["year"]) if work.get("year") else None,
                 "journal": work.get("source_name"),
                 "doi": doi_url(work["doi"]) if work.get("doi") else None,
+                "african_collaboration": african_collaboration(work),
             }
-            if "countries" in work:
-                african = set(work["countries"]) & AFRICA_ISO2
-                proposals["african_collaboration"] = "Yes" if african else "No"
             countries = ", ".join(work.get("countries") or []) or "none recorded"
             pl.field_changes(
                 "publications",
@@ -602,29 +660,6 @@ def plan_publications(pl: Planner, rows, oa, rules, sources):
                     f"Year {row['year']} in Airtable, {work['year']} in OpenAlex",
                     record_id=row["id"],
                 )
-        for cand in oa.get("title_matches", {}).get(row["id"], []):
-            if (
-                cand.get("source_type") == "journal"
-                and cand.get("doi")
-                and cand["doi"] != normalise_doi(row.get("doi"))
-                and similar(cand["title"], row.get("title"), thr)
-            ):
-                fields = {
-                    k: v
-                    for k, v in _pub_fields(cand, r).items()
-                    if k in ("doi", "url", "journal", "year", "status")
-                }
-                pl.add(
-                    "publications",
-                    "update",
-                    label,
-                    f"published version found in {cand.get('source_name')}",
-                    record_id=row["id"],
-                    fields=fields,
-                    current={k: row.get(k) for k in fields},
-                    priority=1,
-                )
-                break
 
     # Existing rows as works: their titles, plus the OpenAlex record behind each DOI,
     # which carries the author list needed to spot a preprint under another title.
@@ -702,7 +737,6 @@ def plan_blogposts(pl: Planner, rows, medium, community, rules):
         if medium_post_id(row.get("url"))
     }
     by_url = {clean_url(row.get("url")): row for row in rows if row.get("url")}
-    matched = set()
 
     for post in medium["posts"]:
         row = by_id.get(post["post_id"]) or by_url.get(post["url"])
@@ -734,7 +768,6 @@ def plan_blogposts(pl: Planner, rows, medium, community, rules):
                 ignore_key=f"medium:{post['post_id'] or post['url']}",
             )
             continue
-        matched.add(row["id"])
         label = row.get("slug") or row.get("title") or row["id"]
         updates, why = {}, []
         if (
@@ -748,6 +781,8 @@ def plan_blogposts(pl: Planner, rows, medium, community, rules):
             r.get("prefer_feed_url")
             and clean_url(row.get("url")) != post["url"]
             and medium_slug(post["url"]) != post["post_id"]
+            # never trade a publication URL for a personal-feed one
+            and (post["in_publication"] or "/ersiliaio/" not in (row.get("url") or ""))
         ):
             updates["url"] = post["url"]
             why.append("use the full URL from the feed")
