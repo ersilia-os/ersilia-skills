@@ -41,6 +41,7 @@ WALL_OF_TEXT_CHARS = 6000  # prose past this with no disclosure device is a wall
 MAX_FLAT_ACCENTS = 4       # distinct accent hues used flat before it looks noisy
 MAX_UPPERCASE_RULES = 2    # more text-transform:uppercase rules than this reads as shouty
 
+_ABS_URL_RE = re.compile(r"^https?://", re.I)
 _IMG_RE = re.compile(r"<img\b[^>]*>", re.I)
 _ALT_RE = re.compile(r"\balt\s*=", re.I)
 _FONT_FAMILY_RE = re.compile(r"font-family\s*:", re.I)
@@ -107,6 +108,27 @@ def run_checks(html: str) -> tuple[list[dict], list[dict]]:
             "T1-FAVICON", "T1", "Nice-to-have",
             "No favicon — the browser tab has no Ersilia mark.",
             "Add the inline-SVG favicon from assets/head.html (a plain plum circle).",
+        ))
+
+    # -- T1: social preview ------------------------------------------------
+    # Nice-to-have because it depends on where the page goes: a hosted page shared on
+    # LinkedIn or in Slack needs the card, an Artifact has no public URL to put in one.
+    # Judgement applies — say so rather than inventing a URL to silence it.
+    if not doc.metas.get("og:image"):
+        findings.append(finding(
+            "T1-SOCIAL-PREVIEW", "T1", "Nice-to-have",
+            "No og:image — shared on LinkedIn or Slack, this page previews as a bare card "
+            "with only its title.",
+            "If the page will be hosted at a public URL: screenshot it with "
+            "scripts/make_og_image.py --zoom 1.4, then pass --description --url --og-image "
+            "(absolute) to apply_theme.py. Ignore for an Artifact.",
+        ))
+    elif not _ABS_URL_RE.match(doc.metas["og:image"]):
+        findings.append(finding(
+            "T1-SOCIAL-PREVIEW", "T1", "Should-fix",
+            f"og:image is not an absolute URL: {doc.metas['og:image']!r}.",
+            "Crawlers fetch it with no page context, so a relative path or data: URI "
+            "produces no card at all. Use the full https:// URL it is served from.",
         ))
 
     # -- T1: clutter — too many top-level sections ------------------------

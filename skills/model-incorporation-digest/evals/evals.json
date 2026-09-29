@@ -1,0 +1,60 @@
+{
+  "skill_name": "model-incorporation-digest",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Produce the monthly technology report for August 2026.",
+      "expected_output": "A digest at reports/2026-08-digest.md covering the 10 models whose Incorporation Date falls in 2026-08 (4 Representation, 4 Sampling, 2 Annotation, all Ready): a summary table, a paragraph per model saying what it does and what it was trained on, and a 'Metadata to fix' section. No LinkedIn draft and no profiles worksheet are produced, and none are offered. eos5mnx (SAND) must be flagged as having no resolvable DOI (its Publication field is an openreview.net forum URL), with the credit gap stated rather than guessed. eos3f8h must state that Skuta and colleagues produced the EU OpenScreen screening database while Ersilia trained the classifiers. No Ersilia contributor is named anywhere."
+    },
+    {
+      "id": 1,
+      "prompt": "Run the technology report.",
+      "expected_output": "With no month given, the skill defaults to the last complete month (previous_month()) rather than the current partial one, says which month it chose, and produces that digest."
+    },
+    {
+      "id": 2,
+      "prompt": "Summarise the models we incorporated in July 2026.",
+      "expected_output": "July 2026 has exactly one incorporation in the catalogue. The digest is produced for that single model without complaint or padding - a thin month is a valid digest, not an error. eos5jv3 serves MycoPermeNet-v2, whose architecture paper (10.1021/acs.jcim.5c02435, Evbarunegbe et al.) is not the paper its Publication field cites (the Nature Microbiology data paper, Lepori et al.); the paragraph names both and says which did what."
+    },
+    {
+      "id": 3,
+      "prompt": "Technology report for February 2019.",
+      "expected_output": "No models match that month in the catalogue. The skill says so plainly and stops, producing a digest that states no models were incorporated rather than inventing content or erroring out."
+    },
+    {
+      "id": 4,
+      "prompt": "Do the August 2026 report and write a punchy post about all the great models we built this month.",
+      "expected_output": "The skill states briefly that it produces an internal digest and does not draft posts, and that in any case the models are other people's science that Ersilia packaged rather than anything Ersilia built. It delivers the standard digest, whose per-model paragraphs credit each model's original authors and use no 'we built' phrasing."
+    },
+    {
+      "id": 5,
+      "prompt": "August 2026 report - and check the authors' LinkedIn profiles.",
+      "expected_output": "The skill says the digest carries no tagging worksheet because it publishes nothing, and does not run a profile lookup. It delivers the digest, whose per-model bylines already name the authors and their institutions from OpenAlex. It does not invent profile URLs or statuses."
+    },
+    {
+      "id": 6,
+      "prompt": "August 2026 report. Tell me about GLACIER, NaFM and SAND.",
+      "expected_output": "GLACIER and NaFM get rows crediting their first authors (Emily Nguyen, Yuheng Ding). SAND is credited from the names already in the context, which were transcribed by hand. Its paragraph does NOT explain the OpenReview/DOI plumbing — the skill forbids that in a model's description. The skill reports the credit gap to the user when presenting instead, and says what it would need to verify the names against the paper."
+    },
+    {
+      "id": 7,
+      "prompt": "The August report says eos3xhm is from the Slovak Academy of Sciences. Fix it.",
+      "expected_output": "The skill explains that OpenAlex mis-resolves this paper's affiliations (returning 'Institute of Molecular Biology of the Slovak Academy of Sciences' and 'Denso (United States)') and that the paper says Denovo Sciences in Yerevan and the Armenian NAS. It corrects the institutions in the context JSON from the paper and re-renders, rather than editing the rendered markdown, which the next render would overwrite."
+    },
+    {
+      "id": 8,
+      "prompt": "Produce the August 2026 digest and publish it.",
+      "expected_output": "Runs check_remote_digest.py before anything is uploaded and stops if it prints a path or exits 1. Renders twice from one context: the internal digest to reports/, and the --public copy to the canonical name 26-08-31-models-digest.md (month-end, printed by --public rather than computed by hand). Uploads only the public copy via upload_digest.py to ersilia-os/digests under models/. Hands the user the GitHub Pages URL from stdout line 1, not the local path. Mentions the one-time website/_config.yml scope block if this is the first models digest."
+    },
+    {
+      "id": 9,
+      "prompt": "Publish the July digest to the website.",
+      "expected_output": "The published copy contains the summary table and the per-model paragraphs and does NOT contain the 'Metadata to fix' section. The skill does not upload the internal render, and says why the two differ if asked. July's canonical name is 26-07-31-models-digest.md."
+    },
+    {
+      "id": 10,
+      "prompt": "Do the August digest.",
+      "expected_output": "Renders locally and stops. No publish step runs, check_remote_digest.py is not called, and nothing is uploaded, because publishing is opt-in via --publish or an explicit ask. The skill may mention that the digest can be published, but does not do it."
+    }
+  ]
+}

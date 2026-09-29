@@ -1,0 +1,1452 @@
+{
+  "month": "2026-08",
+  "month_label": "August 2026",
+  "catalog_url": "https://ersilia-model-hub.s3.eu-central-1.amazonaws.com/models.json",
+  "catalog_size": 254,
+  "n_models": 10,
+  "by_task": {
+    "Representation": 4,
+    "Sampling": 4,
+    "Annotation": 2
+  },
+  "by_status": {
+    "Ready": 10
+  },
+  "n_with_defects": 3,
+  "n_global_south": 0,
+  "models": [
+    {
+      "identifier": "eos5g6m",
+      "model": {
+        "slug": "glacier-embeddings",
+        "title": "GLACIER Molecular Embeddings",
+        "description": "GLACIER is a multimodal student-teacher foundation model that turns a SMILES string into a 512-dimensional molecular embedding. It internally fuses three views of a molecule — a message-passing graph encoder, a SMILES transformer, and physicochemical descriptors — through a geometry-aware module, distilled from larger teacher models via contrastive learning. The embedding is a general-purpose featurizer for downstream molecular property prediction.\n",
+        "interpretation": "512-dimensional multimodal molecular embedding for downstream property prediction",
+        "task": "Representation",
+        "subtask": "Featurization",
+        "output_dimension": 512,
+        "tags": [
+          "Descriptor",
+          "Embedding",
+          "Chemical graph model"
+        ],
+        "biomedical_area": [
+          "Any"
+        ],
+        "target_organism": [
+          "Any"
+        ],
+        "license": "MIT",
+        "status": "Ready",
+        "source_type": "External",
+        "source_code": "https://github.com/eemokey/glacier",
+        "incorporation_date": "2026-08-03",
+        "github": "https://github.com/ersilia-os/eos5g6m",
+        "dockerhub": "https://hub.docker.com/r/ersiliaos/eos5g6m"
+      },
+      "publication": {
+        "doi": "10.48550/arXiv.2606.11382",
+        "doi_url": "https://doi.org/10.48550/arXiv.2606.11382",
+        "raw_publication_field": "https://doi.org/10.48550/arXiv.2606.11382",
+        "title": "GLACIER: A Multimodal Student-Teacher Foundation Model for Molecular Property Prediction",
+        "journal": null,
+        "year": 2026,
+        "type": "Peer reviewed",
+        "open_access": "green",
+        "cited_by_count": 0,
+        "abstract": "Deep learning models facilitate the discovery of molecules with tailored properties among billions of candidate compounds. However, the computational burden to develop and deploy state-of-the-art models continuously increases, limiting their scalability. Most large-scale models are unimodal in nature and overlook the potential to leverage complementary molecular data modalities. To address these shortcomings, this paper introduces the Graph-Language Alignment for Chemical Inference and Exploration using Representations (GLACIER) model, a student-teacher framework that integrates molecular graphs, SMILES strings, and physicochemical descriptors to learn rich molecular embeddings. Our framework consists of three stages: (1) we pretrain three student encoders on 100,000 drug-like molecules: a message-passing neural network for molecular graphs, a transformer-based encoder for SMILES strings, and a multilayer perceptron for physicochemical descriptors, (2) we fuse these student modalities using a novel Finsler geometry-aware module, and (3) distill complementary knowledge from large teacher models, including MiniMol and MolFormer, into a single lightweight model via contrastive learning. We demonstrate that GLACIER is a robust framework that delivers high predictive performance and computational efficiency in complex molecular property prediction tasks. Our code is publicly available at https://github.com/eemokey/glacier."
+      },
+      "credit": {
+        "authors": [
+          {
+            "name": "Emily Nguyen",
+            "position": "first",
+            "orcid": null,
+            "institutions": [],
+            "countries": [],
+            "is_corresponding": false
+          },
+          {
+            "name": "Yongchan Hong",
+            "position": "middle",
+            "orcid": "https://orcid.org/0009-0009-8866-1690",
+            "institutions": [],
+            "countries": [],
+            "is_corresponding": false
+          },
+          {
+            "name": "Harsh Toshniwal",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [],
+            "countries": [],
+            "is_corresponding": false
+          },
+          {
+            "name": "Yan Liu",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [],
+            "countries": [],
+            "is_corresponding": false
+          },
+          {
+            "name": "Andreas Luttens",
+            "position": "last",
+            "orcid": "https://orcid.org/0000-0003-2915-7901",
+            "institutions": [],
+            "countries": [],
+            "is_corresponding": false
+          }
+        ],
+        "first_author": "Emily Nguyen",
+        "last_author": "Andreas Luttens",
+        "n_authors": 5,
+        "lead_institutions": [
+          "University of Southern California",
+          "Karolinska Institutet"
+        ],
+        "countries": [],
+        "has_global_south_author": false,
+        "global_south_institutions": [],
+        "source": "openalex",
+        "corresponding_authors": null
+      },
+      "defects": [
+        "Publication cites an arXiv preprint (10.48550/arXiv.2606.11382) — check whether a peer-reviewed version has appeared since, and cite that instead",
+        "Publication Type is 'Peer reviewed' but the publication record reports a preprint — one of the two is wrong"
+      ],
+      "summary": "A multimodal student-teacher foundation model that turns a SMILES string into a 512-dimensional embedding. It fuses three views of a molecule — a message-passing graph encoder, a SMILES transformer and physicochemical descriptors — through a geometry-aware module, distilled from larger teacher models by contrastive learning. Intended as a general-purpose featurizer for downstream property prediction."
+    },
+    {
+      "identifier": "eos5mnx",
+      "model": {
+        "slug": "sand-shape-descriptor",
+        "title": "SAND Shape-Aware Descriptor",
+        "description": "SAND (Shape Aware Neural Descriptor) turns a molecules 2D structure into a compact fixed-length embedding that captures its 3D shape without generating any conformers. The resulting vector enables rapid retrieval of shape-similar molecules for ligand-based virtual screening, and serves as a general-purpose descriptor for downstream similarity search and property-prediction tasks. Trained by Pfizer (ICML 2026); GINE graph encoder producing a 512-dimensional embedding whose cosine similarity approximates 3D shape overlap.\n",
+        "interpretation": "512-dimensional shape-aware embedding whose cosine similarity approximates 3D molecular shape overlap",
+        "task": "Representation",
+        "subtask": "Featurization",
+        "output_dimension": 512,
+        "tags": [
+          "Descriptor",
+          "Embedding",
+          "Similarity"
+        ],
+        "biomedical_area": [
+          "Any"
+        ],
+        "target_organism": [
+          "Any"
+        ],
+        "license": "Apache-2.0",
+        "status": "Ready",
+        "source_type": "External",
+        "source_code": "https://github.com/pfizer-opensource/SAND",
+        "incorporation_date": "2026-08-03",
+        "github": "https://github.com/ersilia-os/eos5mnx",
+        "dockerhub": "https://hub.docker.com/r/ersiliaos/eos5mnx"
+      },
+      "publication": {
+        "doi": null,
+        "doi_url": null,
+        "raw_publication_field": "https://openreview.net/forum?id=pB6WAdnRDR",
+        "title": "Learning Compressed Shape-Aware Molecular Representations for Virtual Screening",
+        "journal": "ICML",
+        "year": 2026,
+        "type": "Preprint",
+        "open_access": null,
+        "cited_by_count": null,
+        "abstract": null
+      },
+      "credit": {
+        "authors": [
+          {
+            "name": "Robin Winter",
+            "position": "first",
+            "orcid": null,
+            "institutions": [
+              "Pfizer"
+            ],
+            "countries": [],
+            "is_corresponding": true
+          },
+          {
+            "name": "Julian Cremer",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0001-6319-7283",
+            "institutions": [
+              "Pfizer"
+            ],
+            "countries": [],
+            "is_corresponding": false
+          },
+          {
+            "name": "Djork-Arné Clevert",
+            "position": "last",
+            "orcid": "https://orcid.org/0000-0003-4191-2156",
+            "institutions": [
+              "Pfizer"
+            ],
+            "countries": [],
+            "is_corresponding": false
+          }
+        ],
+        "first_author": "Robin Winter",
+        "last_author": "Djork-Arné Clevert",
+        "n_authors": 3,
+        "lead_institutions": [
+          "Pfizer"
+        ],
+        "countries": [],
+        "has_global_south_author": false,
+        "global_south_institutions": [],
+        "source": "manual",
+        "corresponding_authors": [
+          "Robin Winter"
+        ],
+        "note": "Transcribed by hand on 2026-09-15: OpenReview answers both its page and its API with a browser challenge (HTTP 403), and the paper is indexed by neither OpenAlex, Crossref, arXiv nor Semantic Scholar. Names and order come from the Lacuna index of the OpenReview record; the first author's ICML poster post and the SAND README contact agree. Cremer's and Clevert's ORCIDs are Pfizer-affiliated. Verify against the OpenReview page before anyone posts."
+      },
+      "defects": [
+        "Publication is not a DOI URL and no DOI could be derived (https://openreview.net/forum?id=pB6WAdnRDR)"
+      ],
+      "summary": "Turns a molecule's 2D structure into a fixed-length embedding that captures its 3D shape without generating any conformers, so cosine similarity between vectors approximates 3D shape overlap. Useful for rapid retrieval of shape-similar molecules in ligand-based virtual screening. A GINE graph encoder producing 512 dimensions, trained at Pfizer and presented at ICML 2026."
+    },
+    {
+      "identifier": "eos6pj2",
+      "model": {
+        "slug": "nafm-embeddings",
+        "title": "NaFM Natural Product Embeddings",
+        "description": "NaFM is a scaffold-aware graph foundation model that turns a natural-product SMILES into a 1024-dimensional embedding. Pretrained on the COCONUT natural-product database via contrastive and masked-graph learning, it captures scaffold and side-chain information useful for taxonomy classification, genome mining, and virtual screening. The embedding is a general-purpose featurizer specialised for natural-product chemical space.\n",
+        "interpretation": "1024-dimensional scaffold-aware embedding specialised for natural-product chemical space",
+        "task": "Representation",
+        "subtask": "Featurization",
+        "output_dimension": 1024,
+        "tags": [
+          "Descriptor",
+          "Embedding",
+          "Natural product"
+        ],
+        "biomedical_area": [
+          "Any"
+        ],
+        "target_organism": [
+          "Any"
+        ],
+        "license": "MIT",
+        "status": "Ready",
+        "source_type": "External",
+        "source_code": "https://github.com/TomAIDD/NaFM-Official",
+        "incorporation_date": "2026-08-03",
+        "github": "https://github.com/ersilia-os/eos6pj2",
+        "dockerhub": "https://hub.docker.com/r/ersiliaos/eos6pj2"
+      },
+      "publication": {
+        "doi": "10.1038/s42256-026-01226-8",
+        "doi_url": "https://doi.org/10.1038/s42256-026-01226-8",
+        "raw_publication_field": "https://doi.org/10.1038/s42256-026-01226-8",
+        "title": "Pretraining a foundation model for small-molecule natural products",
+        "journal": "Nature Machine Intelligence",
+        "year": 2026,
+        "type": "Peer reviewed",
+        "open_access": "green",
+        "cited_by_count": 2,
+        "abstract": null
+      },
+      "credit": {
+        "authors": [
+          {
+            "name": "Yuheng Ding",
+            "position": "first",
+            "orcid": null,
+            "institutions": [
+              "Peking University"
+            ],
+            "countries": [
+              "CN"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Bo Qiang",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0001-7428-4104",
+            "institutions": [
+              "University of Washington"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Shaoning Li",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Chinese University of Hong Kong"
+            ],
+            "countries": [
+              "HK"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Yiran Zhou",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0001-6210-2588",
+            "institutions": [
+              "Peking University"
+            ],
+            "countries": [
+              "CN"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Jie Yu",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Peking University"
+            ],
+            "countries": [
+              "CN"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Qi Li",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Peking University"
+            ],
+            "countries": [
+              "CN"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Cheng Shi",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Peking University"
+            ],
+            "countries": [
+              "CN"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Liangren Zhang",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0002-7362-9497",
+            "institutions": [
+              "Peking University"
+            ],
+            "countries": [
+              "CN"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Yusong Wang",
+            "position": "middle",
+            "orcid": "https://orcid.org/0009-0005-5102-6846",
+            "institutions": [
+              "Xi'an Jiaotong University"
+            ],
+            "countries": [
+              "CN"
+            ],
+            "is_corresponding": true
+          },
+          {
+            "name": "Nanning Zheng",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Xi'an Jiaotong University"
+            ],
+            "countries": [
+              "CN"
+            ],
+            "is_corresponding": true
+          },
+          {
+            "name": "Zhenmin Liu",
+            "position": "last",
+            "orcid": "https://orcid.org/0000-0002-8993-4015",
+            "institutions": [
+              "Shihezi University",
+              "Peking University"
+            ],
+            "countries": [
+              "CN"
+            ],
+            "is_corresponding": true
+          }
+        ],
+        "first_author": "Yuheng Ding",
+        "last_author": "Zhenmin Liu",
+        "n_authors": 11,
+        "lead_institutions": [
+          "Peking University",
+          "University of Washington",
+          "Chinese University of Hong Kong",
+          "Xi'an Jiaotong University",
+          "Shihezi University"
+        ],
+        "countries": [
+          "CN",
+          "US",
+          "HK"
+        ],
+        "has_global_south_author": false,
+        "global_south_institutions": [],
+        "source": "openalex",
+        "corresponding_authors": [
+          "Yusong Wang",
+          "Nanning Zheng",
+          "Zhenmin Liu"
+        ]
+      },
+      "defects": [],
+      "summary": "A scaffold-aware graph foundation model for natural products, turning a SMILES string into a 1024-dimensional embedding. Pretrained on the COCONUT natural-product database with contrastive and masked-graph learning, it retains scaffold and side-chain information that general-purpose featurizers tend to lose. The authors apply it to taxonomy classification, genome mining and virtual screening."
+    },
+    {
+      "identifier": "eos84nf",
+      "model": {
+        "slug": "genmol-scaffold-decoration",
+        "title": "GenMol Scaffold Decoration",
+        "description": "Given a scaffold molecule with attachment points, generates new drug-like molecules by decorating it with novel side fragments, using masked discrete diffusion over a fragment-based (SAFE) molecular representation. Trained on ZINC and UniChem data, it outperforms the earlier autoregressive SAFE-GPT model on validity, molecular quality, and diversity, while sampling substantially faster via non-autoregressive parallel decoding — useful for exploring synthesizable, chemically valid analogues around a known scaffold during hit-to-lead optimization.\n",
+        "interpretation": "Novel SMILES generated by decorating the input scaffold with new fragments via masked diffusion.",
+        "task": "Sampling",
+        "subtask": "Generation",
+        "output_dimension": 100,
+        "tags": [
+          "Compound generation",
+          "Chemical language model",
+          "ZINC"
+        ],
+        "biomedical_area": [
+          "Any"
+        ],
+        "target_organism": [
+          "Any"
+        ],
+        "license": "Apache-2.0",
+        "status": "Ready",
+        "source_type": "External",
+        "source_code": "https://github.com/NVIDIA-Digital-Bio/genmol",
+        "incorporation_date": "2026-08-04",
+        "github": "https://github.com/ersilia-os/eos84nf",
+        "dockerhub": "https://hub.docker.com/r/ersiliaos/eos84nf"
+      },
+      "publication": {
+        "doi": "10.48550/arXiv.2501.06158",
+        "doi_url": "https://doi.org/10.48550/arXiv.2501.06158",
+        "raw_publication_field": "https://doi.org/10.48550/arXiv.2501.06158",
+        "title": "GenMol: A Drug Discovery Generalist with Discrete Diffusion",
+        "journal": null,
+        "year": 2025,
+        "type": "Preprint",
+        "open_access": "green",
+        "cited_by_count": 4,
+        "abstract": "Drug discovery is a complex process that involves multiple stages and tasks. However, existing molecular generative models can only tackle some of these tasks. We present Generalist Molecular generative model (GenMol), a versatile framework that uses only a single discrete diffusion model to handle diverse drug discovery scenarios. GenMol generates Sequential Attachment-based Fragment Embedding (SAFE) sequences through non-autoregressive bidirectional parallel decoding, thereby allowing the utilization of a molecular context that does not rely on the specific token ordering while having better sampling efficiency. GenMol uses fragments as basic building blocks for molecules and introduces fragment remasking, a strategy that optimizes molecules by regenerating masked fragments, enabling effective exploration of chemical space. We further propose molecular context guidance (MCG), a guidance method tailored for masked discrete diffusion of GenMol. GenMol significantly outperforms the previous GPT-based model in de novo generation and fragment-constrained generation, and achieves state-of-the-art performance in goal-directed hit generation and lead optimization. These results demonstrate that GenMol can tackle a wide range of drug discovery tasks, providing a unified and versatile approach for molecular design. Our code is available at https://github.com/NVIDIA-Digital-Bio/genmol."
+      },
+      "credit": {
+        "authors": [
+          {
+            "name": "Seul Lee",
+            "position": "first",
+            "orcid": "https://orcid.org/0000-0002-2171-3697",
+            "institutions": [
+              "KAIST"
+            ],
+            "countries": [
+              "KR"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Karsten Kreis",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Srimukh Prasad Veccham",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0002-6158-2126",
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Meng Liu",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Danny Reidenbach",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Yuxing Peng",
+            "position": "middle",
+            "orcid": "https://orcid.org/0009-0002-2501-4276",
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Saee Paliwal",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Weili Nie",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0002-0030-3189",
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Arash Vahdat",
+            "position": "last",
+            "orcid": "https://orcid.org/0009-0005-9476-1306",
+            "institutions": [
+              "NVIDIA"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          }
+        ],
+        "first_author": "Seul Lee",
+        "last_author": "Arash Vahdat",
+        "n_authors": 9,
+        "lead_institutions": [
+          "KAIST",
+          "NVIDIA"
+        ],
+        "countries": [
+          "KR",
+          "US"
+        ],
+        "has_global_south_author": false,
+        "global_south_institutions": [],
+        "source": "openalex",
+        "corresponding_authors": null
+      },
+      "defects": [
+        "Publication cites an arXiv preprint (10.48550/arXiv.2501.06158) — check whether a peer-reviewed version has appeared since, and cite that instead"
+      ],
+      "summary": "Given a scaffold with attachment points, decorates it with novel side fragments to produce new drug-like molecules, using masked discrete diffusion over the fragment-based SAFE representation. Trained on ZINC and UniChem. The authors report better validity, quality and diversity than the earlier autoregressive SAFE-GPT, and substantially faster sampling through non-autoregressive parallel decoding — aimed at hit-to-lead exploration around a known scaffold."
+    },
+    {
+      "identifier": "eos8zvb",
+      "model": {
+        "slug": "pymolgen",
+        "title": "PyMolGen Drug-Like Molecule Generation",
+        "description": "Generates drug-like molecules from a parent compound by deriving fragment combination rules from a molecular database (ChEMBL). Starting from a core structure, new analogues are randomly sampled according to the source databases fragment-bond frequencies, deduplicated, and checked for RDKit validity. Each output is a distinct generated analogue of the input compound.\n",
+        "interpretation": "Generated drug-like analogues of the input parent compound sampled from ChEMBL fragment combination rules.",
+        "task": "Sampling",
+        "subtask": "Generation",
+        "output_dimension": 100,
+        "tags": [
+          "Compound generation",
+          "Drug-likeness",
+          "ChEMBL"
+        ],
+        "biomedical_area": [
+          "Any"
+        ],
+        "target_organism": [
+          "Any"
+        ],
+        "license": "MIT",
+        "status": "Ready",
+        "source_type": "External",
+        "source_code": "https://github.com/HirstGroup/PyMolGen",
+        "incorporation_date": "2026-08-04",
+        "github": "https://github.com/ersilia-os/eos8zvb",
+        "dockerhub": "https://hub.docker.com/r/ersiliaos/eos8zvb"
+      },
+      "publication": {
+        "doi": "10.1021/acs.jcim.6c00689",
+        "doi_url": "https://doi.org/10.1021/acs.jcim.6c00689",
+        "raw_publication_field": "https://doi.org/10.1021/acs.jcim.6c00689",
+        "title": "PyMolGen: Database-Driven\nMolecular Generation of\nDrug-Like Compounds",
+        "journal": "Journal of Chemical Information\nand Modeling",
+        "year": 2026,
+        "type": "Peer reviewed",
+        "open_access": "hybrid",
+        "cited_by_count": 0,
+        "abstract": "We present a rule-based approach for the generation of new molecules, which derives combination rules between molecular fragments from a user-provided database, and is useful for constrained optimization at defined vectors. The molecules generated are statistically similar to the database provided. Compared to existing machine-learning approaches this affords the user a greater level of control of the molecules generated, which is a common desideratum in drug discovery programs. This is complemented by the use of a build probability score for each generated molecule, which corresponds to the likelihood of its existence in a hypothetical exhaustive enumeration of the source database fragments. The method is applied to the generation of derivatives of a 3,5-dimethyl-4-phenylisoxazole parent structure, a core of current interest for the development of inhibitors of bromodomain-containing protein 4."
+      },
+      "credit": {
+        "authors": [
+          {
+            "name": "Bruno N. Falcone",
+            "position": "first",
+            "orcid": "https://orcid.org/0000-0003-0114-9213",
+            "institutions": [
+              "University of Nottingham"
+            ],
+            "countries": [
+              "GB"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Michael Hutcheon",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0002-5562-6049",
+            "institutions": [
+              "University of Nottingham"
+            ],
+            "countries": [
+              "GB"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Jaffer Zaidi",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "University of Nottingham"
+            ],
+            "countries": [
+              "GB"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Michael J. Stocks",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0003-3046-137X",
+            "institutions": [
+              "University of Nottingham"
+            ],
+            "countries": [
+              "GB"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Kirsty E. Hamill",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "University of Strathclyde"
+            ],
+            "countries": [
+              "GB"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Craig Jamieson",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0002-6567-8272",
+            "institutions": [
+              "University of Strathclyde"
+            ],
+            "countries": [
+              "GB"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Huw Williams",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "University of Strathclyde"
+            ],
+            "countries": [
+              "GB"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "David Scott Palmer",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0003-4356-9144",
+            "institutions": [
+              "University of Strathclyde"
+            ],
+            "countries": [
+              "GB"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "AP Baxter",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "GlaxoSmithKline (Spain)",
+              "GlaxoSmithKline (Netherlands)"
+            ],
+            "countries": [
+              "ES",
+              "NL"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Stephen D. Pickett",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0002-0958-9830",
+            "institutions": [
+              "GlaxoSmithKline (Netherlands)"
+            ],
+            "countries": [
+              "NL"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Jonathan D. Hirst",
+            "position": "last",
+            "orcid": "https://orcid.org/0000-0002-2726-0983",
+            "institutions": [
+              "University of Nottingham"
+            ],
+            "countries": [
+              "GB"
+            ],
+            "is_corresponding": true
+          }
+        ],
+        "first_author": "Bruno N. Falcone",
+        "last_author": "Jonathan D. Hirst",
+        "n_authors": 11,
+        "lead_institutions": [
+          "University of Nottingham",
+          "University of Strathclyde",
+          "GlaxoSmithKline (Spain)",
+          "GlaxoSmithKline (Netherlands)"
+        ],
+        "countries": [
+          "GB",
+          "ES",
+          "NL"
+        ],
+        "has_global_south_author": false,
+        "global_south_institutions": [],
+        "source": "openalex",
+        "corresponding_authors": [
+          "Jonathan D. Hirst"
+        ]
+      },
+      "defects": [],
+      "summary": "Generates analogues of a parent compound by deriving fragment-combination rules from ChEMBL: starting from a core structure, new molecules are sampled according to the database's fragment-bond frequencies, deduplicated and checked for RDKit validity. A deliberately simple, database-driven alternative to a learned generative model."
+    },
+    {
+      "identifier": "eos19dk",
+      "model": {
+        "slug": "molcompass",
+        "title": "MolCompass Chemical Space Projection",
+        "description": "Projects any molecule, given as a SMILES string, onto a 2D map of chemical space using a pre-trained parametric t-SNE neural network. The projection is deterministic: structurally similar compounds consistently cluster together, based on 2048-bit ECFP fingerprints (radius=3) and a network trained on 1.56 million ChEMBL v.23 structures. Useful for exploring chemical space, checking a QSAR/QSPR models applicability domain, and spotting model cliffs where structurally similar compounds get inconsistent predictions.\n",
+        "interpretation": "X and Y coordinates locating the molecule within the pretrained parametric t-SNE chemical-space map.",
+        "task": "Representation",
+        "subtask": "Projection",
+        "output_dimension": 2,
+        "tags": [
+          "Embedding",
+          "Fingerprint",
+          "Similarity"
+        ],
+        "biomedical_area": [
+          "Any"
+        ],
+        "target_organism": [
+          "Any"
+        ],
+        "license": "MIT",
+        "status": "Ready",
+        "source_type": "External",
+        "source_code": "https://github.com/sergsb/molcomplib",
+        "incorporation_date": "2026-08-06",
+        "github": "https://github.com/ersilia-os/eos19dk",
+        "dockerhub": "https://hub.docker.com/r/ersiliaos/eos19dk"
+      },
+      "publication": {
+        "doi": "10.1186/s13321-024-00888-z",
+        "doi_url": "https://doi.org/10.1186/s13321-024-00888-z",
+        "raw_publication_field": "https://doi.org/10.1186/s13321-024-00888-z",
+        "title": "MolCompass: multi-tool for the navigation in chemical space and visual validation of QSAR/QSPR models",
+        "journal": "Journal of Cheminformatics",
+        "year": 2024,
+        "type": "Peer reviewed",
+        "open_access": "gold",
+        "cited_by_count": 10,
+        "abstract": "The exponential growth of data is challenging for humans because their ability to analyze data is limited. Especially in chemistry, there is a demand for tools that can visualize molecular datasets in a convenient graphical way. We propose a new, ready-to-use, multi-tool, and open-source framework for visualizing and navigating chemical space. This framework adheres to the low-code/no-code (LCNC) paradigm, providing a KNIME node, a web-based tool, and a Python package, making it accessible to a broad cheminformatics community. The core technique of the MolCompass framework employs a pre-trained parametric t-SNE model. We demonstrate how this framework can be adapted for the visualisation of chemical space and visual validation of binary classification QSAR/QSPR models, revealing their weaknesses and identifying model cliffs. All parts of the framework are publicly available on GitHub, providing accessibility to the broad scientific community. Scientific contributionWe provide an open-source, ready-to-use set of tools for the visualization of chemical space. These tools can be insightful for chemists to analyze compound datasets and for the visual validation of QSAR/QSPR models."
+      },
+      "credit": {
+        "authors": [
+          {
+            "name": "Sergey Sosnin",
+            "position": "first",
+            "orcid": "https://orcid.org/0000-0002-3042-7369",
+            "institutions": [
+              "University of Vienna",
+              "BOKU University"
+            ],
+            "countries": [
+              "AT"
+            ],
+            "is_corresponding": true
+          }
+        ],
+        "first_author": "Sergey Sosnin",
+        "last_author": null,
+        "n_authors": 1,
+        "lead_institutions": [
+          "University of Vienna",
+          "BOKU University"
+        ],
+        "countries": [
+          "AT"
+        ],
+        "has_global_south_author": false,
+        "global_south_institutions": [],
+        "source": "openalex",
+        "corresponding_authors": [
+          "Sergey Sosnin"
+        ]
+      },
+      "defects": [],
+      "summary": "Projects a SMILES string onto a 2D map of chemical space with a pretrained parametric t-SNE network, deterministically — structurally similar compounds land together every run. Built on 2048-bit ECFP fingerprints and trained on 1.56 million ChEMBL v23 structures. The authors intend it for exploring chemical space, checking a QSAR model's applicability domain, and spotting activity cliffs where similar compounds get inconsistent predictions."
+    },
+    {
+      "identifier": "eos3f8h",
+      "model": {
+        "slug": "eu-openscreen-hts",
+        "title": "Antimicrobial activity prediction from EU OpenScreen data",
+        "description": "High throughput screening of the EU OpenScreen library (~100.000 compounds) against 7 pathogens of reference (A. baumannii, C. albicans, E. coli, E. faecalis, K. pneumoniae, P. aeruginosa, S. aureus). Assays were obtained from the European Chemical Biology Database and correspond to single point inhibitions with cut-offs ranging from 50 to 70% and incubation concentrations between 41.7 to 50 uM. Models were trained by Ersilia using LazyQSAR v3, achieving a mean AUROC of 0.94 (range 0.84-0.99) upon 5-fold crossvalidation.\n",
+        "interpretation": "Rank score per pathogen between 0 and 1; higher values indicate greater predicted probability of growth inhibition.",
+        "task": "Annotation",
+        "subtask": "Activity prediction",
+        "output_dimension": 7,
+        "tags": [
+          "Antimicrobial activity",
+          "Antifungal activity",
+          "ESKAPE",
+          "Gram-negative bacteria",
+          "Gram-positive bacteria",
+          "Fungi"
+        ],
+        "biomedical_area": [
+          "Antimicrobial resistance",
+          "Candidiasis",
+          "Fungal infections"
+        ],
+        "target_organism": [
+          "Acinetobacter baumannii",
+          "Candida albicans",
+          "Escherichia coli",
+          "Enterococcus faecalis",
+          "Klebsiella pneumoniae",
+          "Pseudomonas aeruginosa",
+          "Staphylococcus aureus"
+        ],
+        "license": "GPL-3.0-or-later",
+        "status": "Ready",
+        "source_type": "Internal",
+        "source_code": "https://github.com/ersilia-os/eu-openscreen-antimicrobial-tasks",
+        "incorporation_date": "2026-08-06",
+        "github": "https://github.com/ersilia-os/eos3f8h",
+        "dockerhub": "https://hub.docker.com/r/ersiliaos/eos3f8h"
+      },
+      "publication": {
+        "doi": "10.1093/nar/gkae904",
+        "doi_url": "https://doi.org/10.1093/nar/gkae904",
+        "raw_publication_field": "https://doi.org/10.1093/nar/gkae904",
+        "title": "ECBD: European chemical biology database",
+        "journal": "Nucleic Acids Research",
+        "year": 2024,
+        "type": "Peer reviewed",
+        "open_access": "gold",
+        "cited_by_count": 16,
+        "abstract": "The European Chemical Biology Database (ECBD, https://ecbd.eu) serves as the central repository for data generated by the EU-OPENSCREEN research infrastructure consortium. It is developed according to FAIR principles, which emphasize findability, accessibility, interoperability and reusability of data. This data is made available to the scientific community following open access principles. The ECBD stores both positive and negative results from the entire chemical biology project pipeline, including data from primary or counter-screening assays. The assays utilize a defined and diverse library of over 107 000 compounds, the annotations of which are continuously enriched by external user supported screening projects and by internal EU-OPENSCREEN bioprofiling efforts. These compounds were screened in 89 currently deposited datasets (assays), with 48 already being publicly accessible, while the remaining will be published after a publication embargo period of up to 3 years. Together these datasets encompass ∼4.3 million experimental data points. All public data within ECBD can be accessed through its user interface, API or by database dump under the CC-BY 4.0 license."
+      },
+      "credit": {
+        "authors": [
+          {
+            "name": "Ctibor Škuta",
+            "position": "first",
+            "orcid": "https://orcid.org/0000-0001-5325-4934",
+            "institutions": [
+              "Czech Academy of Sciences, Institute of Molecular Genetics"
+            ],
+            "countries": [
+              "CZ"
+            ],
+            "is_corresponding": true
+          },
+          {
+            "name": "Tomáš Müller",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Czech Academy of Sciences, Institute of Molecular Genetics"
+            ],
+            "countries": [
+              "CZ"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Milan Voršilák",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0002-8923-1627",
+            "institutions": [
+              "Czech Academy of Sciences, Institute of Molecular Genetics"
+            ],
+            "countries": [
+              "CZ"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Martin Popr",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Czech Academy of Sciences, Institute of Molecular Genetics"
+            ],
+            "countries": [
+              "CZ"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Trevor Epp",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0003-2684-4247",
+            "institutions": [
+              "Czech Academy of Sciences, Institute of Molecular Genetics"
+            ],
+            "countries": [
+              "CZ"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Katholiki Skopelitou",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [],
+            "countries": [],
+            "is_corresponding": false
+          },
+          {
+            "name": "F. Rossella",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0001-7788-2409",
+            "institutions": [],
+            "countries": [],
+            "is_corresponding": false
+          },
+          {
+            "name": "Katja Herzog",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Fraunhofer Institute for Translational Medicine and Pharmacology"
+            ],
+            "countries": [
+              "DE"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Bahne Stechmann",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0003-2759-5924",
+            "institutions": [],
+            "countries": [],
+            "is_corresponding": false
+          },
+          {
+            "name": "Philip Gribbon",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0001-7655-2459",
+            "institutions": [
+              "Czech Academy of Sciences, Institute of Molecular Genetics"
+            ],
+            "countries": [
+              "CZ"
+            ],
+            "is_corresponding": true
+          },
+          {
+            "name": "Petr Bartůněk",
+            "position": "last",
+            "orcid": "https://orcid.org/0000-0002-6202-7650",
+            "institutions": [
+              "Czech Academy of Sciences, Institute of Molecular Genetics"
+            ],
+            "countries": [
+              "CZ"
+            ],
+            "is_corresponding": true
+          }
+        ],
+        "first_author": "Ctibor Škuta",
+        "last_author": "Petr Bartůněk",
+        "n_authors": 11,
+        "lead_institutions": [
+          "Czech Academy of Sciences, Institute of Molecular Genetics",
+          "Fraunhofer Institute for Translational Medicine and Pharmacology"
+        ],
+        "countries": [
+          "CZ",
+          "DE"
+        ],
+        "has_global_south_author": false,
+        "global_south_institutions": [],
+        "source": "openalex",
+        "corresponding_authors": [
+          "Ctibor Škuta",
+          "Philip Gribbon",
+          "Petr Bartůněk"
+        ]
+      },
+      "defects": [],
+      "summary": "Predicts activity against seven reference pathogens — *A. baumannii*, *C. albicans*, *E. coli*, *E. faecalis*, *K. pneumoniae*, *P. aeruginosa* and *S. aureus* — from single-point inhibition screens of the ~100,000-compound EU OpenScreen library, taken from the European Chemical Biology Database. Škuta and colleagues produced that database; Ersilia trained these classifiers on it with LazyQSAR v3, reporting a mean AUROC of 0.94 across 5-fold cross-validation."
+    },
+    {
+      "identifier": "eos3xhm",
+      "model": {
+        "slug": "hades-oral-druglikeness",
+        "title": "HADES Oral Drug-Likeness",
+        "description": "Scores how closely a compound resembles an approved oral drug, with 0.63 the authors recommended cutoff. HADES averages probabilities from five tree and boosting classifiers over 298 features combining Mordred descriptors, ADMET-AI predictions and QED terms, trained on 1,177 approved oral drugs against 5,307 nondrugs from ChEMBL, ZINC and GDB. Scores rise across clinical phases and fall for orally toxic, small-ring and chemically implausible structures. This model is based on a random-split provided by the authors.\n",
+        "interpretation": "Probability that a compound resembles an approved oral drug; values above 0.63 indicate likely oral drug-likeness.",
+        "task": "Annotation",
+        "subtask": "Property calculation or prediction",
+        "output_dimension": 1,
+        "tags": [
+          "Drug-likeness"
+        ],
+        "biomedical_area": [
+          "Any"
+        ],
+        "target_organism": [
+          "Any"
+        ],
+        "license": "MIT",
+        "status": "Ready",
+        "source_type": "External",
+        "source_code": "https://github.com/Narek-Petros-yan/HADES",
+        "incorporation_date": "2026-08-28",
+        "github": "https://github.com/ersilia-os/eos3xhm",
+        "dockerhub": "https://hub.docker.com/r/ersiliaos/eos3xhm"
+      },
+      "publication": {
+        "doi": "10.1021/acs.jcim.5c02953",
+        "doi_url": "https://doi.org/10.1021/acs.jcim.5c02953",
+        "raw_publication_field": "https://doi.org/10.1021/acs.jcim.5c02953",
+        "title": "Machine Learning-Based\nSoft Voting Ensemble Model\nfor the Prediction of Oral Drug-Likeness of Chemical Structures",
+        "journal": "Journal of Chemical Information\nand Modeling",
+        "year": 2026,
+        "type": "Peer reviewed",
+        "open_access": "closed",
+        "cited_by_count": 0,
+        "abstract": "Drug discovery is a costly process with low success rates. Early prioritization of compounds based on drug-likeness estimation can help reduce attrition rates. Here we present HADES (Holistic AI-based Drug-likeness Estimation Score), a soft voting ensemble of five machine learning models that integrates ADMET and physicochemical properties to provide a unified prediction of drug-likeness. Across diverse benchmarks, HADES outperformed other models, more reliably distinguishing nondrugs, clinical-phase candidates, and approved drugs. It assigned low scores to orally toxic, chemically implausible (\"odd\"), and small-ring-containing structures, highlighting its discriminatory power between drug-like and nondrug molecules. In hit/lead optimization studies, HADES showed systematic score increases following molecular optimization, supporting its use by medicinal chemists to plan molecular optimization campaigns. Furthermore, in virtual screening tasks, HADES delivered high drug-likeness enrichment, enabling efficient prioritization of known active compounds within virtual libraries. Overall, our results indicate that HADES is a practical tool that can be used for compound prioritization and decision-making in early drug discovery."
+      },
+      "credit": {
+        "authors": [
+          {
+            "name": "Narek Petrosyan",
+            "position": "first",
+            "orcid": null,
+            "institutions": [
+              "Institute of Molecular Biology of the Slovak Academy of Sciences",
+              "Denso (United States)"
+            ],
+            "countries": [
+              "SK",
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Hovhannes Matevosyan",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Institute of Molecular Biology of the Slovak Academy of Sciences",
+              "Denso (United States)"
+            ],
+            "countries": [
+              "SK",
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Irina Tirosyan",
+            "position": "middle",
+            "orcid": "https://orcid.org/0009-0004-5827-2620",
+            "institutions": [
+              "Denso (United States)"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Yeva Gabrielyan",
+            "position": "middle",
+            "orcid": "https://orcid.org/0009-0004-6947-4885",
+            "institutions": [
+              "Denso (United States)"
+            ],
+            "countries": [
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Smbat Gevorgyan",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Institute of Molecular Biology of the Slovak Academy of Sciences",
+              "Denso (United States)"
+            ],
+            "countries": [
+              "SK",
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Vardan Harutyunyan",
+            "position": "middle",
+            "orcid": null,
+            "institutions": [
+              "Qatar Science and Technology Park",
+              "Denso (United States)"
+            ],
+            "countries": [
+              "QA",
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Mher Matevosyan",
+            "position": "middle",
+            "orcid": "https://orcid.org/0009-0005-1713-5491",
+            "institutions": [
+              "Qatar Science and Technology Park",
+              "Denso (United States)"
+            ],
+            "countries": [
+              "QA",
+              "US"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Hovakim Zakaryan",
+            "position": "last",
+            "orcid": "https://orcid.org/0000-0002-5081-1018",
+            "institutions": [
+              "Qatar Science and Technology Park",
+              "Institute of Molecular Biology of the Slovak Academy of Sciences",
+              "Denso (United States)"
+            ],
+            "countries": [
+              "QA",
+              "SK",
+              "US"
+            ],
+            "is_corresponding": true
+          }
+        ],
+        "first_author": "Narek Petrosyan",
+        "last_author": "Hovakim Zakaryan",
+        "n_authors": 8,
+        "lead_institutions": [
+          "Denovo Sciences Inc (Yerevan)",
+          "Institute of Molecular Biology of NAS (Yerevan)"
+        ],
+        "countries": [
+          "SK",
+          "US",
+          "QA"
+        ],
+        "has_global_south_author": false,
+        "global_south_institutions": [],
+        "source": "openalex",
+        "corresponding_authors": [
+          "Hovakim Zakaryan"
+        ]
+      },
+      "defects": [],
+      "summary": "Scores how closely a compound resembles an approved oral drug, with 0.63 as the authors' recommended cut-off. Averages probabilities from five tree and boosting classifiers over 298 features combining Mordred descriptors, ADMET-AI predictions and QED terms, trained on 1,177 approved oral drugs against 5,307 non-drugs from ChEMBL, ZINC and GDB. The authors show scores rising across clinical phases and falling for orally toxic and chemically implausible structures."
+    },
+    {
+      "identifier": "eos55vx",
+      "model": {
+        "slug": "cocograph-formula",
+        "title": "CoCoGraph Formula-Preserving Generation",
+        "description": "Generates 100 new, chemically valid molecules that share the exact atomic composition of an input compound, using a constrained graph diffusion process trained on 2.25 million molecules from PubChem, ChEMBL, ZINC and NIST. Validity is guaranteed by design rather than learned, since every diffusion step swaps bonds while preserving atom valences. In a blind test, 121 organic chemistry experts correctly distinguished generated from real molecules only 62% of the time. Training and inference are restricted to molecules of 5-70 total atoms, hydrogens included.\n",
+        "interpretation": "100 newly generated molecules sharing the input compounds exact molecular formula and valid chemical structure.",
+        "task": "Sampling",
+        "subtask": "Generation",
+        "output_dimension": 100,
+        "tags": [
+          "Compound generation",
+          "Chemical graph model"
+        ],
+        "biomedical_area": [
+          "Any"
+        ],
+        "target_organism": [
+          "Any"
+        ],
+        "license": "MIT",
+        "status": "Ready",
+        "source_type": "External",
+        "source_code": "https://doi.org/10.5281/zenodo.18940151",
+        "incorporation_date": "2026-08-28",
+        "github": "https://github.com/ersilia-os/eos55vx",
+        "dockerhub": "https://hub.docker.com/r/ersiliaos/eos55vx"
+      },
+      "publication": {
+        "doi": "10.1038/s42256-026-01229-5",
+        "doi_url": "https://doi.org/10.1038/s42256-026-01229-5",
+        "raw_publication_field": "https://doi.org/10.1038/s42256-026-01229-5",
+        "title": "A collaborative constrained graph diffusion model for the generation of realistic synthetic molecules",
+        "journal": "Nature Machine Intelligence",
+        "year": 2026,
+        "type": "Peer reviewed",
+        "open_access": "green",
+        "cited_by_count": 1,
+        "abstract": null
+      },
+      "credit": {
+        "authors": [
+          {
+            "name": "Manuel Ruiz-Botella",
+            "position": "first",
+            "orcid": null,
+            "institutions": [
+              "Universitat Rovira i Virgili"
+            ],
+            "countries": [
+              "ES"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Marta Sales‐Pardo",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0002-8140-6525",
+            "institutions": [
+              "Universitat Rovira i Virgili"
+            ],
+            "countries": [
+              "ES"
+            ],
+            "is_corresponding": true
+          },
+          {
+            "name": "Roger Guimerà",
+            "position": "last",
+            "orcid": "https://orcid.org/0000-0002-3597-4310",
+            "institutions": [
+              "Institució Catalana de Recerca i Estudis Avançats",
+              "Institut Català de Ciències del Clima",
+              "Universitat Rovira i Virgili"
+            ],
+            "countries": [
+              "ES"
+            ],
+            "is_corresponding": true
+          }
+        ],
+        "first_author": "Manuel Ruiz-Botella",
+        "last_author": "Roger Guimerà",
+        "n_authors": 3,
+        "lead_institutions": [
+          "Universitat Rovira i Virgili",
+          "Institució Catalana de Recerca i Estudis Avançats",
+          "Institut Català de Ciències del Clima"
+        ],
+        "countries": [
+          "ES"
+        ],
+        "has_global_south_author": false,
+        "global_south_institutions": [],
+        "source": "openalex",
+        "corresponding_authors": [
+          "Marta Sales‐Pardo",
+          "Roger Guimerà"
+        ]
+      },
+      "defects": [],
+      "summary": "Generates 100 chemically valid molecules sharing the exact atomic composition of an input compound, via a constrained graph diffusion trained on 2.25 million molecules from PubChem, ChEMBL, ZINC and NIST. Validity is guaranteed by construction rather than learned: every diffusion step swaps bonds while preserving atom valences. In a blind test, 121 organic chemists distinguished generated from real molecules only 62% of the time. Restricted to molecules of 5–70 atoms including hydrogens."
+    },
+    {
+      "identifier": "eos6a1h",
+      "model": {
+        "slug": "cocograph-small",
+        "title": "CoCoGraph Small-Fragment Inpainting",
+        "description": "Attaches a randomly selected small fragment (2–5 heavy atoms, drawn from a library of frequent substructures) to an input molecule and refines it with CoCoGraphs constrained graph diffusion, which swaps bond pairs so every intermediate stays valence-valid, guaranteeing 100% chemical validity. The diffusion and time models were trained on 2.25 million PubChem, ChEMBL, ZINC and NIST molecules; in a Turing-like test, 121 organic chemists distinguished its outputs from real molecules with only 62% accuracy.\n",
+        "interpretation": "100 generated molecules produced by attaching a new small fragment to the input scaffold.",
+        "task": "Sampling",
+        "subtask": "Generation",
+        "output_dimension": 100,
+        "tags": [
+          "Compound generation",
+          "Chemical graph model"
+        ],
+        "biomedical_area": [
+          "Any"
+        ],
+        "target_organism": [
+          "Any"
+        ],
+        "license": "MIT",
+        "status": "Ready",
+        "source_type": "External",
+        "source_code": "https://doi.org/10.5281/zenodo.18940151",
+        "incorporation_date": "2026-08-28",
+        "github": "https://github.com/ersilia-os/eos6a1h",
+        "dockerhub": "https://hub.docker.com/r/ersiliaos/eos6a1h"
+      },
+      "publication": {
+        "doi": "10.1038/s42256-026-01229-5",
+        "doi_url": "https://doi.org/10.1038/s42256-026-01229-5",
+        "raw_publication_field": "https://doi.org/10.1038/s42256-026-01229-5",
+        "title": "A collaborative constrained graph diffusion model for the generation of realistic synthetic molecules",
+        "journal": "Nature Machine Intelligence",
+        "year": 2026,
+        "type": "Peer reviewed",
+        "open_access": "green",
+        "cited_by_count": 1,
+        "abstract": null
+      },
+      "credit": {
+        "authors": [
+          {
+            "name": "Manuel Ruiz-Botella",
+            "position": "first",
+            "orcid": null,
+            "institutions": [
+              "Universitat Rovira i Virgili"
+            ],
+            "countries": [
+              "ES"
+            ],
+            "is_corresponding": false
+          },
+          {
+            "name": "Marta Sales‐Pardo",
+            "position": "middle",
+            "orcid": "https://orcid.org/0000-0002-8140-6525",
+            "institutions": [
+              "Universitat Rovira i Virgili"
+            ],
+            "countries": [
+              "ES"
+            ],
+            "is_corresponding": true
+          },
+          {
+            "name": "Roger Guimerà",
+            "position": "last",
+            "orcid": "https://orcid.org/0000-0002-3597-4310",
+            "institutions": [
+              "Institució Catalana de Recerca i Estudis Avançats",
+              "Institut Català de Ciències del Clima",
+              "Universitat Rovira i Virgili"
+            ],
+            "countries": [
+              "ES"
+            ],
+            "is_corresponding": true
+          }
+        ],
+        "first_author": "Manuel Ruiz-Botella",
+        "last_author": "Roger Guimerà",
+        "n_authors": 3,
+        "lead_institutions": [
+          "Universitat Rovira i Virgili",
+          "Institució Catalana de Recerca i Estudis Avançats",
+          "Institut Català de Ciències del Clima"
+        ],
+        "countries": [
+          "ES"
+        ],
+        "has_global_south_author": false,
+        "global_south_institutions": [],
+        "source": "openalex",
+        "corresponding_authors": [
+          "Marta Sales‐Pardo",
+          "Roger Guimerà"
+        ]
+      },
+      "defects": [],
+      "summary": "The inpainting counterpart to CoCoGraph's formula-preserving model: it attaches a small fragment of 2–5 heavy atoms, drawn from a library of frequent substructures, then refines the result with the same constrained graph diffusion. Bond-pair swapping keeps every intermediate valence-valid, so chemical validity is guaranteed rather than filtered for afterwards."
+    }
+  ],
+  "hub_size_at_month_end": 248,
+  "month_last_day": "2026-08-31"
+}

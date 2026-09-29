@@ -37,6 +37,14 @@ file changes.
    → *Events that fit:* open-source and open-science community gatherings, networking
    with partners and funders, philanthropy/foundation forums.
 
+   **Priority 4 is the elastic one — treat it as a drift warning.** Priorities 1–3 name
+   concrete things (the Hub, therapeutics, Global-South training); this one can absorb
+   almost any event if read loosely. So an event mapping to **priority 4 alone** needs a
+   second, independent reason to be in the report: a **named community tie** (a body
+   Ersilia belongs to or partners with) or **Spanish reachability** (Barcelona /
+   Catalonia). Priority 4 plus general relevance is not enough — see "Not in scope" in
+   SKILL.md.
+
 ## Priority organisms and disease areas (for relevance judgement)
 
 - **Priority pathogens:** *M. tuberculosis* / *M. abscessus*, *P. falciparum* /
@@ -57,7 +65,7 @@ Do not over-think it — pick the label the majority of signals support.
 |---|---|
 | **Strategic fit** | Maps to ≥2 priorities, or squarely to priority 1 or 3, → higher. Tangential single-priority fit → lower. |
 | **Global-South relevance** | Hosted in or explicitly serving LMICs, or with travel-support / open access → higher (this is the 🌍 lens; see `lmic-countries.md`). |
-| **Reachability** | Free / virtual / low-cost / has a bursary, or in Europe (easy from Barcelona) → higher. Expensive and far with no support → lower. |
+| **Reachability** | Free / virtual / low-cost / has a bursary, or in Europe (easy from Barcelona) → higher. Expensive and far with no support → lower. **Barcelona / Catalonia is the ceiling of this signal**: no flight, no visa, no accommodation, and someone can go for a single day — so a local event clears the bar on reachability alone and its `action` should be `attend`, not `watch`. Priority 4 names Barcelona presence explicitly, so a Spain-hosted event also earns a second priority mapping most distant events cannot. |
 
 **Strategic fit and Global-South relevance are weighted equally — fit can stand on its
 own.** An event with a *strong* fit to a core priority (especially applied AI/ML for drug

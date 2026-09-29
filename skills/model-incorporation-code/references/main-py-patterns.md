@@ -16,11 +16,12 @@
 > operations — treat those as historical reference only. **All new incorporations
 > must use `ersilia_pack_utils` regardless of what the source model does.**
 
-> **IMPORTANT — new models must use `feat_` prefix for representation/featurisation
-> output columns** (e.g. `feat_000` for 512 dims, `feat_0000` for 2048 dims). Zero-pad
-> the index to the width of the total dimension count. Older models in this file use
-> `dim_0000` / `dim_000` — that is historical convention. New incorporations must use
-> `feat_`.
+> **Prefer the `feat_` prefix for representation/featurisation output columns** (e.g.
+> `feat_000` for 512 dims, `feat_0000` for 2048 dims), zero-padding the index to the width
+> of the total dimension count. Older models in this file use `dim_0000` / `dim_000`. This
+> is a convention, not an enforced rule — nothing in the `ersilia` codebase checks the
+> prefix and `dim_` remains the plurality among existing featurizers. See
+> `references/template-structure.md` and ersilia-os/ersilia#1901.
 
 Two things consistent across all patterns:
 - Input/output files come from `sys.argv[1]` and `sys.argv[2]`

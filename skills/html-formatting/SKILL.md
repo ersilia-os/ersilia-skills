@@ -90,6 +90,9 @@ wordmark header, the eyebrow, badges), replace off-brand colours/fonts with toke
 UX improvements from `ux-and-verbosity.md` (trim sections, add progressive disclosure, fix
 interactions). The script gets you a themed shell; you make it actually Ersilia.
 
+Either mode: if the page will be **hosted** at a public URL rather than published as an
+Artifact, add the social-preview flags — see [Social preview](#social-preview-hosted-pages-only).
+
 ### Step 3 — Apply the sleek-not-populated pass
 
 Work `ux-and-verbosity.md` as a checklist: one `<h1>`; ≤ ~8 sections; no decorative
@@ -123,6 +126,40 @@ colours/fonts, missing attribution, clutter). Weigh the **Nice-to-have** heurist
 judgement — a dense data page may legitimately trip `T1-CLUTTER-SECTIONS`; say so rather than
 mangling it. Re-run until clean or until the residual is justified. Never silently ignore a
 finding.
+
+### Social preview (hosted pages only)
+
+A page that will be **shared as a link** — LinkedIn, Slack, X, WhatsApp — needs Open Graph
+tags, or it previews as a bare card with only its title. The Ersilia preview image is a
+**screenshot of the page itself**, not a marketing card:
+
+```bash
+# 1. build the page, then screenshot it into the 1.91:1 card
+python scripts/make_og_image.py <page.html> --out og-image.png --zoom 1.4
+# 2. rebuild with the tags, pointing at the URL the PNG will be served from
+python scripts/apply_theme.py --mode retrofit <src.html> --out <page.html> \
+  --title "<Wordmark>" --description "<one plain sentence>" \
+  --url "https://<host>/<path>/" --og-image "https://<host>/<path>/og-image.png" \
+  --og-image-alt "<what the screenshot shows>"
+```
+
+What actually breaks these cards, in order of frequency:
+
+- **`og:image` must be an absolute `https://` URL.** A relative path or a `data:` URI cannot
+  work — the crawler fetches the image from its own servers with no page context.
+  `apply_theme.py` refuses to build rather than ship a silently broken card.
+- **The image must be publicly reachable**, ~1.91:1, ≥1200px wide, under 5MB. 1200×630 at 2×
+  (what `make_og_image.py` writes by default) is right.
+- **`--zoom` matters.** LinkedIn renders the card a few hundred pixels wide; a 1:1 viewport
+  crop turns 13px table text to mush. 1.3–1.5 for a dense data page.
+- **The crawler runs no JavaScript** — which is fine, the tags are static — but it does mean
+  the *screenshot* is the only way a JS-rendered page shows its content in a preview.
+- **LinkedIn caches a preview for about 7 days.** After deploying, force a re-scrape at
+  <https://www.linkedin.com/post-inspector/>. Do it *after* the deploy is live: a scrape that
+  lands first caches the empty card.
+
+None of this applies to an **Artifact** — it has no public URL, so omit the flags and ignore
+`T1-SOCIAL-PREVIEW`.
 
 ### Step 5 — Publish (if it's an Artifact)
 
@@ -178,6 +215,9 @@ not a violation, and the two targets want different things:
 
 - `scripts/apply_theme.py` — assembler. `new` scaffolds from an archetype; `retrofit` themes an
   existing page. Output is self-contained. `str.replace` token templating; stdlib only.
+- `scripts/make_og_image.py` — social-preview screenshotter. Serves the page locally (so its
+  sibling data files load), captures it with headless Chrome, writes one 1200×630 @2× PNG.
+  `--zoom` scales the page up so the card stays legible. Stdlib only.
 - `scripts/check_html.py` — compliance checker. Scores a page against `references/checks.md`,
   writes a tiered Markdown report (+ optional findings JSON). Report-only.
 - `scripts/_common.py` — shared findings model + the `html.parser`-based HTML model and the

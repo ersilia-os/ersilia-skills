@@ -58,6 +58,26 @@ mirrors the org-wide README footer in
   - In a **Claude Artifact**, external images are blocked by CSP — you must **embed it as a
     `data:` URI**, or stick with the wordmark. Don't leave a broken `<img>`.
 
+## The social preview card
+
+For a **hosted** page (not an Artifact), the link preview is part of the identity — it is what
+people actually see when the page is shared on LinkedIn or in Slack.
+
+- **The image is a screenshot of the page**, produced by `scripts/make_og_image.py`. Not a
+  marketing card, not a logo on a coloured field: the page *is* the pitch, and a screenshot
+  stays honest as the page changes. Zoom it (`--zoom 1.4`) so the wordmark, the title and the
+  first rows of real content fill the card — the preview is rendered small.
+- **The description is one plain sentence** saying what the page lets you do, in the same voice
+  as the lede: *"Search, filter and browse every repository in Ersilia's open-source
+  ecosystem."* No mission statement, no "empowering", no exclamation. It appears under the
+  card, where a marketing line reads as noise.
+- **`og:title` is the page title**, unchanged. Don't write a second, punchier title for social.
+- Regenerate the image when the page's **design** changes, not when its data does — the card is
+  an impression of the page, not a live view of it.
+
+See the walkthrough in `SKILL.md` for the commands and the platform constraints (absolute URL,
+1.91:1, LinkedIn's ~7-day cache).
+
 ## Links to use
 
 - Ersilia home: `https://ersilia.io`

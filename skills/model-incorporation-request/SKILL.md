@@ -73,13 +73,52 @@ Field rules:
 `<Name>` should be concise (2–5 words), title-case, describing what the model does. The Name field is the same `<Name>` without the emoji prefix.
 
 **Slug**
-Lowercase, hyphens only, **2–4 words maximum**. Keep it short and memorable — it becomes part of the model's permanent identifier. Propose a single best option (e.g. `mt-gnn-adme`, `morgan-fingerprints`). If you find yourself using more than 4 words, trim ruthlessly.
+Lowercase, hyphens only, **2–4 words maximum**. Keep it short and memorable — it becomes part of the model's permanent identifier. Propose a single best option (e.g. `morgan-fingerprints`, `tb-growth-inhibition`). If you find yourself using more than 4 words, trim ruthlessly. Drop a task-type word (`-gen`, `-pred`, etc.) once another word already disambiguates the slug. Prefer a word naming the model's **use case or target** over one naming the underlying ML method/architecture (`-xgboost`, `-gnn`, `-transformer`) — the method is an implementation detail, not something a hub user searches for. Exception: when the method itself is the deliverable and there's no separate use case to name, such as a general-purpose featurizer (`morgan-fingerprints`), keep it.
+
+These rules are **not enforced anywhere**. `BaseInformation.slug` and
+`BaseInformationValidator` check only that the value is lowercase and 5–60 characters long,
+so spaces, underscores and punctuation all pass validation cleanly (ersilia-os/ersilia#1899).
+Getting the slug right is manual — nothing downstream will catch it.
 
 **Description**
-200–600 characters (hard limits from the GitHub form). Plain English, focused on what a user gets from running this model on a molecule. Do not start with "This model...". Do not include a character count in the table — just show the description text.
+200–600 characters (hard limits from the GitHub form, and enforced later by `ersilia test`).
+Plain English, focused on what a user gets from running this model on a molecule. Do not
+start with "This model...". Do not include a character count in the table — just show the
+description text.
+
+**This limit is enforced server-side, not just by convention.** The `/approve` GitHub
+Actions workflow that a maintainer triggers on the issue runs
+`update_metadata_from_model_request.py`, which raises `ValueError` and fails the whole
+workflow if the description is outside 200–600 characters. Never eyeball the length —
+after drafting the description (and after any later edit to it, including one made in
+response to user feedback), count it explicitly, e.g.:
+```bash
+python3 -c "print(len('''<description text>'''))"
+```
+If it's out of range, shorten/lengthen and recount before presenting the table. Do not
+present or submit a description you have not just counted.
+
+For structure, prohibitions and worked examples, read
+`model-incorporation-metadata/references/writing-descriptions.md` — the single source of
+truth for this field. The description written here is a first draft;
+`/model-incorporation-metadata` refines it once the paper and the code have been read.
 
 **Tags**
 Pick only from the tag list fetched in Phase 1c. Choose **2–4 tags maximum** — only the most directly relevant ones. Do not tag everything that loosely applies; prefer precision over coverage. At least one is required.
+
+**Source Code**
+Must point at **code** — a repository, a package page, an archived release — not at the
+paper. Three URL forms rot and should be avoided:
+
+- **a bare IP address** (one hub model points at `http://130.92.106.217:8080/...`, which no
+  longer responds and has no hostname to fall back on)
+- **a deep file path inside a repository** (`.../blob/main/pkg/module/file.py`). Two hub
+  models broke when the upstream repo was refactored; the repository root would have
+  survived. Link the root.
+- **an academic project page** on a university host. Several have disappeared entirely.
+
+Where the upstream repository may not last — a personal account, an unreleased project —
+prefer a DOI (Zenodo) or a package page (PyPI, Conda), which are archived.
 
 **License**
 Use only values from the `license.txt` list fetched in Phase 1c. Use `None` if no LICENSE file is found.
@@ -134,6 +173,38 @@ gh issue create \
 EOF
 )"
 ```
+
+---
+
+## Phase 3.5 – If `/approve` Fails
+
+A maintainer approves the request by commenting `/approve` on the issue, which triggers
+the `Approve Command Dispatch` workflow. If that workflow fails (a `github-actions` bot
+comment appears saying "Workflow Failure ❌"), do this:
+
+1. **Read the actual error**, don't guess. Get the run ID from the bot comment's log link
+   or from `gh issue view <n> --repo ersilia-os/ersilia --json comments`, then:
+   ```bash
+   gh run view <run-id> --repo ersilia-os/ersilia --log-failed
+   ```
+   The most common cause is exactly the description-length check above — the traceback
+   ends in `ValueError: Model description is N characters, which exceeds the 600-character
+   limit.` Fix by editing the issue body (`gh issue edit <n> --repo ersilia-os/ersilia
+   --body "..."`, same heading format as Phase 3) with a re-counted description, then
+   comment `/approve` again.
+2. **Don't assume the failure-notice repo was actually created.** The bot's failure
+   comment says "you may need to delete the following repo... since the run was not fully
+   successful" *unconditionally* — it does not know whether repo creation itself
+   succeeded before the later step failed. Check before doing anything about it:
+   ```bash
+   gh api repos/ersilia-os/<mentioned-repo> --jq '{created_at}'
+   ```
+   A 404 means it was never created (nothing to clean up). Only if it returns real data
+   should you consider deleting it — and deleting a repo under the `ersilia-os` org is a
+   destructive, shared-system action, so confirm with the user first regardless.
+3. After a successful re-run, confirm the new repo by reading the issue's latest comment
+   (`gh issue view <n> --repo ersilia-os/ersilia --json comments --jq '.comments[-1]'`) —
+   the success comment names the new `eosXXXX` repo directly.
 
 ---
 

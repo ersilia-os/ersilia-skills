@@ -365,17 +365,25 @@ in Step 6 must speak to these answers.
 
 Decision:
 
+- **Before running the checklist:** ask the seven conditional-route trigger
+  questions (C1–C7) from `references/hub-incorporation-criteria.md` for any
+  item that looks gated out by criteria 1–3. If a trigger fires, assign 🤖❓
+  and write the conditional body sentence (template in that reference file)
+  rather than the standard one below — then skip the checklist for that item.
 - Items passing **1–4 and 6** unconditionally get 🤖.
 - Items passing **1–4 + 6** but failing 5 or 7 still get 🤖 (still a candidate),
   and the body sentence must say so concretely
   (e.g. "weights not yet released" or "requires a 4×A100 inference budget").
-- Items failing any of 1–3 or 6 do **not** get 🤖. They may still appear as
-  context in chapter 3 (methods) with the failing dimension named.
-- 💻 is **independent** of 🤖. 💻 applies only when the abstract or paper page
-  explicitly names a public repo URL — Crossref/EuropePMC abstracts often omit
-  code mentions; do not infer code presence from "this work is open" or "code
-  available upon request". Default-off when uncertain. An item can carry 🤖
-  without 💻 (e.g. weights on HuggingFace, no repo) and vice versa.
+- Items failing any of 1–3 or 6 and not matching any C1–C7 trigger do **not**
+  get 🤖 or 🤖❓. They may still appear as context in chapter 3 (methods) with
+  the failing dimension named.
+- A paper carries **either** 🤖 or 🤖❓, never both. Within a chapter, 🤖
+  entries sort first, then 🤖❓, then unannotated.
+- 💻 is **independent** of 🤖 / 🤖❓. 💻 applies only when the abstract or paper
+  page explicitly names a public repo URL — Crossref/EuropePMC abstracts often
+  omit code mentions; do not infer code presence from "this work is open" or
+  "code available upon request". Default-off when uncertain. An item can carry
+  🤖 without 💻 (e.g. weights on HuggingFace, no repo) and vice versa.
 
 **Body-sentence pattern for 🤖 entries.** Replace generic "could be a drop-in
 featurizer" with a structured one-liner naming **(input → output / task / license /

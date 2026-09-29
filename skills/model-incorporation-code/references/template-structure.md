@@ -38,8 +38,14 @@ Four required columns, no extras. Write it with Python or a plain text editor wi
 |--------|-------|
 | `name` | lowercase letters and underscores only; no spaces, hyphens, or special chars |
 | `type` | exactly one of: `float`, `integer`, `string` |
-| `direction` | `high` or `low` — the direction of biological activity. `high` means higher output values correspond to more of the modelled property. `low` means lower values correspond to more of the property. Leave **empty** for sampling outputs and for representation models with abstract latent dimensions (e.g. neural embeddings) where dimensions have no interpretable direction. For fingerprint-based representations (e.g. Morgan counts), use `high` since higher = more of that structural feature present. |
+| `direction` | `high` or `low` — whether a larger value means **more of the modelled property**, never whether it is desirable. `high` means higher output values correspond to more of the modelled property. `low` means lower values correspond to more of the property. Leave **empty** for sampling outputs and for representation models with abstract latent dimensions (e.g. neural embeddings) where dimensions have no interpretable direction. For fingerprint-based representations (e.g. Morgan counts), use `high` since higher = more of that structural feature present. |
 | `description` | one plain-English sentence; **no commas** inside the text |
+
+> **`direction` is magnitude, not desirability.** A cardiotoxicity score is `high` because
+> the number rises with cardiotoxicity, even though less cardiotoxicity is preferable. The
+> vocabulary file's name (`desired_directions.txt`) and its unused `intermediate` value both
+> suggest otherwise; ignore them. A 2026 sweep corrected 51 models that had read the field
+> as desirability.
 
 ### Naming conventions by model type
 
@@ -50,7 +56,12 @@ Four required columns, no extras. Write it with Python or a plain text editor wi
 | Representation / featurisation | `feat_` + zero-padded index sized to total dimension count: `feat_00` (100 dims), `feat_000` (512 dims), `feat_0000` (2048 dims) |
 | Sampling (SMILES output) | `smi_` + zero-padded index: `smi_00` (100 outputs), `smi_000` (1000 outputs) |
 
-> **Historical note:** Many existing Ersilia models use `dim_0000` / `dim_000` (pre-dating this convention). New model incorporations must use the `feat_` prefix.
+> **These are preferences, not enforced rules.** Nothing in the `ersilia` codebase checks any
+> prefix, and no Ersilia documentation deprecates the alternatives. The hub is genuinely split:
+> among existing featurizers `dim_` is the plurality (13 models against 10 using `feat_`, plus
+> 7 `feature_` and 1 `dimension_`), and `smi_` leads `smiles_` only 14 to 8. Use `feat_` and
+> `smi_` for new incorporations, but do not rewrite an existing model's columns on the strength
+> of this preference alone. See ersilia-os/ersilia#1901.
 
 ### Examples from real Ersilia models
 
@@ -82,7 +93,8 @@ dim_000,float,,UniMol molecular representation dimension 000
 dim_001,float,,UniMol molecular representation dimension 001
 ```
 
-> **Note:** The examples above use the historical `dim_` prefix. **New model incorporations must use `feat_`** (e.g. `feat_0000`, `feat_000`) following the current Ersilia convention.
+> **Note:** The examples above are shown as they exist in the hub, which is why they use the
+> `dim_` prefix. Prefer `feat_` (e.g. `feat_0000`, `feat_000`) for new incorporations.
 
 **eos2hzy — sampling (first 2 of 100):**
 ```csv

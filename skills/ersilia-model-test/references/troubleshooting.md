@@ -178,7 +178,67 @@ commands:
 
 ---
 
-## 6. Debugging workflow (advanced)
+## 6. Empty output cells — the "works exactly once" environment
+
+### Symptom
+
+`simple_model_run` fails with column mismatches where the **expected** value is the reference number and the **actual** is an empty string:
+
+```
+Simple Model Run  │  Column mismatches found (and more): [(0, 0, '0.68546062707901', ''),
+                  │  (0, 1, '0.3149673367540042', ''), (0, 2, '0.5751895010471344', '')]
+```
+
+Everything upstream passes (`install_yaml_check`, `columns`, the dimension check), `async_simple_model_run` often still passes, and the maintenance report shows `fetch_exit=0, test_exit=1`.
+
+### What it means
+
+The model is not crashing in a way the harness surfaces directly. Ersilia's **served API returns HTTP 500**, and Ersilia turns each failed molecule into empty cells:
+
+```
+ERROR    Batch of size 3 failed: 500 Server Error: Internal Server Error for url: .../run
+WARNING  Molecule could not be processed and will have empty output: <SMILES>
+```
+
+An **empty string** (not `nan`) means the row never received a value at all. Distinguish this from genuine NaN output (§4c): pandas writes `NaN` as `''` too, so confirm by running the model directly before concluding it is a NaN-handling bug.
+
+### Known cause: the lazyqsar rdkit/chemprop cycle
+
+Affects any model installing `lazyqsar[descriptors]==2.3.0` + `lazyqsar-setup` (seen in `eos1lb5`, `eos9ivc`).
+
+1. lazyqsar's `descriptors` extra pins `rdkit==2025.9.1`.
+2. `lazyqsar/descriptors/cddd.py` hard-asserts `rdkit_version == "2025.09.1"` at import.
+3. `lazyqsar/descriptors/chemeleon.py` calls `ensure_chemprop()` **at import time**, which runs `pip install chemprop` inside the live interpreter.
+4. Current chemprop (2.3.x) requires `cuik_molmaker_pin`, which requires `rdkit==2026.03.4` — so rdkit is upgraded on disk.
+5. The **first** process survives because rdkit 2025.9.1 is already loaded in memory. **Every later process** fails the assert at import.
+
+Net effect: the environment works exactly once. Fetch's own run succeeds — `~/eos/dest/<model_id>/example_standard_output.csv` holds correct values — and the next run fails. That is precisely `fetch_exit=0, test_exit=1`.
+
+The model does **not** need to use the cddd descriptor: `lazyqsar.qsar` imports `descriptors/cddd.py` unconditionally, so importing any lazyqsar API trips the assert even for a model shipping only `rdkit` and `chemeleon` checkpoints.
+
+### How to confirm
+
+Run the framework **twice** in the model's own env — the second run is the one that fails:
+
+```bash
+cd ~/eos/repository/<model_id>/*/model/framework
+conda run -n <model_id> bash run.sh . examples/run_input.csv /tmp/o1.csv   # succeeds
+conda run -n <model_id> bash run.sh . examples/run_input.csv /tmp/o2.csv   # AssertionError: Please use RDKit 2025.09.1
+```
+
+Watch the version drift directly:
+
+```bash
+~/anaconda3/envs/<model_id>/bin/pip list | grep -iE "^rdkit|^chemprop|cuik"
+```
+
+rdkit flipping back to `2026.03.4` after a successful run is the signature.
+
+The fix is in `model-fixing`'s `fix-patterns.md` §6.
+
+---
+
+## 7. Debugging workflow (advanced)
 
 If the test fails and the error is not obvious from the test output, reproduce the failure manually:
 
