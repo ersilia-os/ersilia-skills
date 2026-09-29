@@ -5,11 +5,12 @@ queries and to score candidate items. Blends three views of "what matters to Ers
 
 1. **Publication-record view** — what Miquel has co-authored and what the Ersilia Model Hub covers.
 2. **Correspondence view** — what surfaces via Gmail Scholar alerts and ongoing collaborator
-   threads (synthesised 2026-05-20).
+   threads (synthesised 2026-09-18).
 3. **Grant view** — what the active grant portfolio commits Ersilia to keep up with (NIH R21
    antimalarial pyrazole, BBVA Prisms `glueAI`, Grand Challenges Gram-negative AMR / `E-AMR-CC`,
-   CARB-X 2,4-diaminoquinazoline EOI, AI2050 compute fund, O'Shaughnessy Fellowship — sampled
-   2026-05-20).
+   CARB-X 2,4-diaminoquinazoline EOI, AI2050 compute fund, O'Shaughnessy Fellowship, and — new
+   this quarter — **OS4LS** agentic-AI/MCP, **GC-ADDA4TB 2.0**, and the **Gr-ADI / SAMRC
+   BacPROTAC** track — sampled 2026-09-18).
 
 Where these views agree, weight is high. Where they disagree, the file flags the divergence so
 ranking can prefer the source that best matches the question being asked.
@@ -22,37 +23,69 @@ Ranked by centrality. The score formula in `scripts/dedup_and_rank.py` uses topi
 one component; the higher the rank here, the heavier the weight should be.
 
 > For the empirically-derived distribution of subtasks, journals and source types across
-> the existing 189 Ready Hub models, see `hub-incorporation-criteria.md`. That file is the
+> the existing 221 Ready Hub models, see `hub-incorporation-criteria.md`. That file is the
 > reference for assigning 🤖 and for placing items in the "Potential models" chapter.
 
-### Recurring themes in the #literature channel (Slack history, 2026-Feb to 2026-May)
+### Recurring themes in the #literature channel (Slack history, 2026-Jun to 2026-Sep)
 
-Themes the team explicitly engages with, derived from inspection of ~100 Slack
-messages. These should weigh slightly higher than topic-keyword hits alone — they
-reflect what is actually being read and discussed inside the org.
+Themes the team explicitly engages with, derived from inspection of the last 90
+days of `#literature`. These should weigh slightly higher than topic-keyword hits
+alone — they reflect what is actually being read and discussed inside the org.
 
-- **Agentic AI for science** — Sakana "AI Scientist", Jeff Clune's lineage,
-  Google DeepMind Co-Scientist, FutureHouse multi-agent systems. Anything that
-  positions an LLM agent against scientific discovery.
-- **OpenADMET ecosystem** — the OpenADMET model collection, blind-challenge
-  benchmarks, ADMET ensembles. Surface anything from `OpenADMET` GitHub.
-- **Boltz-2 / cofolding** — Boltz performance evaluation, cofolding generalisation,
-  alternatives to AlphaFold-Multimer.
-- **Open generative chemistry tools** — CreM, ChemLint (Grisoni / van Tilborg),
-  ETFlow, Synthonor, scaffold-aware transformers. The team triages new generative
-  releases routinely.
-- **Drug discovery in Africa** — the ACS *Drug Discovery Africa* collection
-  (Dziwornu, Cheuka, Mayoka), H3D Foundation news, GC-ADDA outputs.
-- **Open sharing of compounds and assays** — Matthew Todd's "Idler Compounds",
-  Open Source Malaria, cross-screening protocols.
-- **ChEMBL FAIRification and AI-driven annotation** — anything from the ChEMBL
-  blog, especially AI-driven curation.
-- **EBI BioAiRepo and open model registries** — peer registries to the Ersilia
-  Model Hub; the team tracks how others structure model metadata.
-- **AMR R&D funding / policy** — *Lancet Microbe* articles on investment trends,
-  global health funding declines.
-- **Chemical foundation models / representation learning** — MIST, ChemBERTa
-  successors, GROVER, language-model embeddings for molecules.
+**Carried over from the previous refresh, still live:**
+
+- **Agentic AI for science** — now the single most-posted theme. Sakana "AI
+  Scientist", DeepMind Co-Scientist, FutureHouse, plus Anthropic's *agents in
+  biology* and *making Claude a chemist* write-ups, and the three *Nature*
+  AI-agents-for-science papers. Anything positioning an LLM agent against
+  scientific discovery.
+- **OpenADMET ecosystem** — still posted, most recently on applicability domain
+  ("how to know when your model is actually relevant").
+- **Cofolding** — has shifted from "is Boltz-2 good" to *open* cofolding: Nesso
+  (Valence/Recursion, Apache-2.0) and federated cofolding training on private
+  pharma structures.
+- **Open generative chemistry tools** — CReM/oCReM, ChemLint (Grisoni / van
+  Tilborg), ETFlow, scaffold-aware transformers. Triaged routinely.
+- **Drug discovery in Africa** — ACS *Drug Discovery Africa*, H3D Foundation,
+  GC-ADDA outputs, CAiSMD (Buea), and the Hlozek *Bridging the AI divide in drug
+  discovery: lessons from Africa* preprint.
+- **Open sharing of compounds and assays** — Open Source Malaria, Co-ADD data
+  re-use, cross-screening protocols.
+- **ChEMBL FAIRification and AI-driven annotation** — ChEMBL blog, including the
+  first-PROTAC-approval post.
+- **Chemical foundation models / representation learning** — ChemBERTa
+  successors, Uni-Mol2, multimodal and task-adaptive representations.
+
+**New or sharply up this quarter — treat as high-priority editorial priors:**
+
+- **Benchmark auditing, leakage and validation protocols.** The strongest new
+  theme. *Chemical Science* on duplicated/leaked records in widely used
+  biomolecular benchmarks, "benchmarking the benchmarks", the Polaris position
+  that retrospective benchmarks are instruments rather than goals, and repeated
+  posting of negative/reproducibility results. **Surface negative results and
+  audits as first-class items** — the team reads them before trusting any
+  leaderboard cited in a model's favour.
+- **Tabular foundation models and in-context learning.** TabPFN, Google's zero-shot
+  TabFM. Now load-bearing: the OS4LS grant commits Ersilia to on-demand
+  in-context predictors over the Isaura data lake.
+- **MCP servers and agent-callable scientific tooling.** Model Context Protocol
+  wrappers around instruments and model hubs. Directly on the OS4LS deliverable
+  path; anything exposing chemistry tools to agents is on-mission.
+- **Chemical-space visualisation and projection.** *Chemical Science* on efficient
+  chemical-space visualisation. Projection is the Hub's thinnest bucket (3 %) and
+  the team is actively interested — surface even modest projection papers.
+- **Retrosynthesis and synthesis planning.** SynOmega (JCIM) and related route-design
+  work; recurring after a quiet period.
+- **Fragment-based screening and BacPROTACs.** XChem/Diamond fragment campaigns,
+  ClpC/ClpP engagement, target-engaging ligands. Driven by the new SAMRC and
+  Gr-ADI proposals.
+- **Mtb permeability and accumulation.** MycoPermeNet-v2 drew the longest thread of
+  the quarter (13 replies).
+
+**Venue signal from Slack.** *Communications Chemistry* (`s42004`) and RSC titles
+(*Chemical Science*, *Digital Discovery*) are now posted in bursts and are among
+the most-shared venues, alongside the Nature family, JCIM, chemRxiv and bioRxiv.
+Both have been promoted in the journal tiers below.
 
 These themes are not (yet) in the keyword-matrix scoring; treat them as editorial
 priors when deciding what to surface.
@@ -138,6 +171,8 @@ indication · Co-folding · Deep docking · Active learning · Bayesian optimiza
 learning · Transfer learning · Knowledge graph · Graph neural network · Contrastive learning ·
 Self-supervised pretraining · Equivariant network · SE(3) · 3D molecular representation ·
 Conformer ensemble · Multimodal chemistry · Cross-modal alignment · Active-learning loop ·
+Applicability domain · Data leakage · Benchmark audit · Reproducibility study · Negative
+result · Fragment-based screening · XChem · Crystallographic fragment screen ·
 Surrogate model · Bandit · Mixture of experts · State-space model · Mamba · Retrieval-augmented
 generation · LoRA fine-tuning · Domain adaptation · Pretrained encoder · Chemical foundation
 model · Molecular language model · 3D point cloud · Voxel grid · Geometric deep learning.
@@ -164,7 +199,8 @@ envenoming.
 
 Molecular glue · PROTAC · BacPROTAC · Targeted protein degradation · E3 ligase · Ubiquitin
 proteasome · Apicoplast · MEP / DOXP pathway · Kelch13 · Ring-stage · Hemozoin · Phosphatidyl-
-inositol kinase · Chymotrypsin-like protease.
+inositol kinase · Chymotrypsin-like protease · ClpC / ClpC1 unfoldase · ClpP peptidase ·
+Cyclomarin A · ADEP · ONC212 · Target-engaging ligand (TEL).
 
 ### Hub-priority model release anchors
 
@@ -183,10 +219,11 @@ MolBERT · MolE · KPGT · BARTSmiles.
 **Activity / property predictors with open weights:**
 ADMET-AI · ADMETLab · OpenADMET ensemble · DeepPurpose · DeepChem hub models ·
 MoleculeNet baselines · ChemProp / Chemprop-RDKit · ImageMol · AttentiveFP ·
-MPNN-Transformer · DMPNN · KANO · Skipgram-Mol · DenseNet-Mol.
+MPNN-Transformer · DMPNN · KANO · Skipgram-Mol · DenseNet-Mol · Nesso ·
+MycoPermeNet / MycoPermeNet-v2 · TabPFN · TabFM.
 
 **Generators (small-molecule input or unconditional — Hub-eligible):**
-REINVENT · REINVENT4 · MolBO · ETFlow · SyntheMol · MolDQN · MoLeR · GraphAF ·
+REINVENT · REINVENT4 · CReM / oCReM · MolBO · ETFlow · SyntheMol · MolDQN · MoLeR · GraphAF ·
 GraphDF · ScaffoldVAE · LIMO · DiffSBDD-unconditional · BindingVAE ·
 SBDD-Unconditional · MOSES · GuacaMol · MolGAN · ScaffoldGen.
 
@@ -197,7 +234,11 @@ Boltz-1 · Boltz-2.
 
 **Representation, projection, similarity:**
 PocketVec · Bioteque · Chemical Checker · ChemSpace · USRCAT · DOPE-similarity ·
-JTVAE-embedding · Graph2Vec-Mol · Mol2Vec.
+JTVAE-embedding · Graph2Vec-Mol · Mol2Vec · Uni-Mol2 · task-adaptive multimodal
+representations.
+
+**Retrosynthesis / synthesis planning (Hub-eligible when SMILES-in, SMILES-out):**
+SynOmega · AiZynthFinder · ASKCOS · LinChemIn · RXNMapper.
 
 When the abstract or paper mentions any name above plus a release verb ("we
 present", "we release", "we open-source", "publicly available", "model weights",
@@ -231,7 +272,8 @@ Open Reaction Database (ORD) · USPTO grants set · USPTO-MIT · TS3D-Generative
 **Foundation-model pretraining / multi-task benchmarks:**
 PubChem snapshots · ChEMBL bioactivity dumps · OGB-LSC PCQM4Mv2 · QM9 / QM9-Extended ·
 QM7 · QuantumPioneer · ANI-1x / ANI-2x · ChEMBL-AMR · BindingDB-2026 ·
-GeometricMol · DeepChem MoleculeNet successors.
+GeometricMol · DeepChem MoleculeNet successors · Polaris benchmark sets ·
+OpenADMET-ExpansionRx · MolForge-curated sets.
 
 **Structural / cofolding:**
 AlphaFold DB releases · PDBbind 2026 · CrossDocked2024 · Binding MOAD updates ·
@@ -262,8 +304,15 @@ high-throughput autonomous screen · Chemputer · MERLIN platform · A-Lab ·
 ChemSpyd · RoboRXN.
 
 **Retrosynthesis & lab automation:**
-retrosynthesis agent · IBM RXN · AiZynthFinder · LinChemIn · ASKCOS ·
+retrosynthesis agent · IBM RXN · AiZynthFinder · LinChemIn · ASKCOS · SynOmega ·
 forward-prediction agent · reaction prediction LLM · automated route design.
+
+**Agent-callable tooling and in-context prediction (new 2026-09):**
+Model Context Protocol · MCP server · tool-calling chemistry · agent-callable
+model registry · TabPFN · TabFM · tabular foundation model · in-context learning
+for bioactivity · zero-shot tabular prediction · data lake of predictions.
+These sit on the OS4LS deliverable path (exposing the Ersilia Model Hub and
+Isaura to MCP-compatible agents), so treat them as grant-track, not curiosity.
 
 ### Open-source drug discovery and global-health anchors
 
@@ -310,6 +359,23 @@ Boost +5 (above the standard +3) on the grant-track work — these are deliverab
 - **Fidele Ntie-Kang** — Univ. of Buea. Natural products; GC-ADDA convening co-author.
 - **José L. Medina-Franco** — UNAM. Chemoinformatics; GC-ADDA contributor.
 - **Peter Mubanga Cheuka** — Univ. of Zambia. Antimicrobial medchem.
+- **Erick Strauss** — Stellenbosch Univ. Lead PI on the SAMRC ClpC-activator /
+  BacPROTAC proposal and the Gr-ADI target-agnostic TEL workflow. Ersilia supplies
+  the binding-site-comparison and generative-design components.
+- **Adrienne Edkins** — Rhodes Univ. Co-applicant on the SAMRC BacPROTAC proposal.
+- **Clint Veale** — UCT. Co-applicant on the SAMRC BacPROTAC proposal.
+
+### Gr-ADI consortium (AI-data working group; boost +3)
+
+Active multi-institution working group Ersilia sits on. Members whose output should
+be caught even outside the antimicrobial keywords.
+
+- **Ian Gilbert** — Univ. of Dundee. NTD and antimalarial drug discovery. *A standing
+  Gmail Scholar author alert — the user already follows this name.*
+- **Eachan Johnson** — The Francis Crick Institute. High-throughput antibacterial screening.
+- **Michal Koziarski** — SickKids, Toronto. ML for molecular design.
+- **Laurent Dardenne** — LNCC, Brazil. Computational drug design.
+- **Yildiz Tasdan** — Univ. of Oxford (CMD).
 
 ### External topical anchors (boost +3)
 
@@ -341,8 +407,19 @@ Boost +5 (above the standard +3) on the grant-track work — these are deliverab
 - **Gemma Moncunill** — ISGlobal. Malaria immunology biomarkers.
 - **Jürgen Bajorath** — University of Bonn. Chemoinformatics / AI colloquium.
 - **Ian Tietjen** — Wistar Institute. Natural-product antivirals; HIV.
+- **Helen Zgurskaya** — Univ. of Oklahoma. Gram-negative permeability and efflux;
+  compound accumulation. *A standing Gmail Scholar author alert — directly on the
+  `E-AMR-CC` cell-wall-penetration track.*
 
-Set Scholar alerts for the first two groups; use the third group to catch topic-specific work.
+Set Scholar alerts for the first two groups; use the remaining groups to catch
+topic-specific work.
+
+**Alerts currently live in the user's Gmail** (confirmed 2026-09-18) — topic alerts on
+*molecular property prediction*, *molecular representation learning*, *artificial
+intelligence in drug discovery*, *antibiotic drug discovery*, *antimicrobial resistance*
+and *generative chemistry*; author alerts on **Helen Zgurskaya**, **Ian Gilbert** and
+**Jure Leskovec**. These arrive under the `Research-Updates` label and are the
+highest-recall Gmail source for the weekly run.
 
 ---
 
@@ -378,16 +455,22 @@ case mark ⭐ and note the venue in the entry.
 
 Venues that dominate either Miquel's record, the Hub's catalogue, or the active grant portfolio.
 
-**The Hub catalogue (189 Ready models) is dominated by six venues** — these are
-the highest-prior places to find incorporable papers:
+**The Hub catalogue (221 Ready models) is dominated by a handful of venues** —
+these are the highest-prior places to find incorporable papers (counts from the
+2026-09-18 snapshot of 211 catalogued publications):
 
-1. *Journal of Cheminformatics* — 29 Hub models. The single most-incorporated
+1. *Journal of Cheminformatics* — 30 Hub models. The single most-incorporated
    venue. Always scan.
-2. *arXiv* — 25 Hub models. Preprints are first-class.
-3. *Journal of Chemical Information and Modeling (JCIM)* — 13 Hub models.
-4. *Nature Machine Intelligence* — 11 Hub models.
-5. *Nature Communications* — 9 Hub models.
-6. *Nucleic Acids Research* — 6 Hub models. Especially the web-server issue.
+2. *arXiv* — 26 Hub models. Preprints are first-class.
+3. **Oxford UP titles** — 15 Hub models combined (*Nucleic Acids Research*,
+   *Bioinformatics*, *Briefings in Bioinformatics*). Up from 9 last quarter; NAR's
+   web-server issue is the recurring pattern.
+4. *Journal of Chemical Information and Modeling (JCIM)* — 13 Hub models.
+5. *Nature Machine Intelligence* — 11 Hub models.
+6. **RSC titles** — 11 Hub models (*Chemical Science*, *Digital Discovery* and
+   siblings). **New entrant this quarter**, and heavily posted in `#literature`;
+   promoted from Tier 2.
+7. *Nature Communications* — 9 Hub models.
 
 The rest of Tier 1, in no particular order:
 
@@ -398,6 +481,10 @@ The rest of Tier 1, in no particular order:
 - *Science* — when collaborators publish there (CeMM chemoproteomics, Boltz, etc.).
 - *Cell Chemical Biology* — TPD / MGD mechanism papers.
 - *Communications Medicine* — Africa data-science DDI (Turon et al. 2025).
+- *Communications Chemistry* — 4 Hub models; **promoted from Tier 2** this quarter.
+  Posted in bursts in `#literature` and a repeat supplier of Hub candidates.
+- *Chemical Science* · *Digital Discovery* and other RSC titles — **promoted from
+  Tier 2** on the strength of 11 catalogued Hub models.
 - *Journal of Cheminformatics* — most over-represented hub venue; also a user venue.
 - *Journal of Chemical Information and Modeling (JCIM)* — both.
 - *Journal of Medicinal Chemistry (JMC)* · *ACS Medicinal Chemistry Letters*.
@@ -412,13 +499,12 @@ The rest of Tier 1, in no particular order:
 - *Cell* · *Cell Reports Medicine* · *Cell Systems* · *Cell Host & Microbe*.
 - *PNAS* · *eLife*.
 - *Science Advances* · *Science Translational Medicine*.
-- *Nature Methods* · *Nature Computational Science* · *Communications Chemistry*.
+- *Nature Methods* · *Nature Computational Science*.
 - *Current Opinion in Chemical Biology* · *Current Opinion in Systems Biology*.
 - *Nucleic Acids Research* — database / resource papers.
 - *Bioinformatics* · *Briefings in Bioinformatics*.
 - *Molecular Informatics* · *RSC Medicinal Chemistry* · *ChemMedChem*.
 - *JACS* — for the TPD thread.
-- *Chemical Science* and other RSC titles (incl. *Digital Discovery*).
 - *Drug Discovery Today* · *Frontiers in Drug Discovery* · *Frontiers in Chemistry*.
 - *Structure* — for structural-pharmacology threads.
 - *Antimicrobial Agents and Chemotherapy (AAC)* · *mBio* · *Malaria Journal*.
@@ -438,6 +524,9 @@ The rest of Tier 1, in no particular order:
 - *npj Antimicrobials and Resistance* · *npj Digital Medicine*.
 - *NEJM* — only when content is squarely on Ersilia-relevant clinical work; otherwise low
   signal-to-noise. Default-low.
+- **MDPI titles** (*Pharmaceuticals*, *Molecules*, *IJMS*, …) — 4 catalogued Hub models, so
+  real intake, but editorial standards vary widely. Kept at Tier 3 deliberately: include only
+  when the release itself (code, weights, licence) checks out on inspection, never on venue.
 
 ---
 
@@ -472,14 +561,21 @@ accounts for — use it as a prior when triaging.
 |---|---|---:|---|
 | Annotation | **Activity prediction** | 41 % | Bioassay datasets, QSAR, IC50/MIC/Ki prediction, multi-task activity profiling against Hub-priority pathogens (*Plasmodium*, *Mycobacterium*, *Klebsiella*, etc.) and ESKAPE. |
 | Representation | **Featurization** | 25 % | Pretrained chemical encoders (graph, transformer, language-model), molecular fingerprints, descriptor vectors, chemical foundation models. |
-| Annotation | **Property calculation or prediction** | 20 % | ADMET endpoints, solubility, permeability, metabolic stability, toxicity panels (Tox21, hERG, DILI), CYP-mediated metabolism. |
-| Sampling | **Similarity search** | 6 % | Ligand-based virtual screening, k-NN over fingerprints/embeddings, retrieval methods, docking surrogates. |
-| Sampling | **Generation** | 5 % | De novo molecular design, SMILES VAE/transformer/diffusion, scaffold hopping, RL generators, scaffold-aware transformers. |
+| Annotation | **Property calculation or prediction** | 19 % | ADMET endpoints, solubility, permeability, metabolic stability, toxicity panels (Tox21, hERG, DILI), CYP-mediated metabolism. |
+| Sampling | **Generation** | 7 % | De novo molecular design, SMILES VAE/transformer/diffusion, scaffold hopping, RL generators, scaffold-aware transformers. |
+| Sampling | **Similarity search** | 5 % | Ligand-based virtual screening, k-NN over fingerprints/embeddings, retrieval methods, docking surrogates. |
 | Representation | **Projection** | 3 % | 2D/3D embeddings of chemical space, UMAP/t-SNE-based methods, manifold learning over compounds. |
 
 Activity prediction + featurization + property prediction together account for
-**86 %** of all Ready Hub models. Weight papers in those three subtasks heavier
+**85 %** of all Ready Hub models. Weight papers in those three subtasks heavier
 than the other three when triaging.
+
+**Changed this quarter:** generation grew from 5 % to 7 % (9 → 16 Ready models) and
+has overtaken similarity search. The rows above are now in true descending-share
+order, which is also the order chapter 1 should use for its `###` subheadings.
+Projection (3 %) and similarity search (5 %) remain the thinnest buckets — surface
+papers in those families even when modest, per the standing instruction in
+`SKILL.md` Step 5b.
 
 When chapter 1 of the digest ("Models that could join the Hub") groups items by
 subtask, use these exact subtask names as `###` subheadings, in the order above.

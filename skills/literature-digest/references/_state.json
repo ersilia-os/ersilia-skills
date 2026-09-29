@@ -1,20 +1,28 @@
 {
-  "last_refresh_date": "2026-06-04",
+  "last_refresh_date": "2026-09-18",
   "refresh_interval_days": 90,
-  "next_refresh_due": "2026-09-02",
+  "next_refresh_due": "2026-12-17",
   "refreshed_files": [
     "search-landscape.md",
-    "output-template.md",
-    "slack-alert-template.md"
+    "hub-incorporation-criteria.md",
+    "lmic-countries.md"
   ],
   "refresh_log": [
     {
       "date": "2026-05-21",
-      "notes": "Initial buildout. Hub catalogue analysed (254 entries, 189 Ready); Slack #literature history inspected (~100 messages, Feb–May 2026); seed lists merged from Gmail + Drive grants."
+      "notes": "Initial buildout. Hub catalogue analysed (254 entries, 189 Ready); Slack #literature history inspected (~100 messages, Feb\u2013May 2026); seed lists merged from Gmail + Drive grants."
     },
     {
       "date": "2026-06-04",
-      "notes": "Editorial widening: Hub-incorporability promoted to the digest's primary mission. Added explicit 🤖 model checklist (7 rows) and 🗃️ dataset checklist (5 rows) in SKILL.md Step 5. Restructured output-template.md so chapter 1 ('Models that could join the Hub') and chapter 2 ('Datasets that could join the Hub') lead the digest, each with task/endpoint subheadings. Expanded search-landscape.md with model-release anchors, dataset-release anchors, and agentic-AI/automation keyword sections. Rewrote slack-alert-template.md as a multi-section preview (counts strip, 🤖 models, 🗃️ datasets, ⭐ big picture, 🌍 LMIC) instead of a 3-line pointer. Added Step 4.5 supplementary web hunt (WebSearch/WebFetch) when pool is thin on Hub candidates; semaphore extended with 'Web hunt' slot. Raised dedup_and_rank.py topic-keyword cap +4 → +6, pool size 50 → 80, and added new signals: model-release-verb (+3, gated on Hub-task keyword), dataset-release-verb (+3), antimicrobial editorial bump (+2), agentic-AI keyword bump (+2), repo-URL signal (+1)."
+      "notes": "Editorial widening: Hub-incorporability promoted to the digest's primary mission. Added explicit \ud83e\udd16 model checklist (7 rows) and \ud83d\uddc3\ufe0f dataset checklist (5 rows) in SKILL.md Step 5. Restructured output-template.md so chapter 1 ('Models that could join the Hub') and chapter 2 ('Datasets that could join the Hub') lead the digest, each with task/endpoint subheadings. Expanded search-landscape.md with model-release anchors, dataset-release anchors, and agentic-AI/automation keyword sections. Rewrote slack-alert-template.md as a multi-section preview (counts strip, \ud83e\udd16 models, \ud83d\uddc3\ufe0f datasets, \u2b50 big picture, \ud83c\udf0d LMIC) instead of a 3-line pointer. Added Step 4.5 supplementary web hunt (WebSearch/WebFetch) when pool is thin on Hub candidates; semaphore extended with 'Web hunt' slot. Raised dedup_and_rank.py topic-keyword cap +4 \u2192 +6, pool size 50 \u2192 80, and added new signals: model-release-verb (+3, gated on Hub-task keyword), dataset-release-verb (+3), antimicrobial editorial bump (+2), agentic-AI keyword bump (+2), repo-URL signal (+1)."
+    },
+    {
+      "date": "2026-09-11",
+      "notes": "Refresh DEFERRED by operator at run time. References were 8 days overdue (due 2026-09-02). Digest for window 2026-09-04 \u2192 2026-09-11 generated with stale references; drift judged small and the refresh scheduled as a separate editorial pass."
+    },
+    {
+      "date": "2026-09-18",
+      "notes": "Quarterly refresh (deferred from 2026-09-02), run before the 2026-09-18 digest. Hub catalogue re-pulled: 276 entries / 221 Ready (was 254 / 189); Generation nearly doubled 9 -> 16 and overtook Similarity search, so the 'generation has a higher bar' prior was relaxed and the subtask table reordered to true descending share. Internal source share rose 17% -> 20%. Venue table rebuilt from 211 catalogued publications: RSC titles (Chemical Science / Digital Discovery) entered at 11 models and were promoted Tier 2 -> Tier 1; Communications Chemistry (4) promoted Tier 2 -> Tier 1; Oxford UP titles grew 9 -> 15; MDPI (4) added at Tier 3 with an explicit venue-is-not-evidence caveat. Slack #literature themes rewritten from the last 90 days: new high-priority priors are benchmark auditing / data leakage / negative results, tabular foundation models and in-context learning, MCP and agent-callable tooling, chemical-space projection, retrosynthesis, and fragment-based screening / BacPROTACs. Grant view extended with OS4LS (agentic AI + MCP over the Hub and Isaura, TabPFN in-context prediction), GC-ADDA4TB 2.0, and the SAMRC / Gr-ADI BacPROTAC track; added Erick Strauss, Adrienne Edkins and Clint Veale as grant co-PIs and a new Gr-ADI consortium author group (Gilbert, Johnson, Koziarski, Dardenne, Tasdan). Added Helen Zgurskaya as a topical anchor and recorded the live Gmail Scholar alert set. lmic-countries.md regenerated from the World Bank API against the FY2027 classification: 25 low / 47 lower-middle; Kiribati, Namibia, Venezuela and Korea DPR gained, Togo moved low -> lower-middle, and twelve economies lost the marker (Jordan, Micronesia, Philippines, Sri Lanka and Viet Nam newly upper-middle; Algeria, Cabo Verde, El Salvador, Iran, Mongolia, Samoa and Ukraine had been carried in error). Full diff recorded in lmic-countries.md."
     }
   ]
 }
