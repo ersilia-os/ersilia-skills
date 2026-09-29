@@ -1,11 +1,10 @@
 {
-  "last_refresh_date": "2026-06-16",
+  "last_refresh_date": "2026-09-29",
   "refresh_interval_days": 90,
-  "next_refresh_due": "2026-09-14",
+  "next_refresh_due": "2026-12-28",
   "refreshed_files": [
     "scope.md",
-    "airtable-schema.md",
-    "output-template.md"
+    "airtable-schema.md"
   ],
   "refresh_log": [
     {
@@ -23,6 +22,14 @@
     {
       "date": "2026-08-13",
       "notes": "REMOVED the Airtable metric write-back. Live check of tbluZtI3W9pseCSPH showed the metric columns (Stars, Forks, Open Issues, Subscribers, Total Commits, Contributors, Contributor Names) no longer exist on the Repositories table, and Status changed singleSelect -> multipleSelects. Deleted scripts/sync_airtable_metrics.py, dropped SKILL Step 4 (steps renumbered 0-9), removed the '## Airtable sync' digest chapter, and stripped metric fields from the Airtable dump shape. The skill is now strictly read-only against Airtable. Remaining table fields: Name, Title, Description, URL, Status, Type, Visibility, Projects, Creation Date. Also FIXED a silent fetch bug: fetch_github.py passed the date window to `gh search prs --merged`, which is a boolean flag, so the PRs-merged bucket always returned 0 with no error; corrected to `--merged-at`. Live table now 180 records; org 428 repos (247 model, 176 trackable)."
+    },
+    {
+      "date": "2026-09-14",
+      "notes": "DEFERRED the 90-day references refresh (user-approved) while running the 26-09-14 digest. Rationale: the 2026-08-13 entry had already re-verified the schema and taxonomy live but never bumped last_refresh_date. Spot-checked during this run and found NO drift: base app1iYv78K6xbHkmL, table tbluZtI3W9pseCSPH, and all seven field IDs (Name/Title/Status/Type/Projects/Visibility/Creation Date) match airtable-schema.md; Status still multipleSelects; no metric columns. Table now 181 records; org 438 repos (254 model, 179 trackable). last_refresh_date left at 2026-06-16 so the gate keeps firing until a full re-verification is done."
+    },
+    {
+      "date": "2026-09-29",
+      "notes": "FULL 90-day re-verification (user-approved) during the 26-09-29 digest run. Airtable: base app1iYv78K6xbHkmL and Repositories table tbluZtI3W9pseCSPH resolved live; all field IDs (Name/Title/Description/URL/Status/Type/Visibility/Projects/Creation Date) match airtable-schema.md; Status and Type still multipleSelects with choices Todo/In progress/Completed/Archived/Discontinued/Idle and Workshop/Package/Analysis/Automation/Template/App/Documentation; no metric columns. GitHub org custom properties (orgs/ersilia-os/properties/schema): status and type are multi_select with identical vocabularies (type adds Model). No drift; reference text unchanged. Table now 181 records; org 446 repos (259 model, 182 trackable)."
     }
   ]
 }
