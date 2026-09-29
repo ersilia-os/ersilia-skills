@@ -1,0 +1,82 @@
+{
+  "_doc": "Decision policy read by plan_sync.py. Feedback from a run should land here whenever it can: a data edit is safer than a code edit. Field policies: 'overwrite' = propose the source value whenever it differs; 'fill_empty' = propose only when Airtable is empty; 'flag' = never write, report the difference. See SKILL.md, Step 8. Repositories extras: gone_repo_action 'propose_delete'|'flag'; github_description_action 'propose'|'flag'; status_type_mismatch 'ask'|'flag'. Every write, delete or gh command still needs the user's approval in the walkthrough.",
+  "repositories": {
+    "skip_names": [
+      ".github"
+    ],
+    "skip_forks": true,
+    "field_policy": {
+      "visibility": "overwrite",
+      "creation_date": "overwrite",
+      "description": "fill_empty",
+      "status": "flag",
+      "type": "flag"
+    },
+    "subset_ok_fields": [
+      "status",
+      "type"
+    ],
+    "flag_archived_without_status": true,
+    "require_description": true,
+    "create_with": [
+      "name",
+      "description",
+      "visibility",
+      "creation_date",
+      "status",
+      "type"
+    ],
+    "gone_repo_action": "propose_delete",
+    "github_description_action": "propose",
+    "status_type_mismatch": "ask",
+    "description_skip_archived": true,
+    "infer_renames": true
+  },
+  "publications": {
+    "field_policy": {
+      "year": "fill_empty",
+      "journal": "fill_empty",
+      "doi": "fill_empty",
+      "african_collaboration": "fill_empty"
+    },
+    "flag_year_mismatch": true,
+    "title_match_threshold": 0.9,
+    "skip_versions_of_existing": true,
+    "version_author_overlap": 0.7,
+    "version_min_authors": 3,
+    "version_max_years": 2,
+    "type_map": {
+      "review": "Review",
+      "editorial": "Review",
+      "letter": "Review",
+      "article": "Research",
+      "preprint": "Research"
+    },
+    "status_by_source_type": {
+      "journal": "Peer reviewed",
+      "conference": "Peer reviewed",
+      "book series": "Peer reviewed",
+      "repository": "Preprint"
+    },
+    "status_default": "Preprint",
+    "judgement_fields": [
+      "slug",
+      "topic"
+    ]
+  },
+  "blogposts": {
+    "author_aliases": {
+      "Miquel Duran-Frigola": "Miquel Duran Frigola",
+      "Gemma Turon": "Gemma Turon Rodrigo",
+      "Natalie Tran": "Natalie Thai Tran"
+    },
+    "date_tolerance_days": 10,
+    "default_publisher": "Ersilia",
+    "strip_medium_tracking": true,
+    "prefer_publication_url": true,
+    "judgement_fields": [
+      "category"
+    ],
+    "prefer_feed_url": true
+  }
+}

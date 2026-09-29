@@ -1,0 +1,183 @@
+{
+  "about": "A renamed repository becomes a Name update (not a 'gone' flag plus a new row); a GitHub Status/Type that is a subset of Airtable's is not a mismatch, a disjoint one is. Lesson 4: a real Status/Type disagreement is a choice (which side is right), not a flag. Lesson 7: a repo recreated under a new name (no redirect) is matched by creation date plus description or name prefix, and proposed as a rename.",
+  "inputs": {
+    "github": {
+      "org": "ersilia-os",
+      "properties_ok": true,
+      "errors": [],
+      "renames": {
+        "old-name": "new-name"
+      },
+      "repos": [
+        {
+          "name": "new-name",
+          "description": "A tool",
+          "private": false,
+          "fork": false,
+          "archived": false,
+          "created_at": "2024-01-02",
+          "gh_status": [
+            "In progress"
+          ],
+          "gh_type": [
+            "Package"
+          ],
+          "is_model": false
+        },
+        {
+          "name": "multi",
+          "description": "A tool",
+          "private": false,
+          "fork": false,
+          "archived": false,
+          "created_at": "2024-01-02",
+          "gh_status": [
+            "Completed"
+          ],
+          "gh_type": [
+            "Package"
+          ],
+          "is_model": false
+        },
+        {
+          "name": "clash",
+          "description": "A tool",
+          "private": false,
+          "fork": false,
+          "archived": false,
+          "created_at": "2024-01-02",
+          "gh_status": [
+            "In progress"
+          ],
+          "gh_type": [
+            "Package"
+          ],
+          "is_model": false
+        },
+        {
+          "name": "workshop-2026",
+          "description": "Materials for the workshop",
+          "private": false,
+          "fork": false,
+          "archived": false,
+          "created_at": "2026-09-07",
+          "gh_status": [],
+          "gh_type": [],
+          "is_model": false
+        }
+      ]
+    },
+    "repositories": [
+      {
+        "id": "rec00000000000001",
+        "name": "old-name",
+        "title": "old-name",
+        "description": "A tool",
+        "status": [
+          "In progress"
+        ],
+        "type": [
+          "Package"
+        ],
+        "visibility": "Public",
+        "projects": [],
+        "creation_date": "2024-01-02"
+      },
+      {
+        "id": "rec00000000000002",
+        "name": "multi",
+        "title": "multi",
+        "description": "A tool",
+        "status": [
+          "Completed",
+          "Archived"
+        ],
+        "type": [
+          "Package"
+        ],
+        "visibility": "Public",
+        "projects": [],
+        "creation_date": "2024-01-02"
+      },
+      {
+        "id": "rec00000000000003",
+        "name": "clash",
+        "title": "clash",
+        "description": "A tool",
+        "status": [
+          "Archived"
+        ],
+        "type": [
+          "Package"
+        ],
+        "visibility": "Public",
+        "projects": [],
+        "creation_date": "2024-01-02"
+      },
+      {
+        "id": "rec00000000000007",
+        "name": "workshop",
+        "title": "Workshop 2026",
+        "description": "Materials for the workshop",
+        "status": [
+          "Completed"
+        ],
+        "type": [
+          "Workshop"
+        ],
+        "visibility": "Public",
+        "projects": [],
+        "creation_date": "2026-09-07"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "table": "repositories",
+      "action": "update",
+      "label": "old-name",
+      "field": "name",
+      "value": "new-name"
+    },
+    {
+      "table": "repositories",
+      "action": "choice",
+      "label": "clash",
+      "reason_has": "status disagrees"
+    },
+    {
+      "table": "repositories",
+      "action": "update",
+      "label": "workshop",
+      "field": "name",
+      "value": "workshop-2026"
+    }
+  ],
+  "expect_absent": [
+    {
+      "table": "repositories",
+      "action": "create",
+      "label": "new-name"
+    },
+    {
+      "table": "repositories",
+      "action": "flag",
+      "label": "old-name"
+    },
+    {
+      "table": "repositories",
+      "action": "flag",
+      "label": "multi"
+    },
+    {
+      "table": "repositories",
+      "action": "create",
+      "label": "workshop-2026"
+    },
+    {
+      "table": "repositories",
+      "action": "delete",
+      "label": "workshop"
+    }
+  ]
+}

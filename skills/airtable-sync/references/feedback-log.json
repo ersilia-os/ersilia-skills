@@ -1,0 +1,66 @@
+{
+  "entries": [
+    {
+      "n": 1,
+      "date": "2026-09-29",
+      "feedback": "Never modify Airtable without my permission, even in auto mode; guide me through the changes as the skill runs.",
+      "kind": "process",
+      "change": "SKILL.md Steps 5-6: step-by-step walkthrough with a question per step; build_writes.py only takes explicit item numbers and has no approve-all switch."
+    },
+    {
+      "n": 2,
+      "date": "2026-09-29",
+      "feedback": "All repositories in Ersilia need to have a description; check that too.",
+      "kind": "rule",
+      "change": "rules.json repositories.require_description = true; plan_sync.check_description flags repos with no GitHub description (with the gh command when Airtable has one) and urgently when both are empty.",
+      "fixture": "repo-without-description"
+    },
+    {
+      "n": 3,
+      "date": "2026-09-29",
+      "feedback": "I will give feedback every time I use this skill, so it must improve itself; script as much as possible.",
+      "kind": "process",
+      "change": "SKILL.md Step 8 feedback loop; record_feedback.py log read at pre-flight; policy moved into rules.json."
+    },
+    {
+      "n": 4,
+      "date": "2026-09-29",
+      "feedback": "Rules for Step 3: rows whose repo is gone should be proposed for deletion; missing GitHub descriptions should be offered as a gh command to run; on a Status/Type mismatch, ask me which side is right.",
+      "kind": "rule",
+      "change": "rules.json repositories: gone_repo_action=propose_delete, github_description_action=propose, status_type_mismatch=ask. New plan actions delete/github/choice; build_writes --choose; apply_github.py runs approved gh commands and reads the values back.",
+      "fixture": "repositories-basics,repo-without-description,repo-renames-and-subsets"
+    },
+    {
+      "n": 5,
+      "date": "2026-09-29",
+      "feedback": "Script as much as possible (applied during the first run).",
+      "kind": "code",
+      "change": "African collaboration and Senior are computed from OpenAlex author countries and author positions instead of being judged; existing rows with an empty African collaboration get a fill proposal.",
+      "fixture": "publications"
+    },
+    {
+      "n": 6,
+      "date": "2026-09-29",
+      "feedback": "Archived repos are read-only on GitHub: ignore them for the GitHub-description check.",
+      "kind": "rule",
+      "change": "rules.json repositories.description_skip_archived = true; check_description skips archived repos.",
+      "fixture": "repo-without-description"
+    },
+    {
+      "n": 7,
+      "date": "2026-09-29",
+      "feedback": "rafiki-workshop was recreated as rafiki-workshop-2026: merge into the curated row rather than create a duplicate and delete the old one.",
+      "kind": "code",
+      "change": "plan_sync.infer_renames (rules.json repositories.infer_renames = true): a gone row plus an untracked repo with the same creation date and description or name prefix becomes a Name update.",
+      "fixture": "repo-renames-and-subsets"
+    },
+    {
+      "n": 8,
+      "date": "2026-09-29",
+      "feedback": "Approved during the run: use the full post URL from the feed, not the bare id (welcoming-claude-at-ersilia).",
+      "kind": "code",
+      "change": "rules.json blogposts.prefer_feed_url = true; plan_sync proposes the feed's canonical URL when the stored one differs.",
+      "fixture": "blogposts"
+    }
+  ]
+}

@@ -1,0 +1,264 @@
+{
+  "about": "Missing repo is created; private-marked-public is urgent; model repos, forks and .github are skipped; gone and archived repos are flagged. Lesson 4: a row whose repo is gone (no redirect) is proposed for deletion.",
+  "inputs": {
+    "github": {
+      "org": "ersilia-os",
+      "properties_ok": true,
+      "errors": [],
+      "repos": [
+        {
+          "name": "ersilia",
+          "description": "A tool",
+          "private": false,
+          "fork": false,
+          "archived": false,
+          "created_at": "2024-01-02",
+          "gh_status": [
+            "In progress"
+          ],
+          "gh_type": [
+            "Package"
+          ],
+          "is_model": false
+        },
+        {
+          "name": "new-tool",
+          "description": "A tool",
+          "private": false,
+          "fork": false,
+          "archived": false,
+          "created_at": "2026-09-01",
+          "gh_status": [
+            "In progress"
+          ],
+          "gh_type": [
+            "Package"
+          ],
+          "is_model": false
+        },
+        {
+          "name": "secret-analysis",
+          "description": "A tool",
+          "private": true,
+          "fork": false,
+          "archived": false,
+          "created_at": "2024-01-02",
+          "gh_status": [
+            "In progress"
+          ],
+          "gh_type": [
+            "Package"
+          ],
+          "is_model": false
+        },
+        {
+          "name": "eos1abc",
+          "description": "A tool",
+          "private": false,
+          "fork": false,
+          "archived": false,
+          "created_at": "2024-01-02",
+          "gh_status": [
+            "In progress"
+          ],
+          "gh_type": [
+            "Package"
+          ],
+          "is_model": true
+        },
+        {
+          "name": "eosvc",
+          "description": "A tool",
+          "private": false,
+          "fork": false,
+          "archived": false,
+          "created_at": "2024-01-02",
+          "gh_status": [
+            "In progress"
+          ],
+          "gh_type": [
+            "Package"
+          ],
+          "is_model": false
+        },
+        {
+          "name": "someones-fork",
+          "description": "A tool",
+          "private": false,
+          "fork": true,
+          "archived": false,
+          "created_at": "2024-01-02",
+          "gh_status": [
+            "In progress"
+          ],
+          "gh_type": [
+            "Package"
+          ],
+          "is_model": false
+        },
+        {
+          "name": ".github",
+          "description": "A tool",
+          "private": false,
+          "fork": false,
+          "archived": false,
+          "created_at": "2024-01-02",
+          "gh_status": [
+            "In progress"
+          ],
+          "gh_type": [
+            "Package"
+          ],
+          "is_model": false
+        },
+        {
+          "name": "old-thing",
+          "description": "A tool",
+          "private": false,
+          "fork": false,
+          "archived": true,
+          "created_at": "2024-01-02",
+          "gh_status": [
+            "Completed"
+          ],
+          "gh_type": [
+            "Package"
+          ],
+          "is_model": false
+        }
+      ]
+    },
+    "repositories": [
+      {
+        "id": "rec00000000000001",
+        "name": "ersilia",
+        "title": "ersilia",
+        "description": "A tool",
+        "status": [
+          "In progress"
+        ],
+        "type": [
+          "Package"
+        ],
+        "visibility": "Public",
+        "projects": [],
+        "creation_date": "2024-01-02"
+      },
+      {
+        "id": "rec00000000000002",
+        "name": "secret-analysis",
+        "title": "secret-analysis",
+        "description": "A tool",
+        "status": [
+          "In progress"
+        ],
+        "type": [
+          "Package"
+        ],
+        "visibility": "Public",
+        "projects": [],
+        "creation_date": "2024-01-02"
+      },
+      {
+        "id": "rec00000000000003",
+        "name": "eosvc",
+        "title": "eosvc",
+        "description": "A tool",
+        "status": [
+          "In progress"
+        ],
+        "type": [
+          "Package"
+        ],
+        "visibility": "Public",
+        "projects": [],
+        "creation_date": "2024-01-02"
+      },
+      {
+        "id": "rec00000000000004",
+        "name": "deleted-repo",
+        "title": "deleted-repo",
+        "description": "A tool",
+        "status": [
+          "In progress"
+        ],
+        "type": [
+          "Package"
+        ],
+        "visibility": "Public",
+        "projects": [],
+        "creation_date": "2024-01-02"
+      },
+      {
+        "id": "rec00000000000005",
+        "name": "old-thing",
+        "title": "old-thing",
+        "description": "A tool",
+        "status": [
+          "Completed"
+        ],
+        "type": [
+          "Package"
+        ],
+        "visibility": "Public",
+        "projects": [],
+        "creation_date": "2024-01-02"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "table": "repositories",
+      "action": "create",
+      "label": "new-tool",
+      "field": "creation_date",
+      "value": "2026-09-01"
+    },
+    {
+      "table": "repositories",
+      "action": "update",
+      "label": "secret-analysis",
+      "field": "visibility",
+      "value": "Private"
+    },
+    {
+      "table": "repositories",
+      "action": "delete",
+      "label": "deleted-repo",
+      "reason_has": "delete the Airtable row"
+    },
+    {
+      "table": "repositories",
+      "action": "flag",
+      "label": "old-thing",
+      "reason_has": "archived on GitHub"
+    }
+  ],
+  "expect_absent": [
+    {
+      "table": "repositories",
+      "action": "create",
+      "label": "eos1abc"
+    },
+    {
+      "table": "repositories",
+      "action": "create",
+      "label": "someones-fork"
+    },
+    {
+      "table": "repositories",
+      "action": "create",
+      "label": ".github"
+    },
+    {
+      "table": "repositories",
+      "action": "create",
+      "label": "eosvc"
+    },
+    {
+      "table": "repositories",
+      "action": "update",
+      "label": "ersilia"
+    }
+  ]
+}

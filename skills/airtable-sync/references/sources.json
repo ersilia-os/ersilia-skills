@@ -1,0 +1,39 @@
+{
+  "github_org": "ersilia-os",
+  "openalex": {
+    "institution": "I4394709285",
+    "authors": [
+      {
+        "id": "A5036334443",
+        "name": "Miquel Duran-Frigola",
+        "since": 2021
+      },
+      {
+        "id": "A5050313247",
+        "name": "Gemma Turon",
+        "since": 2021
+      },
+      {
+        "id": "A5017292656",
+        "name": "Arnau Comajuncosa-Creus",
+        "since": 2025
+      }
+    ],
+    "exclude_types": [
+      "paratext",
+      "erratum",
+      "retraction",
+      "other",
+      "dataset",
+      "peer-review",
+      "software"
+    ]
+  },
+  "medium": {
+    "publication_feed": "https://medium.com/feed/ersiliaio",
+    "personal_feeds": [
+      "https://medium.com/feed/@mduranfrigola",
+      "https://medium.com/feed/@ines_10950"
+    ]
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "about": "A preprint whose title changed on publication is recognised by author overlap, against an existing row and between two new candidates.",
+  "inputs": {
+    "publications": [
+      {
+        "id": "rec00000000000001",
+        "slug": "tips",
+        "title": "Ten quick tips to build a model life cycle",
+        "doi": "https://doi.org/10.1/tips",
+        "status": "Peer reviewed",
+        "year": "2025",
+        "journal": "PLOS CB",
+        "affiliation": "Yes",
+        "topic": "Bioinformatics",
+        "type": "Review",
+        "african_collaboration": "No"
+      }
+    ],
+    "openalex": {
+      "errors": [],
+      "title_matches": {},
+      "by_doi": {
+        "10.1/tips": {
+          "openalex_id": "W1",
+          "doi": "10.1/tips",
+          "title": "Ten quick tips to build a model life cycle",
+          "year": 2025,
+          "type": "article",
+          "source_name": "X",
+          "source_type": "journal",
+          "landing_url": null,
+          "authors": [
+            "Ana Uno",
+            "Ben Dos",
+            "Carla Tres",
+            "Miquel Duran-Frigola"
+          ],
+          "author_ids": [
+            "A5036334443"
+          ],
+          "institution_hit": true
+        }
+      },
+      "works": [
+        {
+          "openalex_id": "W2",
+          "doi": "10.32942/x2",
+          "title": "Ten Simple Rules to build a Model Life Cycle",
+          "year": 2024,
+          "type": "preprint",
+          "source_name": "X",
+          "source_type": "repository",
+          "landing_url": null,
+          "authors": [
+            "Ana Uno",
+            "Ben Dos",
+            "Carla Tres",
+            "Miquel Duran-Frigola"
+          ],
+          "author_ids": [
+            "A5036334443"
+          ],
+          "institution_hit": true
+        },
+        {
+          "openalex_id": "W3",
+          "doi": "10.1038/new",
+          "title": "A bottom-up approach to find leads",
+          "year": 2025,
+          "type": "article",
+          "source_name": "X",
+          "source_type": "journal",
+          "landing_url": null,
+          "authors": [
+            "Zed Uno",
+            "Yan Dos",
+            "Xia Tres",
+            "Arnau Comajuncosa-Creus"
+          ],
+          "author_ids": [
+            "A5036334443"
+          ],
+          "institution_hit": true
+        },
+        {
+          "openalex_id": "W4",
+          "doi": "10.26434/chemrxiv-1",
+          "title": "A novel bottom-up approach to find lead-compounds in billion-sized libraries",
+          "year": 2025,
+          "type": "preprint",
+          "source_name": "X",
+          "source_type": "repository",
+          "landing_url": null,
+          "authors": [
+            "Zed Uno",
+            "Yan Dos",
+            "Xia Tres",
+            "Arnau Comajuncosa-Creus"
+          ],
+          "author_ids": [
+            "A5036334443"
+          ],
+          "institution_hit": true
+        }
+      ]
+    }
+  },
+  "expect": [
+    {
+      "table": "publications",
+      "action": "create",
+      "label": "A bottom-up approach to find leads"
+    }
+  ],
+  "expect_absent": [
+    {
+      "table": "publications",
+      "action": "create",
+      "label": "Ten Simple Rules to build a Model Life Cycle"
+    },
+    {
+      "table": "publications",
+      "action": "create",
+      "label": "A novel bottom-up approach to find lead-compounds in billion-sized libraries"
+    }
+  ]
+}

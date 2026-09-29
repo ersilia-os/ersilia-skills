@@ -1,0 +1,165 @@
+{
+  "about": "A known post id is never re-created; tracking queries are stripped; a post moved into the publication is repointed; a new post links its author via the alias map. Lesson 8: an id-only or tracking URL is replaced by the full URL from the feed.",
+  "inputs": {
+    "community": [
+      {
+        "id": "recCOMMUNITY00001",
+        "name": "Gemma Turon Rodrigo"
+      },
+      {
+        "id": "recCOMMUNITY00002",
+        "name": "Miquel Duran Frigola"
+      }
+    ],
+    "blogposts": [
+      {
+        "id": "rec00000000000001",
+        "slug": "known",
+        "title": "known",
+        "date": "2026-01-01",
+        "url": "https://medium.com/ersiliaio/known-aaaaaaaaaaaa?source=rss----x",
+        "author": [
+          {
+            "id": "recCOMMUNITY00001",
+            "name": "Gemma Turon Rodrigo"
+          }
+        ],
+        "publisher": "Ersilia",
+        "category": [
+          "Science"
+        ]
+      },
+      {
+        "id": "rec00000000000002",
+        "slug": "moved",
+        "title": "moved",
+        "date": "2026-08-26",
+        "url": "https://medium.com/@mduranfrigola/moved-bbbbbbbbbbbb",
+        "author": [
+          {
+            "id": "recCOMMUNITY00001",
+            "name": "Gemma Turon Rodrigo"
+          }
+        ],
+        "publisher": "Ersilia",
+        "category": [
+          "Science"
+        ]
+      },
+      {
+        "id": "rec00000000000003",
+        "slug": "idonly",
+        "title": "x",
+        "date": "2026-09-22",
+        "url": "https://medium.com/ersiliaio/dddddddddddd?sharedUserId=someone",
+        "author": [
+          {
+            "id": "recCOMMUNITY00001",
+            "name": "Gemma Turon Rodrigo"
+          }
+        ],
+        "publisher": "Ersilia",
+        "category": [
+          "News"
+        ]
+      }
+    ],
+    "medium": {
+      "errors": [],
+      "posts": [
+        {
+          "post_id": "aaaaaaaaaaaa",
+          "title": "Known",
+          "date": "2026-01-01",
+          "url": "https://medium.com/ersiliaio/known-aaaaaaaaaaaa",
+          "in_publication": true,
+          "author": "Gemma Turon",
+          "tags": [],
+          "feeds": [
+            "f"
+          ]
+        },
+        {
+          "post_id": "bbbbbbbbbbbb",
+          "title": "Moved",
+          "date": "2026-08-30",
+          "url": "https://medium.com/ersiliaio/moved-bbbbbbbbbbbb",
+          "in_publication": true,
+          "author": "Gemma Turon",
+          "tags": [],
+          "feeds": [
+            "f"
+          ]
+        },
+        {
+          "post_id": "cccccccccccc",
+          "title": "Fresh Post",
+          "date": "2026-09-20",
+          "url": "https://medium.com/ersiliaio/fresh-post-cccccccccccc",
+          "in_publication": true,
+          "author": "Miquel Duran-Frigola",
+          "tags": [],
+          "feeds": [
+            "f"
+          ]
+        },
+        {
+          "post_id": "dddddddddddd",
+          "title": "Id Only",
+          "date": "2026-09-22",
+          "url": "https://medium.com/ersiliaio/id-only-dddddddddddd",
+          "in_publication": true,
+          "author": "Gemma Turon",
+          "tags": [],
+          "feeds": [
+            "f"
+          ]
+        }
+      ]
+    }
+  },
+  "expect": [
+    {
+      "table": "blogposts",
+      "action": "update",
+      "label": "known",
+      "field": "url",
+      "value": "https://medium.com/ersiliaio/known-aaaaaaaaaaaa"
+    },
+    {
+      "table": "blogposts",
+      "action": "update",
+      "label": "moved",
+      "field": "url",
+      "value": "https://medium.com/ersiliaio/moved-bbbbbbbbbbbb"
+    },
+    {
+      "table": "blogposts",
+      "action": "create",
+      "label": "Fresh Post",
+      "field": "author",
+      "value": [
+        "recCOMMUNITY00002"
+      ]
+    },
+    {
+      "table": "blogposts",
+      "action": "update",
+      "label": "idonly",
+      "field": "url",
+      "value": "https://medium.com/ersiliaio/id-only-dddddddddddd"
+    }
+  ],
+  "expect_absent": [
+    {
+      "table": "blogposts",
+      "action": "create",
+      "label": "Known"
+    },
+    {
+      "table": "blogposts",
+      "action": "flag",
+      "label": "moved"
+    }
+  ]
+}
