@@ -1,0 +1,184 @@
+{
+  "about": "Lesson 2: every repository needs a description. Airtable is filled from GitHub; a missing GitHub description is flagged, urgently when both sides are empty. Lesson 4: a missing GitHub description that Airtable has is proposed as an approvable gh command. Lesson 6: archived repos are read-only on GitHub and are not asked for a GitHub description.",
+  "inputs": {
+    "github": {
+      "org": "ersilia-os",
+      "properties_ok": true,
+      "errors": [],
+      "repos": [
+        {
+          "name": "gh-has-it",
+          "description": "From GitHub",
+          "private": false,
+          "fork": false,
+          "archived": false,
+          "created_at": "2024-01-02",
+          "gh_status": [
+            "In progress"
+          ],
+          "gh_type": [
+            "Package"
+          ],
+          "is_model": false
+        },
+        {
+          "name": "at-has-it",
+          "description": "",
+          "private": false,
+          "fork": false,
+          "archived": false,
+          "created_at": "2024-01-02",
+          "gh_status": [
+            "In progress"
+          ],
+          "gh_type": [
+            "Package"
+          ],
+          "is_model": false
+        },
+        {
+          "name": "nobody-has-it",
+          "description": "",
+          "private": false,
+          "fork": false,
+          "archived": false,
+          "created_at": "2024-01-02",
+          "gh_status": [
+            "In progress"
+          ],
+          "gh_type": [
+            "Package"
+          ],
+          "is_model": false
+        },
+        {
+          "name": "brand-new",
+          "description": "",
+          "private": false,
+          "fork": false,
+          "archived": false,
+          "created_at": "2024-01-02",
+          "gh_status": [
+            "In progress"
+          ],
+          "gh_type": [
+            "Package"
+          ],
+          "is_model": false
+        },
+        {
+          "name": "old-archived",
+          "description": "",
+          "private": false,
+          "fork": false,
+          "archived": true,
+          "created_at": "2022-01-01",
+          "gh_status": [
+            "Archived"
+          ],
+          "gh_type": [
+            "Analysis"
+          ],
+          "is_model": false
+        }
+      ]
+    },
+    "repositories": [
+      {
+        "id": "rec00000000000001",
+        "name": "gh-has-it",
+        "title": "gh-has-it",
+        "description": "",
+        "status": [
+          "In progress"
+        ],
+        "type": [
+          "Package"
+        ],
+        "visibility": "Public",
+        "projects": [],
+        "creation_date": "2024-01-02"
+      },
+      {
+        "id": "rec00000000000002",
+        "name": "at-has-it",
+        "title": "at-has-it",
+        "description": "Written in Airtable",
+        "status": [
+          "In progress"
+        ],
+        "type": [
+          "Package"
+        ],
+        "visibility": "Public",
+        "projects": [],
+        "creation_date": "2024-01-02"
+      },
+      {
+        "id": "rec00000000000003",
+        "name": "nobody-has-it",
+        "title": "nobody-has-it",
+        "description": "",
+        "status": [
+          "In progress"
+        ],
+        "type": [
+          "Package"
+        ],
+        "visibility": "Public",
+        "projects": [],
+        "creation_date": "2024-01-02"
+      },
+      {
+        "id": "rec00000000000009",
+        "name": "old-archived",
+        "title": "x",
+        "description": "Only in Airtable",
+        "status": [
+          "Archived"
+        ],
+        "type": [
+          "Analysis"
+        ],
+        "visibility": "Public",
+        "projects": [],
+        "creation_date": "2022-01-01"
+      }
+    ]
+  },
+  "expect": [
+    {
+      "table": "repositories",
+      "action": "update",
+      "label": "gh-has-it",
+      "field": "description",
+      "value": "From GitHub"
+    },
+    {
+      "table": "repositories",
+      "action": "github",
+      "label": "at-has-it",
+      "field": "github description",
+      "value": "Written in Airtable"
+    },
+    {
+      "table": "repositories",
+      "action": "flag",
+      "label": "nobody-has-it",
+      "reason_has": "no description on GitHub or in Airtable"
+    },
+    {
+      "table": "repositories",
+      "action": "flag",
+      "label": "brand-new",
+      "reason_has": "no description on GitHub or in Airtable"
+    }
+  ],
+  "expect_absent": [
+    {
+      "table": "repositories",
+      "action": "github",
+      "label": "old-archived"
+    }
+  ]
+}

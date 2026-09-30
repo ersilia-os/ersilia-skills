@@ -1,0 +1,16 @@
+{
+  "last_refresh_date": "2026-09-29",
+  "refresh_interval_days": 90,
+  "next_refresh_due": "2026-12-28",
+  "refreshed_files": [
+    "airtable-tables.md",
+    "sources.json",
+    "rules.json"
+  ],
+  "refresh_log": [
+    {
+      "date": "2026-09-29",
+      "notes": "Initial buildout. Verified live: base app1iYv78K6xbHkmL; Repositories tbluZtI3W9pseCSPH (Status/Type multipleSelects, Visibility Public|Private), Publications tbljYubYjWAtO1ab8 (43 rows; Year singleSelect 2013-2026; Status In progress|Preprint|Peer reviewed; Type Research|Review), Blogposts tblsBj6ZoDNMlmrzm (57 rows; Publisher Ersilia|Other; Category Technology|Training|News|Global Health|Science), Community tblS9TeBRYUpLwSCk. OpenAlex institution I4394709285 (ROR 019wm1d19) had 39 affiliated works. Medium feed medium.com/feed/ersiliaio returns the latest 10 posts."
+    }
+  ]
+}

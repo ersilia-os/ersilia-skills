@@ -22,6 +22,7 @@ Each set of skills is designed to help us achieve one of these three goals. Some
 | stylia-plotting | Documents how to create Python plots using the `stylia` package — Ersilia's matplotlib wrapper for publication-ready figures. |
 | event-discovery | Discover interesting events for Ersilia and write a summarised report. Classify between categories: local/global, science/philanthropy, etc. |
 | html-formatting | Style any HTML into the recognisable Ersilia look and feel, and improve its UX at the same time.|
+| airtable-sync | Keeps the Ersilia Content Airtable (repositories, publications, blog posts) in step with GitHub, OpenAlex and Medium, for the stats site. Writes only what you approve. |
 
 ### 2. Ersilia Model Hub Growth
 

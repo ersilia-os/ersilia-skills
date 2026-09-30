@@ -1,0 +1,280 @@
+{
+  "about": "A new OpenAlex work is proposed with judgement fields; ignored candidates, preprint copies of existing papers and Zenodo duplicates are not; an empty Year is filled. Lesson 5: African collaboration and Senior are computed from OpenAlex, for new rows and to fill existing empty ones.",
+  "inputs": {
+    "publications": [
+      {
+        "id": "rec00000000000001",
+        "slug": "p1",
+        "scholar_id": null,
+        "authors": "X",
+        "title": "Machine learning for malaria",
+        "journal": "Old Journal",
+        "url": null,
+        "doi": "https://doi.org/10.1/mal",
+        "status": "Peer reviewed",
+        "year": null,
+        "affiliation": "Yes",
+        "senior": null,
+        "topic": "Chemoinformatics",
+        "type": "Research",
+        "african_collaboration": null
+      },
+      {
+        "id": "rec00000000000002",
+        "slug": "p2",
+        "scholar_id": null,
+        "authors": "X",
+        "title": "A preprint about TB",
+        "journal": "Old Journal",
+        "url": null,
+        "doi": "https://doi.org/10.1101/tb",
+        "status": "Preprint",
+        "year": "2023",
+        "affiliation": "Yes",
+        "senior": null,
+        "topic": "Chemoinformatics",
+        "type": "Research",
+        "african_collaboration": "Yes"
+      }
+    ],
+    "openalex": {
+      "errors": [],
+      "works": [
+        {
+          "openalex_id": "W10",
+          "doi": "10.9/new",
+          "title": "A brand new antibiotic model",
+          "year": 2026,
+          "type": "article",
+          "source_name": "Journal of Things",
+          "source_type": "journal",
+          "landing_url": "https://example.org/W10",
+          "authors": [
+            "Ana Uno",
+            "Miquel Duran-Frigola"
+          ],
+          "author_ids": [
+            "A1",
+            "A5036334443"
+          ],
+          "institution_hit": true,
+          "countries": [
+            "ES",
+            "ZA"
+          ],
+          "ersilia_author_ids": [
+            "A5036334443"
+          ],
+          "senior_author_ids": [
+            "A5036334443"
+          ]
+        },
+        {
+          "openalex_id": "W11",
+          "doi": "10.1101/mal-preprint",
+          "title": "Machine Learning for Malaria.",
+          "year": 2026,
+          "type": "preprint",
+          "source_name": "bioRxiv",
+          "source_type": "repository",
+          "landing_url": "https://example.org/W11",
+          "authors": [
+            "Ana Uno",
+            "Miquel Duran-Frigola"
+          ],
+          "author_ids": [
+            "A1",
+            "A5036334443"
+          ],
+          "institution_hit": true
+        },
+        {
+          "openalex_id": "W12",
+          "doi": "10.9/rejected",
+          "title": "Rejected thing",
+          "year": 2026,
+          "type": "article",
+          "source_name": "Journal of Things",
+          "source_type": "journal",
+          "landing_url": "https://example.org/W12",
+          "authors": [
+            "Ana Uno",
+            "Miquel Duran-Frigola"
+          ],
+          "author_ids": [
+            "A1",
+            "A5036334443"
+          ],
+          "institution_hit": true
+        },
+        {
+          "openalex_id": "W13",
+          "doi": "10.5281/zenodo.2",
+          "title": "Research Software Authorship",
+          "year": 2026,
+          "type": "article",
+          "source_name": "Zenodo",
+          "source_type": "repository",
+          "landing_url": "https://example.org/W13",
+          "authors": [
+            "Ana Uno",
+            "Miquel Duran-Frigola"
+          ],
+          "author_ids": [
+            "A1",
+            "A5036334443"
+          ],
+          "institution_hit": true
+        },
+        {
+          "openalex_id": "W14",
+          "doi": "10.5281/zenodo.1",
+          "title": "Research Software Authorship",
+          "year": 2026,
+          "type": "article",
+          "source_name": "Zenodo",
+          "source_type": "repository",
+          "landing_url": "https://example.org/W14",
+          "authors": [
+            "Ana Uno",
+            "Miquel Duran-Frigola"
+          ],
+          "author_ids": [
+            "A1",
+            "A5036334443"
+          ],
+          "institution_hit": true
+        }
+      ],
+      "by_doi": {
+        "10.1/mal": {
+          "openalex_id": "W2",
+          "doi": "10.1/mal",
+          "title": "Machine learning for malaria",
+          "year": 2023,
+          "type": "article",
+          "source_name": "Journal of Things",
+          "source_type": "journal",
+          "landing_url": "https://example.org/W2",
+          "authors": [
+            "Ana Uno",
+            "Miquel Duran-Frigola"
+          ],
+          "author_ids": [
+            "A1",
+            "A5036334443"
+          ],
+          "institution_hit": true,
+          "countries": [
+            "ES",
+            "CM"
+          ]
+        }
+      },
+      "title_matches": {
+        "rec00000000000002": [
+          {
+            "openalex_id": "W3",
+            "doi": "10.5/tb-published",
+            "title": "A preprint about TB",
+            "year": 2026,
+            "type": "article",
+            "source_name": "Nature TB",
+            "source_type": "journal",
+            "landing_url": "https://example.org/W3",
+            "authors": [
+              "Ana Uno",
+              "Miquel Duran-Frigola"
+            ],
+            "author_ids": [
+              "A1",
+              "A5036334443"
+            ],
+            "institution_hit": true
+          }
+        ]
+      }
+    },
+    "ignore": {
+      "entries": [
+        {
+          "key": "doi:10.9/rejected",
+          "label": "Rejected thing",
+          "reason": "not ours",
+          "date": "2026-09-29"
+        }
+      ]
+    }
+  },
+  "expect": [
+    {
+      "table": "publications",
+      "action": "create",
+      "label": "A brand new antibiotic model",
+      "field": "doi",
+      "value": "https://doi.org/10.9/new"
+    },
+    {
+      "table": "publications",
+      "action": "create",
+      "label": "Research Software Authorship",
+      "field": "doi",
+      "value": "https://doi.org/10.5281/zenodo.1"
+    },
+    {
+      "table": "publications",
+      "action": "update",
+      "label": "p1",
+      "field": "year",
+      "value": "2023"
+    },
+    {
+      "table": "publications",
+      "action": "update",
+      "label": "p2",
+      "reason_has": "published version",
+      "field": "doi",
+      "value": "https://doi.org/10.5/tb-published"
+    },
+    {
+      "table": "publications",
+      "action": "create",
+      "label": "A brand new antibiotic model",
+      "field": "african_collaboration",
+      "value": "Yes"
+    },
+    {
+      "table": "publications",
+      "action": "create",
+      "label": "A brand new antibiotic model",
+      "field": "senior",
+      "value": "Yes"
+    },
+    {
+      "table": "publications",
+      "action": "update",
+      "label": "p1",
+      "field": "african_collaboration",
+      "value": "Yes"
+    }
+  ],
+  "expect_absent": [
+    {
+      "table": "publications",
+      "action": "create",
+      "label": "Rejected thing"
+    },
+    {
+      "table": "publications",
+      "action": "create",
+      "label": "Machine Learning for Malaria."
+    },
+    {
+      "table": "publications",
+      "action": "create",
+      "label": "Research Software Authorship",
+      "field": "doi",
+      "value": "https://doi.org/10.5281/zenodo.2"
+    }
+  ]
+}
