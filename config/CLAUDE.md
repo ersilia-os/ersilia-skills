@@ -66,7 +66,7 @@ Follow Ersilia's brand guidelines.
 
 Python is the main programming language.
 
-- **Formatting and linting:** `black` and `ruff`.
+- **Formatting and linting:** `ruff` (`ruff check` and `ruff format`).
 - **Type hints:** encouraged in public functions.
 - **Docstrings:** NumPy style. Include a brief one-line summary, extended description if needed, Parameters, Returns, and Raises sections.
 - **Comments:** explain *why*, not what. Keep code self-documenting via clear names.
@@ -196,7 +196,8 @@ When working on Ersilia materials, the AI agent must:
 - **Hold the Ersilia voice.** Plain English, active voice, avoid verbosity.
 - **Default to confidentiality.** Drive content, partner contact details, unreleased manuscripts, salary data and API keys must never reach a public artefact (commit, blog, slide, social post).
 - **Default to open source.** Prefer free/open tools. If a closed dependency is unavoidable, document the reason.
+- **Use Ersilia skills.** Check [ersilia-skills](https://github.com/ersilia-os/ersilia-skills) for a skill before building a workflow from scratch.
 
 ---
 
-*Last updated: May 2026. Edit this file when the organisation's practice changes — keep it short.*
+*Last updated: October 2026. Edit this file when the organisation's practice changes — keep it short.*
