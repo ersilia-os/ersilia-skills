@@ -221,6 +221,11 @@ def similar(a: dict, b: dict, rule: dict) -> bool:
     return len(wa & wb) / min(len(wa), len(wb)) >= rule["overlap"]
 
 
+def word_count(text: str) -> int:
+    """Words in ``text``, counting a Markdown link by its label only."""
+    return len(re.findall(r"\w+", LINK_RE.sub(r"\1", text)))
+
+
 def short(text: str, n: int = 70) -> str:
     """Trim ``text`` to ``n`` characters for a title."""
     text = re.sub(r"\s+", " ", text).strip()
@@ -250,6 +255,9 @@ def check_duplication(f: Findings, targets: list[dict], texts: dict, rule: dict)
         org, other = (x, y) if x["role"] == "org" else (y, x)
         for a in parsed[org["id"]]:
             for b in parsed[other["id"]]:
+                # A short template copy is the condensed, stand-alone version: fine.
+                if word_count(b["text"]) < rule["cross_file_min_words"]:
+                    continue
                 if similar(a, b, rule):
                     f.add(
                         other["id"],

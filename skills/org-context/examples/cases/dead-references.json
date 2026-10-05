@@ -1,7 +1,7 @@
 {
   "about": "A skill that does not exist, an archived repo, a repo link that points at the org root, and a bracketed URL that is not a link.",
   "files": {
-    "ana": "# Analysis guide\n\nSkills live in `ersilia-skills`, see [https://github.com/ersilia-os/ersilia-skills].\n\n## Repository structure\n\nPlot with the `/stylia-plotting` skill and audit with the `/molecule-checker` skill.\n\n## Working with the user\n\n- Store data with [`eosvc`](https://github.com/ersilia-os).\n- Old helpers are in `eos-legacy-tools`; the template is `eos-template`.\n\n## Version control\n\n- Git for code.\n\n## README guidelines\n\n- Short.\n"
+    "ana": "# Analysis guide\n\nSkills live in `ersilia-skills`, see [https://github.com/ersilia-os/ersilia-skills].\n\n## Repository structure\n\nPlot with the `/stylia-plotting` skill and audit with the `/molecule-checker` skill.\n\n## Working with the user\n\n- Store data with [`eosvc`](https://github.com/ersilia-os).\n- Old helpers are in `eos-legacy-tools`; the template is `eos-template`.\n\n## Version control\n\nSee https://github.com/ersilia-os/ersilia-skills.\n\n- Git for code.\n\n## README guidelines\n\n- Short.\n"
   },
   "skills": [
     "stylia-plotting"
@@ -41,6 +41,10 @@
     {
       "check": "FACT-REPO",
       "title_has": "eos-template"
+    },
+    {
+      "check": "FACT-REPO",
+      "title_has": "ersilia-skills."
     }
   ]
 }

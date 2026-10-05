@@ -57,6 +57,30 @@
       "feedback": "Keep the coding guidelines in the org file as they are; I won't always be using templates.",
       "kind": "process",
       "change": "SKILL.md Step 4 'Wrong layer': the org file keeps its Coding section; never propose removing or moving it, only check it agrees with the templates."
+    },
+    {
+      "n": 9,
+      "date": "2026-10-05",
+      "feedback": "The org CLAUDE.md (and the templates) must encourage agents to suggest improvements to skills when using them teaches something; and the skill should fix leftover template findings, not leave them.",
+      "kind": "rule",
+      "change": "rules.json canon skills-feedback (all three roles); SKILL.md Step 4: every finding gets a proposed fix: concrete cuts for LEN-*, a condensed template copy for DUP-ORG, the missing sentence for CANON require rules.",
+      "fixture": "skills-feedback"
+    },
+    {
+      "n": 10,
+      "date": "2026-10-05",
+      "feedback": "(observed in run) A bare repo URL at the end of a sentence was read as repo 'ersilia-skills.'.",
+      "kind": "code",
+      "change": "verify_facts.py strips a trailing period from repo names taken from URLs.",
+      "fixture": "dead-references"
+    },
+    {
+      "n": 11,
+      "date": "2026-10-05",
+      "feedback": "(observed in run) Recurring dismissals and condensed template copies kept coming back as findings.",
+      "kind": "code",
+      "change": "rules.json: duplication.cross_file_min_words = 40 (condensed template copies are not reported); docstrings-numpy only triggers when a docstring style is being set; 'if needed' removed from vague_phrases. check_claude_md.py word_count gate.",
+      "fixture": "org-template-contradiction"
     }
   ]
 }

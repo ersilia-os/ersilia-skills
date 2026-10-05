@@ -154,6 +154,14 @@ Read the three files in full (`/tmp/org_context/files/<id>.md`), `checks.json`,
 1. **Edits for script findings.** For each finding with an obvious fix, add an entry under
    `edits`, keyed by the finding `key`. `find` is exact text from the file, unique in it;
    keep it as short as uniqueness allows. `replace` is the new text (`""` deletes).
+   Every finding gets a proposed fix where one is possible; don't leave a file's
+   findings as notes:
+   - `LEN-FILE` / `LEN-SECTION`: propose concrete cuts, as edits, that bring the file or
+     section under budget, counting any lines your other edits add. Cut repetition,
+     examples an agent doesn't need, and prose that restates a rule; keep every rule.
+   - `DUP-ORG`: keep the rule in the template (templates stand alone) but condense the
+     template's copy to one short line.
+   - `CANON-*` with `require`: write the missing sentence in the section where it fits.
 2. **Dismissals.** A script finding that is wrong in context goes under `dismiss` with a
    one-line reason. The report lists dismissals, so nothing disappears silently. A
    dismissal that would recur is a rule change: raise it in Step 8.

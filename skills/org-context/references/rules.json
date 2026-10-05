@@ -22,7 +22,6 @@
     "be careful",
     "use common sense",
     "as appropriate",
-    "if needed",
     "where relevant",
     "always be aware"
   ],
@@ -35,7 +34,7 @@
     },
     {
       "id": "docstrings-numpy",
-      "if": "docstring",
+      "if": "docstrings?\\s*(:|\\*\\*|style|convention|format|must|should)",
       "require": "numpy",
       "roles": ["org", "package-template", "analysis-template"],
       "message": "Docstrings are mentioned without saying NumPy convention, the Ersilia standard."
@@ -45,6 +44,12 @@
       "require": "ersilia-skills",
       "roles": ["org", "package-template", "analysis-template"],
       "message": "Every file should point agents to the ersilia-skills repository."
+    },
+    {
+      "id": "skills-feedback",
+      "require": "skill[^\\n]{0,160}\\b(improv|feedback|lesson|learn)|\\b(improv|feedback|lesson|learn)[^\\n]{0,160}skill",
+      "roles": ["org", "package-template", "analysis-template"],
+      "message": "Every file should ask agents to suggest improvements to a skill when using it teaches something new."
     }
   ],
   "duplication": {
@@ -56,7 +61,8 @@
       ["org", "package-template"],
       ["org", "analysis-template"]
     ],
-    "cross_file": "consider"
+    "cross_file": "consider",
+    "cross_file_min_words": 40
   },
   "facts": {
     "org": "ersilia-os",

@@ -1,8 +1,9 @@
 {
-  "about": "The org file recommends black while the templates say ruff only; the org file shares the 'Ask, don't assume' rule with a template.",
+  "about": "The org file recommends black while the templates say ruff only; the org file shares the 'Ask, don't assume' rule with a template. A short (condensed) template copy is not reported, and a passing mention of a docstring does not trigger the NumPy rule.",
   "files": {
     "org": "# Org\n\n## About Ersilia\n\nErsilia is a non-profit. Skills live in `ersilia-skills`.\n\n## Coding\n\n- Formatting and linting: `black` and `ruff`.\n\n## Agent behaviour\n\n- **Ask, do not assume.** When intent is unclear, ask.\n- **Plan before acting.** Enter plan mode for anything beyond a typo.\n\n*Last updated: September 2026.*\n",
-    "pkg": "# Package guide\n\nSkills live in `ersilia-skills`.\n\n## Working with the user\n\n- **Ask, don't assume.** Use AskUserQuestion before editing when the approach, a name or a dependency is unclear.\n\n## Code style\n\n- Run `ruff check` and `ruff format`. Docstrings follow the NumPy convention.\n\n## Tests\n\n- Smoke-test the CLI.\n\n## Dependencies\n\n- Pin exact versions.\n\n## README guidelines\n\n- Keep it short.\n"
+    "pkg": "# Package guide\n\nSkills live in `ersilia-skills`.\n\n## Working with the user\n\n- **Ask, don't assume.** For any non-trivial decision — which approach to take, what to name something, whether to add a dependency, how to handle an ambiguous case — use the AskUserQuestion tool before editing. A couple of short questions up front beat a wrong-direction change, and silent guesses are not acceptable.\n\n## Code style\n\n- Run `ruff check` and `ruff format`. Docstrings follow the NumPy convention.\n\n## Tests\n\n- Smoke-test the CLI.\n\n## Dependencies\n\n- Pin exact versions.\n\n## README guidelines\n\n- Keep it short.\n",
+    "ana": "# Analysis guide\n\nSkills live in `ersilia-skills`.\n\n## Repository structure\n\nFolders.\n\n## Working with the user\n\n- **Ask, don't assume.** Use AskUserQuestion before editing when the approach, a name or a dependency is unclear.\n\n## Version control\n\nGit.\n\n## README guidelines\n\nShort. Inputs belong in the script's docstring.\n"
   },
   "repos": {
     "ersilia-skills": false
@@ -22,6 +23,14 @@
     {
       "target": "pkg",
       "check": "CANON-black"
+    },
+    {
+      "target": "ana",
+      "check": "DUP-ORG"
+    },
+    {
+      "target": "ana",
+      "check": "CANON-docstrings-numpy"
     }
   ]
 }

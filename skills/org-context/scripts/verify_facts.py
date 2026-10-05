@@ -119,7 +119,8 @@ def main(argv: list[str] | None = None) -> int:
                             f"Skill '{name}' does not exist in ersilia-skills",
                         )
 
-            names = {m.removesuffix(".git") for m in repo_url.findall(line)}
+            # A sentence can end right after a URL: drop a trailing period first.
+            names = {m.rstrip(".").removesuffix(".git") for m in repo_url.findall(line)}
             names |= {
                 c
                 for c in CODE_SPAN_RE.findall(line)
