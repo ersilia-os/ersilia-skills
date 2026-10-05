@@ -267,6 +267,68 @@ def test_connectors() -> list[str]:
     return fails
 
 
+def test_drive_links() -> list[str]:
+    """Published drive links must be confirmed roots of drives closed to outsiders."""
+    url = "https://drive.google.com/drive/folders/"
+    org = (
+        "# Org\n\n### Google Drive\n\n"
+        f"- **[Grants]({url}0AGRANTS):** grants.\n"
+        f"- **[Platform]({url}1SUBFOLDER):** roadmaps.\n"
+        f"- **[Trainings]({url}0AOTHER):** courses.\n"
+        f"- **[Content]({url}0ACONTENT):** brand.\n"
+        "\n## Agent behaviour\n\nAsk.\n"
+    )
+    cache = {
+        "drives": {
+            "Grants": {"root_id": "0AGRANTS"},
+            "Platform": {"root_id": "0APLATFORM"},
+            "Trainings": {"root_id": "0ATRAININGS"},
+            "Content": {"root_id": "0ACONTENT"},
+        }
+    }
+    found = {"status": "found", "matches_description": True}
+    observed = {
+        "drive": {
+            "drives": {
+                "Grants": found,
+                "Platform": found,
+                "Trainings": found,
+                "Content": {**found, "shared_publicly": True},
+            }
+        },
+        "airtable": {"bases": []},
+    }
+    with tempfile.TemporaryDirectory() as tmp:
+        work = Path(tmp)
+        setup_work(work, {"org": org})
+        write_json(work / "map.json", cache)
+        write_json(work / "observed.json", observed)
+        with contextlib.redirect_stdout(io.StringIO()):
+            connector_claims.main(["extract", "--work", str(work)])
+            connector_claims.main(
+                ["compare", "--work", str(work), "--drive-map", str(work / "map.json")]
+            )
+        items = read_json(work / "connectors.json")
+        names = [c["name"] for c in read_json(work / "claims.json")["drive"]]
+    fails = []
+    if names != ["Grants", "Platform", "Trainings", "Content"]:
+        fails.append(f"drive links: names parsed as {names}")
+    want = [
+        ("FACT-DRIVE-LINK", "Platform", "below the drive root"),
+        ("FACT-DRIVE-LINK", "Trainings", "not its confirmed root"),
+        ("FACT-DRIVE-PUBLIC", "Content", "open beyond"),
+    ]
+    for check, name, text in want:
+        if not any(
+            i["check"] == check and name in i["title"] and text in i["title"]
+            for i in items
+        ):
+            fails.append(f"drive links: expected {check} for {name}")
+    if any("Grants" in i["title"] for i in items):
+        fails.append("drive links: flagged Grants, whose link is its confirmed root")
+    return fails
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run every case and the apply checks; exit 1 on any failure."""
     p = argparse.ArgumentParser(description=__doc__)
@@ -281,7 +343,12 @@ def main(argv: list[str] | None = None) -> int:
         for msg in fails:
             print(f"     {msg}")
         failed += bool(fails)
-    for name, test in (("apply-edits", test_apply), ("connectors", test_connectors)):
+    tests = (
+        ("apply-edits", test_apply),
+        ("connectors", test_connectors),
+        ("drive-links", test_drive_links),
+    )
+    for name, test in tests:
         if args.k not in name:
             continue
         fails = test()

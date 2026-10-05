@@ -11,7 +11,8 @@ lessons apply before a new report is shown. Each entry says where the fix lives:
 
 Usage:
     python record_feedback.py add --text "what the user said" --kind rule \
-        --change "rules.json: budgets.org.max_lines = 120" [--fixture case-name[,other]]
+        --change "rules.json: budgets.org.max_lines = 120" \
+        [--fixture case-name[,selftest:test_function]]
     python record_feedback.py list
 """
 
@@ -46,10 +47,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "add":
         if args.kind == "code" and not args.fixture:
             die("a code change needs --fixture: add a selftest case that reproduces it")
+        # A fixture is a case file name, or "selftest:<function>" for a test function.
+        tests = (SKILL_DIR / "scripts" / "selftest.py").read_text(encoding="utf-8")
         missing = [
             f
-            for f in (args.fixture or "").split(",")
-            if f.strip() and not (CASES / f"{f.strip()}.json").exists()
+            for f in (x.strip() for x in (args.fixture or "").split(","))
+            if f
+            and not (CASES / f"{f}.json").exists()
+            and not (f.startswith("selftest:") and f"def {f[9:]}(" in tests)
         ]
         if missing:
             die(f"no such selftest case in examples/cases/: {', '.join(missing)}")

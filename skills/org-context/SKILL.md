@@ -16,7 +16,7 @@ description: >
   instructions", "are the Drive references in CLAUDE.md right". Always use this skill
   for these requests, even if the ask seems simple.
 argument-hint: "[--only org,pkg,ana] [--local pkg=<path-to-clone>/CLAUDE.md]"
-allowed-tools: [Read, Bash, Write, Edit, AskUserQuestion, mcp__claude_ai_Google_Drive__search_files, mcp__claude_ai_Google_Drive__get_file_metadata, mcp__claude_ai_Airtable__list_bases]
+allowed-tools: [Read, Bash, Write, Edit, AskUserQuestion, mcp__claude_ai_Google_Drive__search_files, mcp__claude_ai_Google_Drive__get_file_metadata, mcp__claude_ai_Google_Drive__get_file_permissions, mcp__claude_ai_Airtable__list_bases]
 ---
 
 # Org context
@@ -111,7 +111,8 @@ of each drive (from `~/.claude/org-context/drive-map.json`).
 - **Drive, cached root.** For each drive with a root ID: `search_files` with
   `parentId = '<root>'`, `excludeContentSnippets: true`, `pageSize: 20`. The drive is
   `found` if the root answers. Compare its top level with the org file's description and
-  the cached `signature`; set `matches_description`.
+  the cached `signature`; set `matches_description`. Then `get_file_permissions` on the
+  root: set `shared_publicly: true` if any permission has type `anyone` or `domain`.
 - **Drive, no cached root.** The connector shows every shared-drive root as "Drive", so a
   name cannot be looked up. Find candidate roots: `search_files` for folders modified in
   the last 90 days (`excludeContentSnippets: true`, `pageSize: 100`), keep the
@@ -135,10 +136,14 @@ python connector_claims.py compare
 If the connectors are unavailable, skip this step and pass `--skip-connectors` to
 `render_report.py`; the report then says these references were not checked.
 
-**Drive and Airtable details are internal.** ersilia-skills is public. Folder names, file
-names and IDs go in the local report only: never in `judgement.json` edits, commits, PR
-text or any file in the repository. A finding may name a shared drive the org file
-already names; nothing deeper.
+**Drive and Airtable details are internal.** ersilia-skills is public. The one exception
+is a link to a shared drive's **root** in the org file (`https://drive.google.com/drive/folders/<root>`),
+and only when that root is user-confirmed and its permissions are limited to named people
+(`shared_publicly` false). An outsider who opens it sees a request-access page. Everything
+else (folder and file names, sub-folder IDs, who has access) stays in the local report:
+never in `judgement.json` edits, commits, PR text or any file in the repository.
+`compare` flags a link below a root, a link that is not the confirmed root, and a root
+open beyond named people.
 
 ### Step 4 — Judgement pass
 
@@ -245,8 +250,8 @@ the org-file PR.
 - **Templates seed other repos.** A change to `P` or `A` affects every repo created
   afterwards, not existing ones. Say so when a finding is about content existing repos
   have already copied.
-- **Drive and Airtable are read-only and internal.** No writes through either connector,
-  and no Drive or Airtable detail beyond what the org file already says in anything
-  that leaves this machine.
+- **Drive and Airtable are read-only and internal.** No writes through either connector.
+  Nothing from them leaves this machine except confirmed, closed shared-drive root links
+  in the org file (Step 3).
 - **Never fabricate.** No invented skills, repos, URLs or rules. A claim you cannot check
   is a finding without an edit.

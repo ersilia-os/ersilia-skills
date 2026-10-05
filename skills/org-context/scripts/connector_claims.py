@@ -13,7 +13,8 @@ steps:
        {"drive": {"method": "connector" | "local",
                   "drives": {"Grants": {"status": "found" | "missing" | "unverified",
                                         "root_id": "0A...", "evidence": "...",
-                                        "matches_description": true}},
+                                        "matches_description": true,
+                                        "shared_publicly": false}},
                   "unlisted": ["Docs"]},
         "airtable": {"bases": ["Ersilia Content", "Ersilia Model Hub", "..."]}}
 
@@ -50,6 +51,10 @@ from _common import (
 from check_claude_md import Findings
 
 LOCAL_DRIVE_GLOB = "Library/CloudStorage/GoogleDrive-*/Shared drives"
+DRIVE_LINK_RE = re.compile(
+    r"drive\.google\.com/drive/(?:u/\d+/)?folders/([A-Za-z0-9_-]+)"
+)
+MD_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]*\)")
 DRIVE_MAP = Path.home() / ".claude" / "org-context" / "drive-map.json"
 
 
@@ -61,9 +66,17 @@ def claims_in(text: str, title: str) -> list[dict]:
             continue
         for u in units(text):
             if s["start"] < u["line"] <= s["end"] and u["lead"]:
-                name = u["lead"].rstrip(":").strip()
+                name = MD_LINK_RE.sub(r"\1", u["lead"]).rstrip(":").strip()
                 desc = re.sub(r"^\*\*.+?\*\*:?\s*", "", u["text"]).strip()
-                out.append({"name": name, "description": desc, "line": u["line"]})
+                link = DRIVE_LINK_RE.search(u["text"])
+                out.append(
+                    {
+                        "name": name,
+                        "description": desc,
+                        "line": u["line"],
+                        "link_id": link.group(1) if link else None,
+                    }
+                )
     return out
 
 
@@ -115,7 +128,48 @@ def extract(work: Path, rules: dict) -> int:
     return 0
 
 
-def compare(work: Path, rules: dict) -> int:
+def check_drive_link(f, tid: str, c: dict, obs: dict, cache: dict) -> None:
+    """A published drive link must be the confirmed root of a drive nobody outside can open."""
+    link, root = c.get("link_id"), cache.get(c["name"], {}).get("root_id")
+    if not link:
+        return
+    if not link.startswith("0A"):
+        f.add(
+            tid,
+            "FACT-DRIVE-LINK",
+            "fix",
+            c["line"],
+            f"Link for '{c['name']}' points below the drive root",
+            "Publish root links only; a deeper folder can carry its own public sharing.",
+        )
+    elif root and link != root:
+        f.add(
+            tid,
+            "FACT-DRIVE-LINK",
+            "fix",
+            c["line"],
+            f"Link for '{c['name']}' is not its confirmed root",
+        )
+    elif not root:
+        f.add(
+            tid,
+            "FACT-DRIVE-LINK",
+            "consider",
+            c["line"],
+            f"Link for '{c['name']}' points at a root not confirmed by the user",
+        )
+    if obs.get("shared_publicly"):
+        f.add(
+            tid,
+            "FACT-DRIVE-PUBLIC",
+            "fix",
+            c["line"],
+            f"Shared drive '{c['name']}' is open beyond named people",
+            "Its root allows 'anyone' or whole-domain access; fix the sharing or drop the link.",
+        )
+
+
+def compare(work: Path, rules: dict, drive_map: Path = DRIVE_MAP) -> int:
     """Write connectors.json from claims.json and observed.json."""
     claims = read_json(work / "claims.json")
     observed = read_json(work / "observed.json")
@@ -128,8 +182,10 @@ def compare(work: Path, rules: dict) -> int:
     drive = observed.get("drive", {})
     local = read_json(work / "drive-local.json")
     seen = drive.get("drives", {})
+    cache = (read_json(drive_map) or {"drives": {}})["drives"]
     unverified = []
     for c in claims["drive"]:
+        check_drive_link(f, tid, c, seen.get(c["name"], {}), cache)
         if local is not None:
             status = "found" if c["name"] in local else "missing"
             obs = {"status": status, "evidence": "local Drive sync"}
@@ -246,6 +302,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--drive")
     p.add_argument("--root")
     p.add_argument("--signature", default="")
+    p.add_argument("--drive-map", default=str(DRIVE_MAP))
     p.add_argument("--work", default=WORK_DIR)
     p.add_argument("--rules", default=str(REFS / "rules.json"))
     args = p.parse_args(argv)
@@ -255,7 +312,9 @@ def main(argv: list[str] | None = None) -> int:
         if not (args.drive and args.root):
             die("map needs --drive and --root")
         return map_drive(args.drive, args.root, args.signature)
-    return extract(work, rules) if args.cmd == "extract" else compare(work, rules)
+    if args.cmd == "extract":
+        return extract(work, rules)
+    return compare(work, rules, Path(args.drive_map))
 
 
 if __name__ == "__main__":

@@ -27,7 +27,7 @@
       "feedback": "Make sure the skill looks into Google Drive to check that references are correct.",
       "kind": "code",
       "change": "New Step 3 and connector_claims.py: extracts the shared drives and Airtable bases the org file names, verifies them through the read-only connectors (drive roots identified by content, confirmed by the user once, cached outside the public repo), and reports missing, mismatched and unlisted ones. render_report.py refuses to render without connectors.json unless --skip-connectors, which the report states.",
-      "fixture": "selftest.py test_connectors"
+      "fixture": "selftest:test_connectors"
     },
     {
       "n": 5,
@@ -35,6 +35,14 @@
       "feedback": "First real run: branch org-context/claude-md-<date> collides with the org-context skill branch, and switching branches in the main checkout mixes changes.",
       "kind": "process",
       "change": "SKILL.md Step 6: org edits go in a git worktree from origin/main on branch claude-md/<date>; templates use the same branch name."
+    },
+    {
+      "n": 6,
+      "date": "2026-10-05",
+      "feedback": "Add the shared-drive root links to the org file; checked it is safe because every root is limited to named Ersilia accounts.",
+      "kind": "code",
+      "change": "Root links allowed in the org file when user-confirmed and not shared with anyone/domain. connector_claims.py compare flags links below a root or not matching the cached root (FACT-DRIVE-LINK) and roots open beyond named people (FACT-DRIVE-PUBLIC); Step 3 records shared_publicly from get_file_permissions.",
+      "fixture": "selftest:test_drive_links"
     }
   ]
 }
