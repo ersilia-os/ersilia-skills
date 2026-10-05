@@ -288,7 +288,9 @@ claude.ai Airtable and Slack connectors, and all of these are available to a hea
   `--allowedTools` allowlist: `Bash(gh:*)`, `Bash(python:*)`, `Bash(rm -f digests/*)`,
   Read/Write/Edit, the Airtable **read** tools and `slack_send_message`. No Airtable write tool
   is allowed, and the run never uses `--dangerously-skip-permissions`. Output is appended to
-  `~/Library/Logs/github-digest/{date}.log`.
+  `~/Library/Logs/github-digest/{date}.log`. `claude -p` exits 0 even when the API refuses
+  the request, so the wrapper greps its output for `API Error` and logs the run as failed
+  (`exit 1`).
 - **Job** `~/Library/LaunchAgents/io.ersilia.github-digest.plist`: `StartCalendarInterval`
   `{Weekday 1, Hour 7, Minute 0}` (Monday 07:00 local time). Activate it with
   `launchctl bootstrap gui/$(id -u) <plist>` and remove it with
