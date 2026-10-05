@@ -165,9 +165,13 @@ Read the three files in full (`/tmp/org_context/files/<id>.md`), `checks.json`,
      `pyproject.toml` or `requirements.txt`, its CI. A rule about a folder, file or tool
      the template no longer has is wrong.
    - **Instructions an agent cannot act on**, or would follow the same way without being told.
-   - **Wrong layer.** The org file is an orientation layer, not a runbook: code-level rules
-     belong in the templates. A template rule that only repeats general behaviour may go,
-     but templates must stand alone for people who never load the org file, so say which.
+   - **Wrong layer.** The org file is an orientation layer, not a runbook: detailed,
+     template-specific rules (layout, CLI structure, release steps) belong in the templates.
+     The org file **keeps its short Coding section**: work often happens outside a template,
+     so general coding guidance must stay there. Never propose removing or moving it; check
+     only that it agrees with the templates. A template rule that only repeats general
+     behaviour may go, but templates must stand alone for people who never load the org
+     file, so say which.
    - **Contradictions in substance** that differ in wording (e.g. one file mandates plan
      mode and another only suggests it).
    - **Missing guidance** an agent working in a fresh repo from that template would need.

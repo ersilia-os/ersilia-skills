@@ -50,6 +50,13 @@
       "feedback": "The org CLAUDE.md can be up to 250 lines; that's fine.",
       "kind": "rule",
       "change": "rules.json: budgets.org.max_lines 150 -> 250."
+    },
+    {
+      "n": 8,
+      "date": "2026-10-05",
+      "feedback": "Keep the coding guidelines in the org file as they are; I won't always be using templates.",
+      "kind": "process",
+      "change": "SKILL.md Step 4 'Wrong layer': the org file keeps its Coding section; never propose removing or moving it, only check it agrees with the templates."
     }
   ]
 }
