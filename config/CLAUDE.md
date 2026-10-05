@@ -76,7 +76,7 @@ Python is the main programming language.
 
 ### Google Drive
 
-Organisational documents are kept in Google Drive. Not all folders are accessible to all members. Always be aware of the information in Google Drive. Use a connector or locally-synchronized folders.
+Organisational documents are kept in Google Drive. Not all folders are accessible to all members. Before drafting a document, search Drive for related material (past grants, project folders, meeting notes) and reuse it. Use a connector or locally-synchronized folders.
 
 The most used shared drives are the following:
 
@@ -90,7 +90,6 @@ The most used shared drives are the following:
 Other shared drives include:
 
 - **Fundraising:** documentation for philanthropic fundraising efforts
-- **GitHub:** backups of heavy (and private) repositories; not relevant.
 - **[Meetings and Notes](https://drive.google.com/drive/folders/0AOkuFcLs8onAUk9PVA):** external and internal meeting notes; project tracking documents.
 - **[Platform](https://drive.google.com/drive/folders/0AEcpyMzQd-PmUk9PVA):** technology roadmap documents, hardware available, etc.
 - **[Trainings](https://drive.google.com/drive/folders/0AIzweip5Gj3hUk9PVA):** documentation related to trainings and capacity building; surveys, shared folders with participants, etc.
@@ -145,7 +144,7 @@ Main channels of communication are:
 
 ### Scientific articles
 
-As a research organisation, Ersilia publishes in peer-reviewed journals and preprints. Always be aware of the publication track record: https://ersilia.io/publications.
+As a research organisation, Ersilia publishes in peer-reviewed journals and preprints. Check https://ersilia.io/publications before citing Ersilia's work or describing its track record.
 
 ## Codebase and open source ecosystem
 
