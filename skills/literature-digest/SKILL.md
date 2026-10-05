@@ -650,16 +650,39 @@ reader sees the same headline twice.
 
 ## Scheduling
 
-This skill is invoked manually by default. To run it weekly:
+This skill is invoked manually by default. For a weekly run, use a **local macOS launchd job**
+(same pattern as `github-digest`'s Scheduling section). The run needs the claude.ai Slack and
+Gmail connectors plus the machine's `gh` auth for the upload, and all of these are available
+to a headless `claude -p` on the user's Mac.
 
-```text
-/schedule create literature-digest --cron "0 8 * * 1" --command "/literature-digest"
-```
+- **Wrapper** `~/.claude/scheduled/literature-digest.sh`: sets `PATH` (launchd's default lacks
+  `claude`, `gh` and the conda `python`), `cd`s into this skill folder and runs
+  `claude --model sonnet -p "/literature-digest $* — unattended weekly scheduled run …"` with
+  an `--allowedTools` allowlist: `Bash(gh:*)`, `Bash(python:*)`, Read/Write/Edit, `WebSearch`
+  and `WebFetch` (supplementary search, Crossref author checks), the Gmail **read** tools, the
+  Slack read tools and `slack_send_message`. Output is appended to
+  `~/Library/Logs/literature-digest/{date}.log`.
+- **Model: Sonnet.** On 2026-10-05, Opus 5.5's safeguards flagged a headless run as
+  biology-related (`[bio]`) and refused it. The pathogen and antimicrobial literature trips
+  them. Sonnet ran the same pipeline cleanly. `claude -p` still exits 0 on such an `API Error`,
+  so the wrapper greps its output for `API Error` and logs the run as failed.
+- **No shortcuts.** The prompt tells the run to read every Research-Updates thread in full with
+  `get_thread`, not search snippets. On snippets alone, `fetch_gmail.py` finds no DOI or URL and
+  drops every Gmail item. The prompt also requires the Step 4.5 web hunt whenever it triggers.
+- **Job** `~/Library/LaunchAgents/io.ersilia.literature-digest.plist`: `StartCalendarInterval`
+  `{Weekday 2, Hour 7, Minute 0}` (Tuesday 07:00 local time). Activate it with
+  `launchctl bootstrap gui/$(id -u) <plist>` and remove it with
+  `launchctl bootout gui/$(id -u)/io.ersilia.literature-digest`.
 
-(Monday 08:00 local time.) The `schedule` skill handles the cron wiring; see its SKILL.md
-for options. Self-scheduling is intentionally not built in — running this requires the
-Slack and Gmail MCPs to be live in the session, which is easier to guarantee for a manual
-run than a cron.
+Two rules for the unattended prompt:
+
+- **Gate C uses `--days 6`.** The guard counts a digest dated exactly N days ago (`d >= cutoff`),
+  so with `--days 7` last Tuesday's digest would block this Tuesday's run.
+- **Stop at any gate that would ask a question** (stale references, a digest already exists,
+  a missing MCP) and log the reason. Never pass `--force` unattended.
+
+Test with `literature-digest.sh --dry-run` before activating. If the Mac is asleep at 07:00,
+the job runs when it wakes. If it is powered off, that week is skipped.
 
 ---
 
