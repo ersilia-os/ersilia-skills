@@ -186,10 +186,12 @@ STOPWORDS = frozenset(
 def content_words(text: str) -> set[str]:
     """Lowercased content words of ``text``, contractions expanded, crude plural strip.
 
-    Link targets and bare URLs are dropped first: ``github.com/ersilia-os`` appears in
-    most lines and would make unrelated instructions look alike.
+    Link targets, bare URLs and inline code are dropped first: ``github.com/ersilia-os``
+    or a list of folder names appears in many lines and would make unrelated
+    instructions look alike.
     """
     text = LINK_RE.sub(r"\1", text)
+    text = re.sub(r"`[^`]*`", " ", text)
     text = URL_RE.sub(" ", text)
     text = text.lower().replace("’", "'").replace("n't", " not")
     words = re.findall(r"[a-z0-9][a-z0-9_-]*", text)

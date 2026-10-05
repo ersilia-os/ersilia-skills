@@ -81,6 +81,14 @@
       "kind": "code",
       "change": "rules.json: duplication.cross_file_min_words = 40 (condensed template copies are not reported); docstrings-numpy only triggers when a docstring style is being set; 'if needed' removed from vague_phrases. check_claude_md.py word_count gate.",
       "fixture": "org-template-contradiction"
+    },
+    {
+      "n": 12,
+      "date": "2026-10-05",
+      "feedback": "(observed after merging) A sentence listing shipped folders was flagged as repeating the Git-tracked folders line.",
+      "kind": "code",
+      "change": "_common.content_words ignores inline code, so shared folder or file names no longer make different rules look alike.",
+      "fixture": "code-spans-not-duplicates"
     }
   ]
 }
