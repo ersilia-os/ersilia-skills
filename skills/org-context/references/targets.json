@@ -1,0 +1,38 @@
+{
+  "about": "The CLAUDE.md files this skill looks after, all read from their repository's default branch. `local: true` marks the file that also lives in this ersilia-skills checkout (fetch_targets.py warns if the checkout differs). `prefix` starts every finding ID for that file.",
+  "targets": [
+    {
+      "id": "org",
+      "prefix": "O",
+      "label": "Org orientation file",
+      "role": "org",
+      "repo": "ersilia-os/ersilia-skills",
+      "path": "config/CLAUDE.md",
+      "local": true
+    },
+    {
+      "id": "pkg",
+      "prefix": "P",
+      "label": "Python package template",
+      "role": "package-template",
+      "repo": "ersilia-os/eos-python-package",
+      "path": "CLAUDE.md"
+    },
+    {
+      "id": "ana",
+      "prefix": "A",
+      "label": "Analysis template",
+      "role": "analysis-template",
+      "repo": "ersilia-os/eos-analysis-template",
+      "path": "CLAUDE.md"
+    },
+    {
+      "id": "mod",
+      "prefix": "M",
+      "label": "Model template",
+      "role": "model-template",
+      "repo": "ersilia-os/eos-template",
+      "path": "CLAUDE.md"
+    }
+  ]
+}
