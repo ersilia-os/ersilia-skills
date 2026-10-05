@@ -196,6 +196,7 @@ When working on Ersilia materials, the AI agent must:
 - **Default to confidentiality.** Drive content, partner contact details, unreleased manuscripts, salary data and API keys must never reach a public artefact (commit, blog, slide, social post).
 - **Default to open source.** Prefer free/open tools. If a closed dependency is unavoidable, document the reason.
 - **Use Ersilia skills.** Check [ersilia-skills](https://github.com/ersilia-os/ersilia-skills) for a skill before building a workflow from scratch.
+- **Improve the skills you use.** When a skill gets something wrong, misses a case, or the user corrects it, suggest a concrete change to that skill and offer to open a PR on ersilia-skills.
 
 ---
 
