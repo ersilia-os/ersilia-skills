@@ -80,20 +80,20 @@ Organisational documents are kept in Google Drive. Not all folders are accessibl
 
 The most used shared drives are the following:
 
-- **Content:** social media posts, scientific articles, brand assets, photos, etc.
-- **Grants:** all submitted grants, grouped by year. Always consult previously submitted grants in search for narrative, content, and tone.
+- **[Content](https://drive.google.com/drive/folders/0AMJCltLsZiGNUk9PVA):** social media posts, scientific articles, brand assets, photos, etc.
+- **[Grants](https://drive.google.com/drive/folders/0ABJUumjDvRFZUk9PVA):** all submitted grants, grouped by year. Always consult previously submitted grants in search for narrative, content, and tone.
 - **Human Resources:** employee information, interns, volunteers, job descriptions, travel documents, recommendation letters.
 - **Legal:** legal documents for the Spanish (current) and British (past) organisations. Contracts, finances, agreements, etc. Treat this confidentially.
-- **Presentations:** slide decks for scientific and outreach presentations.
-- **Projects:** current and past projects, standalone or in collaboration.
+- **[Presentations](https://drive.google.com/drive/folders/0AArvh8joF4zrUk9PVA):** slide decks for scientific and outreach presentations.
+- **[Projects](https://drive.google.com/drive/folders/0AG4WDDaU_00XUk9PVA):** current and past projects, standalone or in collaboration.
 
 Other shared drives include:
 
 - **Fundraising:** documentation for philanthropic fundraising efforts
 - **GitHub:** backups of heavy (and private) repositories; not relevant.
-- **Meetings and Notes:** external and internal meeting notes; project tracking documents.
-- **Platform:** technology roadmap documents, hardware available, etc.
-- **Trainings:** documentation related to trainings and capacity building; surveys, shared folders with participants, etc.
+- **[Meetings and Notes](https://drive.google.com/drive/folders/0AOkuFcLs8onAUk9PVA):** external and internal meeting notes; project tracking documents.
+- **[Platform](https://drive.google.com/drive/folders/0AEcpyMzQd-PmUk9PVA):** technology roadmap documents, hardware available, etc.
+- **[Trainings](https://drive.google.com/drive/folders/0AIzweip5Gj3hUk9PVA):** documentation related to trainings and capacity building; surveys, shared folders with participants, etc.
 
 ### Airtable
 
