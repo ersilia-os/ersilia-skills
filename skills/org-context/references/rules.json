@@ -1,7 +1,7 @@
 {
   "about": "Every policy the checks apply. Feedback should change this file first; touch a script only when a rule cannot be expressed here. Severities: fix (wrong, broken or contradictory), trim (correct but costs context), consider (a judgement call).",
   "budgets": {
-    "org": {"max_lines": 150, "max_section_lines": 40},
+    "org": {"max_lines": 250, "max_section_lines": 40},
     "package-template": {"max_lines": 120, "max_section_lines": 30},
     "analysis-template": {"max_lines": 120, "max_section_lines": 30}
   },

@@ -43,6 +43,13 @@
       "kind": "code",
       "change": "Root links allowed in the org file when user-confirmed and not shared with anyone/domain. connector_claims.py compare flags links below a root or not matching the cached root (FACT-DRIVE-LINK) and roots open beyond named people (FACT-DRIVE-PUBLIC); Step 3 records shared_publicly from get_file_permissions.",
       "fixture": "selftest:test_drive_links"
+    },
+    {
+      "n": 7,
+      "date": "2026-10-05",
+      "feedback": "The org CLAUDE.md can be up to 250 lines; that's fine.",
+      "kind": "rule",
+      "change": "rules.json: budgets.org.max_lines 150 -> 250."
     }
   ]
 }
