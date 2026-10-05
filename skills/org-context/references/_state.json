@@ -1,5 +1,7 @@
 {
   "last_review": "2026-10-05",
+  "review_interval_days": 30,
+  "next_review_due": "2026-11-04",
   "files": {
     "org": {
       "sha256": "c39714893898e70981c1d2af1d88a1983f562f7660c09f6c8289a309f4df9ff4",
@@ -13,5 +15,31 @@
       "sha256": "1bce9be5f2680876a32fb62f1de33981f437c278c487226911e3a01d20c414fc",
       "reviewed": "2026-10-05"
     }
-  }
+  },
+  "review_log": [
+    {
+      "date": "2026-10-05",
+      "files": [
+        "org",
+        "pkg",
+        "ana"
+      ],
+      "applied": [
+        "O1",
+        "O2",
+        "O5",
+        "A2",
+        "A6",
+        "A1",
+        "P1",
+        "P2"
+      ],
+      "prs": [
+        "https://github.com/ersilia-os/ersilia-skills/pull/44",
+        "https://github.com/ersilia-os/eos-python-package/pull/1",
+        "https://github.com/ersilia-os/eos-analysis-template/pull/1",
+        "https://github.com/ersilia-os/eos-analysis-template/pull/2"
+      ]
+    }
+  ]
 }

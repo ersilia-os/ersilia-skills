@@ -3,10 +3,13 @@ name: org-context
 description: >
   Keep Ersilia's agent-context files up to date, clean and useful: the org orientation
   file (config/CLAUDE.md in ersilia-skills) and the CLAUDE.md files shipped by the
-  eos-python-package and eos-analysis-template repository templates. Checks length
+  eos-python-package, eos-analysis-template and eos-template repository templates; also
+  checks that the org file is actually loaded on this machine. Run about monthly; it says
+  when a review is due. Checks length
   budgets, stale dates, contradictions with the Ersilia standard (e.g. ruff only),
-  repetition and vague instructions; verifies every skill, repository and URL the files
-  mention, and the Google Drive shared drives and Airtable bases the org file points to
+  repetition, vague instructions, folder-tree and overview bloat, and rules better
+  enforced by hooks; verifies every skill, repository, URL and template path or tool the
+  files mention, and the Google Drive shared drives and Airtable bases the org file points to
   (read-only connectors); adds a judgement pass on usefulness; and produces a short,
   ID-numbered report with proposed edits. Changes nothing until the user approves
   specific IDs, then applies them on a branch and opens a PR on confirmation. Learns
@@ -15,23 +18,34 @@ description: >
   "clean up the org CLAUDE.md", "revise the template CLAUDE.md", "check the agent
   instructions", "are the Drive references in CLAUDE.md right". Always use this skill
   for these requests, even if the ask seems simple.
-argument-hint: "[--only org,pkg,ana] [--local pkg=<path-to-clone>/CLAUDE.md]"
+argument-hint: "[--only org,pkg,ana,mod] [--local pkg=<path-to-clone>/CLAUDE.md]"
 allowed-tools: [Read, Bash, Write, Edit, AskUserQuestion, mcp__claude_ai_Google_Drive__search_files, mcp__claude_ai_Google_Drive__get_file_metadata, mcp__claude_ai_Google_Drive__get_file_permissions, mcp__claude_ai_Airtable__list_bases]
 ---
 
 # Org context
 
-You review the three CLAUDE.md files that give agents their Ersilia context:
+You review the four CLAUDE.md files that give agents their Ersilia context:
 
 | ID prefix | File | Role |
 |---|---|---|
 | `O` | `ersilia-os/ersilia-skills/config/CLAUDE.md` | Org orientation layer |
 | `P` | `ersilia-os/eos-python-package/CLAUDE.md` | Seed for every new package repo |
 | `A` | `ersilia-os/eos-analysis-template/CLAUDE.md` | Seed for every new analysis repo |
+| `M` | `ersilia-os/eos-template/CLAUDE.md` | Seed for every new model repo |
 
-A good CLAUDE.md is short (it loads into every session), true (every name and link
-resolves), consistent (the org file and the templates never disagree) and useful (every
-line changes what an agent does). The templates matter more than their size suggests:
+The org file only helps if agents load it: `setup.sh` adds an `@import` of it to each
+person's `~/.claude/CLAUDE.md`, and `check_delivery.py` confirms that on this machine.
+
+**Cadence.** About once a month. `_state.json` keeps the due date (30 days after the last
+review) and a log of past reviews; `fetch_targets.py` prints `DUE` or `OK` first.
+
+A good CLAUDE.md is short (it loads into every session), true (every name, link, path
+and tool resolves), consistent (the org file and the templates never disagree) and
+useful (every line changes what an agent does). Research backs this: overviews and
+folder trees don't help agents and cost tokens (Gloaguen et al. 2026, arXiv:2602.11988);
+instruction-following decays as instructions pile up and favours early ones (IFScale,
+arXiv:2507.11538); Anthropic advises under 200 lines, concrete instructions, and hooks for
+anything that must always hold (code.claude.com/docs/en/memory). The templates matter more than their size suggests:
 each new repo copies them.
 
 This skill is independent of `repository-auditing`. Do not read or edit that skill.
@@ -56,11 +70,13 @@ Scripts run from `scripts/` with the Python 3 standard library and `gh`, and wor
 | Script | Does |
 |---|---|
 | `record_feedback.py` | Lists the lessons (`list`) or logs one (`add`) |
-| `fetch_targets.py` | Reads the three files (read-only); says what changed since the last review; `--mark-reviewed` records the review |
-| `check_claude_md.py` | Budgets, dates, sections, placeholders, vague phrases, malformed links, emoji, canonical rules, duplication → `checks.json` |
-| `verify_facts.py` | Skills, repos (exist, not archived), repo links, URLs → `facts.json` |
-| `connector_claims.py` | `extract` the shared drives and Airtable bases the org file names; `compare` them with what you observed through the connectors → `connectors.json`; `map` caches a confirmed drive root |
-| `render_report.py` | Merges all three with your `judgement.json`, numbers findings (`O1`, `P2`...), validates every edit → `plan.json`, `REPORT.md` |
+| `fetch_targets.py` | Reads the four files from their default branch (read-only); prints `DUE`/`OK`; says what changed since the last review; `--mark-reviewed` records the review and the next due date |
+| `check_delivery.py` | Is the org file imported in `~/.claude/CLAUDE.md`? → `delivery.json` |
+| `check_claude_md.py` | Budgets, dates, sections, placeholders, vague phrases, malformed links, emoji, canonical rules, duplication, folder trees and overviews (`BLOAT-*`), prohibitions a hook could enforce (`HOOK-CANDIDATE`) → `checks.json` |
+| `verify_facts.py` | Skills, repos (exist, not archived), repo links, URLs; for templates, paths and tools the file names against the template's tree and config (`REALITY-*`) → `facts.json` |
+| `connector_claims.py` | `extract` the shared drives and Airtable bases the org file names (drive roots come from the org file's links); `compare` them with what you observed through the connectors → `connectors.json`; `map` caches a confirmed root for a drive the file doesn't link |
+| `run_prompt_audit.py` | Runs Claude Code's `/doctor prompt-audit` on each file in a throwaway clone → `audit-<id>.md` (optional input to Step 4) |
+| `render_report.py` | Merges every findings file with your `judgement.json`, numbers findings (`O1`, `P2`...) and keeps their IDs across re-renders, validates every edit → `plan.json`, `REPORT.md` |
 | `apply_edits.py` | Applies approved IDs to one file, bumps the "Last updated" line, prints the diff |
 | `selftest.py` | Offline regression cases in `examples/cases/` |
 
@@ -71,9 +87,12 @@ Scripts run from `scripts/` with the Python 3 standard library and `gh`, and wor
 ```bash
 cd skills/org-context/scripts
 python record_feedback.py list
+python check_delivery.py
 ```
 
-Apply every lesson in this run. If the user named only some files, pass `--only` below.
+Apply every lesson in this run. If `check_delivery.py` reports `DELIVERY-*`, tell the
+user first: agents on this machine aren't loading the org file, and `bash setup.sh` fixes
+it. If the user named only some files, pass `--only` below.
 
 ### Step 1 — Fetch
 
@@ -81,8 +100,9 @@ Apply every lesson in this run. If the user named only some files, pass `--only`
 python fetch_targets.py            # add --local pkg=<clone>/CLAUDE.md to review a local edit
 ```
 
-Note each file's status line (first review, unchanged, changed). An unchanged file still
-gets checked: the world around it (skills, repos, practice) may have moved.
+Note the `DUE`/`OK` line and each file's status (first review, unchanged, changed). An
+unchanged file still gets checked: the world around it (skills, repos, practice) may have
+moved. Files come from the default branch, so a stale local checkout never matters.
 
 ### Step 2 — Run the checks
 
@@ -147,8 +167,8 @@ open beyond named people.
 
 ### Step 4 — Judgement pass
 
-Read the three files in full (`/tmp/org_context/files/<id>.md`), `checks.json`,
-`facts.json` and `connectors.json`. Then write `/tmp/org_context/judgement.json` (format in the
+Read the four files in full (`/tmp/org_context/files/<id>.md`), `checks.json`,
+`facts.json`, `connectors.json` and `delivery.json`. Then write `/tmp/org_context/judgement.json` (format in the
 `render_report.py` docstring):
 
 1. **Edits for script findings.** For each finding with an obvious fix, add an entry under
@@ -162,6 +182,17 @@ Read the three files in full (`/tmp/org_context/files/<id>.md`), `checks.json`,
    - `DUP-ORG`: keep the rule in the template (templates stand alone) but condense the
      template's copy to one short line.
    - `CANON-*` with `require`: write the missing sentence in the section where it fits.
+   - `BLOAT-TREE`: replace the tree with the few folder rules an agent can't infer by
+     listing the repo (e.g. "numbered scripts in `scripts/`; data lives in eosvc, not git").
+     `BLOAT-OVERVIEW`: cut the sentence, or keep only the part that changes behaviour.
+   - `HOOK-CANDIDATE`: no edit to CLAUDE.md. Name the hook or permission that would
+     enforce each rule, so the user can decide whether to add it to the template's
+     `.claude/settings.json`. Never add hooks or settings yourself.
+   - `REALITY-PATH`: either reword the file ("create `src/default.py` when first needed")
+     or, if the template should ship it, say so as a finding without an edit.
+     `REALITY-TOOL`: the fix is in the template's config (e.g. add `ruff` to
+     `requirements.txt`), not in CLAUDE.md: report it with the exact line to add; it goes
+     in the same PR only if the user approves it explicitly.
 2. **Dismissals.** A script finding that is wrong in context goes under `dismiss` with a
    one-line reason. The report lists dismissals, so nothing disappears silently. A
    dismissal that would recur is a rule change: raise it in Step 8.
@@ -185,6 +216,15 @@ Read the three files in full (`/tmp/org_context/files/<id>.md`), `checks.json`,
    - **Missing guidance** an agent working in a fresh repo from that template would need.
    - **Repetition within a file** that the script missed (two bullets saying the same thing
      in different sections).
+   - **Ordering.** Models follow early instructions more reliably (IFScale). If a file's
+     must-follow rules ("Hard requirements", "Human sign-off", "Don't touch", "never")
+     sit below long descriptive sections, propose moving that section up.
+4. **Claude Code's own audit.** Run `python run_prompt_audit.py` (one headless run per
+   file, in throwaway clones) and read `audit-<id>.md`. It checks each file against its
+   repository: rules the template already breaks, outdated forceful wording, links that
+   don't point where they say. Fold what the scripts missed into your own findings, with
+   edits; ignore what they already cover. If it prints `SKIPPED`, say in your reply that
+   the audit didn't run.
 
 Hold the Ersilia voice in every `replace`: plain, active, concise, British or American
 kept consistent with the file. Never invent repos, skills, people or policies; if a fix
@@ -245,9 +285,15 @@ Ask the user for feedback on the report. For each point:
 3. Log it: `python record_feedback.py add --text "..." --kind rule|target|code|process
    --change "..." [--fixture case-name]`.
 
-Finally run `python fetch_targets.py --mark-reviewed` so the next run can tell what
-changed. This edits `references/_state.json`; include it in the skill's next commit or
-the org-file PR.
+Finally record the review, with what was applied and the PRs opened, so the next run can
+tell what changed and when it is due:
+
+```bash
+python fetch_targets.py --mark-reviewed --applied O1,P2 --prs <url>,<url>
+```
+
+This edits `references/_state.json`; include it in the skill's next commit or the
+org-file PR.
 
 ## Rules
 

@@ -29,6 +29,7 @@ from pathlib import Path
 
 from _common import (
     MARKERS,
+    finding_key,
     REFS,
     SEVERITIES,
     WORK_DIR,
@@ -98,6 +99,7 @@ def main(argv: list[str] | None = None) -> int:
         (read_json(work / "checks.json") or [])
         + (read_json(work / "facts.json") or [])
         + (connectors or [])
+        + (read_json(work / "delivery.json") or [])
     )
     known = {i["key"] for i in raw}
     unknown = [k for k in list(dismiss) + list(edits) if k not in known]
@@ -116,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
             die(f"judgement finding {n} needs a valid 'target' and 'severity'")
         items.append(
             {
-                "key": f"{j['target']}:JUDGEMENT:{n}",
+                "key": finding_key(j["target"], "JUDGEMENT", j["title"]),
                 "target": j["target"],
                 "check": "JUDGEMENT",
                 "severity": j["severity"],
@@ -132,6 +134,10 @@ def main(argv: list[str] | None = None) -> int:
     if problems:
         die("fix these edits in judgement.json:\n  " + "\n  ".join(problems))
 
+    # IDs survive re-renders: a finding seen in the previous plan keeps its ID, so an
+    # approval like "apply O3" still means the same thing after the report is redone.
+    previous = read_json(work / "plan.json") or {"targets": []}
+    known_ids = {i["key"]: i["id"] for t in previous["targets"] for i in t["items"]}
     order = {s: k for k, s in enumerate(SEVERITIES)}
     plan_targets = []
     for t in targets:
@@ -139,8 +145,19 @@ def main(argv: list[str] | None = None) -> int:
             (i for i in items if i["target"] == t["id"]),
             key=lambda i: (order[i["severity"]], i["line"] or 0),
         )
-        for n, i in enumerate(mine, 1):
-            i["id"] = f"{t['prefix']}{n}"
+        used = {
+            int(v[len(t["prefix"]) :])
+            for v in known_ids.values()
+            if v.startswith(t["prefix"]) and v[len(t["prefix"]) :].isdigit()
+        }
+        for i in mine:
+            if i["key"] in known_ids:
+                i["id"] = known_ids[i["key"]]
+        n = max(used, default=0)
+        for i in mine:
+            if "id" not in i:
+                n += 1
+                i["id"] = f"{t['prefix']}{n}"
         plan_targets.append({**t, "items": mine})
     write_json(
         work / "plan.json",
@@ -159,6 +176,15 @@ def main(argv: list[str] | None = None) -> int:
         "",
         "Nothing changes until you approve IDs, e.g. *apply O1, O3* or *apply all ✎ in P*.",
     ]
+    state = read_json(REFS / "_state.json") or {}
+    if state.get("last_review"):
+        log = state.get("review_log") or [{}]
+        md += [
+            "",
+            f"Last review {state['last_review']} ({len(log[-1].get('applied', []))} "
+            f"edit(s) applied, {len(log[-1].get('prs', []))} PR(s)) · "
+            f"next due {state.get('next_review_due', '?')}",
+        ]
     if connectors is None:
         md += [
             "",

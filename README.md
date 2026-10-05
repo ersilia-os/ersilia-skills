@@ -92,6 +92,8 @@ bash setup.sh
 
 This creates a symlink in `~/.claude/skills/` for each skill folder, so skills are immediately available as slash commands in Claude Code. Any personal skills you already have there are left untouched. A `post-merge` git hook is also installed, so whenever you `git pull` and new skills are added, they are linked automatically — no manual re-run needed.
 
+`setup.sh` also adds one line, `@<this repo>/config/CLAUDE.md`, to your `~/.claude/CLAUDE.md`, so every Claude Code session loads Ersilia's org-wide context (who we are, where things live, how agents should behave). The rest of that file is yours and is left alone. The `org-context` skill keeps `config/CLAUDE.md` and the repository templates' `CLAUDE.md` files up to date.
+
 ### Remote plugin (read-only access)
 
 If you only need to use the skills without a local clone, add this to your Claude Code configuration (`~/.claude/settings.json`):

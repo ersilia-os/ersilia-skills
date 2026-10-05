@@ -104,16 +104,20 @@ def extract(work: Path, rules: dict) -> int:
     names = local_drives()
     if names is not None:
         write_json(work / "drive-local.json", names)
-    cache = read_json(DRIVE_MAP) or {"drives": {}}
+    roots = known_roots(claims["drive"], DRIVE_MAP)
     print(
         f"{len(claims['drive'])} shared drives and {len(claims['airtable'])} Airtable "
         f"bases named in the org file"
     )
     for c in claims["drive"]:
-        known = cache["drives"].get(c["name"], {}).get("root_id")
+        known = roots.get(c["name"])
         print(
             f"  drive  {c['name']}: "
-            + (f"cached root {known}" if known else "no cached root")
+            + (
+                f"root {known['root_id']} ({known['from']})"
+                if known
+                else "no known root"
+            )
         )
     for c in claims["airtable"]:
         print(f"  base   {c['name']}")
@@ -126,6 +130,22 @@ def extract(work: Path, rules: dict) -> int:
         )
     )
     return 0
+
+
+def known_roots(claims: list[dict], drive_map: Path) -> dict[str, dict]:
+    """Drive roots by name: links in the org file first, then the personal cache.
+
+    A root link in the org file was confirmed when that file was merged, so it is the
+    shared source of truth; the cache only covers drives the file does not link.
+    """
+    roots = {
+        name: {**v, "from": "cache"}
+        for name, v in (read_json(drive_map) or {"drives": {}})["drives"].items()
+    }
+    for c in claims:
+        if (c.get("link_id") or "").startswith("0A") and c["name"] not in roots:
+            roots[c["name"]] = {"root_id": c["link_id"], "from": "org file"}
+    return roots
 
 
 def check_drive_link(f, tid: str, c: dict, obs: dict, cache: dict) -> None:
@@ -182,7 +202,7 @@ def compare(work: Path, rules: dict, drive_map: Path = DRIVE_MAP) -> int:
     drive = observed.get("drive", {})
     local = read_json(work / "drive-local.json")
     seen = drive.get("drives", {})
-    cache = (read_json(drive_map) or {"drives": {}})["drives"]
+    cache = known_roots(claims["drive"], drive_map)
     unverified = []
     for c in claims["drive"]:
         check_drive_link(f, tid, c, seen.get(c["name"], {}), cache)

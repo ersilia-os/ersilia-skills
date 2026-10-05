@@ -23,7 +23,15 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from _common import REFS, WORK_DIR, die, read_json, sha256, write_json
+from _common import (
+    REFS,
+    WORK_DIR,
+    die,
+    format_month_year,
+    read_json,
+    sha256,
+    write_json,
+)
 
 
 def apply(text: str, items: list[dict], last_updated: dict, today: date) -> str:
@@ -40,7 +48,7 @@ def apply(text: str, items: list[dict], last_updated: dict, today: date) -> str:
     if last_updated.get("bump_on_apply"):
         m = re.search(last_updated["pattern"], text)
         if m:
-            stamp = today.strftime("%B %Y")
+            stamp = format_month_year(today)
             text = text[: m.start(1)] + stamp + text[m.end(1) :]
     return text
 

@@ -30,6 +30,31 @@ LINK_RE = re.compile(r"\[([^\]]*)\]\(([^)\s]+)\)")
 URL_RE = re.compile(r"https?://[^\s)\]>`\"']+")
 
 
+MONTHS = (
+    "January February March April May June July August September October November "
+    "December"
+).split()
+
+
+def parse_month_year(text: str):
+    """``"May 2026"`` -> ``date(2026, 5, 1)``, independent of the system locale."""
+    import datetime
+
+    name, year = text.split()
+    return datetime.date(int(year), MONTHS.index(name.capitalize()) + 1, 1)
+
+
+def format_month_year(day) -> str:
+    """``date(2026, 10, 6)`` -> ``"October 2026"``, independent of the system locale."""
+    return f"{MONTHS[day.month - 1]} {day.year}"
+
+
+def finding_key(target: str, check: str, title: str) -> str:
+    """A key that survives re-runs: numbers (line numbers, counts) are left out."""
+    stable = re.sub(r"\d+", "#", re.sub(r"\s+", " ", title.strip().lower()))
+    return f"{target}:{check}:{hashlib.sha1(stable.encode()).hexdigest()[:8]}"
+
+
 def warn(message: str) -> None:
     """Print a warning to stderr."""
     print(f"WARNING: {message}", file=sys.stderr, flush=True)

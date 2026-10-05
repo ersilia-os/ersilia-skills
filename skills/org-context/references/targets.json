@@ -1,5 +1,5 @@
 {
-  "about": "The CLAUDE.md files this skill looks after. `local: true` reads the file from this ersilia-skills checkout; the others are read from GitHub (default branch) unless fetch_targets.py is given --local <id>=<path>. `prefix` starts every finding ID for that file.",
+  "about": "The CLAUDE.md files this skill looks after, all read from their repository's default branch. `local: true` marks the file that also lives in this ersilia-skills checkout (fetch_targets.py warns if the checkout differs). `prefix` starts every finding ID for that file.",
   "targets": [
     {
       "id": "org",
@@ -24,6 +24,14 @@
       "label": "Analysis template",
       "role": "analysis-template",
       "repo": "ersilia-os/eos-analysis-template",
+      "path": "CLAUDE.md"
+    },
+    {
+      "id": "mod",
+      "prefix": "M",
+      "label": "Model template",
+      "role": "model-template",
+      "repo": "ersilia-os/eos-template",
       "path": "CLAUDE.md"
     }
   ]

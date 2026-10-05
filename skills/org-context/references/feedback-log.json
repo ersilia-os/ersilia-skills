@@ -89,6 +89,53 @@
       "kind": "code",
       "change": "_common.content_words ignores inline code, so shared folder or file names no longer make different rules look alike.",
       "fixture": "code-spans-not-duplicates"
+    },
+    {
+      "n": 13,
+      "date": "2026-10-06",
+      "feedback": "Research: config/CLAUDE.md reached no agent (setup.sh only linked skills; plugins cannot ship CLAUDE.md). Deliver it with an @import.",
+      "kind": "code",
+      "change": "setup.sh adds @<repo>/config/CLAUDE.md to ~/.claude/CLAUDE.md idempotently; check_delivery.py reports DELIVERY-MISSING/BROKEN at pre-flight.",
+      "fixture": "selftest:test_delivery_and_dates"
+    },
+    {
+      "n": 14,
+      "date": "2026-10-06",
+      "feedback": "Add eos-template (the model template) as a fourth target.",
+      "kind": "target",
+      "change": "targets.json: mod (prefix M, role model-template); rules.json budgets, required sections and canon roles for model-template."
+    },
+    {
+      "n": 15,
+      "date": "2026-10-06",
+      "feedback": "Research: IDs shifted between renders, so 'apply O3' could change meaning.",
+      "kind": "code",
+      "change": "finding_key hashes check + title without numbers; render_report.py keeps IDs from the previous plan.json and numbers new findings after them.",
+      "fixture": "selftest:test_stable_ids"
+    },
+    {
+      "n": 16,
+      "date": "2026-10-06",
+      "feedback": "Run about monthly; remind me when due. Also: the org file was read from whatever branch was checked out.",
+      "kind": "code",
+      "change": "_state.json review_interval_days 30, next_review_due, review_log; fetch_targets.py prints DUE/OK and reads every file from its default branch (warns if the checkout differs); --mark-reviewed --applied --prs.",
+      "fixture": "selftest:test_due_line"
+    },
+    {
+      "n": 17,
+      "date": "2026-10-06",
+      "feedback": "Add research-backed checks: overview bloat + ordering, enforce with hooks, stale vs repo reality, built-in prompt audit.",
+      "kind": "code",
+      "change": "check_claude_md.py BLOAT-TREE/BLOAT-OVERVIEW and HOOK-CANDIDATE; verify_facts.py REALITY-PATH/REALITY-TOOL against the template tree and config; run_prompt_audit.py runs /doctor prompt-audit in throwaway clones; SKILL.md Step 4 ordering bullet and fix guidance; canon 'plans' rule and 'black' only near lint/format words.",
+      "fixture": "overview-and-tree-bloat,hook-candidates,template-reality,black-and-plans-canon"
+    },
+    {
+      "n": 18,
+      "date": "2026-10-06",
+      "feedback": "Research: drive roots were cached per person though the links are public; month parsing depended on locale.",
+      "kind": "code",
+      "change": "connector_claims.known_roots takes roots from the org file's links first; parse/format_month_year use a fixed English table.",
+      "fixture": "selftest:test_delivery_and_dates"
     }
   ]
 }

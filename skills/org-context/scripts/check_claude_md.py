@@ -19,12 +19,14 @@ import argparse
 import re
 import sys
 from collections import Counter
-from datetime import date, datetime
+from datetime import date
 from itertools import combinations
 from pathlib import Path
 
 from _common import (
     HEADING_RE,
+    finding_key,
+    parse_month_year,
     LINK_RE,
     REFS,
     WORK_DIR,
@@ -42,17 +44,20 @@ MALFORMED_LINK_RE = re.compile(r"\[(https?://[^\]\s]+)\](?!\()")
 
 
 class Findings:
-    """Collects findings and numbers their keys per (target, check)."""
+    """Collects findings under stable keys (see ``_common.finding_key``)."""
 
     def __init__(self) -> None:
         self.items: list[dict] = []
-        self.counts: Counter = Counter()
+        self.seen: Counter = Counter()
 
     def add(self, target, check, severity, line, title, detail=""):
-        self.counts[(target, check)] += 1
+        key = finding_key(target, check, title)
+        self.seen[key] += 1
+        if self.seen[key] > 1:  # same wording twice in one file
+            key = f"{key}-{self.seen[key]}"
         self.items.append(
             {
-                "key": f"{target}:{check}:{self.counts[(target, check)]}",
+                "key": key,
                 "target": target,
                 "check": check,
                 "severity": severity,
@@ -99,7 +104,7 @@ def check_last_updated(f: Findings, t: dict, text: str, rule: dict, today: date)
         return
     line = text[: m.start()].count("\n") + 1
     try:
-        stamp = datetime.strptime(m.group(1), "%B %Y").date()
+        stamp = parse_month_year(m.group(1))
     except ValueError:
         f.add(t["id"], "DATE-UNPARSED", "fix", line, f"Unreadable date '{m.group(1)}'")
         return
@@ -208,6 +213,63 @@ def check_canon(f: Findings, t: dict, text: str, canon: list[dict]) -> None:
                 f.add(t["id"], check, "fix", None, rule["message"])
 
 
+def check_bloat(f: Findings, t: dict, text: str, rule: dict) -> None:
+    """Folder trees and 'this is a ... repository' overviews an agent can do without."""
+    lines = text.splitlines()
+    tree = [
+        n
+        for n, line in enumerate(lines, 1)
+        if any(m in line for m in rule["tree_markers"])
+    ]
+    if tree:
+        f.add(
+            t["id"],
+            "BLOAT-TREE",
+            "trim",
+            tree[0],
+            f"Folder tree of {len(tree)} lines",
+            "Replace it with the few folder rules an agent cannot infer by listing the "
+            "repo. " + rule["why"],
+        )
+    # Only the preamble (before the first H2) is an overview; later text has a job.
+    first_h2 = next(
+        (s["start"] for s in sections(text) if s["level"] == 2), len(lines) + 1
+    )
+    for n in range(1, first_h2):
+        line = lines[n - 1].strip()
+        if re.match(rule["overview_pattern"], line, re.I):
+            f.add(
+                t["id"],
+                "BLOAT-OVERVIEW",
+                "consider",
+                n,
+                f"Overview sentence: '{short(line)}'",
+                "Keep only what changes an agent's behaviour. " + rule["why"],
+            )
+
+
+def check_hooks(f: Findings, t: dict, text: str, rule: dict) -> None:
+    """Prohibitions Claude Code could enforce instead of trusting the agent: one finding."""
+    hits = []
+    for n, line in prose_lines(text):
+        if not re.search(rule["trigger"], line, re.I):
+            continue
+        for action in rule["actions"]:
+            if re.search(action["pattern"], line, re.I):
+                hits.append((n, action["suggest"]))
+                break
+    if hits:
+        f.add(
+            t["id"],
+            "HOOK-CANDIDATE",
+            "consider",
+            hits[0][0],
+            f"{len(hits)} prohibition(s) could be enforced, not just stated "
+            f"(lines {', '.join(str(n) for n, _ in hits)})",
+            "; ".join(f"line {n}: {s}" for n, s in hits) + ". " + rule["why"],
+        )
+
+
 def similar(a: dict, b: dict, rule: dict) -> bool:
     """True if two prose units say the same thing."""
     if rule["lead_match"] and a["lead"] and b["lead"]:
@@ -293,6 +355,8 @@ def main(argv: list[str] | None = None) -> int:
         check_sections(f, t, text, rules["required_sections"].get(t["role"], []))
         check_text(f, t, text, rules)
         check_canon(f, t, text, rules["canon"])
+        check_bloat(f, t, text, rules["bloat"])
+        check_hooks(f, t, text, rules["hooks"])
     check_duplication(f, targets, texts, rules["duplication"])
 
     write_json(Path(args.work) / "checks.json", f.items)

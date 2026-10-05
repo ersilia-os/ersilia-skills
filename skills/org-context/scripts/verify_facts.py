@@ -82,6 +82,80 @@ def url_status(url: str, timeout: int) -> str | int:
         return str(getattr(exc, "reason", exc))
 
 
+def template_reality(repo: str, config_files: list[str]) -> dict:
+    """The default-branch file tree of ``repo`` and the text of its config files."""
+    out, err = run_gh(
+        ["api", f"repos/{repo}/git/trees/HEAD?recursive=1", "--jq", ".tree[].path"]
+    )
+    if out is None:
+        die(f"could not list {repo}: {err}")
+    tree = out.split()
+    files = {}
+    for name in config_files:
+        if name in tree:
+            body, _ = run_gh(
+                [
+                    "api",
+                    f"repos/{repo}/contents/{name}",
+                    "-H",
+                    "Accept: application/vnd.github.raw",
+                ]
+            )
+            files[name] = body or ""
+    return {"tree": tree, "files": files}
+
+
+def check_reality(f, t: dict, text: str, real: dict, rule: dict) -> None:
+    """Paths and tools a template's CLAUDE.md names must exist in that template."""
+    tree = real["tree"]
+    path_re, skip = (
+        re.compile(rule["path_pattern"]),
+        re.compile(rule["skip_line"], re.I),
+    )
+    missing = []
+    skip_span = re.compile(rule["skip_span"])
+    for n, line in prose_lines(text):
+        if skip.search(line):
+            continue
+        # A path inside a link label names a file in the linked repository, not here.
+        line = LINK_RE.sub("", line)
+        for span in CODE_SPAN_RE.findall(line):
+            if skip_span.search(span):
+                continue
+            path = span.strip().rstrip("/")
+            if not path_re.match(path) or path.startswith(("http", "~", "/", "$")):
+                continue
+            if any(p == path or p.endswith("/" + path) for p in tree):
+                continue
+            missing.append((n, path))
+    if missing:
+        f.add(
+            t["id"],
+            "REALITY-PATH",
+            "consider",
+            missing[0][0],
+            f"{len({p for _, p in missing})} path(s) named but not in {t['repo']}: "
+            + ", ".join(sorted({p for _, p in missing})),
+            "Either the template should ship them, or the file should say when they are "
+            "created.",
+        )
+    declared = "\n".join(real["files"].values()).lower()
+    for tool in rule["tools"].get(t["role"], []):
+        if re.search(rf"\b{re.escape(tool)}\b", text, re.I) and tool not in declared:
+            f.add(
+                t["id"],
+                "REALITY-TOOL",
+                "consider",
+                None,
+                f"'{tool}' is required by the file but not declared in "
+                + (
+                    ", ".join(real["files"])
+                    or "any of " + ", ".join(rule["config_files"])
+                ),
+                "Declare it so a fresh repo built from the template already has it.",
+            )
+
+
 def main(argv: list[str] | None = None) -> int:
     """Verify skills, repositories and URLs; write facts.json."""
     p = argparse.ArgumentParser(
@@ -92,6 +166,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--offline", action="store_true")
     p.add_argument("--repos-json")
     p.add_argument("--skills-dir", default=str(REPO_ROOT / "skills"))
+    p.add_argument(
+        "--reality-json", help="{target id: {tree, files}} instead of GitHub"
+    )
     args = p.parse_args(argv)
     rules = read_json(args.rules)["facts"]
     targets, texts = load_work(args.work)
@@ -167,6 +244,19 @@ def main(argv: list[str] | None = None) -> int:
                 if host in rules["skip_url_hosts"] or repo_url.search(url):
                     continue
                 urls.setdefault(url, []).append((tid, n))
+
+    reality = read_json(args.reality_json) if args.reality_json else {}
+    full_rules = read_json(args.rules)
+    for t in targets:
+        if t["role"] not in full_rules["reality"]["roles"]:
+            continue
+        if t["id"] not in reality:
+            if args.offline:
+                continue
+            reality[t["id"]] = template_reality(
+                t["repo"], full_rules["reality"]["config_files"]
+            )
+        check_reality(f, t, texts[t["id"]], reality[t["id"]], full_rules["reality"])
 
     if not args.offline:
         for url, places in sorted(urls.items()):
