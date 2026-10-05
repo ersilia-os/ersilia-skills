@@ -66,7 +66,7 @@ Follow Ersilia's brand guidelines.
 
 Python is the main programming language.
 
-- **Formatting and linting:** `black` and `ruff`.
+- **Formatting and linting:** `ruff` (`ruff check` and `ruff format`).
 - **Type hints:** encouraged in public functions.
 - **Docstrings:** NumPy style. Include a brief one-line summary, extended description if needed, Parameters, Returns, and Raises sections.
 - **Comments:** explain *why*, not what. Keep code self-documenting via clear names.
@@ -76,24 +76,23 @@ Python is the main programming language.
 
 ### Google Drive
 
-Organisational documents are kept in Google Drive. Not all folders are accessible to all members. Always be aware of the information in Google Drive. Use a connector or locally-synchronized folders.
+Organisational documents are kept in Google Drive. Not all folders are accessible to all members. Before drafting a document, search Drive for related material (past grants, project folders, meeting notes) and reuse it. Use a connector or locally-synchronized folders.
 
 The most used shared drives are the following:
 
-- **Content:** social media posts, scientific articles, brand assets, photos, etc.
-- **Grants:** all submitted grants, grouped by year. Always consult previously submitted grants in search for narrative, content, and tone.
+- **[Content](https://drive.google.com/drive/folders/0AMJCltLsZiGNUk9PVA):** social media posts, scientific articles, brand assets, photos, etc.
+- **[Grants](https://drive.google.com/drive/folders/0ABJUumjDvRFZUk9PVA):** all submitted grants, grouped by year. Always consult previously submitted grants in search for narrative, content, and tone.
 - **Human Resources:** employee information, interns, volunteers, job descriptions, travel documents, recommendation letters.
 - **Legal:** legal documents for the Spanish (current) and British (past) organisations. Contracts, finances, agreements, etc. Treat this confidentially.
-- **Presentations:** slide decks for scientific and outreach presentations.
-- **Projects:** current and past projects, standalone or in collaboration.
+- **[Presentations](https://drive.google.com/drive/folders/0AArvh8joF4zrUk9PVA):** slide decks for scientific and outreach presentations.
+- **[Projects](https://drive.google.com/drive/folders/0AG4WDDaU_00XUk9PVA):** current and past projects, standalone or in collaboration.
 
 Other shared drives include:
 
 - **Fundraising:** documentation for philanthropic fundraising efforts
-- **GitHub:** backups of heavy (and private) repositories; not relevant.
-- **Meetings and Notes:** external and internal meeting notes; project tracking documents.
-- **Platform:** technology roadmap documents, hardware available, etc.
-- **Trainings:** documentation related to trainings and capacity building; surveys, shared folders with participants, etc.
+- **[Meetings and Notes](https://drive.google.com/drive/folders/0AOkuFcLs8onAUk9PVA):** external and internal meeting notes; project tracking documents.
+- **[Platform](https://drive.google.com/drive/folders/0AEcpyMzQd-PmUk9PVA):** technology roadmap documents, hardware available, etc.
+- **[Trainings](https://drive.google.com/drive/folders/0AIzweip5Gj3hUk9PVA):** documentation related to trainings and capacity building; surveys, shared folders with participants, etc.
 
 ### Airtable
 
@@ -145,7 +144,7 @@ Main channels of communication are:
 
 ### Scientific articles
 
-As a research organisation, Ersilia publishes in peer-reviewed journals and preprints. Always be aware of the publication track record: https://ersilia.io/publications.
+As a research organisation, Ersilia publishes in peer-reviewed journals and preprints. Check https://ersilia.io/publications before citing Ersilia's work or describing its track record.
 
 ## Codebase and open source ecosystem
 
@@ -196,7 +195,9 @@ When working on Ersilia materials, the AI agent must:
 - **Hold the Ersilia voice.** Plain English, active voice, avoid verbosity.
 - **Default to confidentiality.** Drive content, partner contact details, unreleased manuscripts, salary data and API keys must never reach a public artefact (commit, blog, slide, social post).
 - **Default to open source.** Prefer free/open tools. If a closed dependency is unavoidable, document the reason.
+- **Use Ersilia skills.** Check [ersilia-skills](https://github.com/ersilia-os/ersilia-skills) for a skill before building a workflow from scratch.
+- **Improve the skills you use.** When a skill gets something wrong, misses a case, or the user corrects it, suggest a concrete change to that skill and offer to open a PR on ersilia-skills.
 
 ---
 
-*Last updated: May 2026. Edit this file when the organisation's practice changes — keep it short.*
+*Last updated: October 2026. Edit this file when the organisation's practice changes — keep it short.*
