@@ -277,14 +277,34 @@ rm -f digests/{YY}-{MM}-{DD}-github-digest.md
 
 ## Scheduling
 
-Invoked manually by default. To run it weekly:
+Invoked manually by default. For a weekly run, use a **local macOS launchd job**, not a cloud
+routine: the run needs the machine's `gh` auth (to push to `ersilia-os/digests`) plus the
+claude.ai Airtable and Slack connectors, and all of these are available to a headless
+`claude -p` on the user's Mac.
 
-```text
-/schedule create github-digest --cron "0 9 * * 1" --command "/github-digest"
-```
+- **Wrapper** `~/.claude/scheduled/github-digest.sh`: sets `PATH` (launchd's default lacks
+  `claude`, `gh` and the conda `python`), `cd`s into this skill folder and runs
+  `claude -p "/github-digest $* — unattended weekly scheduled run …"` with an
+  `--allowedTools` allowlist: `Bash(gh:*)`, `Bash(python:*)`, `Bash(rm -f digests/*)`,
+  Read/Write/Edit, the Airtable **read** tools and `slack_send_message`. No Airtable write tool
+  is allowed, and the run never uses `--dangerously-skip-permissions`. Output is appended to
+  `~/Library/Logs/github-digest/{date}.log`.
+- **Job** `~/Library/LaunchAgents/io.ersilia.github-digest.plist`: `StartCalendarInterval`
+  `{Weekday 1, Hour 7, Minute 0}` (Monday 07:00 local time). Activate it with
+  `launchctl bootstrap gui/$(id -u) <plist>` and remove it with
+  `launchctl bootout gui/$(id -u)/io.ersilia.github-digest`.
 
-(Monday 09:00 local.) Self-scheduling is intentionally not built in — the run needs the
-`gh` CLI and the Airtable MCP live in the session, easier to guarantee for a manual run.
+Two rules for the unattended prompt:
+
+- **Gate C uses `--days 6`.** The guard counts a digest dated exactly N days ago (`d >= cutoff`),
+  so with `--days 7` last Monday's digest would block this Monday's run, and the job would only
+  publish every other week.
+- **Stop at any gate that would ask a question** (stale references, a digest already exists,
+  a missing tool) and log the reason. Never pass `--force` unattended.
+
+Test with `github-digest.sh --dry-run` before activating. If the Mac is asleep at 07:00, the
+job runs when it wakes. If it is powered off, that week is skipped
+(`sudo pmset repeat wake M 06:55:00` makes the Mac wake itself for the run).
 
 ---
 
