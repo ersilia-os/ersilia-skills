@@ -1,0 +1,33 @@
+{
+  "about": "A file over its line budget, with an over-long section and an old date.",
+  "files": {
+    "org": "# Org\n\n## About Ersilia\n\nLine 0 of a long section.\nLine 1 of a long section.\nLine 2 of a long section.\nLine 3 of a long section.\nLine 4 of a long section.\nLine 5 of a long section.\nLine 6 of a long section.\nLine 7 of a long section.\nLine 8 of a long section.\nLine 9 of a long section.\nLine 10 of a long section.\nLine 11 of a long section.\nLine 12 of a long section.\nLine 13 of a long section.\nLine 14 of a long section.\nLine 15 of a long section.\nLine 16 of a long section.\nLine 17 of a long section.\nLine 18 of a long section.\nLine 19 of a long section.\nLine 20 of a long section.\nLine 21 of a long section.\nLine 22 of a long section.\nLine 23 of a long section.\nLine 24 of a long section.\nLine 25 of a long section.\nLine 26 of a long section.\nLine 27 of a long section.\nLine 28 of a long section.\nLine 29 of a long section.\nLine 30 of a long section.\nLine 31 of a long section.\nLine 32 of a long section.\nLine 33 of a long section.\nLine 34 of a long section.\nLine 35 of a long section.\nLine 36 of a long section.\nLine 37 of a long section.\nLine 38 of a long section.\nLine 39 of a long section.\nLine 40 of a long section.\nLine 41 of a long section.\nLine 42 of a long section.\nLine 43 of a long section.\nLine 44 of a long section.\nLine 45 of a long section.\nLine 46 of a long section.\nLine 47 of a long section.\nLine 48 of a long section.\nLine 49 of a long section.\nLine 50 of a long section.\nLine 51 of a long section.\nLine 52 of a long section.\nLine 53 of a long section.\nLine 54 of a long section.\nLine 55 of a long section.\nLine 56 of a long section.\nLine 57 of a long section.\nLine 58 of a long section.\nLine 59 of a long section.\n\n## Agent behaviour\n\nSee `ersilia-skills`.\n\n*Last updated: January 2026.*\n"
+  },
+  "rules": {
+    "budgets": {
+      "org": {
+        "max_lines": 50,
+        "max_section_lines": 40
+      }
+    }
+  },
+  "repos": {
+    "ersilia-skills": false
+  },
+  "expect": [
+    {
+      "target": "org",
+      "check": "LEN-FILE"
+    },
+    {
+      "target": "org",
+      "check": "LEN-SECTION",
+      "title_has": "About Ersilia"
+    },
+    {
+      "target": "org",
+      "check": "DATE-STALE",
+      "title_has": "January 2026"
+    }
+  ]
+}

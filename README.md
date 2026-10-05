@@ -38,6 +38,7 @@ Several of these skills are designed to be chained together as part of a larger 
 | model-incorporation-code | Wires the model code into the Ersilia template. |
 | model-incorporation-reproduce | Verifies model outcomes/performance matches the original work. |
 | repository-auditing | Audits a repository to make sure it abides by Ersilia's standards. |
+| org-context | Keeps the org `CLAUDE.md` and the package and analysis template `CLAUDE.md` files short, true and consistent. Reports first; edits only what you approve. |
 | ersilia-model-test | Tests an Ersilia Model Hub model before hub incorporation. |
 | model-monitoring | Track pending models, stored data, etc |
 | model-fixing | When a model fails a test, reviews where it failed and fixes it automatically. |

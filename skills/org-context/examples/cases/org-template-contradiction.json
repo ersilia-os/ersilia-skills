@@ -1,0 +1,27 @@
+{
+  "about": "The org file recommends black while the templates say ruff only; the org file shares the 'Ask, don't assume' rule with a template.",
+  "files": {
+    "org": "# Org\n\n## About Ersilia\n\nErsilia is a non-profit. Skills live in `ersilia-skills`.\n\n## Coding\n\n- Formatting and linting: `black` and `ruff`.\n\n## Agent behaviour\n\n- **Ask, do not assume.** When intent is unclear, ask.\n- **Plan before acting.** Enter plan mode for anything beyond a typo.\n\n*Last updated: September 2026.*\n",
+    "pkg": "# Package guide\n\nSkills live in `ersilia-skills`.\n\n## Working with the user\n\n- **Ask, don't assume.** Use AskUserQuestion before editing when the approach, a name or a dependency is unclear.\n\n## Code style\n\n- Run `ruff check` and `ruff format`. Docstrings follow the NumPy convention.\n\n## Tests\n\n- Smoke-test the CLI.\n\n## Dependencies\n\n- Pin exact versions.\n\n## README guidelines\n\n- Keep it short.\n"
+  },
+  "repos": {
+    "ersilia-skills": false
+  },
+  "expect": [
+    {
+      "target": "org",
+      "check": "CANON-black"
+    },
+    {
+      "target": "pkg",
+      "check": "DUP-ORG",
+      "title_has": "Ask, don't assume"
+    }
+  ],
+  "expect_absent": [
+    {
+      "target": "pkg",
+      "check": "CANON-black"
+    }
+  ]
+}

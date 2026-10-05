@@ -1,0 +1,74 @@
+{
+  "about": "Every policy the checks apply. Feedback should change this file first; touch a script only when a rule cannot be expressed here. Severities: fix (wrong, broken or contradictory), trim (correct but costs context), consider (a judgement call).",
+  "budgets": {
+    "org": {"max_lines": 150, "max_section_lines": 40},
+    "package-template": {"max_lines": 120, "max_section_lines": 30},
+    "analysis-template": {"max_lines": 120, "max_section_lines": 30}
+  },
+  "last_updated": {
+    "pattern": "Last updated:\\s*([A-Z][a-z]+ \\d{4})",
+    "required_roles": ["org"],
+    "max_age_days": 120,
+    "bump_on_apply": true
+  },
+  "required_sections": {
+    "org": ["About Ersilia", "Agent behaviour"],
+    "package-template": ["Working with the user", "Code style", "Tests", "Dependencies", "README"],
+    "analysis-template": ["Repository structure", "Working with the user", "Version control", "README"]
+  },
+  "placeholders": ["TODO", "TBD", "FIXME", "XXX", "lorem ipsum", "my_package", "Your Name"],
+  "vague_phrases": [
+    "follow best practices",
+    "be careful",
+    "use common sense",
+    "as appropriate",
+    "if needed",
+    "where relevant",
+    "always be aware"
+  ],
+  "canon": [
+    {
+      "id": "black",
+      "pattern": "\\bblack\\b",
+      "roles": ["org", "package-template", "analysis-template"],
+      "message": "The canonical linter and formatter is ruff alone (the `ersilia` dialect, ruled 2026-07-28); mentioning `black` contradicts the templates."
+    },
+    {
+      "id": "docstrings-numpy",
+      "if": "docstring",
+      "require": "numpy",
+      "roles": ["org", "package-template", "analysis-template"],
+      "message": "Docstrings are mentioned without saying NumPy convention, the Ersilia standard."
+    },
+    {
+      "id": "skills-pointer",
+      "require": "ersilia-skills",
+      "roles": ["org", "package-template", "analysis-template"],
+      "message": "Every file should point agents to the ersilia-skills repository."
+    }
+  ],
+  "duplication": {
+    "min_words": 8,
+    "overlap": 0.6,
+    "lead_match": true,
+    "within_file": "fix",
+    "cross_file_pairs": [
+      ["org", "package-template"],
+      ["org", "analysis-template"]
+    ],
+    "cross_file": "consider"
+  },
+  "facts": {
+    "org": "ersilia-os",
+    "url_timeout": 15,
+    "skip_url_hosts": ["localhost"],
+    "repo_like": "^(eos-[a-z0-9-]+|ersilia-[a-z0-9-]+|eos[a-z]+)$",
+    "not_repos": ["ersilia-os", "ersilia-workspace"]
+  },
+  "connectors": {
+    "drive_section": "Google Drive",
+    "airtable_section": "Airtable",
+    "drive_ignore": [],
+    "airtable_ignore": []
+  }
+}

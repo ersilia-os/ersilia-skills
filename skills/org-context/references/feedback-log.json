@@ -1,0 +1,40 @@
+{
+  "entries": [
+    {
+      "n": 1,
+      "date": "2026-10-05",
+      "feedback": "Scope is the org file (config/CLAUDE.md) and the eos-python-package and eos-analysis-template CLAUDE.md files.",
+      "kind": "target",
+      "change": "references/targets.json lists exactly these three files."
+    },
+    {
+      "n": 2,
+      "date": "2026-10-05",
+      "feedback": "For now, only report; act as soon as I agree.",
+      "kind": "process",
+      "change": "SKILL.md stops after the report; apply_edits.py takes explicit IDs only and has no approve-all switch; branch, commit, push and PR each need confirmation."
+    },
+    {
+      "n": 3,
+      "date": "2026-10-05",
+      "feedback": "Keep org-context fully independent from repository-auditing.",
+      "kind": "process",
+      "change": "No shared code or references; the skill never edits skills/repository-auditing."
+    },
+    {
+      "n": 4,
+      "date": "2026-10-05",
+      "feedback": "Make sure the skill looks into Google Drive to check that references are correct.",
+      "kind": "code",
+      "change": "New Step 3 and connector_claims.py: extracts the shared drives and Airtable bases the org file names, verifies them through the read-only connectors (drive roots identified by content, confirmed by the user once, cached outside the public repo), and reports missing, mismatched and unlisted ones. render_report.py refuses to render without connectors.json unless --skip-connectors, which the report states.",
+      "fixture": "selftest.py test_connectors"
+    },
+    {
+      "n": 5,
+      "date": "2026-10-05",
+      "feedback": "First real run: branch org-context/claude-md-<date> collides with the org-context skill branch, and switching branches in the main checkout mixes changes.",
+      "kind": "process",
+      "change": "SKILL.md Step 6: org edits go in a git worktree from origin/main on branch claude-md/<date>; templates use the same branch name."
+    }
+  ]
+}
