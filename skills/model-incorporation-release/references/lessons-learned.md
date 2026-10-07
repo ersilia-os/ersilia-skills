@@ -87,6 +87,23 @@ also creates release `v1.0.0` and retags the image itself.
 - **How the skill does it:** `paper_target.py` finds the siblings through the catalogue's Publication DOIs. Only **Ready** siblings go into the name. An "In progress" sibling may never ship: eos8he2 cites eos55vx's paper with eos55vx's own title and is still In progress. Ask the user about those.
 - **When renaming:** if the paper is already in the folder under a shorter shared name, propose renaming the existing file with Drive `update_file` (the rename keeps its link). Never add a second copy.
 
+## Internal models have no paper
+
+- **Symptom:** an audit on 2026-10-07 found 37 Ready models with no PDF in the folder,
+  but 30 of them have `Publication Type: Other`. These are Ersilia-internal models (the
+  chembl-antimicrobial series, the lazy-chemvis projectors) whose Publication is a
+  GitHub repo or ersilia.io, plus tool wrappers (RDKit, Datamol).
+- **What to do:** there is nothing to deposit. `paper_target.py` returns
+  `paper_expected: false`, the paper step is skipped, and the request can close.
+
+## Long metadata values wrap
+
+- **Symptom:** a value read from metadata.yml is cut short (eos2e3s's Title ended at
+  "…from").
+- **Cause:** long YAML values continue on indented lines.
+- **What to do:** `read_metadata_fields` folds continuation lines back in. Any new
+  parser has to do the same, or title matching in `check_pdf.py` works on half a title.
+
 ## Paywall stubs are not papers
 
 - **Symptom:** a "PDF" of a few hundred bytes. The 425-byte `cplank.pdf` and `trimole.pdf` in `assessments_2026-08-31/pdfs/` are XHTML error pages.

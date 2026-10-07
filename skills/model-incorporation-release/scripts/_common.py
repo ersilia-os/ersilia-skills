@@ -119,18 +119,26 @@ def catalog_entry(model_id, catalog=None):
 def read_metadata_fields(text):
     """Parse the top-level scalar fields of a metadata.yml without a YAML library.
 
-    Only ``Key: value`` lines at column 0 are read; list fields are skipped. That covers
-    every field this skill checks (Title, Publication, Status, Release, DockerHub).
+    Only ``Key: value`` lines at column 0 are read; list fields are skipped. Indented
+    continuation lines are folded back in, because long values wrap (eos2e3s's Title runs
+    onto a second line). That covers every field this skill checks (Title, Publication,
+    Publication Type, Status, Release, DockerHub).
     """
     fields = {}
+    key = None
     for line in (text or "").splitlines():
         match = re.match(r"^([A-Z][A-Za-z ]*):\s*(.*)$", line)
-        if not match:
-            continue
-        value = match.group(2).strip().strip("'\"")
-        if value and not value.startswith("-"):
-            fields[match.group(1).strip()] = value
-    return fields
+        if match:
+            key = None
+            value = match.group(2).strip()
+            if value and not value.startswith("-"):
+                key = match.group(1).strip()
+                fields[key] = value
+        elif key and line[:1].isspace() and line.strip() and not line.strip().startswith("-"):
+            fields[key] += " " + line.strip()
+        else:
+            key = None
+    return {k: v.strip().strip("'\"") for k, v in fields.items()}
 
 
 def remote_metadata(model_id):

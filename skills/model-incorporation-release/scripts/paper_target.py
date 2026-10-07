@@ -46,7 +46,26 @@ def main():
 
     metadata = remote_metadata(model_id)
     publication = metadata.get("Publication")
+    publication_type = metadata.get("Publication Type")
     doi = normalise_doi(publication)
+
+    # Publication Type "Other" means there is no paper: an Ersilia-internal model whose
+    # Publication points at a GitHub repo or ersilia.io, or a wrapper around a tool's
+    # docs (RDKit, Datamol). 30 of the 37 Ready models without a PDF in the folder were
+    # exactly this on 2026-10-07. The paper step is then not applicable, and it must not
+    # block closing the request.
+    if publication_type == "Other":
+        emit(
+            {
+                "model_id": model_id,
+                "title": metadata.get("Title"),
+                "publication": publication,
+                "publication_type": publication_type,
+                "paper_expected": False,
+                "reason": "Publication Type is 'Other': there is no paper to deposit.",
+            }
+        )
+        return
 
     ready, pending = [], []
     if doi:
@@ -68,6 +87,8 @@ def main():
             "model_id": model_id,
             "title": metadata.get("Title"),
             "publication": publication,
+            "publication_type": publication_type,
+            "paper_expected": True,
             "doi": doi,
             "siblings_ready": sorted(ready, key=lambda s: s["id"]),
             "siblings_pending": sorted(pending, key=lambda s: s["id"]),

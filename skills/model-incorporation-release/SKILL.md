@@ -166,6 +166,10 @@ The paper goes in Drive folder `ersilia_models_articles`
 python scripts/paper_target.py <id>
 ```
 
+- **No paper expected:** if `paper_expected` is `false` (Publication Type `Other`: an
+  Ersilia-internal model or a tool wrapper whose Publication is a repo or docs link),
+  there is nothing to deposit. Skip the rest of Step 4, and treat the gate in Step 5 as
+  passed.
 - **Name:** `canonical_name` is `<id>.pdf`, or the sorted, `_`-joined IDs of every
   **Ready** model citing the same DOI (`eos55vx_eos6a1h.pdf`). If `siblings_pending` is
   non-empty, ask whether those models should be in the name too.
@@ -252,7 +256,8 @@ file. It deletes nothing else: if `outbox_now` still lists files, mention them.
 
 ## Step 5 — Close the request issue (confirm first)
 
-**Gate: the paper must be verified in Drive (Step 4) before the issue is closed.**
+**Gate: the paper must be verified in Drive (Step 4) before the issue is closed**,
+unless `paper_target.py` said `paper_expected: false` (no paper exists).
 Closing the request is what tells the team the model is done. A paper left for "later"
 gets forgotten: 6 of the 10 most recent Ready models were missing theirs. The gate
 covers only this step. CI, the release and the verification are automated and have
@@ -284,7 +289,7 @@ eosXXXX — <Title>
 ✅ Release <tag> by <bot|person> — <release url>
 ✅ DockerHub latest = <tag> (<digest12>) — <hub url>
 ✅ metadata.yml Ready / <tag>     ⚠ catalogue lagging (if so)
-✅ Paper → <canonical_name> — <drive link>
+✅ Paper → <canonical_name> — <drive link>     (or ➖ No paper: Publication Type Other)
 ✅ Request #<n> closed
 ```
 
