@@ -7,7 +7,8 @@ scripts leave in the work directory:
     repositories.json publications.json blogposts.json community.json   (normalise_airtable.py)
     events.json                                                          (normalise_airtable.py)
     github.json openalex.json medium.json                                (fetch_*.py)
-    event_folders.json                                                   (collect_event_folders.py)
+    grants.json organisations.json (optional)                            (normalise_airtable.py)
+    event_folders.json grant_folders.json                  (collect_event_folders.py, collect_grant_folders.py)
 
 community.json is optional: authors already linked on Blogposts rows are used first.
 A table whose inputs are missing is skipped and listed under ``skipped``. Output:
@@ -850,7 +851,7 @@ def _event_words(text: str, stopwords: set[str]) -> set[str]:
     and lab; 'CW23' gives cw23 and cw (dropped as too short).
     """
     text = text or ""
-    split = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", text)
+    split = re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ", text)
     raw = re.split(r"[^0-9a-zà-ÿ]+", f"{text} {split}".lower())
     words = set(raw) | {w.rstrip("0123456789") for w in raw}
     return {w for w in words if len(w) >= 3 and not w.isdigit() and w not in stopwords}
@@ -923,6 +924,109 @@ def plan_events(pl: Planner, rows, folders, rules, today: date):
         )
 
 
+def plan_grants(pl: Planner, rows, folders, orgs, rules, today: date):
+    """Propose a Grants row for each Drive grant folder that no row accounts for.
+
+    Folders carry only a year, so each is paired with at most one row: candidates are
+    rows submitted within ``year_window`` years that share a distinctive word with the
+    folder, taken best first. A word from the row's name, short name or funder (name
+    or acronym) scores two, a word only in its description one, and each year apart
+    costs two; ties go to the nearer year. A pair needs ``min_score``; an unpaired
+    folder names its closest row, so the user can pin it in ``known_pairs``. ``known_pairs`` pins pairs the
+    user confirmed. Rows still Pending/To check/To do long after submission are flagged.
+    """
+    r = rules["grants"]
+    stop = set(r["stopwords"])
+    acronyms = {o["id"]: o.get("acronym") for o in orgs or []}
+    by_id = {row["id"]: row for row in rows}
+
+    def words_of(texts):
+        return set().union(set(), *(_event_words(t, stop) for t in texts))
+
+    dated = []
+    for row in rows:
+        try:
+            year = date.fromisoformat((row.get("submission") or "")[:10]).year
+        except ValueError:
+            year = None
+        funders = row.get("organisation") or []
+        strong = words_of(
+            [row.get("name"), row.get("short_name")]
+            + [t for o in funders for t in (o.get("name"), acronyms.get(o.get("id")))]
+        )
+        weak = words_of([row.get("description")]) - strong
+        dated.append((row, year, (strong, weak)))
+
+    used = set()
+    matched = set()
+    for key, rec in (r.get("known_pairs") or {}).items():
+        if rec in by_id:
+            matched.add(key)
+            used.add(rec)
+    pairs = []
+    for f in folders:
+        if f["key"] in matched:
+            continue
+        words = _event_words(f["title"], stop)
+        for row, year, (strong, weak) in dated:
+            if year is None or abs(year - f["year"]) > r["year_window"]:
+                continue
+            by_strong, by_weak = len(words & strong), len(words & weak)
+            if by_strong or by_weak:
+                # A word from the row's name, short name or funder is worth two, one
+                # only in its description is worth one, and each year apart costs two:
+                # the GSoC folder keeps the GSoC row even though a Google folder from
+                # the same year also shares the funder.
+                gap = abs(year - f["year"])
+                score = 2 * by_strong + by_weak - 2 * gap
+                pairs.append((-score, gap, -by_strong, f["key"], row["id"]))
+    closest = {}
+    for neg_score, *_, key, rec in sorted(pairs):
+        closest.setdefault(key, rec)
+        if -neg_score < r["min_score"]:
+            continue
+        if key not in matched and rec not in used:
+            matched.add(key)
+            used.add(rec)
+
+    for f in folders:
+        if f["key"] in matched or f["year"] < r["since_year"]:
+            continue
+        near = by_id.get(closest.get(f["key"]))
+        hint = (
+            f"; closest row: {near.get('name')} ({(near.get('submission') or '')[:10]},"
+            f" {near['id']}); if it is the same grant, pin it in known_pairs"
+            if near
+            else ""
+        )
+        pl.add(
+            "grants",
+            "create",
+            f"{f['year']}/{f['title']}",
+            f"Grants drive folder ({f['year']}) with no Grants row{hint}",
+            judgement=list(r["judgement_fields"]),
+            ignore_key=f["key"],
+        )
+
+    stale = set(r["stale_statuses"])
+    for row, _, _ in dated:
+        if row.get("status") not in stale:
+            continue
+        try:
+            age = (today - date.fromisoformat(row["submission"][:10])).days
+        except (TypeError, ValueError):
+            continue
+        if age > r["stale_after_days"]:
+            pl.add(
+                "grants",
+                "flag",
+                row.get("name") or row["id"],
+                f"still {row['status']} {age} days after submission ({row['submission']}): update the status",
+                record_id=row["id"],
+                priority=3,
+            )
+
+
 def main(argv: list[str] | None = None) -> int:
     """Build the plan from whatever inputs are present."""
     p = argparse.ArgumentParser(
@@ -971,7 +1075,21 @@ def main(argv: list[str] | None = None) -> int:
     else:
         pl.skipped.append("events: Airtable dump or event_folders.json missing")
 
-    order = {"repositories": 0, "publications": 1, "blogposts": 2, "events": 3}
+    grants, grant_folders = load("grants"), load("grant_folders")
+    if grants is not None and grant_folders is not None:
+        plan_grants(
+            pl, grants, grant_folders, load("organisations"), rules, date.today()
+        )
+    else:
+        pl.skipped.append("grants: Airtable dump or grant_folders.json missing")
+
+    order = {
+        "repositories": 0,
+        "publications": 1,
+        "blogposts": 2,
+        "events": 3,
+        "grants": 4,
+    }
     act = {"update": 0, "create": 1, "choice": 2, "github": 3, "delete": 4, "flag": 5}
     pl.items.sort(
         key=lambda i: (order[i["table"]], i["priority"], act[i["action"]], i["label"])

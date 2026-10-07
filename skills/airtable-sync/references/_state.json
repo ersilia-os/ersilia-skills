@@ -15,6 +15,10 @@
     {
       "date": "2026-10-07",
       "notes": "Added Events tbltd1A9nnXy6Ug8p (114 rows after this run) and Organisations tblxKMlzYuoSzBaDC; field IDs verified live. Event sources: Presentations drive 0AArvh8joF4zrUk9PVA (year folders 2020-2027, ~200 dated folders), Photos folder 1L8Q7TmueaR1WVdwXov4vFuRyyAoF3it-, Trainings drive 0AIzweip5Gj3hUk9PVA."
+    },
+    {
+      "date": "2026-10-07",
+      "notes": "Added Grants tblBtzVd3YvE53PnJ (187 rows) and Organisations.Acronym; Events gained Category/Format/Participants/Grants/Projects (Workshops folded in; Workshops and Conferences tables removed from the base). Grants drive 0ABJUumjDvRFZUk9PVA: 243 application folders in year folders 2020-2026."
     }
   ]
 }

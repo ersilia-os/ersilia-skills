@@ -91,6 +91,28 @@
       "feedback": "Your missing events table is quite good; find the corresponding organisation and the event link.",
       "kind": "process",
       "change": "SKILL.md Step 4 Events judgement: read the Drive folder first (slides/programmes give the real date, host and title), web-search the event page, link Organisations/Countries by record id, create missing organisations only after approval; leave the URL empty rather than a homepage when no event page exists."
+    },
+    {
+      "n": 13,
+      "date": "2026-10-07",
+      "feedback": "Add Grants to the airtable-sync skill: compare the Grants table with the Grants Drive.",
+      "kind": "code",
+      "change": "New collect_grant_folders.py; plan_sync.plan_grants pairs each folder with at most one row (name/short-name/funder words 2, description 1, -2 per year apart, min_score 2), names the closest row for unpaired folders, pins confirmed pairs (rules.json grants.known_pairs) and flags stale Pending/To check/To do rows; Grants and Organisations.Acronym in TABLES; SKILL.md Steps 1-4 cover Grants.",
+      "fixture": "grants"
+    },
+    {
+      "n": 14,
+      "date": "2026-10-07",
+      "feedback": "GC-ADDA4TB is not BMGF-H3D for Tuberculosis; ADDA4TB is another one.",
+      "kind": "rule",
+      "change": "rules.json grants.known_pairs pins grant:2023/GC-ADDA4TB to Grand Challenges ADDA Targeted Protein Degradation (short name now ADDA4TB) and grant:2026/GCADDA4TB_FollowUp to Gates ADDA4TB continuation."
+    },
+    {
+      "n": 15,
+      "date": "2026-10-07",
+      "feedback": "Fold the Workshops table into Events (Category Talk/Training/Conference/Other; Format In person/Online only, no Hybrid); the Conferences table was removed. Show me before acting.",
+      "kind": "process",
+      "change": "Events gained category, format, participants, grants, projects (TABLES, CHOICES, rules.json events.judgement_fields, SKILL.md Step 4); airtable-tables.md records the change."
     }
   ]
 }

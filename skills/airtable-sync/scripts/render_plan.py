@@ -34,6 +34,7 @@ TABLE_NAMES = {
     "publications": "Publications",
     "blogposts": "Blogposts",
     "events": "Events",
+    "grants": "Grants",
 }
 GROUPS = [
     ("urgent fixes", lambda i: i["action"] == "update" and i["priority"] == 1),

@@ -1,0 +1,281 @@
+{
+  "about": "Grants vs Grants-drive folders (first Grants check, 2026-10-07). Each folder pairs with at most one row within a year: name/short-name/funder words score 2, description words 1, a year apart costs 2, and a pair needs min_score. The GSoC folder keeps the GSoC row although a Google folder of the same year shares the funder; five Splunk folders pair with five Splunk rows year by year; a description word alone (HIV) does not steal the RSTMH row; ERCStarting is split into ERC Starting; known_pairs pins a pair with no shared word; long-pending rows are flagged.",
+  "inputs": {
+    "organisations": [
+      {
+        "id": "recORG000000GOOGL",
+        "name": "Google",
+        "acronym": "Google",
+        "website": null
+      },
+      {
+        "id": "recORG000000SPLNK",
+        "name": "Splunk",
+        "acronym": null,
+        "website": null
+      },
+      {
+        "id": "recORG000000RSTMH",
+        "name": "Royal Society of Tropical Medicine and Hygiene",
+        "acronym": "RSTMH",
+        "website": null
+      },
+      {
+        "id": "recORG0000000EU00",
+        "name": "European Union",
+        "acronym": "EU",
+        "website": null
+      },
+      {
+        "id": "recORG00000000BMGF",
+        "name": "Bill and Melinda Gates Foundation",
+        "acronym": "BMGF",
+        "website": null
+      }
+    ],
+    "grants": [
+      {
+        "id": "recG0000000000001",
+        "name": "Google Summer of Code",
+        "short_name": "GSoC",
+        "organisation": [
+          {
+            "id": "recORG000000GOOGL",
+            "name": "Google"
+          }
+        ],
+        "submission": "2023-02-07",
+        "status": "Rejected",
+        "description": null
+      },
+      {
+        "id": "recG0000000000002",
+        "name": "Splunk Data To Action 2023",
+        "short_name": "SplunkD2A23",
+        "organisation": [
+          {
+            "id": "recORG000000SPLNK",
+            "name": "Splunk"
+          }
+        ],
+        "submission": "2023-01-01",
+        "status": "Accepted",
+        "description": "Data for good"
+      },
+      {
+        "id": "recG0000000000003",
+        "name": "Splunk Data to Action 2024",
+        "short_name": "SplunkD2A24",
+        "organisation": [
+          {
+            "id": "recORG000000SPLNK",
+            "name": "Splunk"
+          }
+        ],
+        "submission": "2024-08-28",
+        "status": "Accepted",
+        "description": null
+      },
+      {
+        "id": "recG0000000000004",
+        "name": "Small Grant RSTMH",
+        "short_name": "Small Grant RSTMH",
+        "organisation": [
+          {
+            "id": "recORG000000RSTMH",
+            "name": "Royal Society of Tropical Medicine and Hygiene"
+          }
+        ],
+        "submission": "2022-04-23",
+        "status": "Rejected",
+        "description": "Pilot on HIV drug resistance"
+      },
+      {
+        "id": "recG0000000000005",
+        "name": "ERC Starting Grant",
+        "short_name": "ERC Starting",
+        "organisation": [
+          {
+            "id": "recORG0000000EU00",
+            "name": "European Union"
+          }
+        ],
+        "submission": "2025-10-14",
+        "status": "Rejected",
+        "description": null
+      },
+      {
+        "id": "recG0000000000006",
+        "name": "BMGF Innovations for Gram-Negative Antibiotic Discovery IV",
+        "short_name": "BMGF Grand Challenges",
+        "organisation": [
+          {
+            "id": "recORG00000000BMGF",
+            "name": "Bill and Melinda Gates Foundation"
+          }
+        ],
+        "submission": "2025-03-25",
+        "status": "Accepted",
+        "description": null
+      },
+      {
+        "id": "recG0000000000007",
+        "name": "BBVA Prisms and Problems",
+        "short_name": "BBVA Prisms",
+        "organisation": [],
+        "submission": "2020-03-27",
+        "status": "Pending",
+        "description": null
+      }
+    ],
+    "grant_folders": [
+      {
+        "key": "grant:2023/GSoC",
+        "title": "GSoC",
+        "name": "G So C",
+        "year": 2023,
+        "folder_id": "g1"
+      },
+      {
+        "key": "grant:2023/Google_AI_GlobalGoals",
+        "title": "Google_AI_GlobalGoals",
+        "name": "Google AI Global Goals",
+        "year": 2023,
+        "folder_id": "g2"
+      },
+      {
+        "key": "grant:2023/Splunk",
+        "title": "Splunk",
+        "name": "Splunk",
+        "year": 2023,
+        "folder_id": "g3"
+      },
+      {
+        "key": "grant:2024/Splunk",
+        "title": "Splunk",
+        "name": "Splunk",
+        "year": 2024,
+        "folder_id": "g4"
+      },
+      {
+        "key": "grant:2022/RSTMH",
+        "title": "RSTMH",
+        "name": "RSTMH",
+        "year": 2022,
+        "folder_id": "g5"
+      },
+      {
+        "key": "grant:2022/CIDRZ_HIV",
+        "title": "CIDRZ_HIV",
+        "name": "CIDRZ HIV",
+        "year": 2022,
+        "folder_id": "g6"
+      },
+      {
+        "key": "grant:2025/ERCStarting",
+        "title": "ERCStarting",
+        "name": "ERC Starting",
+        "year": 2025,
+        "folder_id": "g7"
+      },
+      {
+        "key": "grant:2025/Gr-ADI",
+        "title": "Gr-ADI",
+        "name": "Gr ADI",
+        "year": 2025,
+        "folder_id": "g8"
+      },
+      {
+        "key": "grant:2021/NumFocus",
+        "title": "NumFocus",
+        "name": "Num Focus",
+        "year": 2021,
+        "folder_id": "g9"
+      },
+      {
+        "key": "grant:2021/Gitpod",
+        "title": "Gitpod",
+        "name": "Gitpod",
+        "year": 2021,
+        "folder_id": "g10"
+      }
+    ],
+    "rules": {
+      "grants": {
+        "known_pairs": {
+          "grant:2025/Gr-ADI": "recG0000000000006"
+        }
+      }
+    },
+    "ignore": {
+      "entries": [
+        {
+          "key": "grant:2021/Gitpod",
+          "label": "Gitpod",
+          "reason": "not a grant",
+          "date": "2026-10-07"
+        }
+      ]
+    }
+  },
+  "expect": [
+    {
+      "table": "grants",
+      "action": "create",
+      "label": "2023/Google_AI_GlobalGoals"
+    },
+    {
+      "table": "grants",
+      "action": "create",
+      "label": "2022/CIDRZ_HIV"
+    },
+    {
+      "table": "grants",
+      "action": "create",
+      "label": "2021/NumFocus"
+    },
+    {
+      "table": "grants",
+      "action": "flag",
+      "label": "BBVA Prisms and Problems",
+      "reason_has": "still Pending"
+    }
+  ],
+  "expect_absent": [
+    {
+      "table": "grants",
+      "action": "create",
+      "label": "2023/GSoC"
+    },
+    {
+      "table": "grants",
+      "action": "create",
+      "label": "2023/Splunk"
+    },
+    {
+      "table": "grants",
+      "action": "create",
+      "label": "2024/Splunk"
+    },
+    {
+      "table": "grants",
+      "action": "create",
+      "label": "2022/RSTMH"
+    },
+    {
+      "table": "grants",
+      "action": "create",
+      "label": "2025/ERCStarting"
+    },
+    {
+      "table": "grants",
+      "action": "create",
+      "label": "2025/Gr-ADI"
+    },
+    {
+      "table": "grants",
+      "action": "create",
+      "label": "2021/Gitpod"
+    }
+  ]
+}

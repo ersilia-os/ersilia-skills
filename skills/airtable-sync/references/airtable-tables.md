@@ -1,6 +1,6 @@
 # Airtable tables
 
-Base **Ersilia Content**, `app1iYv78K6xbHkmL`. Verified live on 2026-09-29; Events and Organisations on 2026-10-07. The same IDs are in `scripts/_common.py` (`TABLES`), so keep the two in step.
+Base **Ersilia Content**, `app1iYv78K6xbHkmL`. Verified live on 2026-09-29; Events, Organisations and Grants on 2026-10-07. The same IDs are in `scripts/_common.py` (`TABLES`), so keep the two in step.
 
 Select options are also in `scripts/_common.py` (`CHOICES`, `KNOWN_YEARS`). `build_writes.py` refuses any other value, so update both when an option is added in Airtable.
 
@@ -72,9 +72,34 @@ Presentations, workshops and visits by Ersilia. Checked against dated Drive fold
 | url | Event URL | `fldu2MuK5xBIHQL4G` | url | create (judgement) |
 | organisations | Organisations | `fldH50EYeERnwGvP2` | links to Organisations | create (judgement) |
 | country | Country | `fldpAljFchUPIseO6` | links to Countries `tblujd4T9of8KAmP2` | create (judgement) |
+| category | Category | `fld3b1fgp6xFXDEVX` | single select: Talk, Training, Conference, Other | create (judgement) |
+| format | Format | `fldJvei3RtaEcFypo` | single select: In person, Online (from Ersilia's side; no Hybrid) | create (judgement) |
+| participants | Participants | `fld58Q859CGEgOk5V` | integer, mainly for trainings | create (judgement) |
+| grants | Grants | `fldARsNnM935b1o5I` | links to Grants | create (judgement) |
+| projects | Projects | `fldiAZYUoHBhnZ9uF` | links to Projects | create (judgement) |
 
-`Videos` (links), `Quarter`, `Year`, `Organiser` and `Country (from Country)` are not written: the last four are formulas or lookups. Online events have no Country.
+`Videos` (links), `Quarter`, `Year`, `Organiser` and `Country (from Country)` are not written: the last four are formulas or lookups. Online events usually have no Country. Category, Format, Participants, Grants and Projects were added on 2026-10-07, when the Workshops table was folded into Events (every former workshop is Category = Training); the Workshops and Conferences tables were then removed from the base.
 
 ## Organisations `tblxKMlzYuoSzBaDC`
 
-Only `Name` (`fldSE7d8F3XQlvBVT`) and `Website` (`fld5Yol2i0hMTVj83`) are used: an event's host is looked up by name, and created with these two fields when it is missing (approval only).
+Only `Name` (`fldSE7d8F3XQlvBVT`), `Acronym` (`fldTOQJ5NrrG4OmFn`) and `Website` (`fld5Yol2i0hMTVj83`) are used: an event's host or a grant's funder is looked up by name, and created with name and website when it is missing (approval only). Acronyms feed the grant matcher.
+
+## Grants `tblBtzVd3YvE53PnJ`
+
+Applications and awards. Checked against the Grants shared drive (see `sources.json`, `grants`). Grant data is out of scope for the ersilia-stats site.
+
+| Key | Field | ID | Type | Writes |
+|---|---|---|---|---|
+| name | Name | `fldwGZq0wHVTZ8cqs` | text (primary) | create (judgement) |
+| short_name | Short name | `fldEMWi7xtOBVX3b8` | text | create (judgement) |
+| organisation | Organisation | `fldykHxQ3aAPJ7sZ5` | links to Organisations | create (judgement) |
+| type | Type | `fldIPgUm4pq4Wglrv` | single select: Grant, In-Kind, Donation, Program, Prize | create (judgement) |
+| total_amount | Total amount | `fldI1ndsBroJzkrRf` | currency (USD) | never proposed |
+| ersilia_amount | Ersilia amount | `fldiL1QjsoOA5w9PZ` | currency (USD) | create (judgement) |
+| submission | Submission | `fldjDS4TbHM02LrPO` | date | create (judgement) |
+| status | Status | `fldf5YwwIpNaZmVum` | single select: To do, Pending, Rejected, Accepted, Cancelled, Won't do, To check | create (judgement); flagged when stale |
+| reference | Reference | `fld2K1WztuG7zFmFL` | url | never proposed |
+| description | Description | `fldeGx9lTRbm8GdDq` | long text | create (judgement) |
+| ersilia | Ersilia | `fld7TUt6ngtusa0Xw` | single select: UK, Spain (which Ersilia entity applied) | create (judgement) |
+
+`Collaborator` (links to Contacts), `Projects`, `Events` and the formulas and lookups are not written.

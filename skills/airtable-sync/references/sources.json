@@ -56,5 +56,11 @@
       "conference",
       "workshop"
     ]
+  },
+  "grants": {
+    "drive": {
+      "id": "0ABJUumjDvRFZUk9PVA",
+      "about": "Grants shared drive: one folder per year (2020-2026), inside them one folder per application named after the funder or call; also Docs and Grant Application Answer Bank at the root (ignored)"
+    }
   }
 }

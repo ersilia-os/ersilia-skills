@@ -52,8 +52,8 @@ def _load(path: str) -> list[dict]:
 
 
 def split_words(text: str) -> str:
-    """'TechSpirit_Debate' -> 'Tech Spirit Debate'; '4yfn' stays '4yfn'."""
-    text = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", text)
+    """'TechSpirit_Debate' -> 'Tech Spirit Debate'; 'ERCStarting' -> 'ERC Starting'."""
+    text = re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ", text)
     return re.sub(r"[_\-]+", " ", text).strip()
 
 
