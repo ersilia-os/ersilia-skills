@@ -40,11 +40,10 @@ These follow the model repos' own `CLAUDE.md`.
 
 ## Planned improvements (not implemented)
 
-- **`--audit-papers` backfill.** List every Ready model with no paper in the folder,
-  counting shared papers under every sibling's ID. Then stage the missing ones in
-  batches and propose renames for shared papers that carry too few IDs. State on
-  2026-10-07: 5 files missing (eos88ir, eos92m1, eos5j3l, eos1ltv,
-  eos55vx_eos6a1h) and one rename (`eos4q1a.pdf` → `eos4q1a_eos9p57.pdf`).
+- **`--audit-papers` mode.** List every Ready model with no paper in the folder, counting shared
+  papers under every sibling's ID and skipping `Publication Type: Other`. Then stage the missing
+  ones in batches. A one-off audit and backfill was done by hand on 2026-10-07: 7 models,
+  6 files, all uploaded. This mode would make it repeatable.
 - **Smoke test of the published image.** Pull `ersiliaos/<id>:<tag>`, run it on
   `examples/run_input.csv` and compare with `run_output.csv`. This checks the artifact
   users actually get, not just CI.
