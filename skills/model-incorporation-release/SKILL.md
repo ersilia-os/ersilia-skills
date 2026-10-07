@@ -189,6 +189,13 @@ python scripts/paper_target.py <id>
    the wrong paper never reaches the folder the user drags from. Keep each download in
    its own new directory. When it succeeds, carry on through 4c and 4d **without asking**:
    the user's first sight of the paper is the staged, validated file, ready to drag.
+
+   **Except when `preprint_of_journal_article` is true.** The paper was published in a
+   journal, but the only free copy is the preprint (eos1ltv and eos55vx, both Nature
+   Machine Intelligence). The folder should hold the published version. Ask the user for
+   it, giving the `landing_page` link; their institution usually has access. Stage the
+   preprint only if they say to use it. A model whose DOI is itself a preprint (arXiv,
+   bioRxiv, ChemRxiv) is not affected: there, the preprint is the publication.
 3. **Otherwise** (exit 2, `status` `closed` or `not_fetched`): **stop and ask the user
    for the PDF**. Give them the `landing_page` link. Never deposit a guess, and never
    work around a paywall.

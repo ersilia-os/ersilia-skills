@@ -109,6 +109,17 @@ also creates release `v1.0.0` and retags the image itself.
 - **Symptom:** a "PDF" of a few hundred bytes. The 425-byte `cplank.pdf` and `trimole.pdf` in `assessments_2026-08-31/pdfs/` are XHTML error pages.
 - **What to do:** `check_pdf.py` rejects anything that does not start with `%PDF-` or is under 30 KB. It also confirms the paper's identity from the DOI or title on its first pages, so a neighbour's paper is not deposited under the wrong ID.
 
+## A free copy can be the preprint of a published paper (eos1ltv, eos55vx)
+
+- **Symptom:** the open-access fetch for a Nature Machine Intelligence paper returned
+  the arXiv preprint. The published version is paywalled, and OpenAlex's
+  `best_oa_location` was the `submittedVersion`. The user replaced eos1ltv's staged
+  copy with the Nature PDF by hand.
+- **What to do:** `fetch_open_paper.py` now tries published, then accepted, then
+  unlabelled, then submitted versions, and sets `preprint_of_journal_article` when it
+  could only get a preprint of a journal article. The skill then asks for the published
+  PDF before staging anything.
+
 ## Open access does not mean scriptable
 
 - **Symptom:** OpenAlex says eos88ir's Nat Commun paper is `gold`, but it has no `pdf_url`. nature.com's `.pdf` URL also answers scripts with an HTML cookie page.

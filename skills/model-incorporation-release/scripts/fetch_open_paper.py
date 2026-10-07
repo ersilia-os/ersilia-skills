@@ -34,6 +34,14 @@ from _common import POLITE_MAILTO, arxiv_id, emit, fetch, fetch_json, normalise_
 
 MIN_BYTES = 30 * 1024
 
+# DOI prefixes of preprint servers: arXiv, bioRxiv/medRxiv, ChemRxiv, Research Square,
+# Preprints.org. For these the preprint *is* the publication.
+PREPRINT_DOI_PREFIXES = ("10.48550/", "10.1101/", "10.26434/", "10.21203/", "10.20944/")
+
+# OpenAlex location versions, best first. Unknown versions sit between accepted and
+# submitted, so a labelled preprint is only taken when nothing better is available.
+VERSION_RANK = {"publishedVersion": 0, "acceptedVersion": 1, None: 2, "submittedVersion": 3}
+
 
 def publisher_candidates(doi):
     """Direct PDF URLs for open-access publishers whose URL scheme follows the DOI."""
@@ -66,34 +74,44 @@ def main():
         "tried": [],
     }
 
-    candidates = []
+    # A journal article can have a free preprint while the published version is
+    # paywalled (eos1ltv and eos55vx, both Nature Machine Intelligence, on 2026-10-07).
+    # Each candidate carries its version so the published one is tried first, and the
+    # report says when only a preprint was found.
+    journal_article = bool(doi) and not doi.startswith(PREPRINT_DOI_PREFIXES)
+    report["journal_article"] = journal_article
+
+    candidates = []  # (source, url, version)
     if arxiv:
-        candidates.append(("arxiv", f"https://arxiv.org/pdf/{arxiv}"))
+        candidates.append(("arxiv", f"https://arxiv.org/pdf/{arxiv}", "submittedVersion"))
 
     openalex = fetch_json(f"https://api.openalex.org/works/doi:{doi}?mailto={POLITE_MAILTO}") if doi else None
     is_oa = None
     if openalex:
         is_oa = (openalex.get("open_access") or {}).get("is_oa")
         report["oa_status"] = (openalex.get("open_access") or {}).get("oa_status")
-        best = (openalex.get("best_oa_location") or {}).get("pdf_url")
-        if best:
-            candidates.append(("openalex_best", best))
+        best = openalex.get("best_oa_location") or {}
+        if best.get("pdf_url"):
+            candidates.append(("openalex_best", best["pdf_url"], best.get("version")))
         for location in openalex.get("locations") or []:
             url = location.get("pdf_url")
-            if url and location.get("is_oa") and url != best:
-                candidates.append(("openalex_location", url))
+            if url and location.get("is_oa") and url != best.get("pdf_url"):
+                candidates.append(("openalex_location", url, location.get("version")))
         pmcid = ((openalex.get("ids") or {}).get("pmcid") or "").rsplit("/", 1)[-1]
         if pmcid:
-            candidates.append(("europepmc", f"https://europepmc.org/backend/ptpmcrender.fcgi?accid={pmcid}&blobtype=pdf"))
+            candidates.append(
+                ("europepmc", f"https://europepmc.org/backend/ptpmcrender.fcgi?accid={pmcid}&blobtype=pdf", None)
+            )
     if doi and is_oa is not False:
-        candidates += [("publisher", url) for url in publisher_candidates(doi)]
+        candidates += [("publisher", url, "publishedVersion") for url in publisher_candidates(doi)]
+    candidates.sort(key=lambda c: VERSION_RANK.get(c[2], 2))
 
     if not candidates:
         report["status"] = "closed" if is_oa is False else "not_fetched"
         emit(report)
         sys.exit(2)
 
-    for source, url in candidates:
+    for source, url, version in candidates:
         body = fetch(url, timeout=60, binary=True)
         if body is None:
             report["tried"].append({"source": source, "url": url, "result": "download failed"})
@@ -107,7 +125,17 @@ def main():
         out = Path(args.out)
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_bytes(body)
-        report.update(status="fetched", source=source, url=url, path=str(out), size_kb=round(len(body) / 1024, 1))
+        report.update(
+            status="fetched",
+            source=source,
+            url=url,
+            version=version,
+            # True when the paper is a journal article but the free copy is a preprint:
+            # the skill then asks the user for the published PDF before staging this one.
+            preprint_of_journal_article=journal_article and version == "submittedVersion",
+            path=str(out),
+            size_kb=round(len(body) / 1024, 1),
+        )
         report["tried"].append({"source": source, "url": url, "result": "ok"})
         emit(report)
         return
