@@ -1,3 +1,112 @@
 {
-  "entries": []
+  "entries": [
+    {
+      "key": "event:260514_BusinessConsultancyUB",
+      "label": "Business consultancy session, UB",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:2507_Addis",
+      "label": "Addis Ababa visit (Photos)",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:250320_RSEAsia",
+      "label": "RSE Asia",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:241119_Dell",
+      "label": "Dell",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:241024_IsomorphicLabs_AliciaHigueruelo",
+      "label": "Isomorphic Labs",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:231211_Shionogi",
+      "label": "Shionogi",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:231204_DNDi_LATAM",
+      "label": "DNDi LATAM",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:230905_RSECon23",
+      "label": "RSECon23",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:230707_OpenInfra",
+      "label": "OpenInfra",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:230419_NIAID",
+      "label": "NIAID",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:230214_BioCat",
+      "label": "Biocat",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:221207_SwissTPH",
+      "label": "Swiss TPH",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:221202_MerckGlobalHealthInstitute",
+      "label": "Merck Global Health Institute",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:221201_Kemri",
+      "label": "KEMRI",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:221117_MMV",
+      "label": "MMV",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:220913_SplunkEngineers",
+      "label": "Splunk engineers",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "event:220906_RSECon",
+      "label": "RSECon22",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    },
+    {
+      "key": "calendar:2026-07-27 Gr-ADI kick-off meeting (STIAS, Stellenbosch)",
+      "label": "Gr-ADI kick-off, STIAS (calendar)",
+      "reason": "not an Events row (user review, first Events check)",
+      "date": "2026-10-07"
+    }
+  ]
 }

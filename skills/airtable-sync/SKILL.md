@@ -3,12 +3,16 @@ name: airtable-sync
 description: >
   Keep the Ersilia Content Airtable base in step with reality, so the ersilia-stats site
   (ersilia-os.github.io/ersilia-stats) reports true numbers. Compares the Repositories
-  table with the ersilia-os GitHub org, Publications with OpenAlex, and Blogposts with
-  Medium; proposes new rows, corrections and missing fields; and walks the user through
+  table with the ersilia-os GitHub org, Publications with OpenAlex, Blogposts with
+  Medium, Events with the Presentations and Photos Drive folders (plus the
+  Trainings drive, the workshops GitBook and the calendar), and Grants with the
+  Grants Drive; proposes new rows,
+  corrections and missing fields; and walks the user through
   every proposed change, writing to Airtable only what the user approves, step by step.
   Learns from the user's feedback on every run. Triggers include: "sync Airtable",
   "airtable sync", "/airtable-sync", "is Airtable up to date", "update the stats data",
-  "check the Airtable content", "are all our repos/papers/blog posts in Airtable".
+  "check the Airtable content", "are all our repos/papers/blog posts/events/grants in Airtable",
+  "which events are missing", "check the grants table".
   Always use this skill for these requests, even if the ask seems simple.
 ---
 
@@ -21,6 +25,8 @@ You bring the **Ersilia Content** base (`app1iYv78K6xbHkmL`) in line with what e
 | Repositories | the `ersilia-os` GitHub org (repos, visibility, dates, descriptions, custom properties) |
 | Publications | OpenAlex (Ersilia institution `I4394709285` and the team authors) |
 | Blogposts | Medium RSS (the `ersiliaio` publication and personal feeds) |
+| Events | dated folders in the Presentations and Photos shared drives; the Trainings drive, the workshops GitBook and the calendar by hand |
+| Grants | one folder per application in the Grants shared drive, inside year folders |
 
 The ersilia-stats site reads these tables, so a missing row or empty field makes a chart wrong without anyone noticing.
 
@@ -40,6 +46,8 @@ Scripts run from `scripts/` with the Python 3 standard library only, and work in
 | `record_feedback.py` | Lists the lessons (`list`) or logs a new one (`add`) |
 | `normalise_airtable.py` | Turns connector dumps into one clean JSON list per table |
 | `fetch_github.py`, `fetch_openalex.py`, `fetch_medium.py` | Read the sources (read-only) |
+| `collect_event_folders.py` | Turns Drive folder listings into dated event candidates |
+| `collect_grant_folders.py` | Turns the Grants drive listings into grant candidates (year from the parent folder) |
 | `plan_sync.py` | Compares tables with sources and writes the numbered plan |
 | `render_plan.py` | Shows the plan as review steps (`--steps`, `--step k`, `--gaps`) |
 | `build_writes.py` | Turns approved item numbers into connector calls; records rejections |
@@ -63,6 +71,9 @@ Call `list_records_for_table` once per table, with **only these field IDs** (fro
 - Repositories `tbluZtI3W9pseCSPH`: all 8 fields.
 - Publications `tbljYubYjWAtO1ab8`: slug, title, journal, doi, status, year, affiliation, topic, type, african_collaboration.
 - Blogposts `tblsBj6ZoDNMlmrzm`: all 7 fields.
+- Events `tbltd1A9nnXy6Ug8p`: name, description, date, url, organisations, country, category, format, participants, grants, projects.
+- Grants `tblBtzVd3YvE53PnJ`: name, short name, organisation, type, submission, status, description, ersilia.
+- Organisations `tblxKMlzYuoSzBaDC`: name, acronym (the grant matcher uses funder acronyms). Large: pass the saved file straight to the normaliser.
 
 Save each response to a file, then normalise it:
 
@@ -74,6 +85,9 @@ Save each response to a file, then normalise it:
 python normalise_airtable.py --table repositories --in <file> [<file2> ...]
 python normalise_airtable.py --table publications --in /tmp/airtable_sync/raw/publications.json
 python normalise_airtable.py --table blogposts   --in /tmp/airtable_sync/raw/blogposts.json
+python normalise_airtable.py --table events      --in <file>
+python normalise_airtable.py --table grants      --in <file>
+python normalise_airtable.py --table organisations --in <file>
 ```
 
 Community is **not** read up front: authors already linked on Blogposts rows are enough. Read it only if the plan asks you to (Step 4).
@@ -87,6 +101,24 @@ python fetch_medium.py
 ```
 
 Any `partial:` line is reported in the summary. It does not stop the run.
+
+Events have no API to fetch, so the Drive connector does it. The folder IDs are in `references/sources.json` (`events`):
+
+1. Presentations: one `search_files` call with `mimeType = 'application/vnd.google-apps.folder' and (parentId = '<year folder>' or ...)` over every year folder (list them first with `parentId = '<drive id>'`), `excludeContentSnippets: true`, `pageSize: 300`. Folders are named `YYMMDD_Name`.
+2. Photos: `parentId = '<photos folder>'`. Folders are named `YYMM_Name` (month only).
+3. Pass the saved responses straight to the collector:
+
+```
+python collect_event_folders.py --source presentations --in <file> --source photos --in <file>
+```
+
+Grants: list the Grants drive root (`parentId = '<grants drive>'`, which gives the year folders), then their children in one call (`mimeType = 'application/vnd.google-apps.folder' and (parentId = '<year>' or ...)`, `pageSize: 400`), and pass both saved responses:
+
+```
+python collect_grant_folders.py --in <root file> <children file>
+```
+
+The Trainings drive, the workshops GitBook and the calendar have no dated folders. Skim them by hand (Trainings: one folder per programme; GitBook: the welcome page; calendar: `list_events` with `fullText` "seminar", "talk", "conference", "workshop" since the newest Events row) and add anything that has no row and no `calendar:`/`event:` entry in the ignore list to the Events step as an extra proposal, with the same approval.
 
 ### 3. Plan
 
@@ -112,6 +144,8 @@ Only `create` items have a `to decide:` line. Fill those fields and nothing else
 
 - **Publications:** `slug` (short kebab-case, like the existing ones) and `topic` (Bioinformatics, Chemoinformatics, Medical informatics or Molecular biology). Senior and African collaboration are computed from OpenAlex author positions and countries, so don't guess them. Also say whether each paper is really Ersilia work: OpenAlex team-author matches include papers from other labs, from before someone joined Ersilia.
 - **Blogposts:** `category` (one or more of Technology, Training, News, Global Health, Science). For `author`, run `list_records_for_table` on Community (`tblS9TeBRYUpLwSCk`) with a `contains` filter on the name, and use the record id.
+- **Grants:** read the folder first (`parentId = '<folder_id>'`): the application, budget and any award or rejection letter give `name`, `short_name` (as in the existing rows), `organisation` (record ids from Organisations; create a missing funder only after approval), `type` (Grant, In-Kind, Donation, Program or Prize; fellowships are Program), `submission` (the deadline or submission date), `status` (To do, Pending, Rejected, Accepted, Cancelled, Won't do, To check; an explored call that was never submitted is Won't do), `ersilia_amount` (USD), `ersilia` (Spain for applications since mid-2023, UK before) and a one-line `description`. Never guess an amount or an outcome: leave it null and say so. When the reason names a closest row and the user says it is the same grant, do not create: add the pair to `rules.json` `grants.known_pairs` (Step 8).
+- **Events:** `name` (short, like the existing rows), `description` (one plain sentence; say "participated" unless the folder shows a talk, and name the speaker when it was not Miquel), `url` (the event's own page, found by web search; null rather than a homepage when there is none), `organisations` and `country` (record ids, looked up in Organisations `tblxKMlzYuoSzBaDC` and Countries `tblujd4T9of8KAmP2` with a `contains` filter). `category` (Talk, Training, Conference or Other) and `format` (In person if Ersilia was there, Online otherwise) always; `participants`, `grants` and `projects` for trainings when the folder or the user knows them, null otherwise. For a month-only Photos folder, also `date`. Read the folder first (`parentId = '<folder_id>'`): slides, programmes and abstracts usually give the real date, title and host. An organisation that does not exist yet is shown in the walkthrough and, once approved, created first with one `create_records_for_table` call on Organisations (name and website); `build_writes.py` has no item for it.
 
 Write them to `/tmp/airtable_sync/judgements.json` as `{"<n>": {"<field>": value}}`. Show them to the user in the walkthrough; they are proposals too.
 
@@ -168,6 +202,8 @@ A few lines only:
 - What still needs a person: the flags, and `render_plan.py --gaps` (fields the stats site reads that are empty).
 - What was not checked (`skipped` in the plan, and any `partial:` fetch).
 - The Medium limitation: RSS only shows the latest 10 posts per feed.
+- For Events, the upcoming flags (add them once they have happened) and whatever the hand-checked sources could not cover.
+- For Grants, the stale-status flags (applications still Pending, To check or To do long after submission).
 
 ### 8. Learn from the feedback
 

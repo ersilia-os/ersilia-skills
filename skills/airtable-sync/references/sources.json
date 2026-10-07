@@ -35,5 +35,32 @@
       "https://medium.com/feed/@mduranfrigola",
       "https://medium.com/feed/@ines_10950"
     ]
+  },
+  "events": {
+    "presentations_drive": {
+      "id": "0AArvh8joF4zrUk9PVA",
+      "about": "Presentations shared drive: one folder per year (2020-2027), inside them one YYMMDD_Name folder per talk or event"
+    },
+    "photos_folder": {
+      "id": "1L8Q7TmueaR1WVdwXov4vFuRyyAoF3it-",
+      "about": "Photos folder in the Communication shared drive (0AMJCltLsZiGNUk9PVA): one YYMM_Name folder per trip"
+    },
+    "trainings_drive": {
+      "id": "0AIzweip5Gj3hUk9PVA",
+      "about": "Trainings shared drive: one undated folder per programme (Rafiki, NiDNA_UBuea_2026, BuenosAires_UBA, IMPM_Merck_Schistosomiasis, ...); checked by hand"
+    },
+    "gitbook": "https://ersilia.gitbook.io/ersilia-workshops",
+    "calendar_keywords": [
+      "seminar",
+      "talk",
+      "conference",
+      "workshop"
+    ]
+  },
+  "grants": {
+    "drive": {
+      "id": "0ABJUumjDvRFZUk9PVA",
+      "about": "Grants shared drive: one folder per year (2020-2026), inside them one folder per application named after the funder or call; also Docs and Grant Application Answer Bank at the root (ignored)"
+    }
   }
 }

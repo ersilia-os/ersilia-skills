@@ -77,6 +77,46 @@ TABLES: dict[str, dict] = {
             "name": ("fldMkjzLdEO4gNnZo", "text"),
         },
     },
+    "events": {
+        "id": "tbltd1A9nnXy6Ug8p",
+        "fields": {
+            "name": ("fldv9qQr9FJjNnifz", "text"),
+            "description": ("fld79PPhYg0CRQNQF", "text"),
+            "date": ("fld0IKh6ZrFoS0xci", "text"),
+            "url": ("fldu2MuK5xBIHQL4G", "text"),
+            "organisations": ("fldH50EYeERnwGvP2", "links"),
+            "country": ("fldpAljFchUPIseO6", "links"),
+            "category": ("fld3b1fgp6xFXDEVX", "single"),
+            "format": ("fldJvei3RtaEcFypo", "single"),
+            "participants": ("fld58Q859CGEgOk5V", "text"),
+            "grants": ("fldARsNnM935b1o5I", "links"),
+            "projects": ("fldiAZYUoHBhnZ9uF", "links"),
+        },
+    },
+    "organisations": {
+        "id": "tblxKMlzYuoSzBaDC",
+        "fields": {
+            "name": ("fldSE7d8F3XQlvBVT", "text"),
+            "acronym": ("fldTOQJ5NrrG4OmFn", "text"),
+            "website": ("fld5Yol2i0hMTVj83", "text"),
+        },
+    },
+    "grants": {
+        "id": "tblBtzVd3YvE53PnJ",
+        "fields": {
+            "name": ("fldwGZq0wHVTZ8cqs", "text"),
+            "short_name": ("fldEMWi7xtOBVX3b8", "text"),
+            "organisation": ("fldykHxQ3aAPJ7sZ5", "links"),
+            "type": ("fldIPgUm4pq4Wglrv", "single"),
+            "total_amount": ("fldI1ndsBroJzkrRf", "text"),
+            "ersilia_amount": ("fldiL1QjsoOA5w9PZ", "text"),
+            "submission": ("fldjDS4TbHM02LrPO", "text"),
+            "status": ("fldf5YwwIpNaZmVum", "single"),
+            "reference": ("fld2K1WztuG7zFmFL", "text"),
+            "description": ("fldeGx9lTRbm8GdDq", "text"),
+            "ersilia": ("fld7TUt6ngtusa0Xw", "single"),
+        },
+    },
 }
 
 # Select options per field, as configured in Airtable (see airtable-tables.md).
@@ -114,6 +154,19 @@ CHOICES: dict[tuple[str, str], set[str]] = {
     },
     ("publications", "type"): {"Research", "Review"},
     ("blogposts", "publisher"): {"Ersilia", "Other"},
+    ("events", "category"): {"Talk", "Training", "Conference", "Other"},
+    ("events", "format"): {"In person", "Online"},
+    ("grants", "type"): {"Grant", "In-Kind", "Donation", "Program", "Prize"},
+    ("grants", "status"): {
+        "To do",
+        "Pending",
+        "Rejected",
+        "Accepted",
+        "Cancelled",
+        "Won't do",
+        "To check",
+    },
+    ("grants", "ersilia"): {"UK", "Spain"},
     ("blogposts", "category"): {
         "Technology",
         "Training",
