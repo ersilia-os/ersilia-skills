@@ -77,6 +77,24 @@ TABLES: dict[str, dict] = {
             "name": ("fldMkjzLdEO4gNnZo", "text"),
         },
     },
+    "events": {
+        "id": "tbltd1A9nnXy6Ug8p",
+        "fields": {
+            "name": ("fldv9qQr9FJjNnifz", "text"),
+            "description": ("fld79PPhYg0CRQNQF", "text"),
+            "date": ("fld0IKh6ZrFoS0xci", "text"),
+            "url": ("fldu2MuK5xBIHQL4G", "text"),
+            "organisations": ("fldH50EYeERnwGvP2", "links"),
+            "country": ("fldpAljFchUPIseO6", "links"),
+        },
+    },
+    "organisations": {
+        "id": "tblxKMlzYuoSzBaDC",
+        "fields": {
+            "name": ("fldSE7d8F3XQlvBVT", "text"),
+            "website": ("fld5Yol2i0hMTVj83", "text"),
+        },
+    },
 }
 
 # Select options per field, as configured in Airtable (see airtable-tables.md).

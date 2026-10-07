@@ -1,6 +1,6 @@
 # Airtable tables
 
-Base **Ersilia Content**, `app1iYv78K6xbHkmL`. Verified live on 2026-09-29. The same IDs are in `scripts/_common.py` (`TABLES`), so keep the two in step.
+Base **Ersilia Content**, `app1iYv78K6xbHkmL`. Verified live on 2026-09-29; Events and Organisations on 2026-10-07. The same IDs are in `scripts/_common.py` (`TABLES`), so keep the two in step.
 
 Select options are also in `scripts/_common.py` (`CHOICES`, `KNOWN_YEARS`). `build_writes.py` refuses any other value, so update both when an option is added in Airtable.
 
@@ -59,3 +59,22 @@ Rows from other outlets (GitHub blog, Mozilla, SSI...) have Publisher = Other an
 ## Community `tblS9TeBRYUpLwSCk`
 
 Only `Name` (`fldMkjzLdEO4gNnZo`) is used, to link blog authors. It holds personal data: read it by name filter, never in full.
+
+## Events `tbltd1A9nnXy6Ug8p`
+
+Presentations, workshops and visits by Ersilia. Checked against dated Drive folders (see `sources.json`, `events`).
+
+| Key | Field | ID | Type | Writes |
+|---|---|---|---|---|
+| name | Name | `fldv9qQr9FJjNnifz` | text (primary) | create (judgement) |
+| description | Description | `fld79PPhYg0CRQNQF` | text, one sentence | create (judgement) |
+| date | Date | `fld0IKh6ZrFoS0xci` | date | create (from the folder; judgement for a month-only folder) |
+| url | Event URL | `fldu2MuK5xBIHQL4G` | url | create (judgement) |
+| organisations | Organisations | `fldH50EYeERnwGvP2` | links to Organisations | create (judgement) |
+| country | Country | `fldpAljFchUPIseO6` | links to Countries `tblujd4T9of8KAmP2` | create (judgement) |
+
+`Videos` (links), `Quarter`, `Year`, `Organiser` and `Country (from Country)` are not written: the last four are formulas or lookups. Online events have no Country.
+
+## Organisations `tblxKMlzYuoSzBaDC`
+
+Only `Name` (`fldSE7d8F3XQlvBVT`) and `Website` (`fld5Yol2i0hMTVj83`) are used: an event's host is looked up by name, and created with these two fields when it is missing (approval only).

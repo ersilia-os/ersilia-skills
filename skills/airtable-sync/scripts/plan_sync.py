@@ -5,7 +5,9 @@ Deterministic: every decision comes from `references/rules.json` and
 scripts leave in the work directory:
 
     repositories.json publications.json blogposts.json community.json   (normalise_airtable.py)
+    events.json                                                          (normalise_airtable.py)
     github.json openalex.json medium.json                                (fetch_*.py)
+    event_folders.json                                                   (collect_event_folders.py)
 
 community.json is optional: authors already linked on Blogposts rows are used first.
 A table whose inputs are missing is skipped and listed under ``skipped``. Output:
@@ -37,6 +39,7 @@ from __future__ import annotations
 import argparse
 import difflib
 import json
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -840,6 +843,86 @@ def plan_blogposts(pl: Planner, rows, medium, community, rules):
     pl.gap_check("blogposts", rows, "slug")
 
 
+def _event_words(text: str, stopwords: set[str]) -> set[str]:
+    """Distinctive lower-case words of an event or folder.
+
+    Both spellings are kept, so either side can match: 'MboaLab' gives mboalab, mboa
+    and lab; 'CW23' gives cw23 and cw (dropped as too short).
+    """
+    text = text or ""
+    split = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", text)
+    raw = re.split(r"[^0-9a-zà-ÿ]+", f"{text} {split}".lower())
+    words = set(raw) | {w.rstrip("0123456789") for w in raw}
+    return {w for w in words if len(w) >= 3 and not w.isdigit() and w not in stopwords}
+
+
+def plan_events(pl: Planner, rows, folders, rules, today: date):
+    """Propose an Events row for each dated Drive folder that no row accounts for.
+
+    A folder is accounted for when a row falls within ``same_event_days`` of its date
+    (the same month for a month-only Photos folder), or within
+    ``same_event_days_with_shared_word`` and shares a distinctive word with the row's
+    name, description or URL. Folders matching ``skip_title_patterns`` are internal
+    (meetings, onboarding, progress reports) and are never proposed; future ones are
+    reported as upcoming, not created.
+    """
+    r = rules["events"]
+    stop = set(r["stopwords"])
+    skip = [re.compile(p) for p in r["skip_title_patterns"]]
+    since = date.fromisoformat(r["since"])
+    dated = []
+    for row in rows:
+        try:
+            when = date.fromisoformat((row.get("date") or "")[:10])
+        except ValueError:
+            continue
+        words = set().union(
+            *(_event_words(row.get(k), stop) for k in ("name", "description", "url"))
+        )
+        dated.append((when, words, row))
+
+    for f in folders:
+        when = date.fromisoformat(f["date"])
+        if when < since or any(p.search(f["title"]) for p in skip):
+            continue
+        if when > today:
+            pl.add(
+                "events",
+                "flag",
+                f["title"],
+                f"upcoming ({f['date']}): add it once it has happened",
+                priority=3,
+            )
+            continue
+        words = _event_words(f["title"].split("_", 1)[-1], stop)
+        matched = False
+        for row_date, row_words, row in dated:
+            gap = abs((row_date - when).days)
+            if f["precision"] == "month":
+                near = (row_date.year, row_date.month) == (when.year, when.month)
+            else:
+                near = gap <= r["same_event_days"]
+            if near or (
+                gap <= r["same_event_days_with_shared_word"] and words & row_words
+            ):
+                matched = True
+                break
+        if matched:
+            continue
+        judgement = list(r["judgement_fields"])
+        if f["precision"] == "month":
+            judgement.append("date")  # only the month is known; find the real day
+        pl.add(
+            "events",
+            "create",
+            f["title"],
+            f"Drive {f['source']} folder with no Events row near {f['date']}",
+            fields={"date": f["date"]},
+            judgement=judgement,
+            ignore_key=f["key"],
+        )
+
+
 def main(argv: list[str] | None = None) -> int:
     """Build the plan from whatever inputs are present."""
     p = argparse.ArgumentParser(
@@ -882,7 +965,13 @@ def main(argv: list[str] | None = None) -> int:
     else:
         pl.skipped.append("blogposts: Airtable dump or medium.json missing")
 
-    order = {"repositories": 0, "publications": 1, "blogposts": 2}
+    events, folders = load("events"), load("event_folders")
+    if events is not None and folders is not None:
+        plan_events(pl, events, folders, rules, date.today())
+    else:
+        pl.skipped.append("events: Airtable dump or event_folders.json missing")
+
+    order = {"repositories": 0, "publications": 1, "blogposts": 2, "events": 3}
     act = {"update": 0, "create": 1, "choice": 2, "github": 3, "delete": 4, "flag": 5}
     pl.items.sort(
         key=lambda i: (order[i["table"]], i["priority"], act[i["action"]], i["label"])

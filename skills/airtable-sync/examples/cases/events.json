@@ -1,0 +1,41 @@
+{
+  "about": "Events vs dated Drive folders (first Events check, 2026-10-07). A row on the same day, or within 60 days and sharing a word with its name, description or URL, covers a folder: EuroQSAR, CW22 (word only in the URL), MozFest (a month off), CAiSMD (CamelCase), 4YFN (a month-only Photos folder). A different event a day away does not (KEMRI vs PyData). Internal folders are skipped, ignored ones never return, future ones are flagged as upcoming.",
+  "inputs": {
+    "events": [
+      {"id": "rec00000000000001", "name": "EuroQSAR 2024", "description": "Ersilia participated in the 24th European Symposium on QSAR in Barcelona", "date": "2024-09-24", "url": "https://www.euroqsar.org", "organisations": [], "country": []},
+      {"id": "rec00000000000002", "name": "Collaborations Workshop 2022", "description": "The Ersilia Model Hub: a demo", "date": "2022-04-05", "url": "https://www.software.ac.uk/cw22", "organisations": [], "country": []},
+      {"id": "rec00000000000003", "name": "MozFest 2025", "description": "Ersilia took part in the Mozilla Festival 2025 in Barcelona", "date": "2025-11-07", "url": "https://www.mozillafestival.org/", "organisations": [], "country": []},
+      {"id": "rec00000000000004", "name": "CAiSMD", "description": "Ersilia was invited to present", "date": "2024-02-28", "url": "", "organisations": [], "country": []},
+      {"id": "rec00000000000005", "name": "Integrating ML into biomedical wet-labs", "description": "PyCon talk by Gemma on her transition from wet lab to dry lab", "date": "2022-12-02", "url": "https://pydata.org/", "organisations": [], "country": []},
+      {"id": "rec00000000000006", "name": "4YFN 2026", "description": "Ersilia attended 4YFN", "date": "2026-03-02", "url": "https://www.4yfn.com", "organisations": [], "country": []}
+    ],
+    "event_folders": [
+      {"key": "event:240924_EuroQSAR", "title": "240924_EuroQSAR", "name": "Euro QSAR", "date": "2024-09-24", "precision": "day", "source": "presentations", "folder_id": "f1"},
+      {"key": "event:220404_CW22", "title": "220404_CW22", "name": "CW22", "date": "2022-04-04", "precision": "day", "source": "presentations", "folder_id": "f2"},
+      {"key": "event:251007_MozFest", "title": "251007_MozFest", "name": "Moz Fest", "date": "2025-10-07", "precision": "day", "source": "presentations", "folder_id": "f3"},
+      {"key": "event:240228_Caismd", "title": "240228_Caismd", "name": "Caismd", "date": "2024-02-28", "precision": "day", "source": "presentations", "folder_id": "f4"},
+      {"key": "event:221201_Kemri", "title": "221201_Kemri", "name": "Kemri", "date": "2022-12-01", "precision": "day", "source": "presentations", "folder_id": "f5"},
+      {"key": "event:2603_4yfn", "title": "2603_4yfn", "name": "4yfn", "date": "2026-03-01", "precision": "month", "source": "photos", "folder_id": "f6"},
+      {"key": "event:2507_Addis", "title": "2507_Addis", "name": "Addis", "date": "2025-07-01", "precision": "month", "source": "photos", "folder_id": "f7"},
+      {"key": "event:250603_AI2050_TeamMeeting", "title": "250603_AI2050_TeamMeeting", "name": "AI2050 Team Meeting", "date": "2025-06-03", "precision": "day", "source": "presentations", "folder_id": "f8"},
+      {"key": "event:230419_NIAID", "title": "230419_NIAID", "name": "NIAID", "date": "2023-04-19", "precision": "day", "source": "presentations", "folder_id": "f9"},
+      {"key": "event:991103_FutureSchool", "title": "991103_FutureSchool", "name": "Future School", "date": "2099-11-03", "precision": "day", "source": "presentations", "folder_id": "f10"}
+    ],
+    "ignore": {"entries": [{"key": "event:230419_NIAID", "label": "NIAID", "reason": "not an Events row", "date": "2026-10-07"}]}
+  },
+  "expect": [
+    {"table": "events", "action": "create", "label": "221201_Kemri", "field": "date", "value": "2022-12-01"},
+    {"table": "events", "action": "create", "label": "2507_Addis"},
+    {"table": "events", "action": "flag", "label": "991103_FutureSchool", "reason_has": "upcoming"}
+  ],
+  "expect_absent": [
+    {"table": "events", "action": "create", "label": "240924_EuroQSAR"},
+    {"table": "events", "action": "create", "label": "220404_CW22"},
+    {"table": "events", "action": "create", "label": "251007_MozFest"},
+    {"table": "events", "action": "create", "label": "240228_Caismd"},
+    {"table": "events", "action": "create", "label": "2603_4yfn"},
+    {"table": "events", "action": "create", "label": "250603_AI2050_TeamMeeting"},
+    {"table": "events", "action": "create", "label": "230419_NIAID"},
+    {"table": "events", "action": "create", "label": "991103_FutureSchool"}
+  ]
+}
