@@ -225,19 +225,22 @@ smallest paper is too large (see lessons-learned). The upload is manual by desig
   only with the user's OK.
 - **Local PDF** (the usual case; the upload is manual by design): prepare it for the user.
   ```bash
-  python scripts/prepare_paper.py <validated pdf> --name <canonical_name>
+  python scripts/prepare_paper.py <validated pdf> --name <canonical_name> --open
   ```
   This copies the paper to the outbox, `ersilia-model-papers/<canonical_name>` inside
   the user's Downloads folder, and prints its exact `size_bytes`. The Downloads folder
   is resolved per OS (Windows known folder, XDG on Linux, `~/Downloads` on macOS);
   override it with `$ERSILIA_MODEL_PAPERS_OUTBOX`.
+  - `--open` opens the outbox in the file manager and the Drive folder in the browser
+    automatically, without asking: both are local and harmless, and the user only has
+    to drag the file across. When staging several papers in one go, pass `--open` on the
+    last one only, so the windows open once.
+  - If `opened.done` is false (no screen, e.g. over SSH), say so and give the
+    `staged_path` and `drive_folder_url` instead.
   - If `leftovers` is non-empty, tell the user. Those are papers staged in an earlier
     incorporation and never confirmed as uploaded. Offer to check each against the
     Drive folder; never delete them unasked.
-  - Give the user the `staged_path` and the `drive_folder_url`. Offer to open both by
-    running the `open_folder` and `open_drive` commands from the JSON; they are already
-    right for the current OS.
-  - Then wait for them to say it is uploaded.
+  - Tell the user which file to drag in, then wait for them to say it is uploaded.
 
 Then **verify** with `search_files` that a file with the canonical name exists in the
 folder, and, for a manual upload, that its `fileSize` equals `size_bytes`. A different

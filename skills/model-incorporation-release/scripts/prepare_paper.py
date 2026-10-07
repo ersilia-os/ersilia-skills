@@ -31,8 +31,10 @@ The Downloads folder is resolved per OS, because it is not always ``~/Downloads`
 * macOS, and the fallback everywhere: ``~/Downloads`` (on macOS the folder is always
   named that on disk, whatever the display language).
 
-The JSON also carries ``open_folder`` and ``open_drive``, ready-made commands that open
-the outbox in the file manager and the Drive folder in the browser on the current OS.
+With ``--open`` it also opens the outbox in the file manager and the Drive folder in the
+browser, on whatever OS it runs on, so the user only has to drag the file across. On a
+machine with no screen it opens nothing and says so under ``opened``. The JSON always
+carries ``open_folder`` and ``open_drive``, the same two actions as shell commands.
 """
 
 from __future__ import annotations
@@ -131,6 +133,11 @@ def main():
         type=int,
         help="with --clear: the fileSize Drive reports; the copy is deleted only if it matches",
     )
+    parser.add_argument(
+        "--open",
+        action="store_true",
+        help="after staging, open the outbox in the file manager and the Drive folder in the browser",
+    )
     args = parser.parse_args()
 
     if not args.name.endswith(".pdf") or "/" in args.name:
@@ -175,9 +182,39 @@ def main():
             ),
             "open_folder": open_commands(outbox)[0],
             "open_drive": open_commands(outbox)[1],
+            "opened": open_both(outbox) if args.open else {"done": False, "reason": "--open not given"},
             "leftovers": leftovers,
         }
     )
+
+
+def open_both(outbox):
+    """Open the outbox in the file manager and the Drive folder in the browser.
+
+    Best effort and never fatal: on a machine with no screen (SSH, CI) it opens nothing
+    and says why, and the user still has ``staged_path`` and ``drive_folder_url``.
+    """
+    import webbrowser
+
+    if sys.platform.startswith("linux") and not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
+        return {"done": False, "reason": "no graphical display (SSH or headless session)"}
+    try:
+        if sys.platform == "win32":
+            os.startfile(str(outbox))  # noqa: S606 - opens a folder the user owns
+        else:
+            launcher = "open" if sys.platform == "darwin" else "xdg-open"
+            if not shutil.which(launcher):
+                return {"done": False, "reason": f"{launcher} is not installed"}
+            subprocess.Popen(
+                [launcher, str(outbox)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+        browser = webbrowser.open(PAPERS_FOLDER_URL)
+    except OSError as exc:
+        return {"done": False, "reason": f"could not open: {exc}"}
+    return {"done": True, "browser": bool(browser)}
 
 
 def clear(outbox, name, drive_size):
