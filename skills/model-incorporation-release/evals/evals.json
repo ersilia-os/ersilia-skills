@@ -1,0 +1,47 @@
+{
+  "skill_name": "model-incorporation-release",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Check whether eos88ir is fully released. Check only, don't change anything.",
+      "expected_output": "Runs ci_status.py and release_state.py with --check-only behaviour. Reports CI green on 146d02c (upload and image runs green, amd64 and arm64 image tests both passed), release v1.0.0 created by github-actions[bot], DockerHub latest and v1.0.0 sharing digest sha256:69fe5ba2…, metadata.yml Ready / v1.0.0. States that the tag sitting behind main's bot commits is expected for a bot release. Lists the 'Initial commit' failure as noise, not a failure. Makes no release, Drive or issue changes.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "Why did the release of eos8gop need two retag attempts? Is it fine now?",
+      "expected_output": "Explains from the run history and lessons-learned: v1.0.0 was published manually while 'Test model image' was still running (it later timed out at 6 h); the existing tag made post-upload skip its own release; the manual release's retag workflow failed twice with 'failed to push some refs' because the tag (b27702b) was behind main HEAD; it succeeded once v1.0.0 pointed at e6a6762, main HEAD. Confirms it is fine now: release_state.py returns 'verified' with matching DockerHub digests.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Release eos70bl.",
+      "expected_output": "ci_status.py returns overall 'not_merged': main holds only the template's Initial commit, there are no open PRs, and the latest PR test failed. The skill stops before any release step, says the incorporation PR has to be merged first, and hands the failing PR test to ersilia-model-test. It does not create a release, touch Drive or close request #1914.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Put the paper for eos55vx in the models drive folder.",
+      "expected_output": "paper_target.py finds that eos6a1h (Ready) and eos8he2 (In progress) cite the same DOI 10.1038/s42256-026-01229-5. Proposes the canonical name eos55vx_eos6a1h.pdf and asks whether eos8he2 should be included. Searches the folder under all three IDs before depositing. Gets the paper from the user or via fetch_open_paper.py, validates it with check_pdf.py, and deposits it with copy_file when the paper is already in Drive; for a local PDF it stages the file with prepare_paper.py at Downloads/ersilia-model-papers/eos55vx_eos6a1h.pdf, gives the user that path and the Drive folder link to drag it in, and never uses create_file. After the user says it is uploaded, it verifies with search_files that the name exists and fileSize equals the staged size_bytes. Once verified, it clears the staged copy with prepare_paper.py --clear --drive-size <fileSize>, which deletes it only when the sizes match, so Downloads/ersilia-model-papers/ is empty for the next incorporation.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Finish the incorporation of eos2srx. I don't have the paper handy.",
+      "expected_output": "CI and release are verified. For the paper, fetch_open_paper.py exits 2 with status 'closed' (the JCIM DOI 10.1021/acs.jcim.6c02529 is not open access), so the skill asks the user for the PDF and gives the doi.org landing page. It does not deposit anything without a validated PDF and does not try to work around the paywall. Because no paper is verified, the request issue stays open unless the user explicitly says to close it without the paper; if it is closed, the comment is exactly 'This model has been incorporated. 🚀'.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Is eos1ltv done? Anything I should know before announcing it?",
+      "expected_output": "Reports CI green and v1.0.0 verified, with two warnings carried into the summary: test-image-arm64 failed inside an otherwise green image run, so the published image is amd64-only (Docker Architecture [AMD64]); and the latest PR test failed although the PR was merged. Neither blocks the release.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "eos88ir is released, just close the model request. I'll upload the paper to Drive later.",
+      "expected_output": "Finds that request #1936 is already closed, so there is nothing to close. Still reports eos88ir's paper as not deposited: search_files finds no eos88ir PDF in ersilia_models_articles. Offers to prepare it now; fetch_open_paper.py exits 2 for the Nat Commun DOI because nature.com serves HTML to scripts, so it asks for the PDF and gives the doi.org landing page. The summary marks the paper line ❌ and does not call the incorporation complete. It does not reopen or comment on the closed issue unasked. (Had the issue been open, closing it would wait for a verified paper or an explicit 'close it without the paper'.)",
+      "files": []
+    }
+  ]
+}

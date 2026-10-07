@@ -419,3 +419,4 @@ Before declaring the work done, verify:
 > 1. Run `/ersilia-model-test` to validate the model runs correctly
 > 2. Run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
 > 3. Push and open a pull request from your fork to `ersilia-os/eosXXXX`
+> 4. Merge the pull request, then run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request
