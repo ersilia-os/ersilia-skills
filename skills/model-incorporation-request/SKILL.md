@@ -82,11 +82,47 @@ https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/
 ```
 Both are newline-separated. Keep both lists in memory — you will validate tags and the license against them.
 
+
+### 1d. Check whether the model is already requested or in the Hub
+
+Do this before drafting. A duplicate request costs an approval, a repository and an Airtable
+row. Scripts live in `scripts/` next to this file; run them by full path. This one prints JSON.
+
+```bash
+python scripts/check_duplicates.py --publication "<publication-url>" --source "<source-url>" \
+  --name "<tool name used in the paper>" --query "<task> <endpoint>"
+```
+
+It runs two checks. **exact**: the DOI, arXiv id or source repository already appears in a
+`new-model` request (open or closed) or in the published-models list. **similar**:
+`ersilia_search` by tool name and by task and endpoint across every status, plus a scan of the
+non-Ready models, whose empty descriptions a text query misses. `related_requests` mention the
+tool name but share no identifier.
+
+Report what it found at the top of Phase 2, before the table:
+
+| Finding | Say |
+|---|---|
+| exact, request open | Already requested as #N (repo eosXXXX if created) |
+| exact, request closed with a repo, or in the published list | Already in the Hub as eosXXXX |
+| exact, request closed with no repo | Requested as #N and closed without a repository |
+| similar, Ready | Potential overlap with eosXXXX |
+| similar, In progress or In maintenance | Already in the pipeline as eosXXXX |
+| similar, Archived | Previously incorporated, now archived as eosXXXX |
+| related request | Possibly related request #N |
+
+Do not decide for the user. An exact match is a reason to stop and ask, not to refuse: the Hub
+deliberately deploys one paper as several entries (CReM mutate and grow, the four MolGrad
+models), so ask what this request adds. Never guess why a request was closed. If nothing is
+found, say so in one line and carry on. If the script reports a note, such as `ersilia_search`
+missing, pass it on instead of presenting the result as clean. Limits and how to read the
+output: `references/duplicate-check.md`.
+
 ---
 
 ## Phase 2 – Propose All Fields and Confirm
 
-Present all proposed values in a single table and wait for the user's feedback before proceeding. Do not open the issue until the user explicitly confirms.
+Present all proposed values in a single table and wait for the user's feedback before proceeding. Do not open the issue until the user explicitly confirms. If Phase 1d found an exact match, stop and ask whether to continue before building the table.
 
 | Field | Proposed value |
 |---|---|
