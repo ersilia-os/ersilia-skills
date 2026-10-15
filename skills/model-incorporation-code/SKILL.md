@@ -5,8 +5,8 @@ description: >
   Use this skill whenever the user has: (1) a source model repository with the
   original ML code, (2) an ersilia-model-template repository (already forked/cloned),
   and (3) optionally a PDF of the scientific article — and needs to wire up the
-  actual model code. The skill handles all coding steps: copying checkpoints with
-  git-lfs tracking, adapting main.py to replace the molecular-weight placeholder with
+  actual model code. The skill handles all coding steps: copying checkpoints and
+  persisting them with eosvc, adapting main.py to replace the molecular-weight placeholder with
   real inference, creating run_columns.csv, updating install.yml with pinned versions,
   and producing run_input.csv and run_output.csv by actually running the model.
   Trigger on phrases like "incorporate model code", "fill in the template", "adapt
@@ -93,21 +93,11 @@ Google Drive, direct URL) in the README.
 1. Copy checkpoint files into `<template-repo-path>/model/checkpoints/`. If they are linked
    externally, download them using `wget`, `curl`, or the appropriate Python client
    (e.g. `huggingface_hub`, `gdown`).
-2. For each checkpoint file **≥ 100 MB**, ask the user how they want to store it:
-   - **Git LFS** — file stays in the repository, tracked via Git LFS.
-   - **eosvc** — file is hosted externally on the Ersilia volume cloud storage; do not
-     commit it to the repository.
-
-   Wait for the user's answer before proceeding. If the user chooses **Git LFS**:
-   - Run `git lfs install` once if not already done.
-   - Add a tracking line to `.gitattributes` (e.g. `*.pt filter=lfs diff=lfs merge=lfs -text`).
-   - Run `git lfs track "<pattern>"` or manually add the entry.
-   - Stage `.gitattributes` with `git add .gitattributes`.
-
-   If the user chooses **eosvc**:
-   - Do not add the checkpoint file to git.
-   - Upload it to eosvc from the model repo root (requires the `eosvc` conda environment
-     and AWS credentials configured in `.env` or `.config`):
+2. Persist every checkpoint with eosvc, whatever its size. Do not ask how to store it, and
+   never offer Git LFS: `model/checkpoints/` is gitignored on purpose, so nothing in it is
+   added to git.
+   - Upload from the model repo root (requires the `eosvc` conda environment and AWS
+     credentials configured in `.env` or `.config`):
      ```bash
      conda run -n eosvc eosvc upload --path .
      ```
@@ -117,16 +107,12 @@ Google Drive, direct URL) in the README.
 
 3. If no checkpoints are needed (pure algorithmic model), note this explicitly and
    leave the directory empty.
-4. **Cleanup — always run these two commands regardless of which storage option was chosen:**
+4. **Cleanup — always delete both template leftovers:**
    ```bash
-   rm -f <template-repo-path>/mock.txt
+   rm -f <template-repo-path>/mock.txt <template-repo-path>/.gitattributes
    ```
-   Then, if **no files are tracked by Git LFS** (either no large checkpoints, or all
-   large checkpoints are stored on eosvc), also delete:
-   ```bash
-   rm -f <template-repo-path>/.gitattributes
-   ```
-   Keep `.gitattributes` only when at least one file is actually tracked by Git LFS.
+   They exist only for a Git LFS mock the template is created with, and `.gitattributes`
+   holds nothing else.
 
 ---
 
@@ -398,10 +384,8 @@ before writing the file. DO NOT FABRICATE OUTPUT VALUES.
 
 Before declaring the work done, verify:
 
-- [ ] `model/checkpoints/` contains all required files; large files (≥ 100 MB) stored via Git LFS or eosvc per user choice
-- [ ] `mock.txt` deleted from the template root in all cases
-- [ ] If any file is tracked by Git LFS: `.gitattributes` updated and staged
-- [ ] If no files are tracked by Git LFS: `.gitattributes` deleted from the template root
+- [ ] `model/checkpoints/` contains all required files, none of them added to git, and they are uploaded with eosvc
+- [ ] `mock.txt` and `.gitattributes` deleted from the template root
 - [ ] `model/framework/code/main.py` runs end-to-end without errors
 - [ ] `model/framework/columns/run_columns.csv` has correct headers and follows naming rules
 - [ ] `install.yml` has all dependencies pinned to exact versions
