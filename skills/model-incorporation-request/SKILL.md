@@ -283,9 +283,7 @@ a second run would create a second repository.
 
 **Fork and clone.** Only when the status is `created`; otherwise there is no repository yet.
 Take `<id>` from the `repo` the script printed, and `<dir>` from `--clone-dir` (default
-`~/Desktop`). The template tracks a mock file with git-lfs, so check `git lfs version` first
-and ask the user to install it if it is missing. Never overwrite: if `<dir>/<id>` already
-exists, say so and stop here.
+`~/Desktop`). Never overwrite: if `<dir>/<id>` already exists, say so and stop here.
 
 ```bash
 gh repo fork ersilia-os/<id> --clone=false --remote=false
