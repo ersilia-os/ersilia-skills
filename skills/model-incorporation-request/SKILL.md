@@ -21,6 +21,7 @@ Your job is to open a model request issue on [ersilia-os/ersilia](https://github
 - `--pdf <pdf-path>` (required): local path to the publication PDF
 - `--publication <url>` (required): URL to the publication (DOI, arXiv, journal)
 - `--source <url>` (required): URL to the source code repository (GitHub, GitLab, Zenodo, etc.)
+- `--no-approve` (optional): do not post `/approve`; leave approval to someone else
 
 If any argument is missing, ask the user before proceeding.
 
@@ -191,7 +192,12 @@ prefer a DOI (Zenodo) or a package page (PyPI, Conda), which are archived.
 **License**
 Use the value established in Phase 1b, and only values from the `license.txt` list fetched in Phase 1c. Use `None` if no LICENSE file is found. Under the table, say in one line how the licence was verified, and add any flag raised in Phase 1b.
 
-After presenting the table, ask: *"Does this look correct? Let me know any changes and I'll open the issue."*
+Before asking, run `gh api repos/ersilia-os/ersilia --jq .permissions.push`. `/approve` only
+works for users with write access, so this decides whether Phase 3 can post it. Then, after
+presenting the table, ask: *"Does this look correct? Let me know any changes and I'll open the issue."*
+and say what else confirming will do: assign the user to the issue and, when the check printed
+`true` and `--no-approve` was not passed, post `/approve` to create the model repository. If the
+check printed anything else, say that an admin will need to approve it.
 
 ---
 
@@ -242,13 +248,46 @@ EOF
 )"
 ```
 
+Keep the issue number from the URL that `gh issue create` prints, then:
+
+**Assign the user.** Do it as a separate call, because an assignee GitHub rejects would make
+`gh issue create` fail and open nothing:
+
+```bash
+gh issue edit <number> --repo ersilia-os/ersilia --add-assignee "@me"
+```
+
+If it fails, say so and carry on.
+
+**Approve.** Skip this if `--no-approve` was passed or the Phase 2 check printed anything other
+than `true`: `/approve` is ignored for users without write access, and the skill would wait for a
+bot comment that never comes. Otherwise post it. The issue body must already be final, because
+approval reads it to build the repository and to sync Airtable and S3.
+
+```bash
+gh issue comment <number> --repo ersilia-os/ersilia --body "/approve"
+```
+
+Then wait for the bot, with the Bash timeout raised to 10 minutes (600000 ms), since approval
+normally takes about two minutes:
+
+```bash
+python scripts/wait_for_repo.py <number>
+```
+
+It prints JSON, `status` being `created` (with `repo`, the eosXXXX name), `failed` (with the
+`workflow_url`), `timeout`, `not_approved` or `error`. On `failed`, go to Phase 3.5. On
+`timeout` or `error`, give the user the issue link and stop. Do not post `/approve` again, since
+a second run would create a second repository.
+
 ---
 
 ## Phase 3.5 – If `/approve` Fails
 
-A maintainer approves the request by commenting `/approve` on the issue, which triggers
+Commenting `/approve` on the issue, whether the skill does it or a maintainer, triggers
 the `Approve Command Dispatch` workflow. If that workflow fails (a `github-actions` bot
-comment appears saying "Workflow Failure ❌"), do this:
+comment appears saying "Workflow Failure ❌", which `wait_for_repo.py` reports as `failed`),
+do this:
 
 1. **Read the actual error**, don't guess. Get the run ID from the bot comment's log link
    or from `gh issue view <n> --repo ersilia-os/ersilia --json comments`, then:
@@ -259,7 +298,8 @@ comment appears saying "Workflow Failure ❌"), do this:
    ends in `ValueError: Model description is N characters, which exceeds the 600-character
    limit.` Fix by editing the issue body (`gh issue edit <n> --repo ersilia-os/ersilia
    --body "..."`, same heading format as Phase 3) with a re-counted description, then
-   comment `/approve` again.
+   comment `/approve` again and run `python scripts/wait_for_repo.py <n>` again; it reads
+   only the bot comments after the latest `/approve`, so the earlier failure is ignored.
 2. **Don't assume the failure-notice repo was actually created.** The bot's failure
    comment says "you may need to delete the following repo... since the run was not fully
    successful" *unconditionally* — it does not know whether repo creation itself
@@ -278,12 +318,14 @@ comment appears saying "Workflow Failure ❌"), do this:
 
 ## Phase 4 – Tell the User What Happens Next
 
-After the issue is opened, print the issue URL and explain the next steps:
+After the issue is opened, print the issue URL, say whether the user was assigned and whether
+`/approve` was posted, and explain the next steps:
 
-1. An Ersilia admin will review and approve the request
-2. Once approved, a new model repository (`eosXXXX`) is created under `ersilia-os`
-3. Fork that repository and clone it locally
-4. Run `/model-incorporation-metadata` to fill in the metadata
-5. Run `/model-incorporation-code` to wire up the model code
-6. Run `/ersilia-model-test` to validate the model runs correctly before submitting a PR
-7. Run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
+1. If `/approve` was posted and the bot answered, the model repository (`eosXXXX`, the `repo`
+   the script printed) now exists under `ersilia-os`. Otherwise an admin comments `/approve` on
+   the issue and the bot announces the repository there
+2. Fork that repository and clone it locally
+3. Run `/model-incorporation-metadata` to fill in the metadata
+4. Run `/model-incorporation-code` to wire up the model code
+5. Run `/ersilia-model-test` to validate the model runs correctly before submitting a PR
+6. Run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
