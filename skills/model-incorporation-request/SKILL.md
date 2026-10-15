@@ -22,6 +22,7 @@ Your job is to open a model request issue on [ersilia-os/ersilia](https://github
 - `--publication <url>` (required): URL to the publication (DOI, arXiv, journal)
 - `--source <url>` (required): URL to the source code repository (GitHub, GitLab, Zenodo, etc.)
 - `--no-approve` (optional): do not post `/approve`; leave approval to someone else
+- `--clone-dir <path>` (optional): where to clone the fork (default `~/Desktop`)
 
 If any argument is missing, ask the user before proceeding.
 
@@ -196,8 +197,8 @@ Before asking, run `gh api repos/ersilia-os/ersilia --jq .permissions.push`. `/a
 works for users with write access, so this decides whether Phase 3 can post it. Then, after
 presenting the table, ask: *"Does this look correct? Let me know any changes and I'll open the issue."*
 and say what else confirming will do: assign the user to the issue and, when the check printed
-`true` and `--no-approve` was not passed, post `/approve` to create the model repository. If the
-check printed anything else, say that an admin will need to approve it.
+`true` and `--no-approve` was not passed, post `/approve` to create the model repository, then fork it and clone it into the clone
+directory. If the check printed anything else, say that an admin will need to approve it.
 
 ---
 
@@ -280,6 +281,23 @@ It prints JSON, `status` being `created` (with `repo`, the eosXXXX name), `faile
 `timeout` or `error`, give the user the issue link and stop. Do not post `/approve` again, since
 a second run would create a second repository.
 
+**Fork and clone.** Only when the status is `created`; otherwise there is no repository yet.
+Take `<id>` from the `repo` the script printed, and `<dir>` from `--clone-dir` (default
+`~/Desktop`). The template tracks a mock file with git-lfs, so check `git lfs version` first
+and ask the user to install it if it is missing. Never overwrite: if `<dir>/<id>` already
+exists, say so and stop here.
+
+```bash
+gh repo fork ersilia-os/<id> --clone=false --remote=false
+gh repo clone "$(gh api user --jq .login)/<id>" <dir>/<id>
+```
+
+Forking is safe to repeat: if the user already has the fork, `gh` says so and carries on. Because
+the repository is a fork, `gh repo clone` also adds `upstream` pointing at `ersilia-os/<id>`.
+If the clone fails straight after the fork was created, wait a few seconds and retry, since a new
+fork takes a moment to become ready. Finish by checking `git -C <dir>/<id> remote -v`: `origin`
+should be the user's fork and `upstream` should be `ersilia-os/<id>`.
+
 ---
 
 ## Phase 3.5 – If `/approve` Fails
@@ -318,13 +336,13 @@ do this:
 
 ## Phase 4 – Tell the User What Happens Next
 
-After the issue is opened, print the issue URL, say whether the user was assigned and whether
-`/approve` was posted, and explain the next steps:
+After the issue is opened, print the issue URL, say whether the user was assigned, whether
+`/approve` was posted and where the fork was cloned, and explain the next steps:
 
 1. If `/approve` was posted and the bot answered, the model repository (`eosXXXX`, the `repo`
    the script printed) now exists under `ersilia-os`. Otherwise an admin comments `/approve` on
    the issue and the bot announces the repository there
-2. Fork that repository and clone it locally
+2. The skill forked it to the user's account and cloned it to `<dir>/<id>`, with `upstream` set. If it did not, fork and clone it by hand
 3. Run `/model-incorporation-metadata` to fill in the metadata
 4. Run `/model-incorporation-code` to wire up the model code
 5. Run `/ersilia-model-test` to validate the model runs correctly before submitting a PR
