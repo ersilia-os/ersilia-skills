@@ -41,6 +41,38 @@ Use WebFetch on the repository URL (README and root files) to extract:
 - License — look for a LICENSE file or license field in pyproject.toml / setup.py / package.json
 - Any additional context for the description or tags
 
+**Verify the licence at the source rather than trusting the README.** For a GitHub
+repository, ask the API what it detected:
+
+```bash
+gh api repos/<owner>/<repo>/license --jq '.license.spdx_id'
+```
+
+- an id that appears in `license.txt` → use it.
+- `GPL-3.0`, `AGPL-3.0` or `LGPL-3.0` → GitHub uses these older ids, but `license.txt` only has
+  the `-only` and `-or-later` forms. The LICENSE file does not say which, so read the README or
+  a source-file header: "either version 3 or any later version" means `-or-later`, version 3
+  alone means `-only`. If neither says, ask the user.
+- any other id missing from `license.txt` (for example `GPL-2.0` or `Unlicense`) → ask the user
+  which value fits; never invent one.
+- `NOASSERTION` or `Other` → GitHub found a licence file it cannot classify, which is what
+  custom and non-commercial terms look like. Read the text
+  (`gh api repos/<owner>/<repo>/license --jq .content | base64 -d | head -40`), name the
+  licence, and take the closest `license.txt` value (`Non-commercial` for any
+  non-commercial terms).
+- the command fails with `404` → there is no licence file, so the value is `None`.
+
+For GitLab, Zenodo or a package page, read the licence from that page instead.
+
+The Hub already holds models under all three situations, so none of them blocks a request.
+They are still worth raising before the user confirms, because they are cheapest to decide now:
+
+- `None` — code with no licence is all-rights-reserved by default, so redistributing it rests
+  on the authors' goodwill. Suggest the user ask them to add one.
+- non-commercial — quote the terms, since they bind everyone who runs the model.
+- checkpoints on different terms from the code — check the README or model card for a separate
+  licence on the weights, and say so.
+
 ### 1c. Fetch the valid tag and license lists
 
 Fetch both files at runtime:
@@ -121,7 +153,7 @@ Where the upstream repository may not last — a personal account, an unreleased
 prefer a DOI (Zenodo) or a package page (PyPI, Conda), which are archived.
 
 **License**
-Use only values from the `license.txt` list fetched in Phase 1c. Use `None` if no LICENSE file is found.
+Use the value established in Phase 1b, and only values from the `license.txt` list fetched in Phase 1c. Use `None` if no LICENSE file is found. Under the table, say in one line how the licence was verified, and add any flag raised in Phase 1b.
 
 After presenting the table, ask: *"Does this look correct? Let me know any changes and I'll open the issue."*
 
