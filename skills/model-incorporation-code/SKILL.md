@@ -107,12 +107,14 @@ Google Drive, direct URL) in the README.
 
 3. If no checkpoints are needed (pure algorithmic model), note this explicitly and
    leave the directory empty.
-4. **Cleanup — always delete both template leftovers:**
+4. **Cleanup — always run this after the upload:**
    ```bash
    rm -f <template-repo-path>/mock.txt <template-repo-path>/.gitattributes
+   rm -rf <template-repo-path>/.eosvc
    ```
-   They exist only for a Git LFS mock the template is created with, and `.gitattributes`
-   holds nothing else.
+   `mock.txt` and `.gitattributes` exist only for a Git LFS mock the template is created with,
+   and `.gitattributes` holds nothing else. `.eosvc/` is a lock file that `eosvc upload` leaves in
+   the repository root; it is not gitignored, so it would show up as untracked.
 
 ---
 
@@ -385,7 +387,7 @@ before writing the file. DO NOT FABRICATE OUTPUT VALUES.
 Before declaring the work done, verify:
 
 - [ ] `model/checkpoints/` contains all required files, none of them added to git, and they are uploaded with eosvc
-- [ ] `mock.txt` and `.gitattributes` deleted from the template root
+- [ ] `mock.txt`, `.gitattributes` and `.eosvc/` deleted from the template root
 - [ ] `model/framework/code/main.py` runs end-to-end without errors
 - [ ] `model/framework/columns/run_columns.csv` has correct headers and follows naming rules
 - [ ] `install.yml` has all dependencies pinned to exact versions
