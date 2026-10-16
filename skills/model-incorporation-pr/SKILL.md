@@ -156,8 +156,8 @@ Re-run the skip-token grep from preflight step 6 on `HEAD` before going on.
 Show the user the commit(s) and the plan: push `origin main` (their fork `<login>/<id>`),
 then open a PR into `ersilia-os/<id>:main`.
 
-If `/model-optimization` has not run on this model and the user has not ruled it out, ask
-with AskUserQuestion:
+If `/model-optimization` is installed (`test -d ~/.claude/skills/model-optimization`), has not
+run on this model and the user has not ruled it out, ask with AskUserQuestion:
 
 - **Push and open the PR now.** Merging is asked about later, when the check is green.
 - **Push, open the PR and merge it once every check is green.** One approval covers the
@@ -167,7 +167,7 @@ with AskUserQuestion:
   off because it sees local commits ahead of `origin/main`. Tell the user to run it and then
   to invoke this skill again, and stop here.
 
-If optimization already ran, or the user already said to skip it, ask only the first two.
+If it is not installed, already ran, or the user already said to skip it, ask only the first two.
 Only on a yes:
 
 ```bash
