@@ -130,3 +130,4 @@ Once the test passes:
 
 > 1. Run `/model-incorporation-reproduce` to verify the model reproduces the metrics reported in its paper
 > 2. Commit the fixes, push, and open a pull request from your fork to `ersilia-os/<model_id>`
+> 3. Merge the pull request, then run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request

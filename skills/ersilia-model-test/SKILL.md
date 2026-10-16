@@ -109,3 +109,4 @@ rm -f <model_path>/<model_id>-test.json
 > **Remaining steps:**
 > 1. Run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
 > 2. Push and open a pull request from your fork to `ersilia-os/eosXXXX`
+> 3. Merge the pull request, then run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request
