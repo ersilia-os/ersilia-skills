@@ -124,9 +124,13 @@ git add -- <path> <path> ...
 git diff --cached --stat
 ```
 
-If `/model-optimization` left uncommitted changes to `install.yml` (it does when the model is
-not yet merged), commit them second and separately, so the reviewer can diff the
-optimization on its own.
+**Re-invoked after `/model-optimization`.** The first commit already exists (local commits
+ahead of `origin/main`) and the working tree holds the optimizer's uncommitted `install.yml`
+changes. Commit those as a second, separate commit, so the reviewer can diff the optimization
+on its own: `Optimize <id> install.yml`, with the size change from the optimizer's report in
+the body. If the tree is clean, the optimizer found nothing to remove: say so, commit
+nothing, and go on to Step 2. If the work is already committed and the tree is clean for any
+other reason, skip straight to Step 2.
 
 Write the message to a file and commit with `-F`:
 
@@ -144,9 +148,20 @@ Re-run the skip-token grep from preflight step 6 on `HEAD` before going on.
 
 ## Step 2: Ask, then push
 
-Show the user the staged files, the commit message(s), and the plan: push `origin main`
-(their fork `<login>/<id>`), then open a PR into `ersilia-os/<id>:main`. Ask for approval
-with AskUserQuestion. Only on a yes:
+Show the user the commit(s) and the plan: push `origin main` (their fork `<login>/<id>`),
+then open a PR into `ersilia-os/<id>:main`.
+
+If `/model-optimization` has not run on this model and the user has not ruled it out, ask
+with AskUserQuestion:
+
+- **Push and open the PR now.**
+- **Run `/model-optimization` first.** Nothing is pushed and the commits stay local. The
+  optimizer edits `install.yml` and leaves the change uncommitted, and its own PR step stays
+  off because it sees local commits ahead of `origin/main`. Tell the user to run it and then
+  to invoke this skill again, and stop here.
+
+If optimization already ran, or the user already said to skip it, ask only for approval to
+push. Only on a yes:
 
 ```bash
 git push origin main
