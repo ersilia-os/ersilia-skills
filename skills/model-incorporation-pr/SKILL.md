@@ -6,9 +6,10 @@ description: >
   where they apply, reproduced and optimized) and the user wants to submit it. It checks
   the repository, stages only the intended files, commits on the fork's main branch, asks
   for explicit approval, pushes to the fork, opens the PR from the fork's main into the
-  organisation's main with a body that says what was and was not run, and reports the PR
-  check. Trigger on phrases like "open the PR", "submit the model", "commit and push the
-  incorporation", "push eosXXXX", or "/model-incorporation-pr".
+  organisation's main with a body that says what was and was not run, reports the PR check
+  and, once the user has authorised it and every check is green, merges it. Trigger on
+  phrases like "open the PR", "submit the model", "commit and push the incorporation",
+  "push eosXXXX", or "/model-incorporation-pr".
 argument-hint: <model_id> <model_path>
 allowed-tools: [Bash, Read, AskUserQuestion]
 ---
@@ -16,7 +17,7 @@ allowed-tools: [Bash, Read, AskUserQuestion]
 # Model Incorporation – Pull Request
 
 You take a finished incorporation from files on disk to an open pull request with a running
-check. You never merge it.
+check, and, if the user authorises it, on to a merged one once every check is green.
 
 ## Parse arguments
 
@@ -41,9 +42,11 @@ the PR with head `<login>:main`.
 
 ## Rules
 
-1. **Every push needs explicit approval**, each time. Approval to commit is not approval to push.
-2. Never force-push, never merge, never close an issue, never edit `README.md` (it is
-   generated from the metadata).
+1. **Every push and every merge needs explicit approval.** Approval to commit is not approval
+   to push. Approval to push is not approval to merge unless the user chose the option that
+   says so (Step 2).
+2. Never force-push, never close an issue, never edit `README.md` (it is generated from the
+   metadata).
 3. **No CI-skip token** in any commit message of this PR: `[skip ci]`, `[ci skip]`,
    `[no ci]`, `[skip actions]`, `[actions skip]`, `skip-checks: true`. GitHub honours them
    anywhere in the message, even in prose that only mentions them, and the PR check would
@@ -52,7 +55,9 @@ the PR with head `<login>:main`.
    `Resolves`. The issue is closed later, by `/model-incorporation-release`.
 5. Do not re-run or dispatch workflows without asking. The organisation's Actions budget is
    limited.
-6. Say in the PR what was not run. A skipped reproduction or optimization is stated, with the
+6. Merge only through Step 5: every check green, head unchanged since it went green, no
+   `--admin`, and never `--delete-branch` (the PR's head is the fork's `main`).
+7. Say in the PR what was not run. A skipped reproduction or optimization is stated, with the
    reason, never left for the reviewer to infer.
 
 ## Step 0: Preflight
@@ -154,14 +159,16 @@ then open a PR into `ersilia-os/<id>:main`.
 If `/model-optimization` has not run on this model and the user has not ruled it out, ask
 with AskUserQuestion:
 
-- **Push and open the PR now.**
+- **Push and open the PR now.** Merging is asked about later, when the check is green.
+- **Push, open the PR and merge it once every check is green.** One approval covers the
+  merge, if Step 5's conditions hold.
 - **Run `/model-optimization` first.** Nothing is pushed and the commits stay local. The
   optimizer edits `install.yml` and leaves the change uncommitted, and its own PR step stays
   off because it sees local commits ahead of `origin/main`. Tell the user to run it and then
   to invoke this skill again, and stop here.
 
-If optimization already ran, or the user already said to skip it, ask only for approval to
-push. Only on a yes:
+If optimization already ran, or the user already said to skip it, ask only the first two.
+Only on a yes:
 
 ```bash
 git push origin main
@@ -209,16 +216,47 @@ gh pr create --repo ersilia-os/$ID --base main --head "$LOGIN:main" \
   the fix (`/model-fixing` covers the usual ones), and commit it to the fork's `main`. The PR
   updates itself. Ask before every push, and do not re-run the workflow.
 
-Report the PR URL, the state of the check, and what was not run. Then stop.
+## Step 5: Merge when green
+
+Only when every check has finished green. If the user chose the merge option in Step 2, go
+ahead. Otherwise ask first, in one line, and merge only on a yes.
+
+```bash
+gh pr view <n> --repo ersilia-os/$ID --json state,mergeable,mergeStateStatus,headRefOid,statusCheckRollup
+```
+
+Green means `state` is `OPEN`, `mergeable` is `MERGEABLE`, `mergeStateStatus` is `CLEAN`, every
+entry of `statusCheckRollup` concluded `SUCCESS` (none pending, skipped or failed) and
+`headRefOid` is the commit you pushed. Then:
+
+```bash
+gh pr merge <n> --repo ersilia-os/$ID --merge --match-head-commit <headRefOid>
+```
+
+`--merge` makes a merge commit, as in eos5j3l#2 and eos92m1#1 (eos55vx#2 was squashed), and
+it keeps the optimization commit visible. `--match-head-commit` refuses the
+merge if anything was pushed after the check went green.
+
+If the state is anything else, report it and stop. `BLOCKED` (a required review) and a failed
+check are for the user to resolve. Do not use `--admin`, and do not wait in a loop for a state
+that is not coming.
+
+The merge makes `upload-model.yml` run on the organisation repository's `main`: source test,
+S3 upload and image build. Do not wait for it and do not dispatch anything. Report the merge
+and point to `/model-incorporation-release`, which follows the build.
+
+Report the PR URL, the state of the checks, what was not run, and whether it was merged.
+Then stop.
 
 ## Never
 
-Merge, force-push, push without approval, close or edit the request issue, edit `README.md`,
+Force-push, push or merge without approval, merge with a pending, failed or skipped check,
+use `--admin` or `--delete-branch`, close or edit the request issue, edit `README.md`,
 change repository settings or secrets, add a CI-skip token, or use `Fixes`.
 
 ## Next steps
 
 > **Remaining steps:**
-> 1. Review and merge the pull request
+> 1. Merge the pull request, if it was not merged above
 > 2. Run `/model-incorporation-release` to confirm CI is green, check the release, deposit
 >    the paper and close the request
