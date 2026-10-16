@@ -1,0 +1,65 @@
+{
+  "skill_name": "model-optimization",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Optimize eos9q2i at /home/saatab/eos/dest/forks/eos9q2i, the environment is way too big.",
+      "expected_output": "The skill runs unattended. It records git status, reads Output Consistency (Fixed) and Input type, and runs `ersilia test --shallow --from_dir` from a work directory outside the repo as the baseline (no deep test), recording environment and directory size. It builds a scratch env with build_env.py and inventories it with env_inventory.py using the env's Python. It builds a 100-molecule full set and takes its first 10 molecules as the gate set, copies assets/edge_input.csv, and runs example, gate (twice) and edge (twice) inputs through run_model with the tracer (OPT_TRACE_DIR, OPT_TRACE_COVER, OPT_TRACE_CALLS). It checks the baseline reproduces run_output.csv exactly, is deterministic on gate and edge inputs, and passes compare_outputs.py sanity. If the whole edge batch fails on the invalid SMILES, it also builds edge_valid.csv with the molecules the model can process. It estimates the cost of a 100-molecule run from the example and gate timings and, since the model is fast, sets VERIFY_SET=full: the full set runs in the scratch env and through ersilia fetch --from_dir / serve --disable-cache / run as the served baseline, with the 45-minute limit enforced by a polling loop in the same shell (not `timeout`). It runs deps.py summary and decides the changes itself from the runtime statuses, the dependencies each declared line alone installs, the GPU payload and the code/ imports, ignoring changes below ~10 MB, and writes them to log.md with their evidence. It gates Tier 1 (CPU-only torch, same version, --extra-index-url) alone, summarises again from the candidate env, then gates low-risk changes together and medium/high-risk ones individually (a molfeat --no-deps with pins of only the used deps). Every gate runs on the gate set only: backup, edit, pin check, build + inventory, import smoke check, runs on example/gate/edge, exact output gate against the original baseline, deps.py diff behaviour gate, log comparison; failures are diagnosed from the error before bisecting, and each kept group is snapshotted to kept/<k>. Final verification: full gate on a rebuilt env including the full set, served-model run on the full set compared exactly with the served baseline, and the shallow test with compare_reports.py --checks-only and a smaller environment size. Scratch envs and files created by test/fetch runs are cleaned up. It writes a brief optimization-report.md (sizes before/after, kept and reverted changes, number of molecules verified), creates an optimization/eos9q2i-<date> branch, commits only install.yml, pushes, opens a PR on ersilia-os/eos9q2i with the report as the body, and gives the user the PR URL.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Can you make eos4cxk lighter? It's at /home/saatab/Desktop/ersilia/exp/eos4cxk.",
+      "expected_output": "The repository has no install.yml (it's a legacy Dockerfile/BentoML model), so the Dockerfile is the dependency file. The skill reads Output Consistency from metadata.json, builds the scratch env from the Dockerfile with build_env.py (Python version from the FROM py tag, one command per RUN line), and edits only the RUN pip/conda install lines. It never touches FROM, MAINTAINER, WORKDIR /repo, COPY . /repo, src/ or pack.py. For torch it keeps the plain pin (no +cpu tag, which the Dockerfile check rejects) and selects the CPU build with -f https://download.pytorch.org/whl/cpu/torch_stable.html or --extra-index-url https://download.pytorch.org/whl/cpu, then confirms +cpu with pip freeze. Because the shallow test runs only at baseline and at the end, it checks the Dockerfile pin rules itself after each edit. deps.py summary parses the RUN lines (including a git+ line it can't name), and the changes are grouped and gated exactly as for install.yml models (output, edge, behaviour-diff gates on the gate set, diagnosing failures before bisecting); the final shallow test (whose Dockerfile pin check must pass) gives the after sizes, and the report, cleanup and PR follow as usual; the commit contains only the Dockerfile.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "/model-optimization eos1ltv /home/saatab/eos/dest/forks/eos1ltv",
+      "expected_output": "The baseline `ersilia test --shallow` has a boolean check that is false (metadata_checks.model_publication). The skill hits stop condition 2, leaves the repository untouched, cleans up files the test run created, and points the user to /ersilia-model-test and then /model-fixing before optimization. No branch, commit or PR is created.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Optimize this generative model (Output Consistency: Variable) and speed it up if you can.",
+      "expected_output": "Because Output Consistency is Variable, the skill uses the distribution gate instead of the exact gate. It runs the baseline 3 times per input on the gate set, the example and the edge cases, all traced, self-checks that baseline-vs-baseline passes compare_outputs.py distribution (and if not, says so and relies on the final checks alone), and gates each group on 3 candidate runs against the original baseline runs plus the deps.py diff behaviour gate. Variable models need samples, so it prefers the full 100-molecule set for the final verification if the model can afford it, and compares served-model runs with compare_outputs.py distribution. It never uses the exact gate here and never loosens the gate to make a candidate pass. It does not apply speed optimizations: the skill is size only, so any obvious speedups are noted in log.md for a future pass and the user is told so. Final shallow test, report and PR as usual.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Optimize eos9q2i and also switch it to fp16 and upgrade torch to the latest version so it's faster, then open a PR.",
+      "expected_output": "The skill refuses the out-of-scope parts: it does not change library versions and does not apply fp16/quantization (these change outputs and/or checkpoints), and it does no speed work (size only), explaining why in the report. It runs the in-scope size optimizations (Tier 1 CPU-only build of the same version, then removal of unused dependencies) grouped by risk under the exact gate, re-runs the shallow test at the end, and opens the PR from an optimization/ branch with only those changes, never pushing to main.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "/model-optimization eos4cxk /home/saatab/Desktop/ersilia/exp/eos4cxk (gh is not logged in on this machine)",
+      "expected_output": "Step 0 finds that `gh auth status` fails and records that Step 7 will be skipped. The skill still runs the full optimization (baseline shallow test, risk-grouped gates, final verification) and writes optimization-report.md. It does not try to log in, create a branch or commit. The final summary says the PR was skipped because gh is not authenticated, and that the changes are uncommitted in the working tree.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "/model-optimization eos96f4 /home/saatab/Desktop/ersilia/optim/notebooks/eos96f4",
+      "expected_output": "The skill must not remove catboost even though code/mc/analyzers.py imports CatBoostRanker only for type hints: the model object is unpickled from the checkpoint and its predict() runs, so deps.py summary marks catboost as `called` and it stays. Changes that would only save a few MB (e.g. --no-deps on datamol or catboost dropping small transitive leftovers) are below the ~10 MB threshold and not gated. If nothing above the threshold remains, the skill reports that the environment is already lean, opens no PR, and leaves the repository unchanged.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Make eos18ie lighter, it's at /home/saatab/Desktop/ersilia/optim/notebooks/eos18ie",
+      "expected_output": "Legacy Dockerfile model with torch==2.2.0 from PyPI. deps.py summary reports a ~4.2 GB GPU payload (nvidia-* wheels, triton, and CUDA libraries inside the torch wheel). Tier 1 is gated alone (plain pin plus --extra-index-url https://download.pytorch.org/whl/cpu, +cpu confirmed with pip freeze, the diff gate treats the vanished nvidia libs as expected), and the skill summarises again from the CPU env before deciding anything else. hyperopt, tensorboardX and scikit-learn show as `imported` at runtime, but their names appear in function annotations in chemprop (evaluated at def time), so they are not dead imports and the skill does not rewrite annotations to force it. An rdkit --no-deps change (dropping Pillow, ~20 MB) is gated on its own as medium risk. The final report lists what was removed and how it was verified.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "Optimize eosXXXX (a model where main.py imports a package only inside the branch that handles invalid SMILES)",
+      "expected_output": "deps.py summary shows that import in code_imports with ran=false, because the example and gate molecules never reach the branch, so its package is kept. The skill reads the code, adds an input that reaches it (an invalid SMILES, already in assets/edge_input.csv, or a new one appended to the edge set), re-runs the traced baseline, and summarises again; the package then shows as used and is kept. If no input can reach the branch, the package is kept anyway and the report says so. It is never removed on the strength of the example inputs alone.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "/model-optimization eosXXXX (two groups pass their gates: Tier 1 CPU torch, then a large --no-deps; the final served run fails with an import error that only appears in the served env)",
+      "expected_output": "The skill does not restore the original and give up. It diagnoses the failing check: an import error only in the served model points to a --no-deps pin clashing with a package the serving layer installs, so it compares pip freeze of the served env with the scratch env and attributes it to the --no-deps group. It restores the snapshot from before that group (kept/1, the CPU torch state) and repeats the whole final verification on it. That state passes, so the PR carries only the CPU torch change, the report lists the dropped --no-deps group with the reason, and the sizes reported are those of the state that passed. It tries no new changes at this stage.",
+      "files": []
+    }
+  ]
+}
