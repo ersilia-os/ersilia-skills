@@ -128,6 +128,6 @@ rm -f <model_path>/<model_id>-test.json
 
 Once the test passes:
 
-> 1. Run `/model-incorporation-reproduce` to verify the model reproduces the metrics reported in its paper
-> 2. Commit the fixes, push, and open a pull request from your fork to `ersilia-os/<model_id>`
-> 3. Merge the pull request, then run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request
+> 1. Optional: run `/model-incorporation-reproduce` to verify the model reproduces the metrics reported in its paper
+> 2. For a model that is not yet in the Hub, run `/model-incorporation-pr` to commit the fixes, push, open the pull request and, with your approval, merge it once every check is green. For a model already in the Hub, commit the fixes and open a pull request from your fork to `ersilia-os/<model_id>` by hand
+> 3. Run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request

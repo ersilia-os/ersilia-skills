@@ -305,9 +305,9 @@ Then list the remaining pipeline steps:
 > **Remaining steps:**
 > 1. Run `/model-incorporation-code` to wire up the model code into the template repository
 > 2. Run `/ersilia-model-test` to validate the model runs correctly
-> 3. Run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
-> 4. Push and open a pull request from your fork to `ersilia-os/eosXXXX`
-> 5. Merge the pull request, then run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request
+> 3. Optional: run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
+> 4. Run `/model-incorporation-pr` to commit, push, open the pull request and, with your approval, merge it once every check is green
+> 5. Run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request
 
 ## When you cannot determine a value
 

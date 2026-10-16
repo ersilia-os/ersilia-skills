@@ -21,6 +21,8 @@ Your job is to open a model request issue on [ersilia-os/ersilia](https://github
 - `--pdf <pdf-path>` (required): local path to the publication PDF
 - `--publication <url>` (required): URL to the publication (DOI, arXiv, journal)
 - `--source <url>` (required): URL to the source code repository (GitHub, GitLab, Zenodo, etc.)
+- `--no-approve` (optional): do not post `/approve`; leave approval to someone else
+- `--clone-dir <path>` (optional): where to clone the fork (default `~/Desktop`)
 
 If any argument is missing, ask the user before proceeding.
 
@@ -41,6 +43,38 @@ Use WebFetch on the repository URL (README and root files) to extract:
 - License — look for a LICENSE file or license field in pyproject.toml / setup.py / package.json
 - Any additional context for the description or tags
 
+**Verify the licence at the source rather than trusting the README.** For a GitHub
+repository, ask the API what it detected:
+
+```bash
+gh api repos/<owner>/<repo>/license --jq '.license.spdx_id'
+```
+
+- an id that appears in `license.txt` → use it.
+- `GPL-3.0`, `AGPL-3.0` or `LGPL-3.0` → GitHub uses these older ids, but `license.txt` only has
+  the `-only` and `-or-later` forms. The LICENSE file does not say which, so read the README or
+  a source-file header: "either version 3 or any later version" means `-or-later`, version 3
+  alone means `-only`. If neither says, ask the user.
+- any other id missing from `license.txt` (for example `GPL-2.0` or `Unlicense`) → ask the user
+  which value fits; never invent one.
+- `NOASSERTION` or `Other` → GitHub found a licence file it cannot classify, which is what
+  custom and non-commercial terms look like. Read the text
+  (`gh api repos/<owner>/<repo>/license --jq .content | base64 -d | head -40`), name the
+  licence, and take the closest `license.txt` value (`Non-commercial` for any
+  non-commercial terms).
+- the command fails with `404` → there is no licence file, so the value is `None`.
+
+For GitLab, Zenodo or a package page, read the licence from that page instead.
+
+The Hub already holds models under all three situations, so none of them blocks a request.
+They are still worth raising before the user confirms, because they are cheapest to decide now:
+
+- `None` — code with no licence is all-rights-reserved by default, so redistributing it rests
+  on the authors' goodwill. Suggest the user ask them to add one.
+- non-commercial — quote the terms, since they bind everyone who runs the model.
+- checkpoints on different terms from the code — check the README or model card for a separate
+  licence on the weights, and say so.
+
 ### 1c. Fetch the valid tag and license lists
 
 Fetch both files at runtime:
@@ -50,11 +84,47 @@ https://raw.githubusercontent.com/ersilia-os/ersilia/master/ersilia/hub/content/
 ```
 Both are newline-separated. Keep both lists in memory — you will validate tags and the license against them.
 
+
+### 1d. Check whether the model is already requested or in the Hub
+
+Do this before drafting. A duplicate request costs an approval, a repository and an Airtable
+row. Scripts live in `scripts/` next to this file; run them by full path. This one prints JSON.
+
+```bash
+python scripts/check_duplicates.py --publication "<publication-url>" --source "<source-url>" \
+  --name "<tool name used in the paper>" --query "<task> <endpoint>"
+```
+
+It runs two checks. **exact**: the DOI, arXiv id or source repository already appears in a
+`new-model` request (open or closed) or in the published-models list. **similar**:
+`ersilia_search` by tool name and by task and endpoint across every status, plus a scan of the
+non-Ready models, whose empty descriptions a text query misses. `related_requests` mention the
+tool name but share no identifier.
+
+Report what it found at the top of Phase 2, before the table:
+
+| Finding | Say |
+|---|---|
+| exact, request open | Already requested as #N (repo eosXXXX if created) |
+| exact, request closed with a repo, or in the published list | Already in the Hub as eosXXXX |
+| exact, request closed with no repo | Requested as #N and closed without a repository |
+| similar, Ready | Potential overlap with eosXXXX |
+| similar, In progress or In maintenance | Already in the pipeline as eosXXXX |
+| similar, Archived | Previously incorporated, now archived as eosXXXX |
+| related request | Possibly related request #N |
+
+Do not decide for the user. An exact match is a reason to stop and ask, not to refuse: the Hub
+deliberately deploys one paper as several entries (CReM mutate and grow, the four MolGrad
+models), so ask what this request adds. Never guess why a request was closed. If nothing is
+found, say so in one line and carry on. If the script reports a note, such as `ersilia_search`
+missing, pass it on instead of presenting the result as clean. Limits and how to read the
+output: `references/duplicate-check.md`.
+
 ---
 
 ## Phase 2 – Propose All Fields and Confirm
 
-Present all proposed values in a single table and wait for the user's feedback before proceeding. Do not open the issue until the user explicitly confirms.
+Present all proposed values in a single table and wait for the user's feedback before proceeding. Do not open the issue until the user explicitly confirms. If Phase 1d found an exact match, stop and ask whether to continue before building the table.
 
 | Field | Proposed value |
 |---|---|
@@ -121,9 +191,14 @@ Where the upstream repository may not last — a personal account, an unreleased
 prefer a DOI (Zenodo) or a package page (PyPI, Conda), which are archived.
 
 **License**
-Use only values from the `license.txt` list fetched in Phase 1c. Use `None` if no LICENSE file is found.
+Use the value established in Phase 1b, and only values from the `license.txt` list fetched in Phase 1c. Use `None` if no LICENSE file is found. Under the table, say in one line how the licence was verified, and add any flag raised in Phase 1b.
 
-After presenting the table, ask: *"Does this look correct? Let me know any changes and I'll open the issue."*
+Before asking, run `gh api repos/ersilia-os/ersilia --jq .permissions.push`. `/approve` only
+works for users with write access, so this decides whether Phase 3 can post it. Then, after
+presenting the table, ask: *"Does this look correct? Let me know any changes and I'll open the issue."*
+and say what else confirming will do: assign the user to the issue and, when the check printed
+`true` and `--no-approve` was not passed, post `/approve` to create the model repository, then fork it and clone it into the clone
+directory. If the check printed anything else, say that an admin will need to approve it.
 
 ---
 
@@ -174,13 +249,61 @@ EOF
 )"
 ```
 
+Keep the issue number from the URL that `gh issue create` prints, then:
+
+**Assign the user.** Do it as a separate call, because an assignee GitHub rejects would make
+`gh issue create` fail and open nothing:
+
+```bash
+gh issue edit <number> --repo ersilia-os/ersilia --add-assignee "@me"
+```
+
+If it fails, say so and carry on.
+
+**Approve.** Skip this if `--no-approve` was passed or the Phase 2 check printed anything other
+than `true`: `/approve` is ignored for users without write access, and the skill would wait for a
+bot comment that never comes. Otherwise post it. The issue body must already be final, because
+approval reads it to build the repository and to sync Airtable and S3.
+
+```bash
+gh issue comment <number> --repo ersilia-os/ersilia --body "/approve"
+```
+
+Then wait for the bot, with the Bash timeout raised to 10 minutes (600000 ms), since approval
+normally takes about two minutes:
+
+```bash
+python scripts/wait_for_repo.py <number>
+```
+
+It prints JSON, `status` being `created` (with `repo`, the eosXXXX name), `failed` (with the
+`workflow_url`), `timeout`, `not_approved` or `error`. On `failed`, go to Phase 3.5. On
+`timeout` or `error`, give the user the issue link and stop. Do not post `/approve` again, since
+a second run would create a second repository.
+
+**Fork and clone.** Only when the status is `created`; otherwise there is no repository yet.
+Take `<id>` from the `repo` the script printed, and `<dir>` from `--clone-dir` (default
+`~/Desktop`). Never overwrite: if `<dir>/<id>` already exists, say so and stop here.
+
+```bash
+gh repo fork ersilia-os/<id> --clone=false --remote=false
+gh repo clone "$(gh api user --jq .login)/<id>" <dir>/<id>
+```
+
+Forking is safe to repeat: if the user already has the fork, `gh` says so and carries on. Because
+the repository is a fork, `gh repo clone` also adds `upstream` pointing at `ersilia-os/<id>`.
+If the clone fails straight after the fork was created, wait a few seconds and retry, since a new
+fork takes a moment to become ready. Finish by checking `git -C <dir>/<id> remote -v`: `origin`
+should be the user's fork and `upstream` should be `ersilia-os/<id>`.
+
 ---
 
 ## Phase 3.5 – If `/approve` Fails
 
-A maintainer approves the request by commenting `/approve` on the issue, which triggers
+Commenting `/approve` on the issue, whether the skill does it or a maintainer, triggers
 the `Approve Command Dispatch` workflow. If that workflow fails (a `github-actions` bot
-comment appears saying "Workflow Failure ❌"), do this:
+comment appears saying "Workflow Failure ❌", which `wait_for_repo.py` reports as `failed`),
+do this:
 
 1. **Read the actual error**, don't guess. Get the run ID from the bot comment's log link
    or from `gh issue view <n> --repo ersilia-os/ersilia --json comments`, then:
@@ -191,7 +314,8 @@ comment appears saying "Workflow Failure ❌"), do this:
    ends in `ValueError: Model description is N characters, which exceeds the 600-character
    limit.` Fix by editing the issue body (`gh issue edit <n> --repo ersilia-os/ersilia
    --body "..."`, same heading format as Phase 3) with a re-counted description, then
-   comment `/approve` again.
+   comment `/approve` again and run `python scripts/wait_for_repo.py <n>` again; it reads
+   only the bot comments after the latest `/approve`, so the earlier failure is ignored.
 2. **Don't assume the failure-notice repo was actually created.** The bot's failure
    comment says "you may need to delete the following repo... since the run was not fully
    successful" *unconditionally* — it does not know whether repo creation itself
@@ -210,12 +334,16 @@ comment appears saying "Workflow Failure ❌"), do this:
 
 ## Phase 4 – Tell the User What Happens Next
 
-After the issue is opened, print the issue URL and explain the next steps:
+After the issue is opened, print the issue URL, say whether the user was assigned, whether
+`/approve` was posted and where the fork was cloned, and explain the next steps:
 
-1. An Ersilia admin will review and approve the request
-2. Once approved, a new model repository (`eosXXXX`) is created under `ersilia-os`
-3. Fork that repository and clone it locally
-4. Run `/model-incorporation-metadata` to fill in the metadata
-5. Run `/model-incorporation-code` to wire up the model code
-6. Run `/ersilia-model-test` to validate the model runs correctly before submitting a PR
-7. Run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
+1. If `/approve` was posted and the bot answered, the model repository (`eosXXXX`, the `repo`
+   the script printed) now exists under `ersilia-os`. Otherwise an admin comments `/approve` on
+   the issue and the bot announces the repository there
+2. The skill forked it to the user's account and cloned it to `<dir>/<id>`, with `upstream` set. If it did not, fork and clone it by hand
+3. Run `/model-incorporation-metadata` to fill in the metadata
+4. Run `/model-incorporation-code` to wire up the model code
+5. Run `/ersilia-model-test` to validate the model runs correctly before submitting a PR
+6. Optionally run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
+7. Run `/model-incorporation-pr` to commit, push, open the pull request and, with your approval, merge it once every check is green
+8. Run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request
