@@ -119,6 +119,9 @@ def load_spec(repo):
 def build(repo, name, recreate):
     data = load_spec(repo)
     if env_prefix(name) and recreate:
+        # only scratch envs may be removed, never the model's own or ersilia's
+        if not name.startswith("opt_"):
+            sys.exit(f"Refusing to remove {name}: --recreate only removes opt_* scratch envs")
         run(f"conda env remove -n {name} -y")
     if not env_prefix(name):
         run(f"conda create -n {name} -y python={data['python']}")

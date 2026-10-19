@@ -1,6 +1,6 @@
 ---
 name: model-optimization
-description: Makes an Ersilia Model Hub model smaller without changing its outputs. Traces the model at runtime on a cheap gate set (examples, 10 molecules, edge cases) to learn which packages are really loaded and called, summarises that per package and per install line, and decides the removals from it: CPU-only builds, unused or transitive packages, --no-deps trees, imports code/ never uses for inference. Gates each change on exact output equality (or a distribution check for Variable models), edge-case behaviour and a runtime-behaviour diff, diagnosing failures before bisecting and re-summarising after each kept change. Edits install.yml or a legacy Dockerfile, verifies on 100 molecules when the model's speed allows it (45-minute cap, otherwise 10) with a served-model run and `ersilia test --shallow`, and opens a PR with a size report. Runs unattended, once per model, thorough over fast. Triggers include "optimize eosXXXX", "make the model lighter", "reduce the image size", "the environment is too big", "remove unused packages", "use CPU-only torch", "/model-optimization".
+description: Makes an Ersilia Model Hub model smaller without changing its outputs. Traces the model at runtime on a cheap gate set (examples, 10 molecules, edge cases) to learn which packages are really loaded and called, summarises that per package and per install line, and decides the removals from it: CPU-only builds, unused or transitive packages, --no-deps trees, imports code/ never uses for inference. Gates each change on exact output equality (or a distribution check for Variable models), edge-case behaviour and a runtime-behaviour diff, diagnosing failures before bisecting and re-summarising after each kept change. Edits install.yml or a legacy Dockerfile, verifies on 100 molecules when the model's speed allows it (45-minute cap, otherwise 10) with a served-model run and `ersilia test --shallow`, and opens a PR with a size report. Runs unattended until the PR, once per model, thorough over fast; asks the user before pushing and opening the PR. Triggers include "optimize eosXXXX", "make the model lighter", "reduce the image size", "the environment is too big", "remove unused packages", "use CPU-only torch", "/model-optimization".
 argument-hint: <model_id> <model_path>
 ---
 
@@ -12,7 +12,7 @@ This skill runs **once per model**, so it is built to be thorough rather than fa
 
 **Size only.** This skill does not attempt speed optimizations (batching, `no_grad`, loading checkpoints once, vectorizing loops, etc.), even if you notice obvious ones. Note them in `$WORK/log.md` for a future pass, but don't apply them. Computational performance is already recorded in the model's metadata and isn't re-measured here.
 
-**You run unattended.** Don't ask for confirmation between steps. The only times you stop early are the stop conditions listed below. When you stop, say why in the final report.
+**You run unattended until Step 7.** Don't ask for confirmation between steps. The only times you stop early are the stop conditions listed below. When you stop, say why in the final report. The one question you ask is in Step 7, before `git push` and `gh pr create`: those publish the change, so they need the user's go-ahead.
 
 ## What you receive
 
@@ -62,7 +62,7 @@ This skill works only inside a model repository. It needs no changes to ersilia,
 - The only flags the check skips are `--index-url`, `--extra-index-url`, `-f`, `--no-deps`, `--upgrade`, `--no-cache-dir` and `-r`. Use `-f`, not `--find-links`, which the check would read as an unpinned package.
 - Keep one `pip install` per `RUN` line. Don't chain commands with `&&` or split them with `\`: each line is parsed and run on its own.
 
-**Git writes only in Step 7.** Until then, keep the optimizations as uncommitted changes in the working tree. In Step 7, and only after the final verification has passed, create one branch, one commit containing only the edited files, push it and open one PR. Never push to the default branch, force-push, rewrite history or merge.
+**Git writes only in Step 7.** Until then, keep the optimizations as uncommitted changes in the working tree. In Step 7, and only after the final verification has passed, create one branch and one commit containing only the edited files, then ask the user before you push it and open one PR. Never push to the default branch, force-push, rewrite history or merge.
 
 All scratch material (test reports, logs, backups, traces, scratch outputs) goes in a work directory **outside** the repository:
 
@@ -95,7 +95,7 @@ Stop, leave the repository exactly as you found it, and report the reason if:
 1. There is neither an `install.yml` nor a `Dockerfile`, or the Dockerfile has no `pyXY` tag on its `FROM` line, so the Python version can't be determined.
 2. The baseline shallow test has any boolean check that is `false`. A model that doesn't pass isn't ready for optimization. Point the user to `/ersilia-model-test` and then `/model-fixing`.
 3. The baseline scratch environment doesn't reproduce `run_output.csv` exactly (Fixed models), or doesn't give the same output twice in a row on the gate and edge inputs. The exact gate is meaningless if the baseline itself doesn't reproduce.
-4. The working tree already has uncommitted changes to editable files. You couldn't separate your changes from the user's.
+4. The working tree already has uncommitted changes to editable files. You couldn't separate your changes from the user's. This doesn't apply to a model still being incorporated (Step 0): there the uncommitted changes are the incorporation itself, and they are the baseline.
 5. The baseline output fails `compare_outputs.py sanity` on the gate (or full) input (wrong row count, every cell empty, or every column constant across distinct molecules). Parity with a broken model proves nothing; report what you saw so someone can fix the model first.
 
 ## Workflow
@@ -105,15 +105,31 @@ Stop, leave the repository exactly as you found it, and report the reason if:
 ```bash
 cd "$REPO"
 git status --porcelain > "$WORK/git-status-before.txt"
-git fetch origin && DEFAULT=$(git symbolic-ref --short refs/remotes/origin/HEAD | sed 's@^origin/@@')
-git rev-list --count "origin/$DEFAULT..HEAD"   # must be 0, or the PR would carry unrelated local commits
-git rev-list --count "HEAD..origin/$DEFAULT"   # if > 0 and the tree is clean: git switch "$DEFAULT" && git pull --ff-only
-gh auth status                                  # needed for Step 7
+gh auth status                                  # needed for Step 7 and for the parent lookup below
+# origin is the org repo or the contributor's fork; the PR always goes to the org repo (TARGET)
+slug() { git remote get-url "$1" | sed -E 's#^(git@github\.com:|https://github\.com/)##; s#\.git$##'; }
+ORIGIN=$(slug origin)
+PARENT=$(gh repo view "$ORIGIN" --json parent -q '.parent | if . then .owner.login + "/" + .name else "" end')
+TARGET=${PARENT:-$ORIGIN}                       # must be ersilia-os/$MODEL_ID
+UP=$(for r in $(git remote); do [ "$(slug "$r")" = "$TARGET" ] && echo "$r" && break; done)
+[ -n "$UP" ] || { git remote add upstream "https://github.com/$TARGET.git" && UP=upstream; }
+git fetch "$UP" && DEFAULT=$(gh repo view "$TARGET" --json defaultBranchRef -q .defaultBranchRef.name)
+gh api "repos/$TARGET/commits" --jq '[.[].commit.author.name] | unique == ["ersilia-bot"]'   # true: not merged yet, only the template
+git rev-list --count "$UP/$DEFAULT..HEAD"   # must be 0, or the PR would carry unrelated local commits
+git rev-list --count "HEAD..$UP/$DEFAULT"   # if > 0 and the tree is clean: git switch "$DEFAULT" && git merge --ff-only "$UP/$DEFAULT"
 if test -f install.yml; then DEPS=install.yml; elif test -f Dockerfile; then DEPS=Dockerfile; else echo "STOP: no install.yml or Dockerfile"; fi
 grep -E "^(Output Consistency|Input):" metadata.yml 2>/dev/null || grep -E '"(Output Consistency|Input)"' -A1 metadata.json
 ```
 
-Always optimize from the tip of `origin/$DEFAULT`. If HEAD is behind it (an old checkout, or a detached HEAD), fast-forward first, and only then record `git-status-before.txt` again. Otherwise the baseline measures a model that isn't the one the PR changes. If HEAD has local commits that aren't on `origin/$DEFAULT`, or `gh` isn't authenticated, still run the optimization, but record that Step 7 will be skipped and say why in the final report. Don't try to log in to `gh` yourself.
+Don't assume `origin` is the org repo: in a contributor's clone it is their fork, whose default branch can lag behind the org's. `TARGET` is the repo the PR goes to and `$UP` the remote that points at it (`origin` itself when the clone is of the org repo). If `TARGET` isn't `ersilia-os/$MODEL_ID`, or `upstream` already exists and points elsewhere (then add the remote under another name), sort that out before going on. Without `gh` the parent lookup fails too: use the remote that points at `ersilia-os/$MODEL_ID` if there is one, else `origin`, and say so in the log.
+
+**Models still being incorporated.** If the `gh api` line prints `true`, the org repo has only the template commits from `ersilia-bot`: the model is mid-incorporation, and `/model-incorporation-pr` will commit it and open its PR later. Record `UNMERGED=true` in `$WORK/log.md` and then:
+
+- Optimize the working tree as it is, uncommitted incorporation files included. Don't fast-forward, stash or switch branch: the model is on disk, not on `$UP/$DEFAULT`.
+- Skip Step 7 entirely: no branch, commit, push or PR. Leave your edits to `install.yml` (or the `Dockerfile`) uncommitted, so `/model-incorporation-pr` commits them with the rest of the model.
+- In the final summary, give the path to `optimization-report.md`: `/model-incorporation-pr` reports the optimization in its PR body.
+
+Otherwise, always optimize from the tip of `$UP/$DEFAULT`. If HEAD is behind it (an old checkout, a stale fork, or a detached HEAD), fast-forward first, and only then record `git-status-before.txt` again. Otherwise the baseline measures a model that isn't the one the PR changes. If HEAD has local commits that aren't on `$UP/$DEFAULT`, or `gh` isn't authenticated, still run the optimization, but record that Step 7 will be skipped and say why in the final report. Don't try to log in to `gh` yourself.
 
 **Checkpoints stored in S3.** Many models keep `model/checkpoints/` out of git (it's in `.gitignore`, and `access.json` says `"checkpoints": "public"`). A fresh clone then has an empty `model/checkpoints/`, and the baseline test fails at "Model Fetching Check" with every run check `false`. That's a missing download, not a broken model, so don't apply stop condition 2 for it. Download the weights first, from the repo root, with an env that has `eosvc`:
 
@@ -386,13 +402,17 @@ Write `$WORK/optimization-report.md`. It's the PR body. Keep it brief:
 **Changes:** <one line per kept change, e.g. "torch 2.2.2 → CPU wheel (−4.7 GB)", "removed unused `seaborn`", "removed import of `hyperopt` (training only) and the package">
 
 **Verification:** outputs identical to `run_output.csv` and to the original environment on <N> molecules (100, or 10 if the model was too slow for the full set: say which) and <M> edge-case inputs (or: distribution check), in a scratch env and through `ersilia fetch`/`run`; same packages loaded at runtime with the same versions; `ersilia test --shallow` passes before and after.
+
+**CI:** the PR check (`test-model-pr`) doesn't test this branch. It clones the default branch of `<pr-author>/<model_id>` instead, so a green check says nothing about these changes. The verification above is what covers them.
 ```
+
+Keep the **CI** line in every report: the shared workflow (`ersilia-os/ersilia-model-workflows`, `test-model-pr.yml`) clones `https://github.com/<pr_user>/<repo_name>.git` after checkout, so it tests the PR author's fork, not the PR branch (on eos9q2i#2 it installed the old `torch==2.8.0`). Don't cite a green check as evidence anywhere. Drop the line only once that workflow tests the PR head. Also drop it for a model still being incorporated: its PR comes from the fork's `main`, which is what the check tests.
 
 Take the sizes from `baseline-test.json` and `after-test.json`. Add one line listing reverted candidates only if there were any, and one line for any package you kept only because its import could not be exercised.
 
 ### Step 7: Open the PR
 
-Do this only if Step 5 succeeded, HEAD had no local-only commits, and `gh` is authenticated (all recorded in Step 0). Otherwise skip it and say which condition failed.
+Do this only if Step 5 succeeded, the model is already merged (not `UNMERGED`), HEAD had no local-only commits, and `gh` is authenticated (all recorded in Step 0). Otherwise skip it and say which condition failed.
 
 ```bash
 cd "$REPO"
@@ -401,17 +421,23 @@ git switch -c "$BRANCH"
 git add -- <each file you edited>          # never `git add -A` or `git add .`
 git diff --cached --name-only              # must list only install.yml / Dockerfile / files under model/framework/code/
 git commit -m "Optimize ${MODEL_ID}: <headline, e.g. CPU-only torch, drop unused deps (-6.7 GB env)>"
-git push -u origin "$BRANCH"
-gh pr create --repo ersilia-os/${MODEL_ID} --base "$DEFAULT" --head "$BRANCH" \
+```
+
+**Ask before publishing.** Branch and commit are local; the push and the PR are not. Stop here and show the user the branch name, `git show --stat HEAD`, the size before/after and the path to `$WORK/optimization-report.md`, then ask whether to push the branch and open the PR. Continue only on an explicit yes. If the user declines or doesn't answer, don't push: leave the commit on the local branch, and say so in the final summary with the two commands below so they can run them later.
+
+```bash
+git push -u origin "$BRANCH"                   # origin: the fork, or the org repo itself
+gh pr create --repo "$TARGET" --base "$DEFAULT" --head "${ORIGIN%%/*}:$BRANCH" \
   --title "Optimize ${MODEL_ID}: <same headline>" --body-file "$WORK/optimization-report.md"
 ```
 
 - If the staged file list includes anything outside the editable set, unstage it and find out where it came from before you commit.
-- If the push is rejected for lack of permission, push to a fork instead: `gh repo fork --remote --remote-name fork`, then `git push -u fork "$BRANCH"`, and pass `--head <fork-owner>:$BRANCH` to `gh pr create`.
+- `--head` always names the owner of the pushed branch: without it, GitHub looks for the branch in `TARGET` and doesn't find a branch pushed to a fork.
+- If `origin` is the org repo and the push is rejected for lack of permission, push to a fork instead: `gh repo fork --remote --remote-name fork`, then `git push -u fork "$BRANCH"`, and pass `--head <your-user>:$BRANCH` to `gh pr create`.
 - If a branch with that name already exists on the remote, add a suffix (`-2`). Never overwrite a remote branch.
 - Write the PR URL into `$WORK/log.md`.
 
-Then give the user a short summary in the terminal: size before/after, the files changed, how it was verified (number of inputs, served run), the path to the report, and the PR URL. If you skipped Step 7, say why, and say that the changes are still uncommitted in the working tree.
+Then give the user a short summary in the terminal: size before/after, the files changed, how it was verified (number of inputs, served run), the path to the report, and the PR URL. If you skipped Step 7, say why, and say that the changes are still uncommitted in the working tree. If the user declined the push, say that the changes are committed on the local branch `$BRANCH` but not pushed. If the model is still being incorporated, say that the optimization is left uncommitted on purpose, for `/model-incorporation-pr` to commit.
 
 ## Cleanup
 
