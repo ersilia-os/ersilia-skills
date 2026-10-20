@@ -111,17 +111,29 @@ def main():
     rows = []
     for i, r in tab.iterrows():
         mol = Chem.MolFromSmiles(r["smiles"])
-        # which liability columns are 'on' (over cutoff, or for higher-worse > cutoff)
+        # Which liability columns are 'on', i.e. the compound FAILS them. When the
+        # column has an explicit cell cutoff that cutoff defines what passing means
+        # (honouring its op); otherwise fall back on the column's declared direction.
         flagged = []
         for c in liability_cols:
-            cut = cell_cut.get(c, {}).get("cutoff", 0.5)
             v = r.get(c)
-            if pd.notna(v) and ((v >= cut) if not higher.get(c, False) else (v >= cut)):
+            if pd.isna(v):
+                continue
+            cc = cell_cut.get(c)
+            if cc is not None:
+                cut = cc.get("cutoff", 0.5)
+                ok = (v <= cut) if cc.get("op", ">=") == "<=" else (v >= cut)
+            else:
+                ok = (v >= 0.5) if higher.get(c, False) else (v <= 0.5)
+            if not ok:
                 flagged.append(c)
         alerts = []
         if mol is not None:
+            # structural_alerts() returns {catalog: first-match description}; read the
+            # mapping itself rather than a non-existent "alerts" key, which silently
+            # reported "none" for every compound.
             ev = structural_alerts(r["smiles"], catalogs=("PAINS", "BRENK"))
-            alerts = sorted({a.get("description", a.get("name", "alert")) for a in ev.get("alerts", [])})[:4]
+            alerts = sorted(f"{cat}:{desc}" for cat, desc in ev.items())[:4]
         rec = {
             "cpd_id": r["cpd_id"], "smiles": r["smiles"],
             "primary": round(float(r[pscore]), 3), "primary_rank": int(prank[i]), "n_total": n,
