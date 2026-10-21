@@ -4,11 +4,10 @@
 
 ```
 <model-id>/
-├── .gitattributes          # git-lfs tracking rules (add if large checkpoints exist)
 ├── install.yml             # dependency specification
 ├── metadata.yml            # model metadata (filled separately)
 └── model/
-    ├── checkpoints/        # pretrained weights / scalers (tracked by git-lfs if >100 MB)
+    ├── checkpoints/        # pretrained weights / scalers (gitignored, persisted with eosvc)
     └── framework/
         ├── run.sh          # entry-point shell script (rarely needs editing)
         ├── code/
@@ -157,30 +156,17 @@ commands:
 
 ---
 
-## .gitattributes (git-lfs)
+## Checkpoints (eosvc)
 
-Add entries for every file extension that appears in `checkpoints/` and is ≥ 100 MB.
-Ersilia's standard patterns:
+`model/checkpoints/` and `model/framework/fit/` are gitignored, so nothing in them is ever
+added to git. Persist them with eosvc from the model repo root:
 
-```
-*.csv filter=lfs diff=lfs merge=lfs -text
-*.h5 filter=lfs diff=lfs merge=lfs -text
-*.joblib filter=lfs diff=lfs merge=lfs -text
-*.pkl filter=lfs diff=lfs merge=lfs -text
-*.pt filter=lfs diff=lfs merge=lfs -text
-*.ckpt filter=lfs diff=lfs merge=lfs -text
-*.bin filter=lfs diff=lfs merge=lfs -text
-*.safetensors filter=lfs diff=lfs merge=lfs -text
-```
-
-Commands:
 ```bash
-git lfs install                  # once per repo
-git lfs track "*.pt"             # adds the line to .gitattributes
-git add .gitattributes
-git add checkpoints/my_weights.pt
-git status                       # confirm "(LFS)" appears next to tracked files
+conda run -n eosvc eosvc upload --path .
 ```
+
+Which folders are uploaded, and whether they are public or private, is set in `access.json`.
+The template also ships a `.gitattributes` and a `mock.txt` for a Git LFS mock; delete both.
 
 ---
 

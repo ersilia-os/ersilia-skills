@@ -686,5 +686,5 @@ TPSA       | 72 ± 28         | 70 ± 26         | 0.49
 ## Next steps
 
 > **Remaining steps:**
-> 1. Push and open a pull request from your fork to `ersilia-os/eosXXXX`
-> 2. Merge the pull request, then run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request
+> 1. Run `/model-incorporation-pr` to commit, push, open the pull request and, with your approval, merge it once every check is green
+> 2. Run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request
