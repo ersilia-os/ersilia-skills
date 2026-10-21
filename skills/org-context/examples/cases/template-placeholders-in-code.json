@@ -1,0 +1,23 @@
+{
+  "about": "A template naming `src/my_package/` in inline code is an instruction, not leftover placeholder text; the same word in prose is flagged.",
+  "files": {
+    "pkg": "# Package guide\n\nSkills live in `ersilia-skills`.\n\n## Working with the user\n\n- **Ask, don't assume.** Use AskUserQuestion before editing when the approach, a name or a dependency is unclear.\n\n## Code style\n\n- Run `ruff check` and `ruff format`. Docstrings follow the NumPy convention.\n\n## Layout\n\n- Rename `src/my_package/` to the real package name.\n- TODO: describe submodules.\n\n## Tests\n\n- Smoke-test the CLI.\n\n## Dependencies\n\n- Pin exact versions.\n\n## README guidelines\n\n- Keep it short.\n"
+  },
+  "repos": {
+    "ersilia-skills": false
+  },
+  "expect": [
+    {
+      "target": "pkg",
+      "check": "PLACEHOLDER",
+      "title_has": "TODO"
+    }
+  ],
+  "expect_absent": [
+    {
+      "target": "pkg",
+      "check": "PLACEHOLDER",
+      "title_has": "my_package"
+    }
+  ]
+}

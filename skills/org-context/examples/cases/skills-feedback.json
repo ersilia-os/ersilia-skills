@@ -1,0 +1,22 @@
+{
+  "about": "Each file must ask agents to suggest skill improvements; a mere pointer to ersilia-skills is not enough.",
+  "files": {
+    "org": "# Org\n\n## About Ersilia\n\nNon-profit.\n\n## Agent behaviour\n\n- **Use Ersilia skills.** Check `ersilia-skills` first.\n- **Improve the skills you use.** When a skill gets something wrong, suggest a change to it.\n\n*Last updated: September 2026.*\n",
+    "pkg": "# Package guide\n\nSkills live in `ersilia-skills`.\n\n## Working with the user\n\n- Ask.\n\n## Code style\n\n- ruff. Docstrings follow the NumPy convention.\n\n## Tests\n\n- Smoke.\n\n## Dependencies\n\n- Pin.\n\n## README guidelines\n\n- Short.\n"
+  },
+  "repos": {
+    "ersilia-skills": false
+  },
+  "expect": [
+    {
+      "target": "pkg",
+      "check": "CANON-skills-feedback"
+    }
+  ],
+  "expect_absent": [
+    {
+      "target": "org",
+      "check": "CANON-skills-feedback"
+    }
+  ]
+}

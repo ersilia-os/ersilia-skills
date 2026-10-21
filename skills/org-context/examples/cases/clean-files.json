@@ -1,0 +1,52 @@
+{
+  "about": "Well-formed short files produce no fix findings. Guards against false positives.",
+  "files": {
+    "org": "# Org\n\n## About Ersilia\n\nErsilia is a non-profit. Skills live in `ersilia-skills`.\n\n## Agent behaviour\n\n- **Plan before acting.** Enter plan mode for anything beyond a typo.\n\n*Last updated: September 2026.*\n",
+    "pkg": "# Package guide\n\nSkills live in `ersilia-skills`.\n\n## Working with the user\n\n- **Ask, don't assume.** Use AskUserQuestion before editing when the approach, a name or a dependency is unclear.\n\n## Code style\n\n- Run `ruff check` and `ruff format`. Docstrings follow the NumPy convention.\n\n## Tests\n\n- Smoke-test the CLI.\n\n## Dependencies\n\n- Pin exact versions.\n\n## README guidelines\n\n- Keep it short.\n"
+  },
+  "skills": [],
+  "repos": {
+    "ersilia-skills": false
+  },
+  "expect_absent": [
+    {
+      "check": "LEN-FILE"
+    },
+    {
+      "check": "DATE-STALE"
+    },
+    {
+      "check": "DATE-MISSING"
+    },
+    {
+      "check": "SECTION-MISSING"
+    },
+    {
+      "check": "HEADINGS"
+    },
+    {
+      "check": "PLACEHOLDER"
+    },
+    {
+      "check": "LINK-MALFORMED"
+    },
+    {
+      "check": "CANON-black"
+    },
+    {
+      "check": "CANON-docstrings-numpy"
+    },
+    {
+      "check": "CANON-skills-pointer"
+    },
+    {
+      "check": "DUP-WITHIN"
+    },
+    {
+      "check": "FACT-REPO"
+    },
+    {
+      "check": "FACT-SKILL"
+    }
+  ]
+}

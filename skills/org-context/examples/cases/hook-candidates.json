@@ -1,0 +1,16 @@
+{
+  "about": "Prohibitions a hook or permission could enforce are grouped into one finding per file; a prohibition with no enforceable action is not.",
+  "files": {
+    "ana": "# Analysis guide\n\nSkills live in `ersilia-skills`; when a skill teaches you something, suggest an improvement.\n\n## Repository structure\n\nFolders.\n\n## Working with the user\n\n- Ask first.\n\n## Version control\n\n- Never modify files in `data/raw/`.\n- Do not commit secrets or API keys.\n- Never be rude to the user.\n\n## README guidelines\n\n- Short.\n"
+  },
+  "repos": {
+    "ersilia-skills": false
+  },
+  "expect": [
+    {
+      "target": "ana",
+      "check": "HOOK-CANDIDATE",
+      "title_has": "2 prohibition"
+    }
+  ]
+}

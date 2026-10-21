@@ -1,0 +1,28 @@
+{
+  "about": "A folder tree and a 'This is a ... repository' preamble are flagged; the same wording after the first H2 is not.",
+  "files": {
+    "ana": "# Analysis guide\n\nThis is an Ersilia research analysis repository.\n\nSkills live in `ersilia-skills`; when a skill teaches you something, suggest an improvement.\n\n## Repository structure\n\nThis is the by-default structure of the repository.\n\n```\n├── data/\n├── scripts/\n└── docs/\n```\n\n## Working with the user\n\n- Ask first.\n\n## Version control\n\n- Git.\n\n## README guidelines\n\n- Short.\n"
+  },
+  "repos": {
+    "ersilia-skills": false
+  },
+  "expect": [
+    {
+      "target": "ana",
+      "check": "BLOAT-TREE",
+      "title_has": "3 lines"
+    },
+    {
+      "target": "ana",
+      "check": "BLOAT-OVERVIEW",
+      "title_has": "research analysis repository"
+    }
+  ],
+  "expect_absent": [
+    {
+      "target": "ana",
+      "check": "BLOAT-OVERVIEW",
+      "title_has": "by-default structure"
+    }
+  ]
+}

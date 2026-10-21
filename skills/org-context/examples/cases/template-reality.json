@@ -1,0 +1,62 @@
+{
+  "about": "Paths and tools a template's CLAUDE.md names must exist in the template; suffix matches, link labels, 'create when needed' lines and naming patterns are not flagged.",
+  "files": {
+    "ana": "# Analysis guide\n\nSkills live in `ersilia-skills`; when a skill teaches you something, suggest an improvement.\n\n## Repository structure\n\nScripts go in `scripts/` and examples in `examples/run_input.csv`. Create `output/` when first needed. Name docs `YYYY-MM-DD_topic.md`.\n\n## Working with the user\n\n- Ask first.\n\n## Version control\n\n- Constants live in `src/default.py`.\n- See [`ersilia/utils/logging.py`](https://github.com/ersilia-os/ersilia).\n- Lint with `ruff`. Plot with stylia.\n\n## README guidelines\n\n- Short.\n"
+  },
+  "repos": {
+    "ersilia-skills": false,
+    "ersilia": false
+  },
+  "reality": {
+    "ana": {
+      "tree": [
+        "scripts/.gitkeep",
+        "scripts",
+        "model/framework/examples/run_input.csv",
+        "requirements.txt"
+      ],
+      "files": {
+        "requirements.txt": "stylia==1.0.0\n"
+      }
+    }
+  },
+  "expect": [
+    {
+      "target": "ana",
+      "check": "REALITY-PATH",
+      "title_has": "src/default.py"
+    },
+    {
+      "target": "ana",
+      "check": "REALITY-TOOL",
+      "title_has": "'ruff'"
+    }
+  ],
+  "expect_absent": [
+    {
+      "target": "ana",
+      "check": "REALITY-PATH",
+      "title_has": "output"
+    },
+    {
+      "target": "ana",
+      "check": "REALITY-PATH",
+      "title_has": "run_input"
+    },
+    {
+      "target": "ana",
+      "check": "REALITY-PATH",
+      "title_has": "YYYY"
+    },
+    {
+      "target": "ana",
+      "check": "REALITY-PATH",
+      "title_has": "logging"
+    },
+    {
+      "target": "ana",
+      "check": "REALITY-TOOL",
+      "title_has": "stylia"
+    }
+  ]
+}

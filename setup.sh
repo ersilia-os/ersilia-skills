@@ -39,4 +39,21 @@ else
   echo "  (already installed) post-merge git hook"
 fi
 
+# Load Ersilia's org-wide agent context in every Claude Code session, by importing
+# config/CLAUDE.md from the user-level ~/.claude/CLAUDE.md. Only the import line is
+# managed here; anything else in that file is the user's own and is left alone.
+ORG_CONTEXT="$REPO_ROOT/config/CLAUDE.md"
+USER_MEMORY="$HOME/.claude/CLAUDE.md"
+IMPORT_LINE="@$ORG_CONTEXT"
+touch "$USER_MEMORY"
+if grep -qxF "$IMPORT_LINE" "$USER_MEMORY"; then
+  echo "  (already imported) org context in $USER_MEMORY"
+else
+  # Drop an import left by an earlier clone location, then add the current one.
+  grep -vE '^@.*/ersilia-skills/config/CLAUDE\.md$' "$USER_MEMORY" > "$USER_MEMORY.tmp" || true
+  mv "$USER_MEMORY.tmp" "$USER_MEMORY"
+  printf '%s\n' "$IMPORT_LINE" >> "$USER_MEMORY"
+  echo "Imported org context into $USER_MEMORY"
+fi
+
 echo "Done."

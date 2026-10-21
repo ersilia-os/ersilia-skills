@@ -1,0 +1,21 @@
+{
+  "about": "'black' is flagged only next to lint/format words; 'plan mode or ask' contradicts the mandatory plan rule.",
+  "files": {
+    "org": "# Org\n\n## About Ersilia\n\nUse a black background for dark-mode slides. Skills live in `ersilia-skills`; suggest skill improvements when you learn something.\n\n## Agent behaviour\n\n- **Plan before acting.** Enter plan mode or ask clarifying questions first.\n\n*Last updated: September 2026.*\n"
+  },
+  "repos": {
+    "ersilia-skills": false
+  },
+  "expect": [
+    {
+      "target": "org",
+      "check": "CANON-plans"
+    }
+  ],
+  "expect_absent": [
+    {
+      "target": "org",
+      "check": "CANON-black"
+    }
+  ]
+}

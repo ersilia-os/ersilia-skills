@@ -1,0 +1,23 @@
+{
+  "about": "Two sentences sharing folder names in inline code but saying different things are not duplicates; a real repeated rule still is.",
+  "files": {
+    "ana": "# Analysis guide\n\nSkills live in `ersilia-skills`.\n\n## Repository structure\n\nNot all folders are mandatory. The template ships `data/`, `scripts/`, `notebooks/`, `assets/`, `docs/` and `tmp/`; create `output/`, `src/` (with `src/default.py`) and `tools/` when first needed.\n\n## Working with the user\n\n- Ask first.\n\n## Version control\n\n- **Git** tracks code only: `scripts/`, `notebooks/`, `src/`, `tools/`, `docs/`, `assets/`\n- Never commit raw datasets, model outputs or temporary files to the git repository history.\n- Do not commit raw datasets, model outputs or temporary files into the git repository.\n\n## README guidelines\n\n- Short.\n"
+  },
+  "repos": {
+    "ersilia-skills": false
+  },
+  "expect": [
+    {
+      "target": "ana",
+      "check": "DUP-WITHIN",
+      "title_has": "Do not commit raw datasets"
+    }
+  ],
+  "expect_absent": [
+    {
+      "target": "ana",
+      "check": "DUP-WITHIN",
+      "title_has": "Git** tracks"
+    }
+  ]
+}

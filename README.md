@@ -39,6 +39,7 @@ Several of these skills are designed to be chained together as part of a larger 
 | model-incorporation-reproduce | Verifies model outcomes/performance matches the original work. |
 | model-incorporation-release | After the merge: checks CI is green, verifies or creates the release, deposits the paper in Drive, closes the request. |
 | repository-auditing | Audits a repository to make sure it abides by Ersilia's standards. |
+| org-context | Keeps the org `CLAUDE.md` and the package and analysis template `CLAUDE.md` files short, true and consistent. Reports first; edits only what you approve. |
 | ersilia-model-test | Tests an Ersilia Model Hub model before hub incorporation. |
 | model-monitoring | Track pending models, stored data, etc |
 | model-fixing | When a model fails a test, reviews where it failed and fixes it automatically. |
@@ -91,6 +92,8 @@ bash setup.sh
 ```
 
 This creates a symlink in `~/.claude/skills/` for each skill folder, so skills are immediately available as slash commands in Claude Code. Any personal skills you already have there are left untouched. A `post-merge` git hook is also installed, so whenever you `git pull` and new skills are added, they are linked automatically — no manual re-run needed.
+
+`setup.sh` also adds one line, `@<this repo>/config/CLAUDE.md`, to your `~/.claude/CLAUDE.md`, so every Claude Code session loads Ersilia's org-wide context (who we are, where things live, how agents should behave). The rest of that file is yours and is left alone. The `org-context` skill keeps `config/CLAUDE.md` and the repository templates' `CLAUDE.md` files up to date.
 
 ### Remote plugin (read-only access)
 
