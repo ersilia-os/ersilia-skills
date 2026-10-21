@@ -23,6 +23,7 @@ Each set of skills is designed to help us achieve one of these three goals. Some
 | event-discovery | Discover interesting events for Ersilia and write a summarised report. Classify between categories: local/global, science/philanthropy, etc. |
 | html-formatting | Style any HTML into the recognisable Ersilia look and feel, and improve its UX at the same time.|
 | airtable-sync | Keeps the Ersilia Content Airtable (repositories, publications, blog posts) in step with GitHub, OpenAlex and Medium, for the stats site. Writes only what you approve. |
+| org-context | Keeps the agent-context files short, true and consistent. |
 
 ### 2. Ersilia Model Hub Growth
 
@@ -37,7 +38,7 @@ Several of these skills are designed to be chained together as part of a larger 
 | model-incorporation-metadata | Fills in `metadata.yml` from the paper and source repo. |
 | model-incorporation-code | Wires the model code into the Ersilia template. |
 | model-incorporation-reproduce | Verifies model outcomes/performance matches the original work. |
-| model-incorporation-release | After the merge: checks CI is green, verifies or creates the release, deposits the paper in Drive, closes the request. |
+| model-incorporation-release | Last step of the incorporation pipeline. It runs after the model's PR is merged into ersilia-os/eosXXXX. |
 | repository-auditing | Audits a repository to make sure it abides by Ersilia's standards. |
 | org-context | Keeps the org `CLAUDE.md` and the package and analysis template `CLAUDE.md` files short, true and consistent. Reports first; edits only what you approve. |
 | ersilia-model-test | Tests an Ersilia Model Hub model before hub incorporation. |
@@ -45,6 +46,7 @@ Several of these skills are designed to be chained together as part of a larger 
 | model-fixing | When a model fails a test, reviews where it failed and fixes it automatically. |
 | github-digest | Tracks open issues and produces summaries for tech-tracking meetings. |
 | model-incorporation-digest | Monthly digest of the models incorporated into the Hub, crediting each model's original authors. |
+| model-optimization | Makes an Ersilia Model Hub model smaller without changing its outputs, verifies it with exact output gates, a served-model run and ersilia test --shallow, and opens a PR on the model repository with the size comparison. |
 
 ### 3. Improve scientific literacy
 
