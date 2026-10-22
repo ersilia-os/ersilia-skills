@@ -183,7 +183,7 @@ Two GUIs exist for non-experts. Do **not** use them unless strictly necessary. T
 - Open, monitor and make suggestions for issues.
 - Keep `README` files up to date.
 - Use CI/CD (GitHub Actions) for tests and maintenance.
-- Do not store large files in GitHub. Use the `eosvc` tool to store large files in S3 buckets.
+- Do not store files over 100 MB in GitHub. Use the `eosvc` tool to store them in S3 buckets (in a model repo, the whole folder that holds them).
 
 ## Agent behaviour
 
