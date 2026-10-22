@@ -94,8 +94,8 @@ conda run -n ersilia python <skill-dir>/scripts/check_metadata.py "$PWD"
 ```
 
 ```bash
-# 4. checkpoints and training data: in git unless a file is over 99.99 MB
-find model/checkpoints model/framework/fit -type f -size +99990000c
+# 4. checkpoints and training data: in git unless a file is over 100 MB
+find model/checkpoints model/framework/fit -type f -size +100000000c
 cat access.json 2>/dev/null       # names only the folders on eosvc; absent when both are in git
 # for each folder on eosvc (skip if none), S3 must match local:
 conda run -n eosvc eosvc view --path model/checkpoints
@@ -113,7 +113,7 @@ one. If either is not the case, stop and say which.
 
 The status must list only intended files. Stage `model/checkpoints/` and `model/framework/fit/`
 when they are in git. Never stage `.eosvc/`, `*-test.json`, `__pycache__/`, `.env`, `.config`,
-a gitignored folder, a file over 99.99 MB, or a file in the megabytes outside those two
+a gitignored folder, a file over 100 MB, or a file in the megabytes outside those two
 folders. `mock.txt` and `.gitattributes` must show as deleted.
 
 ```bash
@@ -151,7 +151,7 @@ Write the message to a file and commit with `-F`:
 Incorporate <Title> (<id>)
 
 <One sentence on what the model returns.>
-Checkpoints: <in git / on S3 via eosvc, a file is over 99.99 MB>. Shallow test: <result>.
+Checkpoints: <in git / on S3 via eosvc, a file is over 100 MB>. Shallow test: <result>.
 Reproduction: <ran / not run, and why>. Optimization: <ran / not run, and why>.
 
 Refs ersilia-os/ersilia#<n>
@@ -198,7 +198,7 @@ Refs ersilia-os/ersilia#<n>
 
 ### Checks run
 - `ersilia test --shallow`: <result>
-- Checkpoints and training data: <in git / on S3 via eosvc (a file is over 99.99 MB), S3 and local match>
+- Checkpoints and training data: <in git / on S3 via eosvc (a file is over 100 MB), S3 and local match>
 - Reproduction: <ran, with the headline numbers / not run, and why>
 - Optimization: <ran, with the size change / not run, and why>
 

@@ -7,7 +7,7 @@
 ├── install.yml             # dependency specification
 ├── metadata.yml            # model metadata (filled separately)
 └── model/
-    ├── checkpoints/        # pretrained weights / scalers (in git; eosvc if a file is over 99.99 MB)
+    ├── checkpoints/        # pretrained weights / scalers (in git; eosvc if a file is over 100 MB)
     └── framework/
         ├── run.sh          # entry-point shell script (rarely needs editing)
         ├── code/
@@ -159,11 +159,11 @@ commands:
 ## Checkpoints and training data (git, or eosvc)
 
 `model/checkpoints/` and `model/framework/fit/` are committed to git. If any file in one of
-them is larger than 99.99 MB, that whole folder is gitignored and persisted with eosvc
+them is larger than 100 MB, that whole folder is gitignored and persisted with eosvc
 instead, from the model repo root:
 
 ```bash
-find model/checkpoints model/framework/fit -type f -size +99990000c   # no output: all in git
+find model/checkpoints model/framework/fit -type f -size +100000000c   # no output: all in git
 conda run -n eosvc eosvc upload --path checkpoints                     # only for a folder on eosvc
 ```
 
