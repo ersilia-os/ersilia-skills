@@ -56,5 +56,5 @@ Ground truth is the real incorporated repo on GitHub.
   _(ground truth uses `dim_`; `feat_` is the preferred prefix for new work, so either is
   acceptable here — do not fail the eval on the prefix alone)_
 - [ ] `ersilia_pack_utils` used in `main.py`
-- [ ] `model/checkpoints/macaw_chembl_trained.joblib` present and not tracked by git (`model/checkpoints/` is gitignored)
+- [ ] `model/checkpoints/macaw_chembl_trained.joblib` present and tracked by git (2.7 MB, under the 99.99 MB limit), with no `access.json`
 - [ ] `install.yml` has all deps pinned

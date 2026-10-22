@@ -94,7 +94,10 @@ conda run -n ersilia python <skill-dir>/scripts/check_metadata.py "$PWD"
 ```
 
 ```bash
-# 4. checkpoints on S3 match local (skip for models without checkpoints)
+# 4. checkpoints and training data: in git unless a file is over 99.99 MB
+find model/checkpoints model/framework/fit -type f -size +99990000c
+cat access.json 2>/dev/null       # names only the folders on eosvc; absent when both are in git
+# for each folder on eosvc (skip if none), S3 must match local:
 conda run -n eosvc eosvc view --path model/checkpoints
 # the last line must read "0 modified · 0 local-only · 0 remote-only"
 
@@ -104,9 +107,14 @@ git status --porcelain
 git ls-files -o -m --exclude-standard | xargs -r -d '\n' du -k 2>/dev/null | sort -rn | head -3
 ```
 
-The status must list only intended files. Never stage `.eosvc/`, `*-test.json`,
-`__pycache__/`, `.env`, `.config`, anything under `model/checkpoints/` or `model/framework/fit/`,
-or a file in the megabytes. `mock.txt` and `.gitattributes` must show as deleted.
+A folder with a file listed by `find` must be gitignored and on eosvc as a whole; a folder
+without one must be in git and must not be on S3, because CI downloads the S3 copy over the git
+one. If either is not the case, stop and say which.
+
+The status must list only intended files. Stage `model/checkpoints/` and `model/framework/fit/`
+when they are in git. Never stage `.eosvc/`, `*-test.json`, `__pycache__/`, `.env`, `.config`,
+a gitignored folder, a file over 99.99 MB, or a file in the megabytes outside those two
+folders. `mock.txt` and `.gitattributes` must show as deleted.
 
 ```bash
 # 6. earlier unpushed commits carry no skip token
@@ -143,7 +151,7 @@ Write the message to a file and commit with `-F`:
 Incorporate <Title> (<id>)
 
 <One sentence on what the model returns.>
-Checkpoints are on S3 via eosvc. Shallow test: <result>.
+Checkpoints: <in git / on S3 via eosvc, a file is over 99.99 MB>. Shallow test: <result>.
 Reproduction: <ran / not run, and why>. Optimization: <ran / not run, and why>.
 
 Refs ersilia-os/ersilia#<n>
@@ -190,7 +198,7 @@ Refs ersilia-os/ersilia#<n>
 
 ### Checks run
 - `ersilia test --shallow`: <result>
-- Checkpoints: uploaded with eosvc, S3 and local match
+- Checkpoints and training data: <in git / on S3 via eosvc (a file is over 99.99 MB), S3 and local match>
 - Reproduction: <ran, with the headline numbers / not run, and why>
 - Optimization: <ran, with the size change / not run, and why>
 

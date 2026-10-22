@@ -7,7 +7,7 @@
 ├── install.yml             # dependency specification
 ├── metadata.yml            # model metadata (filled separately)
 └── model/
-    ├── checkpoints/        # pretrained weights / scalers (gitignored, persisted with eosvc)
+    ├── checkpoints/        # pretrained weights / scalers (in git; eosvc if a file is over 99.99 MB)
     └── framework/
         ├── run.sh          # entry-point shell script (rarely needs editing)
         ├── code/
@@ -156,16 +156,20 @@ commands:
 
 ---
 
-## Checkpoints (eosvc)
+## Checkpoints and training data (git, or eosvc)
 
-`model/checkpoints/` and `model/framework/fit/` are gitignored, so nothing in them is ever
-added to git. Persist them with eosvc from the model repo root:
+`model/checkpoints/` and `model/framework/fit/` are committed to git. If any file in one of
+them is larger than 99.99 MB, that whole folder is gitignored and persisted with eosvc
+instead, from the model repo root:
 
 ```bash
-conda run -n eosvc eosvc upload --path .
+find model/checkpoints model/framework/fit -type f -size +99990000c   # no output: all in git
+conda run -n eosvc eosvc upload --path checkpoints                     # only for a folder on eosvc
 ```
 
-Which folders are uploaded, and whether they are public or private, is set in `access.json`.
+A folder on eosvc is named in `access.json`, which also sets public or private. A model with
+both folders in git has no `access.json`. Never keep a folder in both places: CI downloads the
+S3 copy over the git one.
 The template also ships a `.gitattributes` and a `mock.txt` for a Git LFS mock; delete both.
 
 ---
