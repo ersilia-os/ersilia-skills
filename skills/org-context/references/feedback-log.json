@@ -136,6 +136,14 @@
       "kind": "code",
       "change": "connector_claims.known_roots takes roots from the org file's links first; parse/format_month_year use a fixed English table.",
       "fixture": "selftest:test_delivery_and_dates"
+    },
+    {
+      "n": 19,
+      "date": "2026-10-06",
+      "feedback": "(observed in run) 'Do not commit to main' was not recognised as enforceable; only 'push to main' was.",
+      "kind": "rule",
+      "change": "rules.json hooks: the main-branch action matches commit or push to main/master.",
+      "fixture": "hook-candidates"
     }
   ]
 }

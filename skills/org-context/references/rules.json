@@ -174,7 +174,7 @@
     "trigger": "\\b(never|must not|do not|don't|not allowed)\\b",
     "actions": [
       {
-        "pattern": "push(ing)? to `?main",
+        "pattern": "(push(ing)?|commit(ting)?) (directly )?to `?(main|master)",
         "suggest": "a permission rule denying `git push` to main, or branch protection"
       },
       {
