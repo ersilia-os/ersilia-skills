@@ -8,6 +8,7 @@ import json
 import re
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -68,7 +69,14 @@ def gh_api(path, allow_404=False):
     ``allow_404`` is set (a missing tag or release is an answer, not an error). Any
     other failure exits, because every verdict depends on reading GitHub correctly.
     """
-    result = subprocess.run(["gh", "api", path], capture_output=True, text=True)
+    # GitHub answers 502/503/504 now and then; one such reply should not end the run.
+    for wait in (5, 15, 0):
+        result = subprocess.run(["gh", "api", path], capture_output=True, text=True)
+        transient = re.search(r"HTTP 50[234]", result.stderr + result.stdout)
+        if result.returncode == 0 or not transient or not wait:
+            break
+        warn(f"gh api {path}: {transient.group(0)}, retrying in {wait} s")
+        time.sleep(wait)
     if result.returncode != 0:
         if allow_404 and "404" in (result.stderr + result.stdout):
             return None
