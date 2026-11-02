@@ -30,6 +30,12 @@
       "prompt": "/model-speedup eos8aa5 ~/Desktop/ersilia/forks/eos8aa5 — it gets OOM-killed in Docker",
       "expected_output": "Finds a ProcessPoolExecutor with a fixed 16 workers, each loading the 358 MB TorchScript model in its initializer. Measures with peak_pss_mb (peak_rss_mb counts shared weights per worker). Loads the model once in the parent and forks workers, sizes the pool from CPU affinity and available memory (cgroup limit or MemAvailable) capped at the original 16, processes in batches with a fresh pool per batch and retries a batch with half the workers on BrokenProcessPool. Does not add parallelism beyond the original. Outputs bit-identical.",
       "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "/model-speedup eos2b6f ~/Desktop/ersilia/forks/eos2b6f",
+      "expected_output": "Builds a Python 3.8 env from the legacy Dockerfile pins. Baseline is deterministic (~4 s per molecule); the edge file crashes the original (invalid SMILES → MolToSmiles(None)), so the gate is 'fails the same way' and the bug is reported, not fixed. Profile shows atom_smarts_query called ~477k times (each call re-parses a SMARTS and searches the whole molecule for one atom) and two `python call_dimorphite_dl.py` subprocesses per molecule. Caches SMARTS matches per molecule inside make_nodes (pattern 8) and calls dimorphite-dl in-process, hiding sys.argv because its main() parses it. Tries torch.inference_mode, finds no gain and reverts it. Outputs identical on 10 and 100; 550 s → 179 s on 100 molecules (3.1x). No commit.",
+      "files": []
     }
   ]
 }

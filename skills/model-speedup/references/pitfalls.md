@@ -84,6 +84,12 @@ speed-ups, state it explicitly in optimizations.md, and show the input that trig
 - Code that calls a bare `python` in a subprocess runs whatever `python` is first on
   PATH (eos2lqb). Always put the env's bin/ first on PATH (`run_model.py` does it);
   replacing `python` with `sys.executable` is a safe fix.
+- A CLI script turned into an in-process call (pattern 1) may still read
+  `sys.argv`: dimorphite-dl's `main(params)` runs `parser.parse_args()` before applying
+  `params`, so in-process it parsed `main.py`'s input/output paths and raised
+  "unrecognized arguments" (eos2b6f). Check which arguments the script passed and
+  which the function takes; hide `sys.argv` (`sys.argv[:1]`) only around the call, and
+  check the library for class-level state that a new process used to reset.
 - Conda installs can upgrade pinned packages (eos7pw8: `conda install syba` upgraded
   rdkit and numpy). Check versions after building the env and pin back.
 - Use the versions the Dockerfile / install.yml pin; numpy dtype rules and RDKit

@@ -1,11 +1,12 @@
 # Speed-up patterns
 
 Patterns 1-5 covered every speed-up found in the first eight models. Check them in
-this order: the first ones are the most common and usually the biggest wins. Patterns
-6 and 7 are about memory, not time: the model's peak memory grows with the input or
-with the number of workers until the container kills it. Check them whenever Step 2
-finds memory growth. For each: how to spot it in the profile or code, the fix, and a
-real example.
+this order: the first ones are the most common and usually the biggest wins. Pattern
+8 is also about time; check it whenever featurization (building atom or bond
+features for a graph model) shows up high in the profile. Patterns 6 and 7 are about
+memory, not time: the model's peak memory grows with the input or with the number of
+workers until the container kills it. Check them whenever Step 2 finds memory growth.
+For each: how to spot it in the profile or code, the fix, and a real example.
 
 ## 1. Setup repeated for every molecule
 
@@ -25,6 +26,7 @@ inputs first and fall back to the old per-molecule loop if the batch still fails
 - eos96f4: SCScore model reloaded from a 9 MB `.json.gz` per molecule → `lru_cache` on the loader. 14x.
 - eos5gge: the `dilipred` library unpickled 13 random forests (54 MB) per molecule. A small module replaces `pickle` inside the library with a caching loader. 3.3x.
 - eos4e40: two Python processes and 20 checkpoints (430 MB) per molecule → one chemprop run for all molecules. 29x.
+- eos2b6f: two `python call_dimorphite_dl.py` processes per molecule → the same function called in-process (watch for `sys.argv` parsing, pitfalls.md). ~1 s per molecule saved.
 
 ## 2. Thread or process pools for a single item
 
@@ -131,10 +133,35 @@ Load once + fork, workers from CPUs and memory, batches of 1000 with a retry at 
 the workers on `BrokenProcessPool`. In an 8 GB Docker VM, 100 molecules went from
 ~60 s with OOM kills to ~14 s; outputs bit-identical.
 
+## 8. A per-molecule result recomputed for every atom or bond
+
+**Signs.** A featurizer (often for a GNN) asks, for each atom or bond, "is this
+atom part of a match of pattern X?", and answers by searching the *whole molecule*
+and then checking whether the atom is in the matches. The search depends only on
+the molecule and the pattern, so it is repeated atoms × patterns times for the same
+answer, and again for every molecule variant (protonation states, tautomers). In
+the profile: `GetSubstructMatches` / `MolFromSmarts` (or ring info, descriptors) with
+ncalls in the hundreds of thousands for a few molecules, high `tottime` in a small
+helper like `atom_smarts_query(atom, smarts)`, and `atom.GetOwningMol()` in the code.
+
+**Fix.** Compute the matches once per molecule and pattern, parse each pattern once
+(`lru_cache`), and look the atom up in a set. Keep the exact same call
+(`GetSubstructMatches` with the same arguments, including the default
+`maxMatches=1000`), so the result is identical. If the featurizer only sees one atom
+at a time (feature lambdas), activate a small cache for the duration of the
+per-molecule loop with a context manager, and leave it off elsewhere so other callers
+keep the original behaviour.
+
+**Example.** eos2b6f (pkasolver, microstate pKa): ~50 SMARTS × every atom × every
+protonation state, each a full-molecule substructure search: 477,400 calls and 12 of
+45 s on 10 molecules. Cached per molecule in `make_nodes`. Together with pattern 1
+(dimorphite-dl in-process): 550 s → 179 s on 100 molecules (3.1x), outputs identical.
+
 ## Not worth it / out of scope
 
 - The model calls a remote API (eos3kcw, eos1d7r...): the time is the network.
 - Genuine work is the bottleneck (e.g. eos7ike averages properties over all conformers).
+- `torch.inference_mode()` when each call predicts one small item (eos2b6f: one molecule pair per call, 25 models): outputs identical but no time gained. It pays off for memory with big batches (pattern 6).
 - Size optimizations (unused packages, CPU-only torch): that is the `model-optimization` skill.
 - Adding parallelism (worker pools, multiprocessing, `n_jobs` > 1, `numThreads=0`,
   more xtb `-P` threads): models run in Docker containers with few CPUs, so speed
