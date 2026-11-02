@@ -44,7 +44,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
 from _common import (
@@ -218,14 +218,58 @@ def sharer_display_name(thread: dict[str, Any], classification: str) -> str:
     return "Collaborator"
 
 
+ENTRY_TAG_RE = re.compile(r"^\s*\[(?:PDF|HTML|BOOK|B|CITATION)\]\s*", re.IGNORECASE)
+
+
+def parse_entries(body_text: str) -> list[dict[str, str]]:
+    """Parse per-paper entry lines of the form ``Title | authors | venue | URL``.
+
+    This is the format Claude writes when it reads a dense alert (Scholar, journal ToC,
+    curated digests) into ``body_text``. Each line carries its own title and link, so the
+    item must not inherit the thread's subject, snippet or first DOI. Lines without a URL
+    or with a very short title are ignored.
+    """
+    entries: list[dict[str, str]] = []
+    for line in (body_text or "").splitlines():
+        if " | " not in line:
+            continue
+        m = URL_REGEX.search(line)
+        if not m:
+            continue
+        parts = [p.strip() for p in line.split(" | ")]
+        title = ENTRY_TAG_RE.sub("", parts[0]).strip()
+        if len(title) < 20:
+            continue
+        entries.append({
+            "title": title,
+            "authors": parts[1] if len(parts) > 2 else "",
+            "venue": parts[2] if len(parts) > 3 else "",
+            "url": unwrap_scholar_redirect(m.group(0).rstrip(").,")),
+        })
+    return entries
+
+
 def normalise_thread(thread: dict[str, Any]) -> list[dict[str, Any]]:
     text = " ".join([
         thread.get("subject") or "",
         thread.get("snippet") or "",
         thread.get("body_text") or "",
     ])
-    urls = extract_urls(text)
-    if not urls:
+    entries = parse_entries(thread.get("body_text") or "")
+    # Candidates are (url, per-entry title, per-entry authors, per-entry venue). Entry lines
+    # win; otherwise fall back to one candidate per URL with thread-level metadata.
+    candidates: list[tuple[str, str | None, str, str]] = []
+    if entries:
+        seen_urls: set[str] = set()
+        for e in entries:
+            nu = normalise_url(e["url"])
+            if not nu or nu in seen_urls or should_skip_url(e["url"]):
+                continue
+            seen_urls.add(nu)
+            candidates.append((e["url"], e["title"], e["authors"], e["venue"]))
+    else:
+        candidates = [(u, None, "", "") for u in extract_urls(text)]
+    if not candidates:
         return []
 
     classification = classify_sender(thread.get("sender"))
@@ -238,20 +282,31 @@ def normalise_thread(thread: dict[str, Any]) -> list[dict[str, Any]]:
     }[classification]
 
     items: list[dict[str, Any]] = []
-    for url in urls:
-        dois = extract_dois(url) + extract_dois(text)
+    for url, entry_title, entry_authors, entry_venue in candidates:
+        # Identifiers come from the item's own URL (and its own entry line). Taking the first
+        # DOI anywhere in the thread would stamp one paper's DOI onto every other link.
+        own_text = f"{url} {entry_title or ''}" if entry_title else url
+        dois = extract_dois(own_text)
+        arxiv_ids = extract_arxiv_ids(own_text)
+        if not dois and not arxiv_ids and len(candidates) == 1:
+            # Single-link thread: the body is about that one paper, so thread text is safe.
+            dois = extract_dois(text)
+            arxiv_ids = extract_arxiv_ids(text)
         doi = dois[0] if dois else None
-        arxiv_ids = extract_arxiv_ids(url) + extract_arxiv_ids(text)
         arxiv_id = arxiv_ids[0] if arxiv_ids else None
 
-        title = title_for_item(thread, classification, url)
+        title = entry_title or title_for_item(thread, classification, url)
         venue = guess_venue_from_url(url)
         if venue == "Web link":
-            venue = venue_suffix
+            venue = entry_venue or venue_suffix
 
         item = {
             "title": title,
-            "authors": [{"name": sharer, "affiliation": "Ersilia inbox", "country": None}],
+            "authors": (
+                [{"name": a.strip(), "affiliation": None, "country": None}
+                 for a in entry_authors.split(",") if a.strip() and "..." not in a]
+                or [{"name": sharer, "affiliation": "Ersilia inbox", "country": None}]
+            ),
             "venue": venue,
             "date": date,
             "doi": doi,

@@ -90,6 +90,13 @@ refuse to proceed. Do not fetch from any other source either — a digest withou
 Slack and Gmail is not a digest we ship. The user can re-invoke once the MCPs are
 connected.
 
+**Known Gmail failure (2026-11-02).** `Incompatible auth server: does not support dynamic
+client registration` means the `claude-for-nonprofits` plugin's Gmail server is active. It
+shares a URL with the claude.ai Gmail connector, so Claude Code hides the connector
+(`/mcp` → "Show unused connectors" lists it as hidden). Tell the user to disable that plugin in
+`/plugins`, run `/reload-plugins`, and re-invoke. The working tools are named
+`mcp__claude_ai_Gmail__*`. The same plugin shadows the Google Calendar connector.
+
 **Gate B — references not stale.** Check whether the skill's reference files are
 overdue for their quarterly refresh:
 
@@ -238,6 +245,15 @@ connector by what it covers, never by the inbox it reads.
     "sender_name": "Google Scholar Alerts", "date": "YYYY-MM-DD",
     "body_text": "...", "snippet": "...", "thread_url": "https://mail.google.com/..."}
    ```
+   **Write `body_text` as one line per paper**: `Title | authors | venue | URL`. Scholar
+   alerts, journal ToC emails and curated digests list many papers per thread. A line per
+   paper lets `fetch_gmail.py` give each item its own title, authors and DOI. Free-form text
+   makes every link inherit the thread subject. Keep the full article URL or DOI; tracking
+   redirects (Springer Nature, Wiley, Mailchimp) cannot be resolved later, so decode them if
+   the email shows the target. For a long ToC email that overflows the tool output, fetch the
+   thread with `messageFormat=PLAIN_TEXT` and parse the on-disk dump. Reading the threads in
+   parallel subagents keeps the main context small; each subagent writes its own raw JSON and
+   you merge them.
 3. Then normalise:
 
 ```bash
@@ -247,6 +263,11 @@ python scripts/fetch_gmail.py --raw /tmp/gmail_raw.json --out /tmp/gmail.json
 The normaliser deliberately drops the raw `sender` (email address) from output so
 that downstream digests cannot leak it; only the human-friendly display name
 survives.
+
+**Regression self-test.** `python scripts/selftest.py` reproduces past normaliser failures
+(truncated DOIs, links inheriting another paper's DOI or the thread subject). Run it after any
+change to `_common.py`, `fetch_gmail.py` or `fetch_slack.py`. When a run exposes a new
+normaliser bug, add a case there with the date.
 
 **Graceful degradation for API sources only.** The two MCP sources (Slack and Gmail)
 are *required* (Step 0 already gated on this); if either becomes unreachable
@@ -659,8 +680,10 @@ to a headless `claude -p` on the user's Mac.
   `claude`, `gh` and the conda `python`), `cd`s into this skill folder and runs
   `claude --model sonnet -p "/literature-digest $* — unattended weekly scheduled run …"` with
   an `--allowedTools` allowlist: `Bash(gh:*)`, `Bash(python:*)`, Read/Write/Edit, `WebSearch`
-  and `WebFetch` (supplementary search, Crossref author checks), the Gmail **read** tools, the
-  Slack read tools and `slack_send_message`. Output is appended to
+  and `WebFetch` (supplementary search, Crossref author checks), the Gmail **read** tools
+  (`mcp__claude_ai_Gmail__search_threads` and `mcp__claude_ai_Gmail__get_thread`; the old
+  `mcp__plugin_claude-for-nonprofits_gmail__*` names no longer exist once that plugin is
+  disabled, see Gate A), the Slack read tools and `slack_send_message`. Output is appended to
   `~/Library/Logs/literature-digest/{date}.log`.
 - **Model: Sonnet.** On 2026-10-05, Opus 5.5's safeguards flagged a headless run as
   biology-related (`[bio]`) and refused it. The pathogen and antimicrobial literature trips
