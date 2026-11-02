@@ -44,8 +44,23 @@ def normalise_doi(raw: str | None) -> str | None:
 
 
 # Matches a DOI anywhere in a string. Conservative: requires the `10.` prefix and a slash.
-# Terminating characters include whitespace, common punctuation, and markdown delimiters.
-DOI_REGEX = re.compile(r"\b(10\.\d{4,9}/[^\s\"<>`]+?)(?=[\s\"<>`.,;)\]]|$)", re.IGNORECASE)
+# The match is greedy and stops only at whitespace, quotes, angle brackets, backticks, or a
+# URL query/fragment. Trailing punctuation is stripped afterwards. (A lazy match that stops at
+# the first "." truncates real DOIs such as 10.1021/acs.jmedchem.6c00791 to 10.1021/acs.)
+DOI_REGEX = re.compile(r"\b(10\.\d{4,9}/[^\s\"<>`?#]+)", re.IGNORECASE)
+
+# Publisher article URLs append page-id or slug segments after the DOI. Trim them.
+_ACS_DOI = re.compile(r"^(10\.1021/[^/]+)/.+$")
+_OUP_DOI = re.compile(r"^(10\.1093/[^/]+/[^/]+)/.+$")
+
+
+def _trim_publisher_suffix(doi: str) -> str:
+    """Cut URL path segments that publishers append after the DOI (ACS, OUP)."""
+    for pattern in (_ACS_DOI, _OUP_DOI):
+        m = pattern.match(doi)
+        if m:
+            return m.group(1)
+    return doi
 
 
 def extract_dois(text: str) -> list[str]:
@@ -53,7 +68,8 @@ def extract_dois(text: str) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
     for match in DOI_REGEX.findall(text or ""):
-        d = normalise_doi(match)
+        d = normalise_doi(match.rstrip(".,;:)]}'\""))
+        d = _trim_publisher_suffix(d) if d else d
         if d and d not in seen:
             seen.add(d)
             out.append(d)
