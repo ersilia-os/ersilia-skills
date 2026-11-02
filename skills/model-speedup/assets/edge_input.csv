@@ -1,0 +1,13 @@
+smiles
+C
+CC(=O)[O-].[Na+]
+C[N+](C)(C)C
+C[C@H](N)C(=O)O
+[2H]c1ccccc1
+OB(O)c1ccccc1
+C[Si](C)(C)C
+N.N.Cl[Pt]Cl
+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+CC(C)C[C@H](NC(=O)[C@@H](N)Cc1ccccc1)C(=O)N[C@@H](CCCCN)C(=O)O
+C1CC
+not_a_smiles

@@ -1,0 +1,35 @@
+{
+  "skill_name": "model-speedup",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Make eos4e40 faster, it's cloned at ~/Desktop/ersilia/optim/notebooks/optimized/eos4e40.",
+      "expected_output": "Builds the env from the Dockerfile, runs the original on input_10 twice (deterministic), edge_input and input_100 with run_model.py. profile_model.py shows one `bash` subprocess per molecule (chemprop save_features + predict, 20 checkpoints loaded each time). Changes main.py to one chemprop run for all valid molecules, filtering invalid SMILES with RDKit and falling back to the per-molecule loop on failure. The first gate fails with ~1e-9 differences (float32 batching); the skill keeps the original behaviour with `--batch_size 1` and re-gates to identical. Reports ~9x on 10 and ~29x on 100 molecules, writes a brief optimizations.md and stores original/optimized CSVs in eos4e40-optimization/. No commit.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "eos9ym3 is really slow, can you speed it up? Repo: ~/Desktop/ersilia/optim/notebooks/optimized/eos9ym3",
+      "expected_output": "Profiles the descriptor subprocess and finds UFF optimization of 50-300 conformers per molecule while only the first conformer reaches GetUSRCAT. Notices rdkonf6.py's licence forbids modification and puts a smiles_to_3dmol replacement in smi_to_logP_descriptors.py that still embeds all conformers but optimizes only the first. Tests and rejects embedding 1 conformer and multithreaded embedding because outputs change, listing them under 'Not applied'. Outputs identical on 10, 100 and edge inputs; ~1.6x faster.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "/model-speedup eos3wzy ~/Desktop/ersilia/optim/notebooks/optimized/eos3wzy",
+      "expected_output": "Finds repeated xtb calls on the same structure and caches them (identical outputs). Does not keep thread-count changes (xtb -P changes results: one of 100 molecules flips) or a seed for the RDKit embedding (changes outputs because unseeded embedding depends on order); records both under 'Not applied'. Finds the single-molecule one-pKa-site crash (squeeze on a 1-element tensor), fixes it as a separate '# FIX:' change with its triggering input, and reports it as an intended output change. Uses the full 100-molecule file to investigate a differing molecule, because the pipeline embeds the whole batch before predicting.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "eos9o72 is using too much memory, 1.5 → 5.0 GB at 380 molecules. Can you look at it? Repo: ~/Desktop/ersilia/forks/eos9o72",
+      "expected_output": "Baseline shows peak memory growing ~11 MB per molecule (≈1.6 GB at 100); runs the original on a 1000-molecule input (≈11 GB). Finds that chemeleon_fingerprint.py builds one BatchMolGraph from every molecule and calls the model without torch.inference_mode/no_grad. Applies inference_mode first (outputs identical, ~3.4 GB at 1000), then chunks of 64 (constant ~0.8 GB at 100 and 1000; max diff ~1e-7, float32 rounding, kept and reported). Time unchanged; does not stop for lack of a 1.2x speed-up. No commit.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "/model-speedup eos8aa5 ~/Desktop/ersilia/forks/eos8aa5 — it gets OOM-killed in Docker",
+      "expected_output": "Finds a ProcessPoolExecutor with a fixed 16 workers, each loading the 358 MB TorchScript model in its initializer. Measures with peak_pss_mb (peak_rss_mb counts shared weights per worker). Loads the model once in the parent and forks workers, sizes the pool from CPU affinity and available memory (cgroup limit or MemAvailable) capped at the original 16, processes in batches with a fresh pool per batch and retries a batch with half the workers on BrokenProcessPool. Does not add parallelism beyond the original. Outputs bit-identical.",
+      "files": []
+    }
+  ]
+}
