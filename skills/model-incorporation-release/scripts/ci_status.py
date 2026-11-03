@@ -316,7 +316,13 @@ def main():
         ]
     else:
         post = [j for j in image_jobs if j["name"].startswith("post-upload")]
-        if post and post[0].get("conclusion") != "success":
+        if post and post[0]["status"] != "completed":
+            # The run can already read completed/success while post-upload is still
+            # writing the release and metadata (eos3pu0).
+            result["overall"] = "running"
+            result["watch"].append(image["id"])
+            result["reason"] = "The image test passed; post-upload is still running."
+        elif post and post[0].get("conclusion") != "success":
             result["overall"] = "failed"
             result["failures"].append(
                 {

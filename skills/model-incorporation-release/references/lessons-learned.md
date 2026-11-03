@@ -60,6 +60,12 @@ also creates release `v1.0.0` and retags the image itself.
 - **Cause:** GitHub's 6 h job limit. The architectures run one after the other, so a slow model can need about 12 h in total.
 - **What to do:** first check that inference on `examples/run_input.csv` is not pathologically slow (that is a model-fixing problem). Then re-run with `gh workflow run upload-model.yml -R ersilia-os/<id>`, which starts the chain again and does not need an empty commit.
 
+## The image run reads green while post-upload is still running (eos3pu0)
+
+- **Symptom:** "Test model image" shows `completed`/`success`, but `post-upload` is `in_progress` with no conclusion. The release may already exist.
+- **Cause:** GitHub can mark the run complete before its last job ends.
+- **What to do:** treat it as running and watch the post-upload job until it completes. `ci_status.py` now returns `running` here; older versions reported a false `post_upload_skipped`. Do not re-run anything.
+
 ## One architecture fails inside a green image run (eos1ltv)
 
 - **Symptom:** "Test model image" concludes `success`, but `test-image-arm64` failed.
