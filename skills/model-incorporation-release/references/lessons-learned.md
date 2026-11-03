@@ -71,6 +71,35 @@ also creates release `v1.0.0` and retags the image itself.
 - **Symptom:** the latest "Test model on PR" failed, yet main moved on and its runs are green.
 - **What to do:** the main-branch runs decide. Mention it in the summary anyway.
 
+## A partial post-upload poisons every later image-test re-run (eos8698)
+
+- **Symptom:** a re-run of "Test model image" runs the model fine on both architectures
+  (the 10,000-input step returning `-1.0` is accepted), then fails at "Parse test results"
+  because `model_computational_performance_for_{1,10,100,1000,10000}_input` are `false`.
+  metadata.yml on main holds `Computational Performance 1-5: 'null'` and a one-architecture
+  `Docker Architecture`.
+- **Cause:** an earlier attempt's post-upload committed those values, then failed at the
+  Airtable step (null values raise `ComputationalPerformanceBaseInformationError`). The
+  image test reads metadata.yml on main: a missing performance field counts as
+  "not present" and passes, the string `'null'` counts as `false`. Reported as
+  ersilia-os/ersilia#1964.
+- **What to do:** never re-run again, it fails the same way. With the user's explicit
+  yes (these are CI-owned fields), delete the five `'null'` lines from main with a
+  `[skip ci]` commit, then follow the next entry.
+
+## Re-running post-upload after main has moved cannot push (eos8698)
+
+- **Symptom:** the image tests pass on a re-run, but `post-upload` fails at "Commit and
+  push changes done to the Metadata file" with `rejected ... (fetch first)`. Airtable, the
+  S3 JSON, the README and the DockerHub description are skipped.
+- **Cause:** a re-run checks out the commit the run first started on. Bot or user
+  commits that landed on main since then make the push a non-fast-forward.
+- **What to do:** start a fresh chain with `gh workflow run upload-model.yml -R ersilia-os/<id>`
+  (ask first: about 2-3 h of Actions minutes). Because it rebuilds the image, `latest`
+  then differs from the existing release tag and `release_state.py` reports
+  `unreleased_changes`. Ask the user which bump to use, then release at main HEAD
+  as usual.
+
 ## The catalogue lags behind metadata.yml
 
 - **Symptom:** metadata.yml says Ready and `v1.0.0`, but `models.json` on S3 still shows the old state.
