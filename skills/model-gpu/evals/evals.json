@@ -1,0 +1,23 @@
+{
+  "skill_name": "model-gpu",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Add GPU support to eos3wac, it's cloned at ~/models/eos3wac (main branch).",
+      "expected_output": "Creates a gpu branch; copies assets/run.sh to model/framework/run.sh unchanged; writes main_gpu.py as a copy of main.py with DEVICE = \"cuda\", a RuntimeError when CUDA is missing, model and tokenizer outputs moved .to(DEVICE) and .cpu().numpy() on embeddings, same BATCH_SIZE/header; appends a gpu: section to install.yml with torch 2.7.1 from the cu126 index in list form and the other pins unchanged. main.py, commands:, metadata.yml untouched. Verifies CPU path unchanged against run_output.csv, that ERSILIA_DEVICE=gpu fails loudly without a GPU, and the CPU smoke test of main_gpu.py; reports the GPU comparison as not run if no GPU. Does not commit.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Make eos7w6n run on GPU.",
+      "expected_output": "Reads the model, finds the inference is scikit-learn / RDKit descriptors with no GPU framework, and stops without editing anything, explaining that a GPU image would not be faster.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We need a GPU version of this model, can you also add the ERSILIA_DEVICE switch to eos-template so all models get it?",
+      "expected_output": "Declines to edit eos-template (GPU support lives in each model, via this skill) and offers to adapt the given model only.",
+      "files": []
+    }
+  ]
+}
