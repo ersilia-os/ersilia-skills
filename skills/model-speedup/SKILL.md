@@ -299,8 +299,8 @@ Not applied: <faster variant> (~<N>x) changes outputs (<how many> molecules).
 
 Final report to the user: a table (molecules, original time, optimized time, original
 and optimized peak memory, output; include 1000 molecules when memory was measured there), the served-model times and comparison, the
-shallow-test result, what was not applied and why, any bug fix, and the commands to
-re-test:
+shallow-test result, what was not applied and why, any bug fix, any pattern or pitfall
+candidate from Step 7, and the commands to re-test:
 
 ```bash
 python $SKILL_DIR/scripts/run_model.py --cpus 2 --python <env>/bin/python --repo <REPO> \
@@ -308,3 +308,23 @@ python $SKILL_DIR/scripts/run_model.py --cpus 2 --python <env>/bin/python --repo
 ```
 
 Remind the user that nothing is committed, and list files changed (`git status`).
+
+### Step 7: Propose new patterns (never edit the skill)
+
+The patterns and pitfalls in `references/` came from real runs, and new runs keep
+finding more. When this run found one, draft it for the maintainers; **don't edit this
+skill's files** (they live in a shared checkout of `ersilia-skills`, and one model is
+not enough to know a finding generalizes).
+
+- **Pattern candidate**, only if all hold: the change was kept (outputs identical, or
+  within the float32 rounding allowed in Step 4); it gained ~1.2x or more, or stopped
+  memory growing with the input; and it fits none of the patterns in `patterns.md`. If
+  it fits one, propose only a new example line for it.
+- **Pitfall candidate**: a gate failed for a cause `pitfalls.md` does not describe.
+- Not candidates: `# FIX:` bug fixes, and anything specific to one model's code with no
+  sign it occurs elsewhere.
+
+Write the draft to `$WORK/pattern_candidate.md` (or `pitfall_candidate.md`) in the
+same shape as the existing entries (**Signs.** / **Fix.** / **Example.**, with this
+model's ID and measured numbers), and mention it in the final report. Adding it to the
+skill is the user's decision, in a separate commit.
