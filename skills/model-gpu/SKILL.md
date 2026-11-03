@@ -1,13 +1,14 @@
 ---
 name: model-gpu
-description: Adapts an Ersilia Model Hub model so it can also run on a GPU, without touching its CPU behaviour or eos-template. The user names the model (ID and local path). On a `gpu` branch of the model repo, the skill makes exactly three changes: replaces model/framework/run.sh with the fixed template that runs main_gpu.py when ERSILIA_DEVICE=gpu (set by Ersilia's GPU Dockerfiles) and main.py otherwise; writes model/framework/code/main_gpu.py, a copy of main.py that runs the model on CUDA and fails loudly when no GPU is visible or a CUDA error occurs; and adds a `gpu:` section to install.yml with the same packages as `commands:` but CUDA builds of the GPU frameworks (torch CUDA wheels, tensorflow[and-cuda], jax[cuda12], onnxruntime-gpu, DGL/PyG CUDA builds). Handles the hard cases: traced TorchScript checkpoints with a hard-coded CPU device, inference inside forked worker pools, broad try/except that would hide CUDA errors, and torch pins overridden by other packages. Stops and reports when the model has nothing that runs on a GPU (scikit-learn, RDKit-only, XGBoost/LightGBM inference). Verifies that the CPU path is unchanged, smoke-tests main_gpu.py on CPU, and compares GPU against CPU outputs when a GPU is available. Self-contained. Does not commit or push. Triggers include "make eosXXXX run on GPU", "add GPU support to eosXXXX", "gpu version of this model", "create main_gpu.py", "add the gpu section to install.yml", "adapt eosXXXX for gpu", "/model-gpu".
+description: Adapts the code of an Ersilia Model Hub model so it can also run on a GPU, without touching its CPU behaviour or eos-template. The user names the model (ID and local path). On a `gpu` branch of the model repo, the skill makes exactly three changes: replaces model/framework/run.sh with the fixed template that runs main_gpu.py when ERSILIA_DEVICE=gpu (set by Ersilia's GPU Dockerfiles) and main.py otherwise; writes model/framework/code/main_gpu.py, a copy of main.py that runs the model on CUDA and fails loudly when no GPU is visible or a CUDA error occurs; and adds a `gpu:` section to install.yml with the same packages as `commands:` but CUDA builds of the GPU frameworks (torch CUDA wheels, tensorflow[and-cuda], jax[cuda12], onnxruntime-gpu, DGL/PyG CUDA builds). Handles the hard cases: traced TorchScript checkpoints with a hard-coded CPU device, inference inside forked worker pools, broad try/except that would hide CUDA errors, and torch pins overridden by other packages. Stops and reports when the model has nothing that runs on a GPU (scikit-learn, RDKit-only, XGBoost/LightGBM inference). Runs tests only when the machine has a GPU (GPU output compared with CPU output); without a GPU it builds and runs nothing and says the change is untested. Self-contained. Does not commit or push. Triggers include "make eosXXXX run on GPU", "add GPU support to eosXXXX", "gpu version of this model", "create main_gpu.py", "add the gpu section to install.yml", "adapt eosXXXX for gpu", "/model-gpu".
 argument-hint: <model_id> <model_path>
 ---
 
 # Ersilia Model GPU adaptation
 
-GPU support lives in each model, not in eos-template. **Never edit eos-template for
-GPU.** A model supports GPU when it has three things:
+This skill adapts a model's code to run on a GPU, and nothing more. GPU support lives in
+each model, not in eos-template. **Never edit eos-template for GPU.** A model supports
+GPU when it has three things:
 
 1. `model/framework/run.sh` — the fixed template in `assets/run.sh`. It runs
    `main_gpu.py` when the env var `ERSILIA_DEVICE` is `gpu` and `main.py` otherwise.
@@ -37,38 +38,35 @@ change for a simple torch model (its metadata.yml change was accidental; ignore 
 
 ## Principles
 
-1. **The CPU model does not change.** `main.py`, the `commands:` section, checkpoints,
-   `metadata.yml`, `run_columns.csv` and the example files stay byte-identical. With
-   `ERSILIA_DEVICE` unset, the model produces exactly the output it produced before.
-2. **Same science on both devices.** Same checkpoints and weights, same preprocessing,
-   same batch size, same output header and order. GPU outputs may differ by float noise,
-   nothing more. No `half()`, AMP or `torch.compile`.
-3. **Fail loudly, never fall back.** `main_gpu.py` raises when CUDA is not visible, and
-   a CUDA error during inference must stop the run — never become blank rows. A GPU
-   image that silently writes empty or CPU results hides a broken deployment.
-4. **Smallest diff that really runs on the GPU.** Start from a copy of `main.py` and
+1. **Adapt the code, nothing more.** Three files change: run.sh, main_gpu.py (new) and
+   install.yml (`gpu:` appended). `main.py`, `commands:`, checkpoints, `metadata.yml`,
+   `run_columns.csv` and the examples stay byte-identical, so the CPU model is unchanged.
+2. **No GPU, no tests.** Check `nvidia-smi` once at the start. Without a GPU, do not
+   build envs, install packages or run the model — anything run there would fail or
+   prove nothing about the GPU. Say the change is untested on GPU.
+3. **Same science on both devices.** Same checkpoints and weights, same preprocessing,
+   same batch size, same output header and order. No `half()`, AMP or `torch.compile`.
+4. **Fail loudly, never fall back.** `main_gpu.py` raises when CUDA is not visible, and
+   a CUDA error during inference must stop the run — never become blank rows.
+5. **Smallest diff that really runs on the GPU.** Start from a copy of `main.py` and
    change device lines. Restructure only when the model cannot run on CUDA otherwise
    (traced TorchScript, forked workers — see `references/frameworks.md`), and explain
    why in a comment.
-5. **Shared code keeps its CPU default.** If the device is hard-coded in the model's own
+6. **Shared code keeps its CPU default.** If the device is hard-coded in the model's own
    package, add a `device="cpu"` parameter and pass `DEVICE` from `main_gpu.py`. Never
    change what `main.py` gets by default.
-6. **Do not commit or push.** Leave the changes on the `gpu` branch for the user.
+7. **Do not commit or push.** Leave the changes on the `gpu` branch for the user.
 
 ## Workflow
 
 ### Step 0: Read the model
 
 ```bash
+nvidia-smi -L            # GPU present? decides whether Step 5 runs
 cd $REPO && git status && git branch -a && git log --oneline -3
 cat model/framework/run.sh install.yml model/framework/code/main.py
 ls model/framework/code model/checkpoints
 ```
-
-**Checkpoints.** After a fresh clone, `model/checkpoints/` often holds only `.gitkeep`
-(they are stored with eosvc). If it is empty, download them:
-`eosvc download --path model/checkpoints` (eosvc is in the `ersilia` conda env if not on
-PATH). This creates an untracked `.eosvc/` folder: leave it untracked, never commit it.
 
 Stop and report to the user, without changing anything, when:
 
@@ -90,8 +88,10 @@ grep -nE "torch|tensorflow|keras|jax|onnxruntime|dgl|torch_geometric|chemprop|li
 Answer these before writing code (each has a section in `references/frameworks.md`):
 
 - Which framework runs the model?
-- Is the checkpoint a TorchScript file (`torch.jit.load`)? If so, is it traced with a
-  hard-coded CPU device?
+- Is the checkpoint a TorchScript file (`torch.jit.load`)? If so, does its code have a
+  hard-coded CPU device? (Read it from the zip, no torch needed — see frameworks.md. If
+  `model/checkpoints/` is empty after a clone, `eosvc download --path model/checkpoints`
+  first; leave the `.eosvc/` folder it creates untracked.)
 - Does inference run inside a worker pool (fork-based)? CUDA cannot run in forked children.
 - Is inference wrapped in a broad `try/except` that returns blanks?
 
@@ -113,7 +113,7 @@ cp $SKILL_DIR/assets/run.sh $REPO/model/framework/run.sh
 
 `cp main.py main_gpu.py`, then for torch:
 
-- After the imports and path setup, add exactly (the smoke test in Step 5 relies on it):
+- After the imports and path setup, add:
   ```python
   DEVICE = "cuda"
 
@@ -141,21 +141,15 @@ cp $SKILL_DIR/assets/run.sh $REPO/model/framework/run.sh
   `references/frameworks.md`.
 - Keep `BATCH_SIZE`, thread settings, seeds and everything else as in `main.py`.
 
-Static check before running anything — each hit must be a CPU tensor or a fixed line:
+Review the result by reading it (no execution). Each hit must be a CPU tensor or fixed:
 
 ```bash
+python -m py_compile model/framework/code/main_gpu.py
 grep -n "\.numpy()" model/framework/code/main_gpu.py | grep -v "\.cpu()"
 grep -n '"cpu"\|torch.device(' model/framework/code/main_gpu.py
 ```
 
 ### Step 4: install.yml `gpu:` section
-
-Build the CPU env first (Step 5) and read the **installed** versions:
-`<env>/bin/pip list | grep -iE "torch|tensorflow|jax|onnx|dgl|scatter|sparse|cluster|pyg"`.
-Another line can silently override a pin (eos8aa5: `torchdata 0.7.1` upgrades the
-`torch 1.13.1` pin to 2.4.1). The `gpu:` section must reproduce what the CPU env really
-runs; if installed ≠ pinned, use the installed version and tell the user the CPU pin is
-ineffective.
 
 Append `gpu:` after `commands:`: same lines, same order, copied verbatim (comments
 included), except the GPU packages listed in `references/frameworks.md`. For torch ≥ 2.6:
@@ -169,67 +163,49 @@ gpu:
 - Drop the `+cpu` suffix; every line that uses the PyTorch CPU index
   (`--index-url`/`--extra-index-url .../whl/cpu`: torchvision, torchaudio, torchdata…)
   moves to the same CUDA index as torch, or it will reinstall a CPU torch.
+- **Is the torch pin what really gets installed?** A later line can require another
+  torch and silently replace it (eos8aa5: `torchdata 0.7.1` needs `torch>=2`, so the
+  `torch 1.13.1` pin ends up as 2.4.1). For every package in `commands:` that depends on
+  torch, read its requirement without installing it:
+  `curl -s https://pypi.org/pypi/<pkg>/<ver>/json | python -c "import json,sys; print([r for r in json.load(sys.stdin)['info']['requires_dist'] or [] if r.startswith('torch')])"`.
+  If it conflicts with the pin, stop and ask the user which torch version `gpu:` should
+  use, and mention that the CPU pin is ineffective.
 - Pick one CUDA tag that exists for **every** CUDA package of the model (torch, DGL,
   PyG extensions). Tags per version: `references/frameworks.md`.
-- Check each CUDA package exists **by listing the index**, not by downloading it
-  (torch wheels are 1–2.5 GB):
+- Check each CUDA package exists **by listing the index**, not by downloading it:
   `curl -s https://download.pytorch.org/whl/<cu>/torch/ | grep -o "torch-<ver>+<cu>-cp<py>[^\"<]*" | sort -u`.
 - Write changed lines in list form. Keep `python:` and `commands:` untouched.
 
-### Step 5: Verify
+### Step 5: Test — only with a GPU
 
-**Env.** `conda create -y -n gpu_${MODEL}_tmp python=<python:>` (never start the env
-name with the model ID: `ersilia delete` removes those), then:
+**No GPU** (`nvidia-smi` failed in Step 0): skip this step entirely. Do not build envs,
+install packages or run the model. Go to the report and say the change is untested.
 
-```bash
-python $SKILL_DIR/scripts/render_install.py install.yml commands <env>/bin/python gpu_${MODEL}_tmp | bash -e
-```
+**GPU present:**
 
-**Input.** `model/framework/examples/run_input.csv` is often a few rows, below one batch.
-Also make an input of at least 2–3 batches (repeat the example rows, add an invalid
-SMILES) as `$WORK/input.csv`, and use both.
-
-1. **CPU path unchanged** (required). Baseline = the original, not `run_output.csv`
-   (that file may come from another machine):
+1. Build two scratch envs (never start the name with the model ID: `ersilia delete`
+   removes those):
    ```bash
-   git stash -u      # back to the original (checkpoints are ignored, so they stay)
-   env -u ERSILIA_DEVICE PATH=<env>/bin:$PATH bash model/framework/run.sh \
-       model/framework $WORK/input.csv $WORK/orig.csv
-   git stash pop     # always, even if the run failed
-   env -u ERSILIA_DEVICE PATH=<env>/bin:$PATH bash model/framework/run.sh \
-       model/framework $WORK/input.csv $WORK/cpu.csv
-   python $SKILL_DIR/scripts/compare.py $WORK/orig.csv $WORK/cpu.csv     # must be exact
+   for s in commands gpu; do
+     conda create -y -n gpu_${MODEL}_$s python=<python:>
+     python $SKILL_DIR/scripts/render_install.py install.yml $s <env_$s>/bin/python gpu_${MODEL}_$s | bash -e
+   done
    ```
-   Also compare `cpu.csv` on the examples with `run_output.csv` and report it as
-   information (float noise there is pre-existing, not caused by you).
-2. **run.sh selects main_gpu.py** (on a machine without GPU):
-   `ERSILIA_DEVICE=gpu bash model/framework/run.sh ...` must stop with the RuntimeError
-   and write no output.
-3. **CPU smoke test of main_gpu.py.** Shows the copy runs and the science is unchanged
-   (it cannot prove the `.to()`/`.cpu()` edits are complete — `.numpy()` works on CPU
-   tensors; that is what the Step 3 static check is for):
+   In the `gpu` env check that CUDA builds were kept:
+   `python -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda.is_available())"`.
+2. Input: `model/framework/examples/run_input.csv` plus a file of at least 2–3 batches
+   (repeat the example rows, add an invalid SMILES) as `$WORK/input.csv`.
+3. Run both devices through run.sh:
    ```bash
-   sed -e 's/^DEVICE = "cuda"/DEVICE = "cpu"/' \
-       -e 's/if not torch.cuda.is_available():/if False:/' \
-       model/framework/code/main_gpu.py > model/framework/code/_main_gpu_cpu.py
-   <env>/bin/python model/framework/code/_main_gpu_cpu.py $WORK/input.csv $WORK/gpu_on_cpu.csv
-   rm model/framework/code/_main_gpu_cpu.py
-   python $SKILL_DIR/scripts/compare.py $WORK/cpu.csv $WORK/gpu_on_cpu.csv   # must be exact
+   env -u ERSILIA_DEVICE PATH=<env_commands>/bin:$PATH bash model/framework/run.sh model/framework $WORK/input.csv $WORK/cpu.csv
+   ERSILIA_DEVICE=gpu    PATH=<env_gpu>/bin:$PATH      bash model/framework/run.sh model/framework $WORK/input.csv $WORK/gpu.csv
    ```
-   Adapt the `sed` for TF/JAX/ONNX checks.
-4. **`gpu:` installs.** Build a second env from `gpu:` with `render_install.py ... gpu`
-   (works without a GPU; CUDA wheels install anyway). Confirm the CUDA builds were kept
-   (`python -c "import torch; print(torch.__version__, torch.version.cuda)"`) and no later
-   line replaced them with a CPU build. Rerun step 3 in this env.
-5. **On a GPU** (`nvidia-smi` works): with the `gpu:` env, run
-   `ERSILIA_DEVICE=gpu bash model/framework/run.sh ...`, check `nvidia-smi` shows the
-   process, then
+   While the GPU run is going, `nvidia-smi` must show the process.
+4. Compare:
    `python $SKILL_DIR/scripts/compare.py $WORK/cpu.csv $WORK/gpu.csv --atol 1e-4`
-   (blanks, header and rows must still match). Report `max_abs_diff`.
-   No GPU → say plainly that the GPU run is unverified.
-6. Delete the scratch envs.
-
-Optional, ask first: `ersilia test $MODEL --shallow --from_dir $REPO`.
+   (float noise allowed; blanks, header and row count must match). Report `match` and
+   `max_abs_diff`. More blanks on GPU than on CPU means errors are being swallowed.
+5. Delete the scratch envs.
 
 ### Step 6: Report
 
@@ -238,15 +214,15 @@ Short, to the user:
 - changed files (`git diff --stat`) and the `gpu:` section, with how each CUDA package
   was checked to exist;
 - main_gpu.py changes, one line per kind of edit, and why any restructuring was needed;
-- verification: each step's result with `match` / `max_abs_diff`, or "not run: no GPU";
-- issues found in the CPU model (ineffective pins, `run_output.csv` drift) — report,
-  don't fix;
-- suggested commit message: `Add GPU install and main_gpu.py, selected by ERSILIA_DEVICE=gpu`;
-- the GPU image is built by Ersilia's `Dockerfile.pip-gpu` / `Dockerfile.conda-gpu`.
+- tests: GPU vs CPU `match` / `max_abs_diff`, or **"not tested: no GPU on this machine"**
+  plus the Step 5 commands to run on a GPU machine;
+- issues found in the CPU model (ineffective pins) — report, don't fix;
+- suggested commit message: `Add GPU install and main_gpu.py, selected by ERSILIA_DEVICE=gpu`.
 
 ## Do not
 
 - Edit eos-template, `main.py`, `commands:`, `metadata.yml`, checkpoints or examples.
+- Run, install or build anything to test when there is no GPU.
 - Re-export or convert checkpoints.
 - Hand-write or "improve" run.sh — copy `assets/run.sh`.
 - Add a CPU fallback, or let `except` blocks swallow CUDA errors.

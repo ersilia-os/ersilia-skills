@@ -1,7 +1,7 @@
 # Frameworks: what changes in main_gpu.py and in `gpu:`
 
-Match the version the CPU env really installs (Step 4 of SKILL.md). If that version has
-no CUDA build, stop and ask the user — do not upgrade on your own.
+Keep the torch version the CPU model really gets (Step 4 of SKILL.md). If that version
+has no CUDA build, stop and ask the user — do not upgrade on your own.
 
 ## install.yml: CPU line → GPU line
 
@@ -69,18 +69,27 @@ embeddings = out.last_hidden_state[:, 0, :].cpu().numpy()
 
 A **scripted** module moves to CUDA with `.to(DEVICE)`. A **traced** module may have
 the export device baked into its graph (`torch.zeros(..., device=torch.device("cpu"))`),
-and `map_location` / `.to()` do not change it. Check:
+and `map_location` / `.to()` do not change it. Check by reading the code stored in the
+checkpoint zip (no torch needed):
 
 ```bash
-python -c "import torch; m=torch.jit.load('<ckpt>', map_location='cpu'); print(m.code)" | grep -n 'device("cpu")'
+python3 - <ckpt> <<'EOF'
+import sys, zipfile
+z = zipfile.ZipFile(sys.argv[1])
+for n in z.namelist():
+    if "/code/" in n and n.endswith(".py"):
+        for line in z.read(n).decode().splitlines():
+            if 'device("cpu")' in line:
+                print(n, line.strip())
+EOF
 ```
 
 No hit → `torch.jit.load(path, map_location=DEVICE)` is enough. Hit → do **not**
 re-export the checkpoint (checkpoints stay unchanged). Instead, in main_gpu.py, build
 the eager module from the model's own source code with the same config the export
 script used, `load_state_dict(ts.state_dict(), strict=True)`, `.eval().to(DEVICE)`.
-Before relying on it, check on CPU that the eager module gives exactly the trace's
-output (the Step 5.3 smoke test does this). Comment why.
+Comment why. A mistake in the rebuilt architecture only shows up when running it, so
+say in the report that the GPU-vs-CPU comparison (Step 5) is what validates it.
 
 ### Worker pools (multiprocessing / ProcessPoolExecutor, fork)
 
@@ -123,8 +132,7 @@ if not gpus:
 ```
 
 and removes CPU pinning from the copy (`os.environ["CUDA_VISIBLE_DEVICES"] = "-1"`,
-`with tf.device("/CPU:0")`). Smoke test: run the copy with `CUDA_VISIBLE_DEVICES=-1`
-and the check replaced by `if False:`.
+`with tf.device("/CPU:0")`).
 
 ### JAX
 
