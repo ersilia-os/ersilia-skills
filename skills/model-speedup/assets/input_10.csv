@@ -1,0 +1,11 @@
+input
+Nc1ncnc2n(cnc12)[C@@H]1O[C@H](CO)[C@@H](O)[C@@H]1O
+C[C@H](c1cnc[nH]1)c1cccc(C)c1C
+COc1cc(ccc1Nc1ncc(c(Nc2cccc(NC(=O)C=C)c2)n1)C(F)(F)F)N1CCN(CC1)C(C)=O
+CC(C)n1nc(-c2ccc3oc(N)nc3c2)c2c(N)ncnc12
+CCCn1c2nc([nH]c2c(=O)n(CCC)c1=O)C1CCCC1
+CCCN(CCC)c1cc(C)nc2c(c(C)nn12)-c1cnc(cc1C)N(C)C
+N[C@H]1CCN(O)C1=O
+CNC(=O)[C@H](N1CCc2cc(OC)c(OC)cc2[C@@H]1CCc1ccc(cc1)C(F)(F)F)c1ccccc1
+CC(C)c1ccccc1-c1ncc(C)c(NCc2ccc(cc2)-n2ccnn2)n1
+COc1ccc(Br)cc1S(=O)(=O)NC(=O)\C=C\c1ccccc1Cc1ccc2ccccc2c1
