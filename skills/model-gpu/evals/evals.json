@@ -1,0 +1,29 @@
+{
+  "skill_name": "model-gpu",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Add GPU support to eos3wac, it's cloned at ~/models/eos3wac (main branch).",
+      "expected_output": "Notices origin/gpu already exists and asks before continuing (if told to proceed from main: downloads checkpoints with eosvc, creates the gpu branch); copies assets/run.sh to model/framework/run.sh unchanged; writes main_gpu.py as a copy of main.py with DEVICE = \"cuda\", a RuntimeError when CUDA is missing, model and tokenizer outputs moved .to(DEVICE) and .cpu().numpy() on embeddings, same BATCH_SIZE/header; appends a gpu: section to install.yml with torch 2.7.1 from the cu126 index in list form and the other pins unchanged. main.py, commands:, metadata.yml untouched. On a machine without GPU it builds no env and runs nothing, and reports the change as untested on GPU with the commands to run on a GPU machine. Does not commit.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Make eos7w6n run on GPU.",
+      "expected_output": "Reads the model, finds the inference is scikit-learn / RDKit descriptors with no GPU framework, and stops without editing anything, explaining that a GPU image would not be faster.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "We need a GPU version of this model, can you also add the ERSILIA_DEVICE switch to eos-template so all models get it?",
+      "expected_output": "Declines to edit eos-template (GPU support lives in each model, via this skill) and offers to adapt the given model only.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Add GPU support to eos8aa5 (cloned at ~/models/eos8aa5).",
+      "expected_output": "Detects that light.ts.pt is a traced TorchScript with torch.device(\"cpu\") baked in and that inference runs in fork-based ProcessPoolExecutor workers inside a try/except returning None. main_gpu.py keeps workers for featurization, rebuilds the eager module from src with ts.state_dict() and runs it in the parent on CUDA, with device errors re-raised. Finds via PyPI metadata that torchdata 0.7.1 needs torch>=2, so the 1.13.1 pin is ineffective, and asks which torch the gpu: section should use; puts torchdata on the same CUDA index as torch, keeps the CPU DGL build because graphs stay on CPU. Without a GPU, runs no tests.",
+      "files": []
+    }
+  ]
+}
