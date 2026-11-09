@@ -36,7 +36,7 @@ from _common import (
 )
 
 
-def collect_isaura_stats(bucket, stats_dir, isaura_env):
+def collect_isaura_stats(bucket, stats_dir, isaura_env=None, isaura_bin=None):
     """Run `isaura stats` against the remote bucket and return the parsed JSON.
 
     `isaura stats` is preferred over `isaura catalog`: catalog renders a Rich
@@ -44,7 +44,7 @@ def collect_isaura_stats(bucket, stats_dir, isaura_env):
     carriage returns that are miserable to parse, while stats writes clean JSON
     and additionally carries each model's hub metadata.
     """
-    isaura = resolve_tool("isaura", isaura_env)
+    isaura = resolve_tool("isaura", isaura_env, isaura_bin)
     cmd = [isaura, "stats", "-pn", bucket, "-r", "-o", stats_dir]
     print(f"[coverage] running: {' '.join(cmd)}", file=sys.stderr)
     run(cmd, timeout=3600)
@@ -57,7 +57,7 @@ def collect_isaura_stats(bucket, stats_dir, isaura_env):
     return json.load(open(written[-1]))
 
 
-def collect_hub_models(search_env, status="Ready"):
+def collect_hub_models(search_env=None, status="Ready", search_bin=None):
     """Return the hub inventory as a list of dicts.
 
     The population defaults to **Ready** models, because those are the ones users
@@ -65,7 +65,7 @@ def collect_hub_models(search_env, status="Ready"):
     performance gap, whereas an Archived model was never going to be served and
     would only pad the denominator. Pass status="all" to widen it.
     """
-    search = resolve_tool("ersilia_search", search_env)
+    search = resolve_tool("ersilia_search", search_env, search_bin)
     cmd = [search, "--limit", str(SEARCH_LIMIT), "--csv"]
     if status == "all":
         cmd.insert(1, "--all-statuses")
@@ -263,10 +263,19 @@ def main():
                     help="isaura project bucket (note the hyphen)")
     ap.add_argument("--full-count", type=int, default=FULL_COUNT,
                     help="Molecule count that counts as full coverage")
-    ap.add_argument("--isaura-env", default="ersilia",
-                    help="conda env holding the isaura CLI")
-    ap.add_argument("--search-env", default="ersilia-search",
-                    help="conda env holding ersilia_search")
+    ap.add_argument("--isaura-bin", default=os.environ.get("ISAURA_BIN"),
+                    help="Path to the isaura CLI (or set ISAURA_BIN). Default: "
+                         "search PATH and every conda environment")
+    ap.add_argument("--ersilia-search-bin",
+                    default=os.environ.get("ERSILIA_SEARCH_BIN"),
+                    help="Path to the ersilia_search CLI (or set "
+                         "ERSILIA_SEARCH_BIN). Default: search PATH and every "
+                         "conda environment")
+    ap.add_argument("--isaura-env",
+                    help="Name of a conda env to prefer when looking for isaura")
+    ap.add_argument("--search-env",
+                    help="Name of a conda env to prefer when looking for "
+                         "ersilia_search")
     ap.add_argument("--status", default="Ready",
                     help="Hub population to measure coverage against: a status "
                          "such as Ready (default), or 'all' for every status")
@@ -284,9 +293,11 @@ def main():
     else:
         stats_dir = args.stats_dir or tempfile.mkdtemp(prefix="isaura_stats_")
         os.makedirs(stats_dir, exist_ok=True)
-        stats = collect_isaura_stats(args.bucket, stats_dir, args.isaura_env)
+        stats = collect_isaura_stats(
+            args.bucket, stats_dir, args.isaura_env, args.isaura_bin
+        )
 
-    hub_rows = collect_hub_models(args.search_env, args.status)
+    hub_rows = collect_hub_models(args.search_env, args.status, args.ersilia_search_bin)
     folded = fold_versions(stats)
     models = classify(hub_rows, folded, args.full_count)
     summary = summarise(models, args.full_count, stats)

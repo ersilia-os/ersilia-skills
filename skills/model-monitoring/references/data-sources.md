@@ -18,22 +18,28 @@ plausible-looking but wrong report. Read this before running the scripts.
 
 ## Where the tools live
 
-Neither tool is on the default PATH, and they are in **different** conda environments:
+Both tools are usually installed in conda environments, often not on PATH, and **the
+environment names and locations differ from machine to machine**. Do not hard-code them.
 
-| Tool | Environment | Path |
-|---|---|---|
-| `isaura` | `ersilia` | `~/anaconda3/envs/ersilia/bin/isaura` |
-| `ersilia_search` | `ersilia-search` | `~/anaconda3/envs/ersilia-search/bin/ersilia_search` |
+`scripts/_common.py` (`resolve_tool`) finds each tool in this order:
 
-`scripts/_common.py` resolves these automatically, checking the standard conda roots
-(`anaconda3`, `miniconda3`, `miniforge3`, `/opt/conda`), then `CONDA_PREFIX`, then PATH. It
-exits with an actionable message rather than continuing when a tool is absent.
+1. An explicit path: `--isaura-bin` / `--ersilia-search-bin`, or the `ISAURA_BIN` /
+   `ERSILIA_SEARCH_BIN` environment variables.
+2. A preferred environment name, if given with `--isaura-env` / `--search-env`.
+3. PATH.
+4. Every conda environment on the machine, listed with `conda env list --json` (through
+   `CONDA_EXE`, since `conda` is a shell function that subprocesses cannot see), plus the
+   common roots (`anaconda3`, `miniconda3`, `miniforge3`, `mambaforge`, `/opt/conda`).
+
+A single match is used. Several matches, or none, stop the run with a message listing what
+was found. **Ask the user** which install to use and pass it with the flag. Do not choose
+one yourself, because different installs may be different versions.
 
 Resolving the binary from the environment prefix is preferred over `conda run`, which wraps
 stdout and can mask exit codes — awkward when a script's whole job is to capture output.
 
-**There is no GitHub CLI on this machine.** `~/anaconda3/envs/ersilia-search/bin/gh` is an
-unrelated tool that shares the name; `gh auth status` fails against it with an argparse
+**There is no GitHub CLI on this machine.** The `gh` inside the `ersilia-search`
+environment is an unrelated tool that shares the name; `gh auth status` fails against it with an argparse
 error. Everything needed from GitHub here is public, so the scripts use plain HTTPS via
 `urllib`. Set `GITHUB_TOKEN` only if a run ever hits an API rate limit.
 
