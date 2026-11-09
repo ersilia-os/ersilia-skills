@@ -79,18 +79,26 @@ Run in order. The two fetch steps are independent, so start them together.
 
 ### Step 0 — Pre-flight
 
-The data sources live in **different conda environments** and **none is on the default
-PATH**. The scripts resolve them for you, but confirm they exist before committing to a long
-run, because failing at step 3 wastes the inventory:
+The skill needs two CLIs, `isaura` and `ersilia_search`, which are usually installed in
+conda environments that are not on PATH. **Do not assume where they are**: every machine
+names and places its environments differently. Locate them before committing to a long run,
+because failing at step 3 wastes the inventory:
 
 ```bash
-ls ~/anaconda3/envs/ersilia/bin/isaura ~/anaconda3/envs/ersilia-search/bin/ersilia_search
+which isaura ersilia_search
+"${CONDA_EXE:-conda}" env list --json   # then look for bin/isaura and bin/ersilia_search in each env
 aws --version && aws s3 ls s3://models-sif/ --profile ersilia | head -2
 ```
 
-If either is missing, stop and tell the user which environment needs attention. Do not
-substitute a different environment or fall back to a partial report — a coverage number
-computed from half the sources is worse than no number, because it looks authoritative.
+The scripts do the same search on their own (PATH, then every conda environment). If a tool
+turns up in exactly one place, that is the one used. If it is in **several** environments or
+in **none**, **ask the user** which install to use (or to install it), then pass the path
+explicitly with `--isaura-bin` / `--ersilia-search-bin` (or the `ISAURA_BIN` /
+`ERSILIA_SEARCH_BIN` environment variables). Never pick an environment yourself: different
+installs may be different versions.
+
+Do not fall back to a partial report when a tool is missing. A coverage number computed from
+half the sources is worse than no number, because it looks authoritative.
 
 Note there is **no GitHub CLI** on this machine. The `gh` binary inside the
 `ersilia-search` environment is an unrelated tool that happens to share the name. The
