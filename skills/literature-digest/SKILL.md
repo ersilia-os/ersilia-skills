@@ -295,7 +295,9 @@ This produces a top-~80 pool with score breakdowns. The pool is what you triage 
 
 The pool is not a plain top-80. Abstract-rich preprints out-score title-only items, so
 the script adds every Slack item (`--pin-source slack`) and reserves 25 slots for the best
-Gmail items (`--reserve gmail=25`). Even so, the keyword score is a weak guide to Hub
+Gmail items (`--reserve gmail=25`). The score favours small-molecule fit: landscape keywords count double in the title,
+generic ones ("model", "learning") are ignored, a small-molecule term in the title adds up
+to +4, and an RNA / single-cell / clinical title takes -3. Even so, the score is a rough guide to Hub
 fit. Before Step 5, scan the titles of the full ranked set (`--top-n 2000` writes it) for
 SMILES-input models, ADMET/activity predictors and large datasets, and add what you find
 to the pool. On 2026-11-10 nearly all Hub candidates sat outside the top 80.
