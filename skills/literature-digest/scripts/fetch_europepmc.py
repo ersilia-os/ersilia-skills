@@ -19,9 +19,9 @@ import sys
 import time
 from typing import Any
 
-import requests
 
 from _common import (
+    http_get_json,
     normalise_doi,
     parse_date,
     validate_item,
@@ -67,15 +67,9 @@ def fetch_page(query: str, cursor_mark: str) -> dict[str, Any]:
         "pageSize": 100,
         "cursorMark": cursor_mark,
     }
-    headers = {"User-Agent": "ersilia-literature-digest/1.0"}
-    resp = requests.get(
-        "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
-        params=params,
-        headers=headers,
-        timeout=30,
+    return http_get_json(
+        "https://www.ebi.ac.uk/europepmc/webservices/rest/search", params=params
     )
-    resp.raise_for_status()
-    return resp.json()
 
 
 def extract_authors(rec: dict[str, Any]) -> list[dict[str, Any]]:
@@ -145,7 +139,7 @@ def fetch_range(start_date: str, end_date: str, max_pages: int) -> list[dict[str
     for page in range(max_pages):
         try:
             payload = fetch_page(query, cursor_mark)
-        except requests.RequestException as e:
+        except (OSError, ValueError) as e:
             warn(f"europepmc request failed at page={page}: {e}")
             break
         records = (payload.get("resultList") or {}).get("result") or []

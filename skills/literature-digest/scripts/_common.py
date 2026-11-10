@@ -1,7 +1,7 @@
 """Shared utilities for literature-digest fetchers and ranker.
 
-Keep this module dependency-free apart from the standard library — fetchers can layer on
-`requests`, but `_common.py` must remain importable everywhere.
+Keep this module dependency-free: it uses the standard library only, so every script runs
+under any Python (the default conda env has no `requests`).
 """
 
 from __future__ import annotations
@@ -12,7 +12,8 @@ import sys
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Iterable
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlencode, urlparse, urlunparse
+from urllib.request import Request, urlopen
 
 
 # Required fields per `references/source-catalogue.md`.
@@ -22,6 +23,45 @@ REQUIRED_ITEM_FIELDS = ("title", "authors", "venue", "date", "url", "source")
 def warn(msg: str) -> None:
     """Log a warning to stderr; fetchers and the ranker call this on partial failure."""
     print(f"WARNING: {msg}", file=sys.stderr, flush=True)
+
+
+def http_get_json(
+    url: str,
+    params: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+    timeout: int = 30,
+) -> Any:
+    """GET a URL and decode the JSON body, using only the standard library.
+
+    Parameters
+    ----------
+    url : str
+        Endpoint to fetch.
+    params : dict, optional
+        Query-string parameters, URL-encoded and appended to ``url``.
+    headers : dict, optional
+        Extra request headers.
+    timeout : int
+        Socket timeout in seconds.
+
+    Returns
+    -------
+    Any
+        The decoded JSON payload.
+
+    Raises
+    ------
+    OSError
+        On network errors and non-2xx responses (``urllib.error.URLError`` and
+        ``HTTPError`` both subclass it).
+    ValueError
+        If the body is not valid JSON.
+    """
+    if params:
+        url = f"{url}{'&' if '?' in url else '?'}{urlencode(params)}"
+    req = Request(url, headers={"User-Agent": "ersilia-literature-digest/1.0", **(headers or {})})
+    with urlopen(req, timeout=timeout) as resp:  # noqa: S310 - fixed https endpoints
+        return json.loads(resp.read().decode("utf-8"))
 
 
 def parse_date(s: str) -> date:

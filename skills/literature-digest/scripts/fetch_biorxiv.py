@@ -17,9 +17,9 @@ import sys
 import time
 from typing import Any
 
-import requests
 
 from _common import (
+    http_get_json,
     parse_date,
     normalise_doi,
     validate_item,
@@ -45,9 +45,7 @@ KEEP_CATEGORIES = {
 
 def fetch_page(start_date: str, end_date: str, cursor: int) -> dict[str, Any]:
     url = f"https://api.biorxiv.org/details/biorxiv/{start_date}/{end_date}/{cursor}"
-    resp = requests.get(url, timeout=30)
-    resp.raise_for_status()
-    return resp.json()
+    return http_get_json(url)
 
 
 def normalise_record(rec: dict[str, Any]) -> dict[str, Any] | None:
@@ -95,7 +93,7 @@ def fetch_range(start_date: str, end_date: str) -> list[dict[str, Any]]:
     while True:
         try:
             payload = fetch_page(start_date, end_date, cursor)
-        except requests.RequestException as e:
+        except (OSError, ValueError) as e:
             warn(f"biorxiv request failed at cursor={cursor}: {e}")
             break
         messages = payload.get("messages") or []

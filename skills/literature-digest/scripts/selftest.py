@@ -1,7 +1,8 @@
-"""Regression self-test for the literature-digest normalisers.
+"""Regression self-test for the literature-digest normalisers and pool selection.
 
 Each case reproduces a real failure from a past run, so a lesson learned once is not lost.
-Run from the skill folder before changing `_common.py`, `fetch_gmail.py` or `fetch_slack.py`:
+Run from the skill folder before changing `_common.py`, `fetch_gmail.py`, `fetch_slack.py`
+or `dedup_and_rank.py`:
 
     python scripts/selftest.py
 
@@ -13,6 +14,7 @@ from __future__ import annotations
 import sys
 
 from _common import extract_dois
+from dedup_and_rank import select_pool
 from fetch_gmail import normalise_thread
 from fetch_slack import normalise_message
 
@@ -120,6 +122,20 @@ def main() -> int:
             "Gmail entry keeps its authors",
             [a["name"] for a in items[0]["authors"]],
             ["A Author", "B Author"],
+        )
+    )
+
+    # 2026-11-10: a plain top-80 held no Slack-shared links (generic titles, no abstract,
+    # ranked 340th of 1194) and almost no Gmail alert items.
+    ranked = [{"id": i, "source": "biorxiv"} for i in range(10)]
+    ranked += [{"id": 10 + i, "source": "gmail"} for i in range(5)]
+    ranked += [{"id": 15, "source": "slack"}]
+    pool = select_pool(ranked, top_n=3, pin_sources=["slack"], reserve={"gmail": 2})
+    results.append(
+        check(
+            "Pool keeps top-N, every Slack item and the reserved Gmail slots, in rank order",
+            [it["id"] for it in pool],
+            [0, 1, 2, 10, 11, 15],
         )
     )
 

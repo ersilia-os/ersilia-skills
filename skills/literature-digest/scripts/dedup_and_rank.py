@@ -708,6 +708,62 @@ def load_seen(path: str | None) -> set[str]:
     return {line.strip() for line in p.read_text(encoding="utf-8").splitlines() if line.strip()}
 
 
+def _parse_reserve(specs: list[str]) -> dict[str, int]:
+    """Parse ``SOURCE=N`` strings into a ``{source: N}`` mapping."""
+    out: dict[str, int] = {}
+    for spec in specs:
+        name, _, n = spec.partition("=")
+        if not name or not n.isdigit():
+            raise SystemExit(f"--reserve expects SOURCE=N, got {spec!r}")
+        out[name.strip().lower()] = int(n)
+    return out
+
+
+def select_pool(
+    ranked: list[dict[str, Any]],
+    top_n: int,
+    pin_sources: list[str],
+    reserve: dict[str, int],
+) -> list[dict[str, Any]]:
+    """Pick the triage pool from score-sorted items.
+
+    Abstract-rich preprints out-score title-only alert and chat items on keyword
+    hits, so a plain top-N starves the team-curated sources. The pool is the top
+    ``top_n``, plus every item from ``pin_sources``, plus enough of each
+    ``reserve`` source to reach its quota. The result stays score-sorted.
+
+    Parameters
+    ----------
+    ranked : list of dict
+        Items sorted by descending score.
+    top_n : int
+        Number of items taken purely by score.
+    pin_sources : list of str
+        Sources whose items are always included.
+    reserve : dict
+        Minimum number of items per source.
+
+    Returns
+    -------
+    list of dict
+        The pool, in the same order as ``ranked``.
+    """
+    pins = {s.lower() for s in pin_sources}
+    chosen = {id(it) for it in ranked[:top_n]}
+    for it in ranked:
+        if (it.get("source") or "").lower() in pins:
+            chosen.add(id(it))
+    for source, quota in reserve.items():
+        have = sum(1 for it in ranked if id(it) in chosen and (it.get("source") or "").lower() == source)
+        for it in ranked:
+            if have >= quota:
+                break
+            if id(it) not in chosen and (it.get("source") or "").lower() == source:
+                chosen.add(id(it))
+                have += 1
+    return [it for it in ranked if id(it) in chosen]
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--in", dest="ins", action="append", required=True,
@@ -717,6 +773,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--lmic", required=True, help="references/lmic-countries.md")
     p.add_argument("--out", required=True, help="Output JSON.")
     p.add_argument("--top-n", type=int, default=80, help="Pool size to keep (default 80; raised from 50 in 2026-06 to give the Step-5 triage more raw material when hunting Hub candidates).")
+    p.add_argument("--pin-source", action="append", default=None,
+                   help="Source whose items always enter the pool, beyond --top-n "
+                        "(repeatable; default: slack). Human-shared links often carry "
+                        "no abstract and a generic title, so they score near zero.")
+    p.add_argument("--reserve", action="append", default=None, metavar="SOURCE=N",
+                   help="Guarantee at least N pool slots for SOURCE, filled with its "
+                        "best-scoring items (repeatable; default: gmail=25). Title-only "
+                        "alert items otherwise lose to abstract-rich preprints.")
     p.add_argument("--window-from", help="Date window start YYYY-MM-DD for recency score; default = earliest item date.")
     p.add_argument("--window-to", help="Date window end YYYY-MM-DD for recency score; default = today.")
     args = p.parse_args(argv)
@@ -758,12 +822,17 @@ def main(argv: list[str] | None = None) -> int:
     # Drop seen and sort.
     surviving = [it for it in deduped if not it["score"]["seen"]]
     surviving.sort(key=lambda it: it["score"]["total"], reverse=True)
-    pool = surviving[: args.top_n]
+    pool = select_pool(
+        surviving,
+        args.top_n,
+        pin_sources=args.pin_source if args.pin_source is not None else ["slack"],
+        reserve=_parse_reserve(args.reserve if args.reserve is not None else ["gmail=25"]),
+    )
 
     write_json(args.out, pool)
     print(
         f"dedup_and_rank: {len(items)} input → {len(deduped)} deduped → "
-        f"{len(surviving)} unseen → top {len(pool)} kept",
+        f"{len(surviving)} unseen → {len(pool)} kept",
         file=sys.stderr,
     )
     return 0

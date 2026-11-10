@@ -185,7 +185,7 @@ digest's connector semaphore (Step 7). Per-connector item counts and failure
 reasons are NOT included in the digest itself; the semaphore is the only
 connector signal that ships.
 
-**API-based** — straight subprocess calls:
+**API-based** — straight subprocess calls (standard library only, so any `python` works):
 
 ```bash
 python scripts/fetch_biorxiv.py    --from {start} --to {end} --out /tmp/bx.json
@@ -291,8 +291,14 @@ python scripts/dedup_and_rank.py \
   --out /tmp/pool.json
 ```
 
-This produces a top-~80 pool with score breakdowns. The pool is what you triage in Step 5
-— do not fall back to the raw fetched data.
+This produces a top-~80 pool with score breakdowns. The pool is what you triage in Step 5.
+
+The pool is not a plain top-80. Abstract-rich preprints out-score title-only items, so
+the script adds every Slack item (`--pin-source slack`) and reserves 25 slots for the best
+Gmail items (`--reserve gmail=25`). Even so, the keyword score is a weak guide to Hub
+fit. Before Step 5, scan the titles of the full ranked set (`--top-n 2000` writes it) for
+SMILES-input models, ADMET/activity predictors and large datasets, and add what you find
+to the pool. On 2026-11-10 nearly all Hub candidates sat outside the top 80.
 
 ### Step 4.5 — Supplementary web hunt (only if the pool is thin on Hub candidates)
 
