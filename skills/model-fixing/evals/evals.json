@@ -18,6 +18,12 @@
       "prompt": "Apply the fixes to eos96f4 at /home/marina/models/error_models/eos96f4.",
       "expected_output": "No ersilia-model-test diagnosis exists in the conversation. The skill declines to guess at fixes and asks the user to run ersilia-model-test first so failures are diagnosed against real test output, rather than editing files blindly.",
       "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Issue #3 on eos3l5f says the embeddings drifted after the mhn-react dependency was removed: _counts_dict_to_folded_vector sums counts on bit collisions instead of keeping the last one. Fix it.",
+      "expected_output": "Diagnosis comes from a GitHub issue, so the skill proceeds without an ersilia-model-test run but makes Step 0 mandatory: it runs the unedited model on examples/run_input.csv and compares it with run_output.csv before editing. It confirms a minimal edit plan, applies it, runs `ersilia -v test eos3l5f --shallow --from_dir` from a folder named exactly eos3l5f, then re-runs the example input and compares element-wise (atol 1e-4, model is Fixed). It reports a before/after table of differing values. If the outputs differ from run_output.csv, it stops, explains which case applies (regression vs stale example) and does not edit run_output.csv. It does not push or open a PR; any PR must come from the user's fork, not an ersilia-os branch.",
+      "files": []
     }
   ]
 }
