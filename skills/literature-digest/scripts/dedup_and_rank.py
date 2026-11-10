@@ -24,6 +24,8 @@ Each output item has the same schema as input, plus a `score` field:
             "antimicrobial_bump": 0,
             "agentic_bump": 0,
             "repo_url": 0,
+            "hub_fit": 0,
+            "off_modality": 0,
             "recency": 0.5
         },
         "matched_authors": ["Kelly Chibale"],
@@ -442,23 +444,81 @@ def _journal_tier(item: dict[str, Any], landscape: Landscape) -> tuple[int, int]
     return 0, 0
 
 
+# Landscape keywords too generic to signal topic on their own ("learning", "model",
+# "coli" in "Escherichia coli" papers on anything). They inflated the score of
+# off-topic bioRxiv papers that had an abstract.
+_GENERIC_KEYWORDS = frozenset({
+    "learning", "model", "coli", "negative", "result", "therapeutic", "mic", "mir",
+    "moa", "prr", "indication", "binding", "generation", "synthetic", "cancer",
+    "alzheimer", "accessibility", "metabolism", "logs",
+})
+
+
+def _kw_present(kw_norm: str, text: str) -> bool:
+    return bool(re.search(r"(?<![a-z])" + re.escape(kw_norm) + r"(?![a-z])", text))
+
+
 def _topic_hits(item: dict[str, Any], landscape: Landscape) -> tuple[int, list[str]]:
-    text = " ".join([
-        item.get("title") or "",
-        item.get("abstract") or "",
-    ]).lower()
+    """Count landscape keywords, weighting title matches double.
+
+    Alert and chat items arrive with a title and no abstract; counting title and
+    abstract alike let abstract-rich preprints win on volume alone. A keyword in the
+    title scores 2, a keyword only in the abstract scores 1. Capped at +6.
+    """
+    title = (item.get("title") or "").lower()
+    abstract = (item.get("abstract") or "").lower()
     matches: list[str] = []
+    points = 0
     for kw in landscape.all_keywords():
         kw_norm = kw.strip().lower()
-        if not kw_norm or len(kw_norm) < 3:
+        if not kw_norm or len(kw_norm) < 3 or kw_norm in _GENERIC_KEYWORDS:
             continue
-        if re.search(r"(?<![a-z])" + re.escape(kw_norm) + r"(?![a-z])", text):
+        if _kw_present(kw_norm, title):
             matches.append(kw)
-    # Score capped at +6 (raised from +4 in 2026-06 to give Hub-keyword-heavy
-    # items more headroom; the ranker is no longer the bottleneck on
-    # surfacing Hub candidates).
-    bonus = min(len(matches), 6)
-    return bonus, matches[:10]  # keep the top 10 in the explanation
+            points += 2
+        elif _kw_present(kw_norm, abstract):
+            matches.append(kw)
+            points += 1
+    return min(points, 6), matches[:10]  # keep the top 10 in the explanation
+
+
+# Small-molecule signal: the Hub takes SMILES-in models and datasets. Specific terms
+# only; "representation", "embedding" and "mic" also match RNA or protein papers.
+_SMALL_MOLECULE_RE = re.compile(
+    r"(?<![a-z])("
+    r"smiles|small[- ]molecules?|admet|adme|qsar|cheminformatics|ligands?|"
+    r"bioactivity|ic50|drug[- ]like(?:ness)?|molecular propert(?:y|ies)|"
+    r"molecular (?:representation|fingerprint|generation|design|graph)s?|"
+    r"molecule (?:generation|design|property)|molecules|compounds?|"
+    r"retrosynthes[ie]s|de novo (?:molecul|design)\w*|fingerprints?|scaffold hopping"
+    r")(?![a-z])",
+    re.IGNORECASE,
+)
+
+# Modalities the Hub cannot take (no small-molecule input). Penalised only when the
+# title has no small-molecule term, so "RNA-targeted aminopyridine compounds" survives.
+_OFF_MODALITY_RE = re.compile(
+    r"(?<![a-z])(rna|dna|genom\w*|transcriptom\w*|single[- ]cell|spatial|proteom\w*|"
+    r"antibod\w*|nanopore|metagenom\w*|epidemiolog\w*|surveillance|patients?|"
+    r"clinical|cohort|tumou?rs?|nanoparticles?|imaging|microscopy|segmentation)(?![a-z])",
+    re.IGNORECASE,
+)
+
+
+def _hub_fit(item: dict[str, Any]) -> tuple[int, int]:
+    """Return ``(bonus, penalty)`` for small-molecule fit.
+
+    +3 for a small-molecule term in the title, +1 more for two or more distinct terms
+    in the abstract; capped at +4. A title with an off-modality term and no
+    small-molecule term takes -3.
+    """
+    title = item.get("title") or ""
+    abstract = item.get("abstract") or ""
+    in_title = bool(_SMALL_MOLECULE_RE.search(title))
+    abstract_terms = {m.group(0).lower() for m in _SMALL_MOLECULE_RE.finditer(abstract)}
+    bonus = (3 if in_title else 0) + (1 if len(abstract_terms) >= 2 else 0)
+    penalty = 3 if (_OFF_MODALITY_RE.search(title) and not in_title) else 0
+    return min(bonus, 4), penalty
 
 
 # Compiled regexes for release-verb and adjacent-signal detection (case-insensitive).
@@ -540,13 +600,13 @@ def _release_signal(item: dict[str, Any]) -> dict[str, Any]:
     """Detect model-release and dataset-release signals in title + abstract.
 
     A model-release bonus only fires when the release verb co-occurs with a
-    Hub-eligible task keyword — this prevents "we present new clinical
-    guidelines" from earning the model-release +3.
+    small-molecule term (see ``_SMALL_MOLECULE_RE``) — this prevents "we present new
+    clinical guidelines" or an RNA-embedding paper from earning the model-release +3.
     """
     text = " ".join([item.get("title") or "", item.get("abstract") or ""])
     model_hits = [m.group(0) for m in _MODEL_RELEASE_VERBS_RE.finditer(text)]
     dataset_hits = [m.group(0) for m in _DATASET_RELEASE_VERBS_RE.finditer(text)]
-    has_hub_task = bool(_HUB_TASK_RE.search(text))
+    has_hub_task = bool(_SMALL_MOLECULE_RE.search(text))
 
     model_bonus = 3 if (model_hits and has_hub_task) else 0
     dataset_bonus = 3 if dataset_hits else 0
@@ -649,6 +709,7 @@ def score_item(
     antimicrobial_bonus = _antimicrobial_bump(item)
     agentic_bonus = _agentic_bump(item)
     repo_url_bonus = _repo_url_bonus(item)
+    hub_fit_bonus, off_modality_penalty = _hub_fit(item)
 
     # Seen check.
     seen_flag = False
@@ -672,12 +733,15 @@ def score_item(
         "antimicrobial_bump": antimicrobial_bonus,
         "agentic_bump": agentic_bonus,
         "repo_url": repo_url_bonus,
+        "hub_fit": hub_fit_bonus,
+        "off_modality": -off_modality_penalty,
         "recency": round(recency, 3),
     }
     total = (
         author_bonus + journal_bonus + topic_bonus + lmic_bonus
         + community_bonus + model_release_bonus + dataset_release_bonus
         + antimicrobial_bonus + agentic_bonus + repo_url_bonus + recency
+        + hub_fit_bonus - off_modality_penalty
     )
     if seen_flag:
         total -= 999

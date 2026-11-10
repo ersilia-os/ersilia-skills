@@ -11,10 +11,13 @@ Exits 0 when every case passes, 1 otherwise.
 
 from __future__ import annotations
 
+import json
 import sys
+from datetime import date
+from pathlib import Path
 
 from _common import extract_dois
-from dedup_and_rank import select_pool
+from dedup_and_rank import _hub_fit, parse_landscape, parse_lmic, score_item, select_pool
 from fetch_gmail import normalise_thread
 from fetch_slack import normalise_message
 
@@ -136,6 +139,31 @@ def main() -> int:
             "Pool keeps top-N, every Slack item and the reserved Gmail slots, in rank order",
             [it["id"] for it in pool],
             [0, 1, 2, 10, 11, 15],
+        )
+    )
+
+    # 2026-11-10: off-topic bioRxiv papers with an abstract out-scored real Hub candidates
+    # that arrived as titles only. Hub-relevant items must rank in the upper half.
+    skill_dir = Path(__file__).resolve().parent.parent
+    landscape = parse_landscape(str(skill_dir / "references" / "search-landscape.md"))
+    lmic = parse_lmic(str(skill_dir / "references" / "lmic-countries.md"))
+    fixture = json.loads((skill_dir / "tests" / "fixtures" / "hub_ranking_2026-11-10.json").read_text())
+    for it in fixture:
+        it["score"] = score_item(dict(it), landscape, lmic, set(), date(2026, 11, 3), date(2026, 11, 10))
+    order = sorted(fixture, key=lambda it: -it["score"]["total"])
+    ranks = sorted(i + 1 for i, it in enumerate(order) if it["hub_candidate"])
+    results.append(
+        check(
+            "Hub-relevant fixture items have a median rank in the top 40 of 91",
+            ranks[len(ranks) // 2] <= 40,
+            True,
+        )
+    )
+    results.append(
+        check(
+            "Off-modality title is penalised; small-molecule title is not",
+            (_hub_fit({"title": "Single-cell RNA atlas of liver"})[1], _hub_fit({"title": "RNA-targeted aminopyridine compounds"})[1]),
+            (3, 0),
         )
     )
 
