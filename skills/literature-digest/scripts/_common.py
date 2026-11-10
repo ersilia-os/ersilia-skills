@@ -25,13 +25,13 @@ def warn(msg: str) -> None:
     print(f"WARNING: {msg}", file=sys.stderr, flush=True)
 
 
-def http_get_json(
+def http_get_text(
     url: str,
     params: dict[str, Any] | None = None,
     headers: dict[str, str] | None = None,
     timeout: int = 30,
-) -> Any:
-    """GET a URL and decode the JSON body, using only the standard library.
+) -> str:
+    """GET a URL and return the decoded body, using only the standard library.
 
     Parameters
     ----------
@@ -46,22 +46,38 @@ def http_get_json(
 
     Returns
     -------
-    Any
-        The decoded JSON payload.
+    str
+        The response body.
 
     Raises
     ------
     OSError
         On network errors and non-2xx responses (``urllib.error.URLError`` and
         ``HTTPError`` both subclass it).
-    ValueError
-        If the body is not valid JSON.
     """
     if params:
         url = f"{url}{'&' if '?' in url else '?'}{urlencode(params)}"
     req = Request(url, headers={"User-Agent": "ersilia-literature-digest/1.0", **(headers or {})})
     with urlopen(req, timeout=timeout) as resp:  # noqa: S310 - fixed https endpoints
-        return json.loads(resp.read().decode("utf-8"))
+        return resp.read().decode("utf-8")
+
+
+def http_get_json(
+    url: str,
+    params: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+    timeout: int = 30,
+) -> Any:
+    """GET a URL and decode the JSON body (see :func:`http_get_text`).
+
+    Raises
+    ------
+    OSError
+        On network errors and non-2xx responses.
+    ValueError
+        If the body is not valid JSON.
+    """
+    return json.loads(http_get_text(url, params, headers, timeout))
 
 
 def parse_date(s: str) -> date:
