@@ -280,11 +280,25 @@ Hugging Face): not in MVP. If you see scripts for these in `scripts/`, run them
 too; otherwise skip silently. They do not get a row in the connector semaphore
 unless they actually exist as MVP connectors.
 
+### Step 4a — Fill in missing abstracts
+
+Gmail alert items and Slack links arrive without abstracts, and Slack titles are generic.
+Resolve them from arXiv, Crossref and Europe PMC before ranking:
+
+```bash
+python scripts/enrich_abstracts.py --in /tmp/gmail.json --in /tmp/slack.json --out /tmp/enriched.json
+```
+
+Use `/tmp/enriched.json` in place of the two files in Step 4. About a third of items
+resolve (the rest have no DOI or arXiv ID in the email), in about a minute. Lookups are
+cached in `/tmp/abstract_cache.json`. A failed lookup leaves the item unchanged, so
+this step never blocks a run.
+
 ### Step 4 — Deduplicate and rank
 
 ```bash
 python scripts/dedup_and_rank.py \
-  --in /tmp/bx.json --in /tmp/epmc.json --in /tmp/slack.json --in /tmp/gmail.json \
+  --in /tmp/bx.json --in /tmp/epmc.json --in /tmp/enriched.json \
   --seen /tmp/seen.txt \
   --landscape references/search-landscape.md \
   --lmic references/lmic-countries.md \

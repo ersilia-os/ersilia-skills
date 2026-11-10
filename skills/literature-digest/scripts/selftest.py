@@ -17,6 +17,7 @@ from datetime import date
 from pathlib import Path
 
 from _common import extract_dois
+from enrich_abstracts import doi_candidates, enrich, strip_markup
 from dedup_and_rank import _hub_fit, parse_landscape, parse_lmic, score_item, select_pool
 from fetch_gmail import normalise_thread
 from fetch_slack import normalise_message
@@ -164,6 +165,38 @@ def main() -> int:
             "Off-modality title is penalised; small-molecule title is not",
             (_hub_fit({"title": "Single-cell RNA atlas of liver"})[1], _hub_fit({"title": "RNA-targeted aminopyridine compounds"})[1]),
             (3, 0),
+        )
+    )
+
+    # 2026-11-10: every Gmail item arrived without an abstract and every Slack item with a
+    # generic title, so the ranker saw only a few title words.
+    results.append(
+        check(
+            "Crossref JATS abstract is reduced to plain text",
+            strip_markup("<jats:title>Abstract</jats:title><jats:p>Models &amp; data <jats:italic>in vitro</jats:italic>.</jats:p>"),
+            "Models & data in vitro .",
+        )
+    )
+    results.append(
+        check(
+            "DOI with a page id and slug is also tried in shorter forms",
+            doi_candidates("10.1039/d6dd00444j/1373125/metapli-retrieval"),
+            ["10.1039/d6dd00444j/1373125/metapli-retrieval", "10.1039/d6dd00444j/1373125", "10.1039/d6dd00444j"],
+        )
+    )
+    items = [
+        {"title": "Looks actually good", "doi": "10.1/a", "source": "slack", "abstract": None},
+        {"title": "Kept title", "doi": "10.1/b", "source": "gmail", "abstract": None},
+        {"title": "Has one", "doi": "10.1/c", "source": "gmail", "abstract": "Existing."},
+        {"title": "Unresolvable", "doi": "10.1/d", "source": "gmail", "abstract": None},
+    ]
+    fake = {"10.1/a": {"title": "Real title", "abstract": "Real abstract."}, "10.1/b": {"title": "Other", "abstract": "B abstract."}}
+    gained = enrich(items, {}, workers=1, lookup=lambda it: fake.get(it["doi"]))
+    results.append(
+        check(
+            "Enrichment fills abstracts, retitles only placeholder Slack items, leaves the rest",
+            (gained, [it["title"] for it in items], [it["abstract"] for it in items]),
+            (2, ["Real title", "Kept title", "Has one", "Unresolvable"], ["Real abstract.", "B abstract.", "Existing.", None]),
         )
     )
 
