@@ -20,8 +20,10 @@ Always run inside the `ersilia` conda environment, from the model directory:
 
 ```bash
 cd <model_path>
-conda run -n ersilia ersilia test <model_id> --shallow --from_dir <model_path>
+conda run -n ersilia ersilia -v test <model_id> --shallow --from_dir <model_path>
 ```
+
+The folder at `<model_path>` must be named exactly `<model_id>`. Ersilia takes the model ID from the folder name, so a clone into, say, `eos3l5f_main` fails at "Fetch Status" ("Bundle path not found") and every run check reads `false`, for reasons unrelated to the model. If the folder has another name, clone into a scratch parent folder as `<scratch>/<model_id>` instead of renaming the user's folder. `-v` makes fetch errors print their traceback, as the CI workflows do.
 
 This produces a JSON report `<model_id>-test.json` in the current directory. Capture the terminal output too — it often contains error tracebacks that explain why a check failed.
 
