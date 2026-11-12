@@ -1,0 +1,32 @@
+{
+  "about": "Stale PRs (draft has a longer limit), a fresh PR with conflicts becomes a flag, review requests always listed, stale issues need judgement and offer unassign only when assigned, ignored issues suppressed.",
+  "now": "2026-11-12T00:00:00Z",
+  "inputs": {
+    "notifications": {},
+    "mine": {"login": "me",
+      "my_prs": [
+        {"key": "pr:ersilia#1", "repo": "ersilia", "number": 1, "title": "Old PR", "url": "u", "updated_at": "2026-09-01T00:00:00Z", "draft": false, "mergeable_state": "clean", "requested_reviewers": ["ana"]},
+        {"key": "pr:ersilia#2", "repo": "ersilia", "number": 2, "title": "Draft, 45 days", "url": "u", "updated_at": "2026-09-28T00:00:00Z", "draft": true, "mergeable_state": "clean"},
+        {"key": "pr:ersilia#3", "repo": "ersilia", "number": 3, "title": "Fresh, conflicting", "url": "u", "updated_at": "2026-11-10T00:00:00Z", "draft": false, "mergeable_state": "dirty"}
+      ],
+      "review_requests": [
+        {"key": "pr:zairachem#9", "repo": "zairachem", "number": 9, "title": "Please review", "url": "u", "updated_at": "2026-10-01T00:00:00Z", "author": "ana"}
+      ],
+      "issues": [
+        {"key": "issue:ersilia#20", "repo": "ersilia", "number": 20, "title": "Assigned, old", "url": "u", "updated_at": "2026-01-01T00:00:00Z", "assigned": true, "authored": false},
+        {"key": "issue:ersilia#21", "repo": "ersilia", "number": 21, "title": "Opened, old", "url": "u", "updated_at": "2026-01-01T00:00:00Z", "assigned": false, "authored": true},
+        {"key": "issue:ersilia#22", "repo": "ersilia", "number": 22, "title": "Recent", "url": "u", "updated_at": "2026-11-01T00:00:00Z", "assigned": true, "authored": true},
+        {"key": "issue:ersilia#23", "repo": "ersilia", "number": 23, "title": "Tracking issue", "url": "u", "updated_at": "2025-01-01T00:00:00Z", "assigned": true, "authored": true}
+      ]},
+    "branches": {}
+  },
+  "ignore": ["issue:ersilia#23"],
+  "expect": [
+    {"key": "pr:ersilia#1", "category": "stale_prs", "proposed": null},
+    {"key": "pr:ersilia#3", "category": "flags"},
+    {"key": "pr:zairachem#9", "category": "review_requests", "proposed": null},
+    {"key": "issue:ersilia#20", "category": "stale_issues"},
+    {"key": "issue:ersilia#21", "category": "stale_issues"}
+  ],
+  "expect_absent": ["pr:ersilia#2", "issue:ersilia#22", "issue:ersilia#23"]
+}

@@ -1,0 +1,25 @@
+{
+  "about": "Closed/merged subjects are proposed as done; subscribed noise as unsubscribe; old threads as done; a fresh mention is left alone; an ignored subject is suppressed.",
+  "now": "2026-11-12T00:00:00Z",
+  "inputs": {
+    "notifications": {"login": "me", "partial": [], "threads": [
+      {"id": "1", "reason": "review_requested", "updated_at": "2026-11-10T00:00:00Z", "repo": "ersilia", "title": "Merged PR", "type": "PullRequest", "number": 10, "key": "pr:ersilia#10", "state": "closed", "merged": true, "html_url": "https://github.com/ersilia-os/ersilia/pull/10"},
+      {"id": "2", "reason": "subscribed", "updated_at": "2026-11-10T00:00:00Z", "repo": "ersilia", "title": "Someone's issue", "type": "Issue", "number": 11, "key": "issue:ersilia#11", "state": "open"},
+      {"id": "3", "reason": "mention", "updated_at": "2026-08-01T00:00:00Z", "repo": "zairachem", "title": "Old mention", "type": "Issue", "number": 2, "key": "issue:zairachem#2", "state": "open"},
+      {"id": "4", "reason": "mention", "updated_at": "2026-11-11T00:00:00Z", "repo": "zairachem", "title": "Fresh mention", "type": "Issue", "number": 3, "key": "issue:zairachem#3", "state": "open"},
+      {"id": "5", "reason": "subscribed", "updated_at": "2026-11-11T00:00:00Z", "repo": "ersilia", "title": "Kept on purpose", "type": "Issue", "number": 12, "key": "issue:ersilia#12", "state": "open"},
+      {"id": "6", "reason": "mention", "updated_at": "2026-11-11T00:00:00Z", "repo": "ersilia-self-service", "title": "Model Inference Run eos4cxk", "type": "Issue", "number": 588, "key": "issue:ersilia-self-service#588", "state": "open"}
+    ]},
+    "mine": {"login": "me"},
+    "branches": {}
+  },
+  "ignore": ["notif:issue:ersilia#12"],
+  "rules": {"notifications": {"noise_title_patterns": ["^Model Inference Run"]}},
+  "expect": [
+    {"key": "notif:pr:ersilia#10", "category": "notif_closed", "proposed": "done"},
+    {"key": "notif:issue:ersilia#11", "category": "notif_noise", "proposed": "unsubscribe"},
+    {"key": "notif:issue:zairachem#2", "category": "notif_noise", "proposed": "done"},
+    {"key": "notif:issue:ersilia-self-service#588", "category": "notif_noise", "proposed": "done"}
+  ],
+  "expect_absent": ["notif:issue:zairachem#3", "notif:issue:ersilia#12"]
+}

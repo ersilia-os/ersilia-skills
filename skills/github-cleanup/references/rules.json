@@ -1,0 +1,27 @@
+{
+  "_about": "Every threshold the planner uses. Change behaviour here, not in code, and log why with record_feedback.py.",
+  "notifications": {
+    "max_threads": 1000,
+    "max_subject_lookups": 400,
+    "noise_reasons": ["ci_activity", "subscribed", "security_alert"],
+    "unsubscribe_reasons": ["subscribed"],
+    "old_after_days": 30,
+    "noise_title_patterns": []
+  },
+  "prs": {
+    "stale_after_days": 30,
+    "draft_stale_after_days": 60,
+    "review_request_flag_after_days": 14
+  },
+  "issues": {
+    "stale_after_days": 90
+  },
+  "branches": {
+    "lookback_days": 365,
+    "abandoned_after_days": 30,
+    "protected_patterns": ["main", "master", "dev", "develop", "gh-pages", "release*", "hotfix*"]
+  },
+  "render": {
+    "max_items_per_step": 10
+  }
+}

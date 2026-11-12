@@ -1,0 +1,22 @@
+{
+  "about": "Merged branches are proposed; closed-unmerged only after abandoned_after_days; protected, default, protected-pattern and open-PR branches never.",
+  "now": "2026-11-12T00:00:00Z",
+  "inputs": {
+    "notifications": {},
+    "mine": {"login": "me"},
+    "branches": {"branches": [
+      {"key": "branch:ersilia:feat-merged", "repo": "ersilia", "branch": "feat-merged", "default_branch": "master", "protected": false, "last_commit_at": "2026-11-01T00:00:00Z", "prs": [{"number": 1, "state": "MERGED", "merged_at": "2026-11-02T00:00:00Z"}]},
+      {"key": "branch:ersilia:abandoned", "repo": "ersilia", "branch": "abandoned", "default_branch": "master", "protected": false, "last_commit_at": "2026-08-01T00:00:00Z", "prs": [{"number": 2, "state": "CLOSED", "merged_at": null}]},
+      {"key": "branch:ersilia:recently-closed", "repo": "ersilia", "branch": "recently-closed", "default_branch": "master", "protected": false, "last_commit_at": "2026-11-05T00:00:00Z", "prs": [{"number": 3, "state": "CLOSED", "merged_at": null}]},
+      {"key": "branch:ersilia:protected-one", "repo": "ersilia", "branch": "protected-one", "default_branch": "master", "protected": true, "last_commit_at": "2026-01-01T00:00:00Z", "prs": [{"number": 4, "state": "MERGED", "merged_at": "2026-01-02T00:00:00Z"}]},
+      {"key": "branch:ersilia:master", "repo": "ersilia", "branch": "master", "default_branch": "master", "protected": false, "last_commit_at": "2026-01-01T00:00:00Z", "prs": [{"number": 5, "state": "MERGED", "merged_at": "2026-01-02T00:00:00Z"}]},
+      {"key": "branch:ersilia:release-2.0", "repo": "ersilia", "branch": "release-2.0", "default_branch": "master", "protected": false, "last_commit_at": "2026-01-01T00:00:00Z", "prs": [{"number": 6, "state": "MERGED", "merged_at": "2026-01-02T00:00:00Z"}]},
+      {"key": "branch:ersilia:reused", "repo": "ersilia", "branch": "reused", "default_branch": "master", "protected": false, "last_commit_at": "2026-01-01T00:00:00Z", "prs": [{"number": 7, "state": "MERGED", "merged_at": "2026-01-02T00:00:00Z"}, {"number": 8, "state": "OPEN", "merged_at": null}]}
+    ]}
+  },
+  "expect": [
+    {"key": "branch:ersilia:feat-merged", "category": "branches", "proposed": "delete"},
+    {"key": "branch:ersilia:abandoned", "category": "branches", "proposed": "delete"}
+  ],
+  "expect_absent": ["branch:ersilia:recently-closed", "branch:ersilia:protected-one", "branch:ersilia:master", "branch:ersilia:release-2.0", "branch:ersilia:reused"]
+}
