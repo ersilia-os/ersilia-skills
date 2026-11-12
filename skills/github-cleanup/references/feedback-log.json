@@ -1,0 +1,11 @@
+{
+  "entries": [
+    {
+      "n": 1,
+      "date": "2026-11-12",
+      "feedback": "First live run hit the GitHub rate limit; scripts carried on and built a wrong plan from partial data.",
+      "kind": "process",
+      "change": "_common.run_gh_json stops the run on a rate-limit error; apply_actions.py checks the call budget before writing; SKILL.md pre-flight checks gh api rate_limit (about 1,500 calls per run)."
+    }
+  ]
+}
