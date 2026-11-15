@@ -1,4 +1,17 @@
 {
   "_about": "Items the user said to keep: never proposed again. key is issue:<repo>#<n>, pr:<repo>#<n> or branch:<repo>:<branch>.",
-  "entries": []
+  "entries": [
+    {
+      "key": "issue:eosframes#2",
+      "label": "eosframes#2 Feedback 19th August",
+      "reason": "Real open task; keep it until it is done",
+      "date": "2026-11-15"
+    },
+    {
+      "key": "issue:ersilia-self-service#171",
+      "label": "ersilia-self-service#171 In the Ersilia Self Service streamlit app, change PAT",
+      "reason": "Real open task; keep it until it is done",
+      "date": "2026-11-15"
+    }
+  ]
 }
