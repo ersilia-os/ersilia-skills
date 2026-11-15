@@ -1,0 +1,12 @@
+{
+  "about": "A peer review pasted from a chat window into a PDF, with Markdown bold headings and stock praise.",
+  "format": "pdf",
+  "text": "Summary\n\n**Summary of the Paper:** The authors present a novel and comprehensive framework for antimalarial hit discovery, which is a commendable contribution to the field.\n\n**Strengths:** The manuscript is well-written and meticulously structured.\n\n**Weaknesses:** The authors should consider expanding the discussion of limitations.\n",
+  "expect": {
+    "tier": "strong",
+    "markers": [
+      "markdown-leftover"
+    ]
+  },
+  "kind": "review"
+}

@@ -1,0 +1,54 @@
+{
+  "_about": "How grade.py turns findings into the overall tier. Data, not code: change these values through the Learn step (record_feedback.py logs why). The tier is the highest level whose rule is met. Manipulation (hidden prompts) and paraphraser evidence are reported separately: they are serious, but they are not evidence that an AI wrote the text.",
+  "version": 1,
+  "conclusive": {
+    "categories": [
+      "citation-artifact",
+      "chatbot-leftover",
+      "placeholder",
+      "reasoning-leak",
+      "ui-leftover"
+    ],
+    "min_confirmed_hits": 1
+  },
+  "separate": {
+    "prompt-injection": "manipulation",
+    "paraphraser": "paraphraser"
+  },
+  "strong": {
+    "fabricated_statuses": [
+      "not-found",
+      "doi-not-registered",
+      "doi-points-elsewhere"
+    ],
+    "min_fabricated_refs": 2,
+    "detectors_required": 2,
+    "detector_needs_one_moderate": true,
+    "strong_categories": [
+      "markdown-leftover",
+      "unicode-artifact"
+    ],
+    "reading_strong_ok": true
+  },
+  "moderate": {
+    "min_fabricated_refs": 1,
+    "style_fraction_over_1pct": 0.5,
+    "style_min_windows": 3,
+    "min_reading_findings": 2,
+    "moderate_categories": [
+      "model-phrasing"
+    ],
+    "min_style_auroc": 0.75,
+    "baseline_min_texts": 5
+  },
+  "weak": {
+    "style_fraction_over_5pct": 0.3,
+    "any_reading_finding": true,
+    "any_weak_hit": true
+  },
+  "caveats": {
+    "short_text_words": 300,
+    "few_windows": 3
+  },
+  "_style_note": "The style score counts as moderate evidence only if its validated AUROC (calibration.json) reaches min_style_auroc; otherwise it is weak context at most."
+}
