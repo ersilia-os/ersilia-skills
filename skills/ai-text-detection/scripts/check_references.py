@@ -27,6 +27,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import re
 import sys
@@ -36,7 +37,15 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from _common import USER_AGENT, WORK_DIR, load_text, read_json, warn, write_json
+from _common import (
+    USER_AGENT,
+    WORK_DIR,
+    load_text,
+    read_json,
+    unligature,
+    warn,
+    write_json,
+)
 
 DOI_RE = re.compile(r"\b(10\.\d{4,9}/[^\s\"<>]+)", re.IGNORECASE)
 ARXIV_RE = re.compile(r"arXiv[:\s]*(\d{4}\.\d{4,5})(v\d+)?", re.IGNORECASE)
@@ -71,7 +80,9 @@ CACHE: dict[str, object] = {}
 def tokens(s: str) -> list[str]:
     """Content tokens for title matching."""
     return [
-        t for t in re.findall(r"[a-z0-9]+", s.lower()) if len(t) > 2 and t not in STOP
+        t
+        for t in re.findall(r"[a-z0-9]+", unligature(s).lower())
+        if len(t) > 2 and t not in STOP
     ]
 
 
@@ -104,6 +115,25 @@ def split_references(text: str) -> list[str]:
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
     if not lines:
         return []
+    # Numbered references running on inside lines ("... (2019). 2. Gromski, P. S., ..."):
+    # split at markers whose numbers go up one by one.
+    flat = " ".join(lines)
+    marks = [
+        m
+        for m in re.finditer(
+            r"(?:^|(?<=\s))(\d{1,3})\.\s+(?=[A-Z][^\s,.]*[,.\s])", flat
+        )
+    ]
+    seq, want = [], 1
+    for m in marks:
+        if int(m.group(1)) == want:
+            seq.append(m)
+            want += 1
+    if len(seq) >= 3 and len(seq) > len(lines):
+        bounds = [m.start() for m in seq] + [len(flat)]
+        return [
+            START_RE.sub("", flat[a:b]).strip() for a, b in itertools.pairwise(bounds)
+        ]
     numbered = sum(bool(START_RE.match(ln)) for ln in lines)
     if numbered >= max(3, len(lines) // 3):
         refs, cur = [], ""

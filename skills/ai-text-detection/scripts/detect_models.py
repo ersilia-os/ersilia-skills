@@ -42,6 +42,32 @@ PERFORMER = "Qwen/Qwen2.5-1.5B-Instruct"
 MAX_TOKENS = 512
 
 
+def model_cached(repo: str) -> bool:
+    """Whether a model's weights are fully in the local Hugging Face cache."""
+    try:
+        from huggingface_hub import try_to_load_from_cache
+    except ImportError:
+        return False
+    path = try_to_load_from_cache(repo, "model.safetensors")
+    return isinstance(path, str) and Path(path).exists()
+
+
+def status() -> dict:
+    """What is installed, without downloading or loading anything."""
+    out = {"torch": False, "mps": False, "models": {}}
+    try:
+        import torch
+
+        out["torch"] = True
+        out["mps"] = bool(torch.backends.mps.is_available())
+    except ImportError:
+        pass
+    for m in (OBSERVER, PERFORMER):
+        out["models"][m] = model_cached(m)
+    out["ready"] = out["torch"] and all(out["models"].values())
+    return out
+
+
 class Scorer:
     """Both models loaded once; ``score(text)`` returns the two statistics."""
 
@@ -60,8 +86,15 @@ class Scorer:
             else ("cuda" if torch.cuda.is_available() else "cpu")
         )
         dtype = torch.float16 if self.device != "cpu" else torch.float32
-        self.tok = AutoTokenizer.from_pretrained(observer)
-        kw = {"torch_dtype": dtype}
+        missing = [m for m in (observer, performer) if not model_cached(m)]
+        if missing:
+            die(
+                f"model(s) not downloaded: {', '.join(missing)}. Ask the user before running "
+                "scripts/setup_env.sh (one-time, about 6 GB); never download without asking."
+            )
+        # local_files_only: this script never downloads anything.
+        self.tok = AutoTokenizer.from_pretrained(observer, local_files_only=True)
+        kw = {"torch_dtype": dtype, "local_files_only": True}
         self.obs = (
             AutoModelForCausalLM.from_pretrained(observer, **kw).to(self.device).eval()
         )
@@ -169,7 +202,21 @@ def main(argv: list[str] | None = None) -> int:
         "--texts", help="JSONL of {id, text} to score instead of the document"
     )
     p.add_argument("--out", help="output JSONL for --texts")
+    p.add_argument(
+        "--check",
+        action="store_true",
+        help="report what is installed; load and download nothing",
+    )
     args = p.parse_args(argv)
+    if args.check:
+        st = status()
+        print(json.dumps(st))
+        print(
+            "detectors ready"
+            if st["ready"]
+            else "detectors NOT ready: ask the user before running setup_env.sh"
+        )
+        return 0 if st["ready"] else 2
     t0 = time.time()
     scorer = Scorer()
 

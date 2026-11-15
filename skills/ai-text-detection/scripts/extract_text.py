@@ -27,7 +27,7 @@ import re
 import sys
 from pathlib import Path
 
-from _common import WORK_DIR, die, warn, words, write_json
+from _common import WORK_DIR, die, unligature, warn, words, write_json
 
 HEADINGS = [
     "abstract",
@@ -118,24 +118,63 @@ def is_heading(line: str) -> str | None:
     if m:
         return m.group(1).strip().title()
     # Numbered short title-like line, e.g. "2.3 Data collection"
-    if (
-        NUM_PREFIX.match(s)
-        and len(s.split()) <= 8
-        and not s.endswith(".")
-        and s[-1:].isalpha()
-    ):
-        return NUM_PREFIX.sub("", s).strip()
+    if NUM_PREFIX.match(s) and len(s.split()) <= 8 and not s.endswith("."):
+        rest = NUM_PREFIX.sub("", s).strip()
+        if (
+            len(rest) >= 3
+            and rest[0].isupper()
+            and not re.search(r"\d", rest)
+            and rest[-1:].isalpha()
+        ):
+            return rest
     return None
 
 
 def clean_block(text: str) -> str:
     """Join hyphenated line breaks and unwrap lines within one paragraph."""
-    text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)
+    text = re.sub(r"(\w)-\n(\w)", r"\1\2", unligature(text))
     return re.sub(r"\s*\n\s*", " ", text).strip()
 
 
+def _prose(text: str) -> bool:
+    """Whether hidden text reads as words (an instruction), not a stamp or digits."""
+    t = re.sub(r"https?://\S+|\S+@\S+", " ", text)
+    return len(re.findall(r"[A-Za-z]{3,}", t)) >= 3
+
+
+def _figure_like(block: str) -> bool:
+    """Labels and axis ticks from figures: few words, or mostly non-alphabetic tokens."""
+    toks = block.split()
+    if not toks:
+        return True
+    alpha = sum(1 for t in toks if re.search(r"[A-Za-z]{2,}", t))
+    return len(toks) <= 3 or alpha / len(toks) < 0.5
+
+
+def _on_colour(page, box, cache: dict) -> bool:
+    """Whether the rendered page under ``box`` is mostly non-white (white text on a figure)."""
+    if "pix" not in cache:
+        cache["pix"] = page.get_pixmap(dpi=60)
+    pix, k = cache["pix"], 60 / 72
+    x0, y0 = max(0, int(box.x0 * k)), max(0, int(box.y0 * k))
+    x1, y1 = min(pix.width - 1, int(box.x1 * k)), min(pix.height - 1, int(box.y1 * k))
+    total = dark = 0
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            total += 1
+            if min(pix.pixel(x, y)[:3]) < 235:
+                dark += 1
+    return total > 0 and dark / total > 0.3
+
+
 def from_pdf(path: Path) -> tuple[list[tuple[int, str]], list[dict], dict]:
-    """(page, paragraph) blocks, hidden spans and metadata from a PDF."""
+    """(page, paragraph) blocks, hidden text and metadata from a PDF.
+
+    Text is rebuilt from word boxes, so PDFs that position words without space characters
+    still give spaced text. Text counts as hidden when it is white over a white page (not
+    white lettering on a coloured figure), under 2 pt, or off the page, and only when it
+    reads as words: publisher stamps and stray digits are ignored.
+    """
     try:
         import pymupdf as fitz
     except ImportError:
@@ -146,51 +185,81 @@ def from_pdf(path: Path) -> tuple[list[tuple[int, str]], list[dict], dict]:
     blocks, hidden = [], []
     for pno, page in enumerate(doc, 1):
         rect = page.rect
-        d = page.get_text("dict")
-        for b in d.get("blocks", []):
+        backgrounds = [
+            fitz.Rect(dr["rect"])
+            for dr in page.get_drawings()
+            if dr.get("fill") is not None and min(dr["fill"]) < 0.94
+        ] + [fitz.Rect(i["bbox"]) for i in page.get_image_info()]
+        hidden_boxes = []
+        cache: dict = {}
+        for b in page.get_text("dict").get("blocks", []):
             if b.get("type") != 0:
                 continue
-            lines_out = []
             for line in b.get("lines", []):
-                parts = []
                 for sp in line.get("spans", []):
                     t = sp.get("text", "")
                     if not t.strip():
                         continue
+                    box = fitz.Rect(sp["bbox"])
                     color = sp.get("color", 0)
                     r, g, bl = (color >> 16) & 255, (color >> 8) & 255, color & 255
                     why = None
                     if min(r, g, bl) >= 245:
-                        why = "white or near-white text"
+                        centre = fitz.Point(
+                            (box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2
+                        )
+                        if not any(
+                            centre in bg for bg in backgrounds
+                        ) and not _on_colour(page, box, cache):
+                            why = "white or near-white text"
                     elif sp.get("size", 10) < 2:
                         why = f"tiny text ({sp.get('size', 0):.1f} pt)"
-                    else:
-                        x0, y0, x1, y1 = sp["bbox"]
-                        if x1 < rect.x0 or x0 > rect.x1 or y1 < rect.y0 or y0 > rect.y1:
-                            why = "text placed outside the page"
+                    elif (
+                        box.x1 < rect.x0
+                        or box.x0 > rect.x1
+                        or box.y1 < rect.y0
+                        or box.y0 > rect.y1
+                    ):
+                        why = "text placed outside the page"
                     if why:
                         hidden.append({"page": pno, "text": t.strip(), "why": why})
-                        continue
-                    parts.append(t)
-                if parts:
-                    lines_out.append("".join(parts))
-            if lines_out:
-                raw = "\n".join(lines_out)
-                # A heading glued to its paragraph in one block: split it off.
-                first, _, rest = raw.partition("\n")
-                if rest and is_heading(first):
-                    blocks.append((pno, first.strip()))
-                    raw = rest
+                        hidden_boxes.append(box)
+        lines: dict[tuple[int, int], list[str]] = {}
+        order: list[tuple[int, int]] = []
+        for x0, y0, x1, y1, w, bno, lno, _ in page.get_text("words", sort=False):
+            centre = fitz.Point((x0 + x1) / 2, (y0 + y1) / 2)
+            if any(centre in hb for hb in hidden_boxes):
+                continue
+            key = (bno, lno)
+            if key not in lines:
+                lines[key] = []
+                order.append(key)
+            lines[key].append(w)
+        by_block: dict[int, list[str]] = {}
+        border: list[int] = []
+        for bno, lno in order:
+            if bno not in by_block:
+                by_block[bno] = []
+                border.append(bno)
+            by_block[bno].append(" ".join(lines[(bno, lno)]))
+        for bno in border:
+            raw = "\n".join(by_block[bno])
+            first, _, rest = raw.partition("\n")
+            if rest and is_heading(first):
+                blocks.append((pno, first.strip()))
+                raw = rest
+            if is_heading(raw):
+                blocks.append((pno, raw.strip()))
+            elif not _figure_like(raw):
                 blocks.append((pno, clean_block(raw)))
     meta = {k: v for k, v in (doc.metadata or {}).items() if v}
-    # Merge consecutive hidden spans on a page into one finding.
     merged: list[dict] = []
     for h in hidden:
         if merged and merged[-1]["page"] == h["page"] and merged[-1]["why"] == h["why"]:
             merged[-1]["text"] += " " + h["text"]
         else:
             merged.append(dict(h))
-    return blocks, merged, meta
+    return blocks, [h for h in merged if _prose(h["text"])], meta
 
 
 def from_docx(path: Path) -> tuple[list[tuple[int, str]], list[dict], dict]:

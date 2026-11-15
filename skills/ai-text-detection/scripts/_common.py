@@ -80,6 +80,24 @@ def append_jsonl(path: str | Path, row: dict) -> None:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+LIGATURES = str.maketrans(
+    {
+        "\ufb00": "ff",
+        "\ufb01": "fi",
+        "\ufb02": "fl",
+        "\ufb03": "ffi",
+        "\ufb04": "ffl",
+        "\ufb05": "st",
+        "\ufb06": "st",
+    }
+)
+
+
+def unligature(text: str) -> str:
+    """Replace typographic ligatures (common in PDFs); other characters are kept as they are."""
+    return text.translate(LIGATURES)
+
+
 WORD_RE = re.compile(r"[A-Za-z][A-Za-z'\-]*")
 SENT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9\"'(\[])")
 

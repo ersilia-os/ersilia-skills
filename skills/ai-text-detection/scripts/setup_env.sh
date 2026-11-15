@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # One-time setup for the model-based detectors of ai-text-detection.
 # Creates the conda env `ai-text-detection` and downloads the two models (about 6 GB; resumes if interrupted).
+# Run only after the user has agreed to the download (SKILL.md, pre-flight step 4).
 # Idempotent: re-running only fills in what is missing. Nothing is uploaded anywhere.
 set -euo pipefail
 ENV=ai-text-detection

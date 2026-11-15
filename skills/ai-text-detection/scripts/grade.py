@@ -280,6 +280,22 @@ def grade(work: Path) -> dict:
             }
         )
 
+    # 4c. Google Doc revision history (drive_intake.py revisions), weak context only.
+    revs = read_json(work / "revisions.json") or {}
+    if revs.get("pasted_in_one_block"):
+        met["weak"].append("pasted")
+        big = revs["largest_addition"]
+        statements.append(
+            {
+                "tier": "weak",
+                "text": f"The Google Doc's revision history shows {big['added']} of its {revs['final_words']} words arriving in "
+                f"a single edit ({big.get('time')}). The text was written elsewhere and pasted in; that is also how people "
+                "move their own drafts, so this is context only.",
+                "evidence": ["revisions"],
+                "check": "File > Version history in the Google Doc.",
+            }
+        )
+
     # 5. Claude's reading (each finding quoted and checkable).
     reading = jud.get("reading", [])
     for i, r in enumerate(reading, 1):

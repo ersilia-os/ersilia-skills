@@ -26,8 +26,8 @@ You help the user decide, with evidence they can defend, whether a document was 
 1. **Evidence, not a score.** Nothing here proves authorship from style alone. What holds up is: (a) artefacts no human types (`oaicite`, `[cite_start]`, "Certainly, here is", `utm_source=chatgpt.com`), (b) verifiable problems such as references that don't exist, and (c) calibrated statistics reported with their false-positive rate. Rank findings in that order and never let (c) speak louder than it is.
 2. **Every finding is quoted, located and re-checkable** by a third party: an editor, a programme officer, the author.
 3. **Fair to the author.** Detector and style scores are biased against non-native English and are shifted by language editing. Polishing with AI is allowed by most journals and funders when disclosed. The report always says what the evidence does not show.
-4. **The document stays here.** Only reference strings go out (Crossref, DataCite, doi.org, OpenAlex, arXiv), plus a reference title when you search by hand. Never paste the document into a web search or any external service. Uploading a confidential manuscript or grant would itself breach review confidentiality.
-5. **The user's feedback is the most valuable input.** Ask for it at the three checkpoints below, every run, briefly. Record it with `ledger.py`. Turn it into changes to `markers.json`, `grading.json` and the calibration.
+4. **The document stays here.** Reading it from the user's own Google Drive through the connectors is fine: it is the user's own storage. Only reference strings go out (Crossref, DataCite, doi.org, OpenAlex, arXiv), plus a reference title when you search by hand. Never paste the document into a web search or any external service. Uploading a confidential manuscript or grant would itself breach review confidentiality.
+5. **Keep improving.** The user's feedback is the most valuable input, and the field moves fast. Ask for it at the three checkpoints below, every run, briefly. Record it with `ledger.py`. Turn it into changes to `markers.json`, `grading.json` and the calibration. Keep scanning for new tools too (`watch.py`).
 
 ## Files
 
@@ -35,9 +35,10 @@ Scripts live in `scripts/`. They run with any `python3`, except PDF/DOCX extract
 
 | Script | Does |
 |---|---|
-| `setup_env.sh` | One-time: conda env `ai-text-detection` and the Qwen2.5-1.5B base/instruct pair (about 6 GB) |
+| `setup_env.sh` | One-time, only after the user agrees: conda env `ai-text-detection` and the Qwen2.5-1.5B base/instruct pair (about 6 GB, resumable) |
 | `record_feedback.py` | Lists the lessons (`list`) or logs one (`add`) |
 | `ledger.py` | The case ledger: `record`, `finding`, `verdict`, `outcome`, `pending`, `stats` |
+| `drive_intake.py` | Google Drive links: file ID, the local Drive mount for PDF/DOCX, and revision-history summary |
 | `extract_text.py` | PDF / DOCX / TXT / stdin to `text.json`: sections, pages, reference list, hidden text, metadata |
 | `scan_artifacts.py` | Graded regex markers from `references/markers.json`, each hit quoted and located |
 | `check_references.py` | Each reference looked up; statuses are `ok`, `metadata-mismatch`, `doi-points-elsewhere`, `doi-not-registered`, `not-found`, `unverifiable` |
@@ -47,6 +48,7 @@ Scripts live in `scripts/`. They run with any `python3`, except PDF/DOCX extract
 | `grade.py` | Rules in `references/grading.json` produce the tier plus defensible statements |
 | `build_report.py` | The HTML evidence report (Ersilia style), published as a private Artifact |
 | `build_corpus.py`, `calibrate.py` | Build the human calibration corpus; fit thresholds; write `references/validation.md` |
+| `watch.py` | Monthly scan for new leak tokens, detectors, vocabulary lists, datasets, policies and skills (`references/watchlist.json`) |
 | `selftest.py` | Offline regression test over `examples/cases/` and every marker's examples |
 
 ## Workflow
@@ -56,17 +58,28 @@ Scripts live in `scripts/`. They run with any `python3`, except PDF/DOCX extract
 1. `python record_feedback.py list`. Read every lesson and apply it.
 2. `python ledger.py pending`. If earlier cases wait for an outcome, ask about them in **one** `AskUserQuestion`, e.g. "Did you hear back about case 2026-11-review-r2? AI / human / mixed / no news yet". Record answers with `ledger.py outcome`. This is how the skill learns what was true.
 3. Every 5th case, or when `pending` shows 3 or more new outcomes, run `python ledger.py stats` and act on its SUGGEST lines (step 7).
-4. `conda env list | grep ai-text-detection`. If the env is missing, offer `scripts/setup_env.sh` (one-time, about 7 GB on disk). Without it you can still run every check except the detectors and PDF/DOCX extraction. For a PDF without the env, ask for the text or a DOCX.
-5. `rm -rf /tmp/ai_text_detection && mkdir -p /tmp/ai_text_detection`.
+4. **Detectors: check, never download unasked.** Run `conda run -n ai-text-detection python detect_models.py --check`; it loads and downloads nothing. If it reports the env or the models missing, **ask** before doing anything: "The model-based detectors need a one-time setup (conda env plus two models, about 7 GB, which can take a while on a slow connection). Set it up now, or run this check without them?" Run `scripts/setup_env.sh` only on a yes. It keeps the models in the shared Hugging Face cache, so it never downloads twice. On a no, run every other check and say in the report that the detectors were not run. PDF and DOCX extraction need the env too; without it, read Drive files through the connector, or ask for the text.
+5. **Watch for new tools.** `python watch.py due`. When a scan is due (monthly), do it before the intake and keep it short: run the listed searches, compare the results with what `markers.json`, `detect_models.py`, `policies.json` and the corpus already have, and record each topic with `watch.py record` ("nothing new" counts). Then `watch.py done`. Turn anything worth adding into a concrete proposal for the user at step 7, e.g. a new leak token with its source, a better open detector, or a new policy. Also do this between scans whenever you meet a tool or artefact the skill doesn't know.
+6. `rm -rf /tmp/ai_text_detection && mkdir -p /tmp/ai_text_detection`.
 
 ### 1. Intake
 
 You need four things. Ask only for what you can't infer, in one `AskUserQuestion`:
 
-- **The document**: a path, an attachment, or pasted text. For pasted text, write it to `/tmp/ai_text_detection/input.txt`.
+- **The document**: a Google Drive or Docs link (the usual case, see below), a path, an attachment, or pasted text. For pasted text, write it to `/tmp/ai_text_detection/input.txt`.
 - **The kind**: `article`, `grant`, `review`, `response-letter`, `email` or `other`.
 - **The context**: `collaborator-draft`, `reviewer-of-my-paper`, `manuscript-i-review`, `grant-i-review` or `other`. For a review of their paper, ask for their manuscript too: a reviewer's claims about it are then checkable. Claims about content the paper doesn't have are among the strongest evidence for reviews.
 - **A neutral case label**, such as `2026-11-review-r2`. Never use a person's name.
+
+**Google Drive links.** Use the Google Drive and Google Docs connectors; never ask the user to download the file.
+
+1. `python drive_intake.py id "<link>"` gives the file ID. Then `get_file_metadata` (with `includeRichMetadata`) gives the name, type, owner, created and modified times. Keep these for the report's context, and check the 30 Nov 2022 rule against the created time.
+2. **PDF or Word file:** first try `python drive_intake.py local "<name>"`. Google Drive for desktop is mounted on this machine, and a local copy keeps hidden text, fonts and metadata. If it isn't in the mount (files shared with the user often aren't), call `read_file_content` and write the text to `input.txt`. Say in the report that the hidden-text check was not possible from the connector text.
+3. **Google Doc:**
+   - Call `read_file_content` and write its text to `input.txt`. Use `--format txt` with `extract_text.py`: the connector renders headings and bold as Markdown, so Markdown leftovers can't be judged from it.
+   - For the hidden-text check, call `read_doc` on documents up to about 30 pages and look for text runs with a white or near-white `foregroundColor` or a `fontSize` under 2 pt. Quote any you find in `judgements.json` `reading` as a `strong` finding, or as manipulation if it addresses an AI.
+   - **Revision history:** call `list_file_revisions`. For a collaborator's draft, when the history is short (up to ~10 revisions), fetch the plain text of each revision (`download_file_content` with `revisionId` and `exportMimeType: text/plain`) and count its words. Write `[{"time", "author", "words"}]` to `/tmp/ai_text_detection/revlist.json`, then run `python drive_intake.py revisions /tmp/ai_text_detection/revlist.json`. Text that arrived in one block was written elsewhere. That is weak context only, because people also paste their own drafts.
+4. **Comments:** don't read comments unless the user asks; they are not part of the text under test.
 
 If the text was written before 30 Nov 2022 (ChatGPT's release), say so and stop: it cannot be ChatGPT-era output.
 
@@ -75,7 +88,7 @@ If the text was written before 30 Nov 2022 (ChatGPT's release), say so and stop:
 ```
 python extract_text.py <file> && \
 python scan_artifacts.py & python check_references.py & python stylometry.py & \
-conda run -n ai-text-detection python detect_models.py & wait
+conda run -n ai-text-detection python detect_models.py & wait   # detectors only if --check said ready
 ```
 
 Use `conda run -n ai-text-detection python extract_text.py` for PDF/DOCX. Show the section map and word count. Below 300 words, warn that the statistics are unreliable and lean on artefacts, references and reading.
