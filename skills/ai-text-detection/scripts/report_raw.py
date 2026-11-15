@@ -50,9 +50,16 @@ def num(x: float | None, d: int = 2) -> str:
     return "n/a" if x is None else f"{x:.{d}f}"
 
 
-def web_cell(v: float | None) -> str:
-    """A passages-table cell for one web detector's score on this window's chunk."""
-    cls = "" if v is None else ("w1" if v >= 0.5 else "ok")
+def web_cell(v: float | None, weight: str = "context") -> str:
+    """A passages-table cell for one web detector's score on this window's chunk.
+
+    A flag from a validated tool is coloured like 'past 1%'; from a context-only tool,
+    never stronger than 'past 5%'."""
+    cls = (
+        ""
+        if v is None
+        else (("w1" if weight == "validated" else "w5") if v >= 0.5 else "ok")
+    )
     return f'<td class="{cls}">{num(v)}</td>'
 
 
@@ -351,7 +358,7 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             f'<tr class="{rc}"><td><a href="#{w["id"]}">{w["id"]}</a></td><td>{e(w.get("section"))}</td><td>{w.get("n_words")}</td>'
             f'<td class="{flag_cls(s_flag)}">{num(sc)}</td>'
             + "".join(
-                web_cell(ws["by_chunk"].get(chunk_of.get(w["id"], "")))
+                web_cell(ws["by_chunk"].get(chunk_of.get(w["id"], "")), ws["weight"])
                 for ws in wsum.values()
             )
             + f"<td>{e(w.get('flag') or '')}</td><td>{e(', '.join(w.get('_marked_words') or []))}</td></tr>"

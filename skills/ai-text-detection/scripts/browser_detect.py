@@ -43,7 +43,7 @@ BLOCK_RE = re.compile(
     re.IGNORECASE,
 )
 PCT_RE = re.compile(
-    r"(\d{1,3}(?:\.\d+)?)\s*%[^%\n]{0,40}\b(AI|machine|generated)\b|\b(AI|machine)[^%\n]{0,40}?(\d{1,3}(?:\.\d+)?)\s*%",
+    r"(\d{1,3}(?:\.\d+)?)\s*%[^%]{0,40}?\b(AI|machine|generated|GPT)\b|\b(AI|machine|generated|GPT)[^%]{0,40}?(\d{1,3}(?:\.\d+)?)\s*%",
     re.IGNORECASE,
 )
 
@@ -55,6 +55,71 @@ def guess(text: str) -> float | None:
         return None
     v = m.group(1) or m.group(4)
     return round(float(v) / 100, 3)
+
+
+PCT_ANY = re.compile(r"\d{1,3}(?:\.\d+)?\s*%")
+COOKIE_RE = re.compile(
+    r"^(decline|reject all|reject|only necessary|necessary only|deny|refuse)$",
+    re.IGNORECASE,
+)
+
+
+CAPTCHA_FRAME = re.compile(
+    r"hcaptcha|recaptcha|challenges\.cloudflare|turnstile|arkoselabs|funcaptcha",
+    re.IGNORECASE,
+)
+
+
+def captcha_shown(page) -> bool:
+    """Whether a CAPTCHA widget or a human-verification wall is on the page."""
+    try:
+        frames = any(
+            CAPTCHA_FRAME.search(f.url or "")
+            for f in page.frames
+            if f != page.main_frame
+        )
+        return frames or bool(BLOCK_RE.search(page.inner_text("body")[:3000]))
+    except Exception:  # noqa: BLE001 - page navigating
+        return False
+
+
+def wait_for_human(page, seconds: int) -> bool:
+    """Let the user solve a CAPTCHA in the open window; never solve it automatically."""
+    print(
+        json.dumps(
+            {
+                "status": "waiting-for-user",
+                "why": "CAPTCHA shown; solve it in the Chrome window",
+                "seconds": seconds,
+            }
+        ),
+        flush=True,
+    )
+    for _ in range(seconds // 2):
+        page.wait_for_timeout(2000)
+        if not captcha_shown(page):
+            page.wait_for_timeout(3000)
+            return True
+    return False
+
+
+def new_lines(before: str, after: str) -> str:
+    """Lines of the page that were not there before the scan (the result, not the marketing)."""
+    seen = set(before.splitlines())
+    return "\n".join(ln for ln in after.splitlines() if ln.strip() and ln not in seen)
+
+
+def dismiss_cookies(page) -> None:
+    """Close a cookie banner by declining non-essential cookies, if one is shown."""
+    for el in page.query_selector_all("button, [role='button'], a"):
+        try:
+            label = (el.inner_text() or "").strip()
+            if el.is_visible() and COOKIE_RE.match(label):
+                el.click()
+                page.wait_for_timeout(500)
+                return
+        except Exception:  # noqa: BLE001, S112 - element detached
+            continue
 
 
 def find_input(page):
@@ -76,8 +141,11 @@ def find_input(page):
     return None
 
 
-def click_go(page) -> bool:
-    """Press the visible button whose label says scan/check/detect."""
+def click_go(page, box) -> bool:
+    """Press the scan/check/detect button nearest to the text box (as a person would)."""
+    tb = box.bounding_box() or {"x": 0, "y": 0, "width": 0, "height": 0}
+    cx, cy = tb["x"] + tb["width"] / 2, tb["y"] + tb["height"]
+    best, dist = None, float("inf")
     for el in page.query_selector_all("button, [role='button'], input[type='submit']"):
         try:
             label = (
@@ -86,24 +154,40 @@ def click_go(page) -> bool:
                 or el.get_attribute("aria-label")
                 or ""
             ).strip()
-            if (
+            if not (
                 el.is_visible()
                 and el.is_enabled()
                 and BUTTON_RE.search(label)
                 and len(label) < 40
             ):
-                el.click()
-                return True
+                continue
+            bb = el.bounding_box()
+            if not bb:
+                continue
+            d = abs(bb["x"] + bb["width"] / 2 - cx) + abs(
+                bb["y"] + bb["height"] / 2 - cy
+            )
+            if d < dist:
+                best, dist = el, d
         except Exception:  # noqa: BLE001, S112 - element detached
             continue
-    return False
+    if best is None:
+        return False
+    best.scroll_into_view_if_needed()
+    best.click()
+    return True
 
 
-def run_one(page, tool: dict, k: int, text: str, out: Path) -> dict:
+def run_one(
+    page, tool: dict, k: int, text: str, out: Path, human_wait: int = 0
+) -> dict:
     """One submission; saves the result page; returns a status row."""
     row = {"tool": tool["id"], "chunk": k}
     page.goto(tool["url"], wait_until="domcontentloaded", timeout=60000)
     page.wait_for_timeout(3000)
+    dismiss_cookies(page)
+    if captcha_shown(page) and human_wait:
+        wait_for_human(page, human_wait)
     before = page.inner_text("body")
     if BLOCK_RE.search(before):
         return {**row, "status": "blocked", "why": BLOCK_RE.search(before).group(0)}
@@ -120,23 +204,63 @@ def run_one(page, tool: dict, k: int, text: str, out: Path) -> dict:
     else:
         page.keyboard.insert_text(text)
     page.wait_for_timeout(800)
-    if not click_go(page):
+    pasted = page.inner_text("body")
+    n_tabs = len(page.context.pages)
+    if not click_go(page, box):
         return {**row, "status": "no-button", "why": "no scan/check button found"}
-    after = before
+    # Some sites open the result in a new tab: follow it.
+    page.wait_for_timeout(2500)
+    if len(page.context.pages) > n_tabs:
+        page = page.context.pages[-1]
+        page.wait_for_load_state("domcontentloaded")
+        page.wait_for_timeout(2000)
+        pasted = ""
+    if captcha_shown(page) and not (human_wait and wait_for_human(page, human_wait)):
+        return {
+            **row,
+            "status": "blocked",
+            "why": "CAPTCHA (left for the user; never solved automatically)",
+        }
+    after, fresh = pasted, ""
     for _ in range(30):  # up to ~60 s for the verdict to appear
         page.wait_for_timeout(2000)
         after = page.inner_text("body")
-        if BLOCK_RE.search(after):
-            return {**row, "status": "blocked", "why": BLOCK_RE.search(after).group(0)}
-        if after != before and guess(after) is not None:
+        if captcha_shown(page) and not (
+            human_wait and wait_for_human(page, human_wait)
+        ):
+            return {
+                **row,
+                "status": "blocked",
+                "why": "CAPTCHA (left for the user; never solved automatically)",
+            }
+        fresh = new_lines(pasted, after)
+        if re.search(
+            r"\b(checking|analy[sz]ing|processing|scanning|loading)\b",
+            fresh[:300],
+            re.IGNORECASE,
+        ):
+            continue  # still working
+        if PCT_ANY.search(fresh) and re.search(
+            r"\b(AI|human|generated|written)\b", fresh, re.IGNORECASE
+        ):
+            page.wait_for_timeout(2000)  # let the numbers settle
+            after = page.inner_text("body")
+            fresh = new_lines(pasted, after)
             break
+    else:
+        fresh = new_lines(pasted, after)
     stem = out / f"{tool['id']}_chunk{k}"
     stem.with_suffix(".txt").write_text(after, encoding="utf-8")
-    page.screenshot(path=str(stem.with_suffix(".png")), full_page=True)
+    result = stem.with_name(stem.name + "_result.txt")
+    result.write_text(fresh, encoding="utf-8")
+    page.screenshot(
+        path=str(stem.with_suffix(".png"))
+    )  # the visible viewport, where results show
     return {
         **row,
-        "status": "done",
-        "guess": guess(after),
+        "status": "done" if fresh else "no-result",
+        "guess": guess(fresh),
+        "result_text": str(result),
         "page_text": str(stem.with_suffix(".txt")),
         "screenshot": str(stem.with_suffix(".png")),
     }
@@ -157,6 +281,12 @@ def main(argv: list[str] | None = None) -> int:
         "--login",
         action="store_true",
         help="open the sites so the user can sign in, then wait",
+    )
+    p.add_argument(
+        "--human-wait",
+        type=int,
+        default=0,
+        help="seconds to wait for the user to solve a CAPTCHA in the open window (0: stop at once)",
     )
     args = p.parse_args(argv)
     try:
@@ -207,7 +337,12 @@ def main(argv: list[str] | None = None) -> int:
                     continue
                 text = Path(c["file"]).read_text(encoding="utf-8")
                 try:
-                    row = run_one(page, tools[tid], c["chunk"], text, out)
+                    row = run_one(
+                        page, tools[tid], c["chunk"], text, out, args.human_wait
+                    )
+                    for extra in ctx.pages[1:]:  # close result tabs between submissions
+                        extra.close()
+                    page = ctx.pages[0]
                 except Exception as ex:  # noqa: BLE001 - network or page errors: report, move on
                     row = {
                         "tool": tid,

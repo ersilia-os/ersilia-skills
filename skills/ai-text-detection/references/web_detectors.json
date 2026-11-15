@@ -10,7 +10,11 @@
       "evidence": "Near-zero false positives and robust to humanizers in the University of Chicago study (Jabarian & Imas 2025, NBER w34223); the only tool meeting a 0.5% FPR cap there.",
       "evidence_url": "https://www.nber.org/papers/w34223",
       "read": "Record the AI likelihood as 0-1 and the label shown (e.g. 'AI', 'Mixed', 'Human'). If it reports AI share by segment, record the overall share.",
-      "max_words": null
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "CAPTCHA (Cloudflare) on automated use; needs the user to tick it"
+      }
     },
     {
       "id": "gptzero",
@@ -20,7 +24,11 @@
       "evidence": "False-positive rate under 1% in the University of Chicago study; 0% FPR at its default threshold on the RAID benchmark (Dugan et al. 2024).",
       "evidence_url": "https://arxiv.org/abs/2405.07940",
       "read": "Record the probability that the text is AI-generated (0-1) and the classification shown ('AI', 'Mixed', 'Human').",
-      "max_words": null
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "hCaptcha before results (opens a new tab at app.gptzero.me); needs the user"
+      }
     },
     {
       "id": "originality",
@@ -30,7 +38,11 @@
       "evidence": "False-positive rate under 1% in the University of Chicago study; 0.25% FPR at its default threshold on RAID. Mostly paid; use only if the free checker works.",
       "evidence_url": "https://www.nber.org/papers/w34223",
       "read": "Record the 'AI' confidence (0-1).",
-      "max_words": null
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "CAPTCHA on automated use; needs the user"
+      }
     },
     {
       "id": "copyleaks",
@@ -39,7 +51,11 @@
       "weight": "context",
       "evidence": "No independent peer-reviewed false-positive rate found.",
       "read": "Record the AI score (0-1) or 0/1 from the label.",
-      "max_words": null
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "text box not found by the automation (embedded frame or login)"
+      }
     },
     {
       "id": "quillbot",
@@ -48,7 +64,11 @@
       "weight": "context",
       "evidence": "No independent peer-reviewed false-positive rate found.",
       "read": "Record the share reported as AI-generated (0-1).",
-      "max_words": null
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "scan button covered by an overlay"
+      }
     },
     {
       "id": "zerogpt",
@@ -57,7 +77,11 @@
       "weight": "context",
       "evidence": "Widely reported false positives on human text (it famously flags the US Constitution); no independent low-FPR evidence.",
       "read": "Record the percentage reported as AI (0-1).",
-      "max_words": null
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "works without CAPTCHA or login"
+      }
     },
     {
       "id": "sapling",
@@ -66,7 +90,11 @@
       "weight": "context",
       "evidence": "No independent peer-reviewed low-FPR evidence found.",
       "read": "Record the 'fake' / AI probability (0-1).",
-      "max_words": null
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "text box not found by the automation"
+      }
     },
     {
       "id": "scribbr",
@@ -75,7 +103,11 @@
       "weight": "context",
       "evidence": "No independent peer-reviewed low-FPR evidence found.",
       "read": "Record the share reported as AI (0-1).",
-      "max_words": null
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "text box not found by the automation"
+      }
     },
     {
       "id": "winston",
@@ -84,7 +116,11 @@
       "weight": "context",
       "evidence": "No independent peer-reviewed low-FPR evidence found. Its score is a 'human score': record 1 minus it.",
       "read": "Record 1 - (human score / 100).",
-      "max_words": null
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "no result captured"
+      }
     },
     {
       "id": "undetectable",
@@ -93,7 +129,11 @@
       "weight": "context",
       "evidence": "Sells a 'humanizer'; no independent low-FPR evidence. Lowest weight.",
       "read": "Record the AI likelihood (0-1) if shown.",
-      "max_words": null
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "works without CAPTCHA or login"
+      }
     },
     {
       "id": "writer",
@@ -102,7 +142,11 @@
       "weight": "context",
       "evidence": "No independent peer-reviewed low-FPR evidence found.",
       "read": "Record 1 - (human-generated share / 100).",
-      "max_words": null
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "text box not found by the automation"
+      }
     }
   ],
   "default_order": [
