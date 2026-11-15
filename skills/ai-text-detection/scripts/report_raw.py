@@ -1,5 +1,15 @@
-"""The raw, text-first report: scores first, then the document with only its AI-looking
-parts highlighted. Plain HTML on purpose: a few colours, no theme, no scripts.
+"""The report: plain HTML, organised by passage, readable top to bottom.
+
+One unit throughout: the *passage* (whole prose paragraphs from one section, ~250-500
+words; web_detectors.build_passages). Every score is given per passage.
+
+    1. The answer       verdict in plain words, then the facts behind it
+    2. At a glance      one row per passage, one coloured cell per detector, agreement
+    3. The text         passage by passage, each headed and coloured by agreement;
+                        sentences the detectors marked are shaded (darker = more tools),
+                        hover names the tools; text not sent to detectors is greyed
+    4. Other evidence   references, leftover chatbot text, close reading
+    5. Details          the detectors and their evidence, what did not run, limits
 
 Called by build_report.py (``--style raw``, the default).
 """
@@ -10,32 +20,46 @@ import html
 import re
 from pathlib import Path
 
-from _common import REFS, read_json
-from stylometry import DIRECTION
-
-WORD_SHADE = {"1%": "w1", "5%": "w5", "0": "w0"}
-PRIORITY = {"art": 3, "phrase": 2, "word": 1}
+from _common import REFS, read_json, words
+from stylometry import features, style_score
+from web_detectors import build_passages, is_prose
 
 CSS = """
-:root { color-scheme: light; }
-body { background: #fff; color: #111; }
-main { max-width: 52em; margin: 0 auto; padding-block: 12px 40px;
-       padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-table { border-collapse: collapse; font-size: 13px; }
-th, td { border: 1px solid #aaa; padding: 2px 6px; text-align: left; vertical-align: top; }
+:root { color-scheme: light; --human: #dff2da; --mixed: #fff1bd; --ai: #ffcfb8; --strong: #ff9f80;
+        --s1: #ffe0c2; --s2: #ffb784; --grey: #8a8a8a; --line: #bbbbbb; --ink: #151515; --bg: #ffffff; }
+body { background: var(--bg); color: var(--ink); }
+main { max-width: 54em; margin: 0 auto; padding-block: 14px 48px;
+       padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+       font: 15px/1.55 Georgia, "Times New Roman", serif; }
+h1 { font-size: 1.5em; margin: 0 0 .2em; }
+h2 { margin-top: 1.8em; border-bottom: 1px solid var(--line); }
+.answer { font-size: 1.15em; font-weight: bold; margin: .6em 0; }
+ul.facts { margin: .3em 0 0; padding-left: 1.2em; }
+ul.facts li { margin: .3em 0; }
+table { border-collapse: collapse; font: 13px/1.35 system-ui, sans-serif; }
+th, td { border: 1px solid var(--line); padding: 3px 7px; text-align: left; vertical-align: middle; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; }
 .scroll { overflow-x: auto; }
-.w0 { background: #fffbe6; }
-.w5 { background: #fff4c2; }
-.w1 { background: #ffd2bd; }
-mark.word { background: #ffe066; }
-mark.phrase { background: #cfe5ff; }
-mark.art { background: #ff9b9b; }
-.lab { font: 12px monospace; color: #444; }
-.ok { background: #e4f4e1; }
-.bad { background: #ff9b9b; }
-.text p { margin: 0 0 .8em; }
-.ws { background: #ffcf9e; border-bottom: 2px solid #e8833a; }
-.ws1 { background: #ffb98a; border-bottom: 2px solid #c8501a; }
+.c-human { background: var(--human); }
+.c-mixed { background: var(--mixed); }
+.c-ai { background: var(--ai); }
+.c-strong { background: var(--strong); }
+.c-none { color: var(--grey); }
+.psg { border-left: 6px solid var(--line); padding: 2px 0 2px 12px; margin: 1.2em 0; background: none; }
+.psg.c-human { border-color: #7cc576; background: none; }
+.psg.c-mixed { border-color: #e2b72c; background: none; }
+.psg.c-ai { border-color: #f08a5d; background: none; }
+.psg.c-strong { border-color: #d9481f; background: none; }
+.phead { font: 600 14px/1.4 system-ui, sans-serif; }
+.pscores { font: 12.5px/1.4 system-ui, sans-serif; color: #333333; margin-bottom: .5em; }
+.psg p { margin: 0 0 .7em; }
+p.skip { color: var(--grey); font-size: .9em; }
+.sec { font: 600 13px system-ui, sans-serif; color: #555555; margin: 1.4em 0 .2em; }
+.m1 { background: var(--s1); }
+.m2 { background: var(--s2); }
+mark.art { background: #ff8a8a; }
+details { margin: .6em 0; }
+summary { cursor: pointer; font-weight: bold; }
 """
 
 
@@ -44,464 +68,378 @@ def e(x: object) -> str:
     return html.escape("" if x is None else str(x))
 
 
-def pct(x: float | None) -> str:
-    """0.0123 -> '1.2%'."""
-    return "n/a" if x is None else f"{100 * x:.1f}%"
-
-
 def num(x: float | None, d: int = 2) -> str:
-    """Rounded number or 'n/a'."""
-    return "n/a" if x is None else f"{x:.{d}f}"
+    """Rounded number or a dash."""
+    return "—" if x is None else f"{x:.{d}f}"
 
 
-def web_cell(v: float | None, weight: str = "context") -> str:
-    """A passages-table cell for one web detector's score on this window's chunk.
-
-    A flag from a validated tool is coloured like 'past 1%'; from a context-only tool,
-    never stronger than 'past 5%'."""
-    cls = (
-        ""
-        if v is None
-        else (("w1" if weight == "validated" else "w5") if v >= 0.5 else "ok")
-    )
-    return f'<td class="{cls}">{num(v)}</td>'
+def pc(x: float | None) -> str:
+    """0.83 -> '83%'."""
+    return "—" if x is None else f"{round(100 * x)}%"
 
 
-def _inline(text: str, a: int, b: int, spans: list[dict]) -> str:
-    """HTML for text[a:b] with non-overlapping <mark>s (no paragraph handling)."""
-    inside = sorted(
-        (s for s in spans if s["start"] >= a and s["end"] <= b),
-        key=lambda s: (s["start"], -PRIORITY[s["kind"]]),
-    )
-    chosen, last_end = [], a
-    for s in inside:
-        if s["start"] < last_end:
-            if (
-                chosen
-                and PRIORITY[s["kind"]] > PRIORITY[chosen[-1]["kind"]]
-                and s["start"] < chosen[-1]["end"]
-            ):
-                chosen[-1] = s
-                last_end = s["end"]
+def agreement_class(n_ai: int, n: int, validated_ai: bool) -> str:
+    """Colour of a passage from how many detectors say AI."""
+    if n == 0:
+        return "c-none"
+    if validated_ai:
+        return "c-strong"
+    if n_ai == 0:
+        return "c-human"
+    if n >= 3 and n_ai / n > 0.5:
+        return "c-ai"
+    return "c-mixed"
+
+
+def agreement_words(n_ai: int, n: int) -> str:
+    """'4 of 5 detectors say AI' in plain words."""
+    if n == 0:
+        return "no detector run"
+    if n_ai == 0:
+        return f"all {n} detectors say human" if n > 1 else "the detector says human"
+    return f"{n_ai} of {n} detectors say AI"
+
+
+def is_heading_like(par: str) -> bool:
+    """A short line without a full stop: shown as a heading."""
+    t = par.strip()
+    return len(words(t)) <= 12 and not t.endswith(".")
+
+
+def gap(text: str, a: int, b: int) -> str:
+    """Text between passages: headings shown plainly, other text greyed (not checked)."""
+    out = []
+    for raw in re.split(r"\n\s*\n", text[a:b]):
+        t = raw.strip()
+        if not t:
             continue
-        chosen.append(s)
-        last_end = s["end"]
-    out, pos = [], a
-    for s in chosen:
-        out.append(e(text[pos : s["start"]]))
-        ref = f"<sup>[{s['ref']}]</sup>" if s.get("ref") else ""
-        out.append(
-            f'<mark class="{s["kind"]}" title="{e(s["label"])}">{e(text[s["start"] : s["end"]])}</mark>{ref}'
-        )
-        pos = s["end"]
-    out.append(e(text[pos:b]))
-    return "".join(out).replace("\n", "<br>")
-
-
-def render_segment(
-    text: str, a: int, b: int, spans: list[dict], sentences: list[dict] | None = None
-) -> str:
-    """HTML for text[a:b]: paragraphs, sentences flagged by web detectors (shaded, with
-    the tools named on hover), and word/phrase/artefact marks inside them."""
-    sentences = sorted(
-        (x for x in (sentences or []) if x["start"] < b and x["end"] > a),
-        key=lambda x: x["start"],
-    )
-    html_paras = []
-    pa = a
-    for m in [*re.finditer(r"\n\s*\n", text[a:b]), None]:
-        pb = a + m.start() if m else b
-        pieces, pos = [], pa
-        for sn in sentences:
-            s0, s1 = max(sn["start"], pa), min(sn["end"], pb)
-            if s1 <= s0 or s0 < pos:
-                continue
-            pieces.append(_inline(text, pos, s0, spans))
-            cls = "ws1" if sn.get("strong") else "ws"
-            pieces.append(
-                f'<span class="{cls}" title="{e(sn["label"])}">{_inline(text, s0, s1, spans)}</span>'
-            )
-            pos = s1
-        pieces.append(_inline(text, pos, pb, spans))
-        body = "".join(pieces).strip()
-        if body:
-            html_paras.append(f"<p>{body}</p>")
-        if m:
-            pa = a + m.end()
-    return "".join(html_paras)
+        if is_heading_like(t):
+            out.append(f'<div class="sec">{e(t)}</div>')
+        else:
+            short = t[:300] + ("…" if len(t) > 300 else "")
+            why = "not checked" if is_prose(t) else "not prose; not checked"
+            out.append(f'<p class="skip">{e(short)} <i>({why})</i></p>')
+    return "".join(out)
 
 
 def build_raw(work: Path, case: str, kind: str, context: str) -> str:
-    """The raw report fragment."""
+    """The report fragment."""
     doc = read_json(work / "text.json") or {}
     text = doc.get("text", "")
     g = read_json(work / "grade.json") or {}
     arts = read_json(work / "artifacts.json") or {"hits": [], "hidden": []}
     refs = read_json(work / "references.json") or {"references": [], "counts": {}}
-    sty = read_json(work / "stylometry.json") or {}
     jud = read_json(work / "judgements.json") or {}
-    cal = read_json(REFS / "calibration.json") or {}
-    ja = jud.get("artifacts", {})
-    scal = cal.get("stylometry") or {}
-    sthr = scal.get("thresholds") or {}
-    ss = sty.get("summary") or {}
-    swin = sty.get("windows") or []
     web = read_json(work / "web_detectors.json") or {}
-    wsum = web.get("summary") or {}
-    wreg = {
-        t["id"]: t
-        for t in (read_json(REFS / "web_detectors.json") or {}).get("tools", [])
-    }
-    chunk_of = {
-        w_id: str(c["chunk"]) for c in web.get("chunks", []) for w_id in c["windows"]
-    }
+    cal = read_json(REFS / "calibration.json") or {}
+    wreg = read_json(REFS / "web_detectors.json") or {}
+    reg = {t["id"]: t for t in wreg.get("tools", [])}
+    order = wreg.get("default_order", [])
+    smodel = (cal.get("stylometry") or {}).get("model")
+    sthr = (cal.get("stylometry") or {}).get("thresholds") or {}
+    ja = jud.get("artifacts", {})
 
-    # Per-window flag: the style score's threshold, raised to "1%"-strength shading when a
-    # validated web detector flags the chunk the window belongs to.
-    for w in swin:
-        sc = w.get("style_score")
-        w["flag"] = (
-            None
-            if sc is None or not sthr
-            else ("1%" if sc >= sthr["1%"] else ("5%" if sc >= sthr["5%"] else None))
+    # Passages: the ones the detectors saw, or the same cut when none ran.
+    passages = web.get("chunks") or [
+        {"chunk": k, **p} for k, p in enumerate(build_passages(doc), 1)
+    ]
+    scores: dict[int, dict[str, float]] = {}
+    labels: dict[tuple[int, str], str] = {}
+    for r in web.get("results", []):  # the latest result per tool and passage wins
+        scores.setdefault(r["chunk"], {})[r["tool"]] = r["score"]
+        labels[(r["chunk"], r["tool"])] = r.get("label", "")
+    tools = sorted(
+        {t for s in scores.values() for t in s},
+        key=lambda t: (
+            reg.get(t, {}).get("weight") != "validated",
+            order.index(t) if t in order else 99,
+        ),
+    )
+
+    def name(t: str) -> str:
+        return reg.get(t, {}).get("name", t)
+
+    rows = []
+    for p in passages:
+        k = p["chunk"]
+        ptext = "\n\n".join(
+            text[a:b] for a, b in p.get("paras", [[p["start"], p["end"]]])
         )
-        w["web_hits"] = [
-            ws["name"]
-            for ws in wsum.values()
-            if ws["weight"] == "validated"
-            and (ws["by_chunk"].get(chunk_of.get(w["id"], "")) or 0) >= 0.5
-        ]
-        w["web_any"] = [
-            ws["name"]
-            for ws in wsum.values()
-            if (ws["by_chunk"].get(chunk_of.get(w["id"], "")) or 0) >= 0.5
-        ]
-        # Shade: strongest when the style score is past 1% or a validated tool flags it;
-        # then when the style score is past 5% or two or more tools agree; lightest when a
-        # single unvalidated tool flags it.
-        if w["flag"] == "1%" or w["web_hits"]:
-            w["shade"] = "1%"
-        elif w["flag"] == "5%" or len(w["web_any"]) >= 2:
-            w["shade"] = "5%"
-        elif w["web_any"]:
-            w["shade"] = "0"
-        else:
-            w["shade"] = None
+        st = style_score(features(ptext), smodel) if smodel else None
+        sflag = (
+            None
+            if st is None or not sthr
+            else ("1%" if st >= sthr["1%"] else ("5%" if st >= sthr["5%"] else None))
+        )
+        sc = scores.get(k, {})
+        n_ai = sum(1 for v in sc.values() if v >= 0.5)
+        v_ai = any(
+            v >= 0.5 and reg.get(t, {}).get("weight") == "validated"
+            for t, v in sc.items()
+        )
+        rows.append(
+            {
+                **p,
+                "style": st,
+                "sflag": sflag,
+                "sc": sc,
+                "n": len(sc),
+                "n_ai": n_ai,
+                "cls": agreement_class(n_ai, len(sc), v_ai),
+            }
+        )
 
-    # Sentences the web detectors marked as AI, located in the document text.
-    weight_of = {k: v["weight"] for k, v in wsum.items()}
-    name_of = {k: v["name"] for k, v in wsum.items()}
-    span_of = {c["chunk"]: (c["start"], c["end"]) for c in web.get("chunks", [])}
-    merged: dict[tuple[int, int], set[str]] = {}
+    # Sentences the detectors marked, located in the text and merged across tools.
+    span_of = {p["chunk"]: (p["start"], p["end"]) for p in passages}
+    marked: dict[tuple[int, int], set[str]] = {}
     for h in web.get("highlights", []):
         a0, b0 = span_of.get(h["chunk"], (0, len(text)))
         pat = r"\s+".join(re.escape(tok) for tok in h["text"].split())
         m = re.search(pat, text[a0:b0]) if pat else None
         if m:
-            merged.setdefault((a0 + m.start(), a0 + m.end()), set()).add(h["tool"])
-    web_sentences = [
-        {
-            "start": k[0],
-            "end": k[1],
-            "label": "marked as AI by "
-            + ", ".join(sorted(name_of.get(t, t) for t in tools)),
-            "strong": len(tools) >= 2
-            or any(weight_of.get(t) == "validated" for t in tools),
-        }
-        for k, tools in sorted(merged.items())
-    ]
-
-    # Findings list (numbered) and the artefact spans that point to it.
-    findings, spans = [], []
-    for h in arts["hits"]:
-        if not ja.get(h["id"], {}).get("confirmed", True):
-            continue
-        findings.append(
-            f"<b>{e(h['tier'])}</b> {e(h['marker'])}: “{e(h['match'])}” ({e(h.get('section') or h['in'])}). {e(h['shows'])}"
-        )
-        if h["in"] == "body":
-            spans.append(
-                {
-                    "start": h["offset"],
-                    "end": h["offset"] + len(h["match"]),
-                    "kind": "art",
-                    "label": f"{h['marker']} ({h['tier']})",
-                    "ref": len(findings),
-                }
+            marked.setdefault((a0 + m.start(), a0 + m.end()), set()).add(
+                name(h["tool"])
             )
-    for h in arts.get("hidden", []):
-        findings.append(
-            f"<b>hidden text</b> ({e(h['why'])}, p. {e(h.get('page'))}): “{e(h['text'][:300])}”"
+    events_all = [
+        (
+            s0,
+            s1,
+            "m2" if len(t) >= 2 else "m1",
+            "marked as AI by " + ", ".join(sorted(t)),
         )
-    bad = [
-        r
-        for r in refs.get("references", [])
-        if r["status"] not in ("ok", "unverifiable")
+        for (s0, s1), t in marked.items()
+    ] + [
+        (
+            h["offset"],
+            h["offset"] + len(h["match"]),
+            "art",
+            f"leftover chatbot text: {h['marker']}",
+        )
+        for h in arts["hits"]
+        if h["in"] == "body" and ja.get(h["id"], {}).get("confirmed", True)
     ]
-    for r in bad:
-        links = " ".join(
-            f'<a href="{e(u)}">lookup</a>' for u in r.get("queried", [])[:3]
+
+    def inline(a: int, b: int) -> str:
+        """Escaped text[a:b] with marked sentences and artefacts."""
+        evs = sorted(
+            (x for x in events_all if x[0] < b and x[1] > a),
+            key=lambda x: (x[0], x[2] != "art"),
         )
-        findings.append(
-            f"<b>reference {r['n']}: {e(r['status'])}</b>. {e(r['raw'][:220])} {e('; '.join(r.get('issues', [])))} {links}"
-        )
-    for r in jud.get("reading", []):
-        findings.append(
-            f"<b>reading ({e(r.get('tier'))})</b>: {e(r['claim'])} “{e(r.get('quote', ''))}” ({e(r.get('where', ''))})"
-        )
-    spans += sty.get("spans") or []
+        out, pos = [], a
+        for s0, s1, cls, lab in evs:
+            s0, s1 = max(s0, a), min(s1, b)
+            if s0 < pos:
+                continue
+            out.append(e(text[pos:s0]))
+            tag = "mark" if cls == "art" else "span"
+            out.append(
+                f'<{tag} class="{cls}" title="{e(lab)}">{e(text[s0:s1])}</{tag}>'
+            )
+            pos = s1
+        out.append(e(text[pos:b]))
+        return "".join(out).replace("\n", "<br>")
 
-    # Scores table.
-    d = ss.get("document") or {}
-    mp = ss.get("median_percentiles") or {}
-    wo = ss.get("windows_over") or {}
-    nw = ss.get("n_windows", 0)
-    held = scal.get("heldout") or {}
+    def plabel(r: dict) -> str:
+        return f"{r['chunk']} ({' + '.join(r['sections'])})"
 
-    def row(name: str, value: str, ref: str, cls: str = "") -> str:
-        c = f' class="{cls}"' if cls else ""
-        return f"<tr><td>{e(name)}</td><td{c}>{value}</td><td>{ref}</td></tr>"
-
-    def p_(k: str) -> str:
-        return f" (human percentile {mp[k]:.0f})" if mp.get(k) is not None else ""
-
-    def p_cls(k: str) -> str:
-        """Colour by how unusual the median percentile is, in the AI-like direction."""
-        v = mp.get(k)
-        if v is None:
-            return ""
-        v = v if DIRECTION.get(k, 1) > 0 else 100 - v
-        return "w1" if v >= 99 else ("w5" if v >= 95 else "ok")
-
-    def flag_cls(flag: str | None) -> str:
-        return {"1%": "w1", "5%": "w5"}.get(flag or "", "ok")
-
-    tier_cls = {"conclusive": "bad", "strong": "w1", "moderate": "w5"}.get(
-        g.get("tier"), "ok"
-    )
-    n1, n5 = wo.get("1%", {}).get("count", 0), wo.get("5%", {}).get("count", 0)
-    style_cls = "w1" if n1 else ("w5" if n5 else "ok")
-    n_bad_refs = sum(
-        v
-        for k, v in (refs.get("counts") or {}).items()
-        if k not in ("ok", "unverifiable")
-    )
-    n_arts = sum(
+    # 1. The answer.
+    rl = refs.get("references", [])
+    bad_refs = [
+        r
+        for r in rl
+        if r["status"] in ("not-found", "doi-not-registered", "doi-points-elsewhere")
+    ]
+    n_art = sum(
         1 for h in arts["hits"] if ja.get(h["id"], {}).get("confirmed", True)
     ) + len(arts.get("hidden", []))
-
-    rows = [
-        row(
-            "Verdict",
-            f"<b>{e(g.get('tier', 'n/a'))}</b>",
-            e(g.get("headline", "")),
-            tier_cls,
-        ),
-        row(
-            "Style score, median over windows",
-            f"{num(ss.get('style_score_median'))}; past 1%: {wo.get('1%', {}).get('count', 0)}/{nw}; past 5%: {wo.get('5%', {}).get('count', 0)}/{nw}",
-            f"thresholds {num(sthr.get('1%'))} (1%) / {num(sthr.get('5%'))} (5%); held-out human windows flagged: "
-            f"{pct((held.get('human (held out)') or {}).get('past_1pct'))} / {pct((held.get('human (held out)') or {}).get('past_5pct'))}; "
-            f"AI windows flagged: {pct((held.get('AI (held out)') or {}).get('past_1pct'))} / {pct((held.get('AI (held out)') or {}).get('past_5pct'))}; AUROC {num(scal.get('auroc'))}",
-            style_cls,
-        ),
+    hot = [r for r in rows if r["cls"] in ("c-ai", "c-strong")]
+    human = [r for r in rows if r["cls"] == "c-human"]
+    mixed = [r for r in rows if r["cls"] == "c-mixed"]
+    not_run_valid = [
+        t["name"]
+        for t in reg.values()
+        if t.get("weight") == "validated" and t["id"] not in tools
     ]
-    rows += [
-        row(
-            "Excess vocabulary per 1,000 words",
-            f"{num(d.get('excess_rate'), 1)}{p_('excess_rate')}",
-            "Kobak et al. 2025 word list",
-            p_cls("excess_rate"),
-        ),
-        row(
-            "AI-typical words per 1,000 words",
-            f"{num(d.get('marked_rate'), 1)}{p_('marked_rate')}: {e(', '.join(ss.get('marked_words', [])) or 'none')}",
-            "delve, underscore, meticulous, …",
-            p_cls("marked_rate"),
-        ),
-        row(
-            "Stock phrasing per 1,000 words",
-            f"{num(d.get('tells_rate'), 1)}{p_('tells_rate')}: {e(', '.join(f'{k} {v}' for k, v in (ss.get('tells') or {}).items()) or 'none')}",
-            "Wikipedia 'Signs of AI writing', humanizer, stop-slop",
-            p_cls("tells_rate"),
-        ),
-        row(
-            "Em dashes per 1,000 words",
-            f"{num(d.get('em_dash_rate'), 1)}{p_('em_dash_rate')}",
-            "",
-            p_cls("em_dash_rate"),
-        ),
-        row(
-            "Sentence-length variation (CV)",
-            f"{num(d.get('sent_cv'))}{p_('sent_cv')}",
-            "lower = more uniform",
-            p_cls("sent_cv"),
-        ),
-        row(
-            "References",
-            e(
-                ", ".join(
-                    f"{v} {k}" for k, v in sorted((refs.get("counts") or {}).items())
-                )
-                or "none found"
-            ),
-            "Crossref, DataCite, doi.org, OpenAlex, Semantic Scholar",
-            ("w1" if n_bad_refs >= 2 else "w5")
-            if n_bad_refs
-            else ("ok" if refs.get("references") else ""),
-        ),
-        row(
-            "Artefacts (leftover chatbot text, tokens, hidden text)",
-            str(
-                sum(
-                    1
-                    for h in arts["hits"]
-                    if ja.get(h["id"], {}).get("confirmed", True)
-                )
-                + len(arts.get("hidden", []))
-            ),
-            "conclusive when confirmed in context",
-            "bad" if n_arts else "ok",
-        ),
-        row(
-            "Close-reading findings",
-            str(len(jud.get("reading", []))),
-            "listed below",
-            "w1"
-            if any(
-                r.get("tier") in ("strong", "conclusive")
-                for r in jud.get("reading", [])
-            )
+    style_flags = sum(1 for r in rows if r["sflag"])
+    facts = [
+        "Leftover chatbot text or hidden instructions: "
+        + (f"<b>{n_art} found</b> (see Other evidence)." if n_art else "none found."),
+        "References: "
+        + (
+            f"<b>{len(bad_refs)} of {len(rl)} could not be found as cited</b>."
+            if bad_refs
             else (
-                "w5"
-                if any(r.get("tier") == "moderate" for r in jud.get("reading", []))
-                else ""
-            ),
+                f"all {len(rl)} found in the literature databases."
+                if rl
+                else "no reference list found."
+            )
         ),
+        (
+            f"Detectors: {len(tools)} ran on {len(rows)} passages ({', '.join(name(t) for t in tools)}). "
+            + (
+                f"Most of them say AI in <b>{', '.join(plabel(r) for r in hot)}</b>. "
+                if hot
+                else "No passage where most of them say AI. "
+            )
+            + f"They all say human in {len(human)} passage(s) and disagree in {len(mixed)}."
+        )
+        if tools
+        else "Detectors: none ran (confidential text, or not run this time).",
+        "Style (vocabulary, stock phrasing, sentence rhythm): "
+        + (
+            f"<b>past the threshold in {style_flags} of {len(rows)} passages</b>."
+            if style_flags
+            else "within the range of human scientific text in every passage."
+        ),
+        f"Close reading: {len(jud.get('reading', []))} observation(s), under Other evidence.",
     ]
+    if not_run_valid:
+        facts.append(
+            "Not run: "
+            + ", ".join(not_run_valid)
+            + ", the detectors with the best independent evidence (they need a CAPTCHA ticked or an API key)."
+        )
+    answer = f'<p class="answer">{e(g.get("headline", ""))}</p><ul class="facts">{"".join(f"<li>{x}</li>" for x in facts)}</ul>'
 
-    # Web detectors: one row per tool, then the consensus, right after the style score.
-    web_rows = []
-    for tid, ws in wsum.items():
-        share = ws["share_words_flagged"]
-        cls = ("w1" if share >= 0.5 else "w5") if share > 0 else "ok"
-        if ws["weight"] != "validated" and cls == "w1":
-            cls = "w5"  # unvalidated tools never colour stronger than 'past 5%'
-        web_rows.append(
-            row(
-                f"{ws['name']} (web, {ws['weight']})",
-                f"mean AI score {num(ws['mean_score'])}; chunks flagged {ws['chunks_flagged']}/{ws['chunks']} "
-                f"({share:.0%} of words scanned; covered {ws.get('coverage', 1):.0%} of the text)",
-                e(wreg.get(tid, {}).get("evidence", "")),
-                cls,
-            )
+    # 2. At a glance.
+    def cell(v: float | None, t: str, k: int) -> str:
+        if v is None:
+            return '<td class="c-none">—</td>'
+        cls = (
+            ("c-strong" if reg.get(t, {}).get("weight") == "validated" else "c-ai")
+            if v >= 0.5
+            else "c-human"
         )
-    for sk in web.get("skipped", []):
-        web_rows.append(row(f"{sk['tool']} (web)", "not run", e(sk["why"])))
-    cons = web.get("consensus")
-    if cons:
-        web_rows.append(
-            row(
-                "Web detectors, consensus",
-                f"{cons['flagging']} of {cons['ran']} tools flag the text ({cons['validated_flagging']} of {cons['validated_ran']} validated); "
-                f"mean AI scores range {num(cons['min_mean'])}–{num(cons['max_mean'])}",
-                "agreement between independent tools; validated ones weigh more",
-                "w1"
-                if cons["validated_flagging"] >= 2
-                else ("w5" if cons["flagging"] else "ok"),
-            )
-        )
-    if not wsum and not web.get("skipped"):
-        web_rows.append(
-            row("Web detectors", "not run", "confidential text, or not run this time")
-        )
-    rows[2:2] = web_rows
+        return f'<td class="n {cls}" title="{e(labels.get((k, t), ""))}">{pc(v)}</td>'
 
-    # Per-window table.
-    wrows = []
-    for w in swin:
-        sc = w.get("style_score")
-        s_flag = (
-            None
-            if sc is None or not sthr
-            else ("1%" if sc >= sthr["1%"] else ("5%" if sc >= sthr["5%"] else None))
-        )
-        rc = WORD_SHADE.get(w.get("shade"), "")
-        wrows.append(
-            f'<tr class="{rc}"><td><a href="#{w["id"]}">{w["id"]}</a></td><td>{e(w.get("section"))}</td><td>{w.get("n_words")}</td>'
-            f'<td class="{flag_cls(s_flag)}">{num(sc)}</td>'
-            + "".join(
-                web_cell(ws["by_chunk"].get(chunk_of.get(w["id"], "")), ws["weight"])
-                for ws in wsum.values()
-            )
-            + f"<td>{e(w.get('flag') or '')}</td><td>{e(', '.join(w.get('_marked_words') or []))}</td></tr>"
-        )
+    head = "".join(
+        f'<th title="{e(reg.get(t, {}).get("evidence", ""))}">{e(name(t))}'
+        + (" ✓" if reg.get(t, {}).get("weight") == "validated" else "")
+        + "</th>"
+        for t in tools
+    )
+    trs = "".join(
+        f'<tr><td class="n"><a href="#p{r["chunk"]}">{r["chunk"]}</a></td><td>{e(" + ".join(r["sections"]))}</td>'
+        f'<td class="n">{r["n_words"]}</td><td class="n {"c-ai" if r["sflag"] else "c-human"}">{num(r["style"])}</td>'
+        + "".join(cell(r["sc"].get(t), t, r["chunk"]) for t in tools)
+        + f'<td class="{r["cls"]}">{e(agreement_words(r["n_ai"], r["n"]))}</td></tr>'
+        for r in rows
+    )
+    glance = (
+        "<p>Each detector's number is its estimated chance that the passage is AI-written. "
+        '<span class="c-human">&nbsp;Green&nbsp;</span> = says human, <span class="c-ai">&nbsp;orange&nbsp;</span> = says AI, '
+        '<span class="c-strong">&nbsp;red&nbsp;</span> = a validated detector (✓) says AI. '
+        "Style is this skill's own score (0–1), calibrated on human scientific text. "
+        "Hover a detector's name for its track record; click a passage number to jump to it.</p>"
+        f'<div class="scroll"><table><tr><th>#</th><th>Section</th><th>Words</th><th>Style</th>{head}<th>Agreement</th></tr>{trs}</table></div>'
+    )
 
-    # The text, window by window, with gaps (headings, skipped sections) as plain text.
-    parts, pos = [], 0
-    for w in sorted(swin, key=lambda x: x.get("start", 0)):
-        a, b = w.get("start"), w.get("end")
-        if a is None:
-            continue
-        if a > pos:
-            parts.append(render_segment(text, pos, a, spans, web_sentences))
-        shade = WORD_SHADE.get(w.get("shade"), "")
-        web_scores = " · ".join(
-            f"{ws['name']} {num(ws['by_chunk'].get(chunk_of.get(w['id'], '')))}"
-            for ws in wsum.values()
-            if ws["by_chunk"].get(chunk_of.get(w["id"], "")) is not None
+    # 3. The text, passage by passage, in reading order.
+    blocks, pos = [], 0
+    for r in sorted(rows, key=lambda x: x["start"]):
+        if r["start"] > pos:
+            blocks.append(gap(text, pos, r["start"]))
+        sent_starts = {a for a, _ in r.get("paras", [[r["start"], r["end"]]])}
+        paras_html, ppos = [], r["start"]
+        for m in [*re.finditer(r"\n\s*\n", text[r["start"] : r["end"]]), None]:
+            pend = r["start"] + m.start() if m else r["end"]
+            raw = text[ppos:pend]
+            a0 = ppos + (len(raw) - len(raw.lstrip()))
+            if raw.strip():
+                if a0 in sent_starts:
+                    paras_html.append(f"<p>{inline(a0, pend)}</p>")
+                elif is_heading_like(raw):
+                    paras_html.append(f'<div class="sec">{e(raw.strip())}</div>')
+                else:
+                    paras_html.append(
+                        f'<p class="skip">{e(raw.strip())} <i>(not sent to the detectors)</i></p>'
+                    )
+            ppos = r["start"] + m.end() if m else r["end"]
+        sc_line = " · ".join(
+            f"{e(name(t))} {pc(r['sc'][t])}" for t in tools if t in r["sc"]
         )
-        lab = (
-            f"[{w['id']} · style {num(w.get('style_score'))}"
-            + (f" · {web_scores}" if web_scores else "")
-            + (f" · style past {w['flag']}" if w.get("flag") else "")
-            + (f" · flagged by {', '.join(w['web_hits'])}" if w.get("web_hits") else "")
-            + "]"
+        style_line = f"style {num(r['style'])}" + (
+            f" (past {r['sflag']})" if r["sflag"] else ""
         )
-        parts.append(
-            f'<div id="{w["id"]}" class="{shade}"><span class="lab">{e(lab)}</span>{render_segment(text, a, b, spans, web_sentences)}</div>'
+        blocks.append(
+            f'<section class="psg {r["cls"]}" id="p{r["chunk"]}">'
+            f'<div class="phead">Passage {r["chunk"]} · {e(" + ".join(r["sections"]))} · {r["n_words"]} words — '
+            f"{e(agreement_words(r['n_ai'], r['n']))}</div>"
+            f'<div class="pscores">{sc_line}{" · " if sc_line else ""}{style_line}</div>{"".join(paras_html)}</section>'
         )
-        pos = b
+        pos = r["end"]
     if pos < len(text):
-        parts.append(render_segment(text, pos, len(text), spans, web_sentences))
+        blocks.append(gap(text, pos, len(text)))
+    text_html = (
+        "<p>The left bar of each passage has the colour of its agreement. Inside, "
+        '<span class="m1">sentences one detector marked as AI</span> and <span class="m2">sentences two or more marked</span> '
+        'are shaded (hover to see which). <mark class="art">Red</mark> = leftover chatbot text. '
+        "Grey text was not sent to the detectors (title page, captions, equations, references).</p>"
+        + "".join(blocks)
+    )
+
+    # 4. Other evidence.
+    ev = []
+    for h in arts["hits"]:
+        if ja.get(h["id"], {}).get("confirmed", True):
+            ev.append(
+                f"<li><b>Leftover text ({e(h['tier'])})</b>: “{e(h['match'])}” in {e(h.get('section') or h['in'])}. {e(h['shows'])}</li>"
+            )
+    for h in arts.get("hidden", []):
+        ev.append(
+            f"<li><b>Hidden text</b> ({e(h['why'])}): “{e(h['text'][:200])}”</li>"
+        )
+    for r in bad_refs:
+        links = " ".join(
+            f'<a href="{e(u)}">lookup</a>' for u in r.get("queried", [])[:2]
+        )
+        ev.append(
+            f"<li><b>Reference {r['n']}: {e(r['status'])}</b>. {e(r['raw'][:200])} {links}</li>"
+        )
+    for x in jud.get("reading", []):
+        ev.append(
+            f"<li><b>Close reading ({e(x.get('tier'))})</b>: {e(x['claim'])} "
+            f"<i>“{e(x.get('quote', ''))}”</i> ({e(x.get('where', ''))})</li>"
+        )
+    for s in g.get("separate", []):
+        ev.append(f"<li><b>{e(s['kind'])}</b>: {e(s['text'])}</li>")
+    other = f"<ul>{''.join(ev)}</ul>" if ev else "<p>Nothing else to report.</p>"
+
+    # 5. Details.
+    trows = []
+    for tid, t in reg.items():
+        done = sum(1 for k in scores if tid in scores[k])
+        skip = next((s["why"] for s in web.get("skipped", []) if s["tool"] == tid), "")
+        status = (
+            f"ran on {done} of {len(rows)} passages"
+            if done
+            else (f"not run: {skip}" if skip else "not tried")
+        )
+        trows.append(
+            f"<tr><td>{e(t['name'])}</td><td>{e(t['weight'])}</td><td>{e(status)}</td><td>{e(t.get('evidence', ''))}</td></tr>"
+        )
+    details = (
+        "<details><summary>The detectors, their track record, and what did not run</summary>"
+        f'<div class="scroll"><table><tr><th>Detector</th><th>Weight</th><th>This document</th><th>Independent evidence</th></tr>{"".join(trows)}</table></div>'
+        "<p>Validated (✓) means independent studies found few false positives. The others are context only: "
+        "they never raise the verdict above weak.</p></details>"
+        f"<details><summary>Limits</summary><ul>{''.join(f'<li>{e(c)}</li>' for c in g.get('caveats', []))}</ul></details>"
+    )
 
     tracked = (doc.get("metadata") or {}).get("tracked_changes_removed")
     tested = (
-        "author's original text (tracked changes set aside)"
+        "the author's original text (tracked changes set aside)"
         if tracked
-        else "text as it stands"
+        else "the text as it stands"
     )
-    ran = [
-        "artefacts",
-        "references" if refs.get("references") else None,
-        "style",
-        "web detectors" if wsum else None,
-        "close reading" if jud.get("reading") else None,
-    ]
-    lims = "".join(f"<li>{e(c)}</li>" for c in g.get("caveats", []))
     return (
         f'<title>{e(case[:60])}</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n<style>{CSS}</style>\n'
         "<!-- Single light look on purpose: a plain working document. -->\n<main>"
-        f"<h1>{e(case)}</h1>"
-        f"<p>{e(kind)}, {e(context)} · {e(doc.get('n_words'))} words · tested: {e(tested)} · checks: {e(', '.join(x for x in ran if x))}</p>"
-        "<h2>Scores</h2>"
-        f'<div class="scroll"><table><tr><th>Measure</th><th>This document</th><th>Compared with</th></tr>{"".join(rows)}</table></div>'
-        '<p>Colours: <span class="ok">within the human range</span> · <span class="w5">past the 5% threshold (or above the human 95th percentile)</span> · <span class="w1">past the 1% threshold (or above the 99th)</span> · <span class="bad">artefact found</span>.</p>'
-        "<p>A window is ~300 words. “Past 1%” means a score that only 1% of human scientific text written before ChatGPT reaches; "
-        "the held-out rates show how often that happened on human and on AI text in calibration.</p>"
-        "<h2>Passages</h2>"
-        '<div class="scroll"><table><tr><th>Window</th><th>Section</th><th>Words</th><th>Style score</th>'
-        f"{''.join(f'<th>{e(ws["name"])}</th>' for ws in wsum.values())}<th>Flag</th><th>AI-typical words</th></tr>{''.join(wrows)}</table></div>"
-        '<h2>Text</h2><p>Passages (~300 words): <span class="w0">flagged by one unvalidated tool</span> · <span class="w5">flagged by two or more tools, or style past 5%</span> · <span class="w1">flagged by a validated tool, or style past 1%</span>. '
-        'Sentences: <span class="ws">marked as AI by one tool</span> · <span class="ws1">by two or more, or by a validated tool</span> (hover to see which). Words: '
-        '<mark class="word">AI-typical word</mark> · <mark class="phrase">stock phrasing</mark> · <mark class="art">artefact</mark>. '
-        "Everything else is plain.</p>"
-        f'<div class="text">{"".join(parts)}</div>'
-        "<h2>Findings</h2>"
-        + (
-            f"<ol>{''.join(f'<li>{x}</li>' for x in findings)}</ol>"
-            if findings
-            else "<p>None.</p>"
-        )
-        + f"<h2>Limits</h2><ul>{lims}</ul></main>"
+        f"<h1>{e(case)}</h1><p>{e(kind)} · {e(context.replace('-', ' '))} · {e(doc.get('n_words'))} words · "
+        f"tested {e(tested)} · {len(rows)} passages</p>"
+        f"<h2>The answer</h2>{answer}"
+        f"<h2>Passages at a glance</h2>{glance}"
+        f"<h2>The text</h2>{text_html}"
+        f"<h2>Other evidence</h2>{other}"
+        f"<h2>Details</h2>{details}</main>"
     )

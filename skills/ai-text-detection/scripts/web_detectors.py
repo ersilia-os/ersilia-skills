@@ -40,47 +40,142 @@ def registry() -> dict:
     )
 
 
+NON_PROSE = re.compile(
+    r"^(?:fig(?:ure)?\.?\s*\d|table\s*\d|eq\.?\s*\d|eq\d|supplementary|orcid|\*?corresponding author|keywords?:)",
+    re.IGNORECASE,
+)
+
+
+def is_prose(par: str) -> bool:
+    """Whether a paragraph is running prose worth sending to a detector.
+
+    Excluded: headings, author lists and affiliations, ORCIDs and e-mails, figure and
+    table captions, equation labels, table rows, and anything mostly numbers.
+    """
+    from _common import words
+
+    t = par.strip()
+    w = words(t)
+    if len(w) < 12 or NON_PROSE.match(t):
+        return False
+    if re.search(
+        r"\b\d{4}-\d{4}-\d{4}-\d{3}[\dX]\b|@|\|", t
+    ):  # ORCID, e-mail, table row
+        return False
+    if t.count(",") > 4 and len(re.findall(r"\d", t)) > len(
+        w
+    ):  # author list with affiliation numbers
+        return False
+    if (
+        len(w) < 60
+        and t.count(",") >= 2
+        and re.search(
+            r"\b(University|Institute|Department|Centre|Center|Faculty|School of|Laboratory|Hospital)\b",
+            t,
+        )
+    ):  # affiliation
+        return False
+    tokens = t.split()
+    alpha = sum(1 for x in tokens if re.search(r"[A-Za-z]{3,}", x))
+    return (
+        alpha / max(len(tokens), 1) >= 0.6 and t[-1:] in '.?!)\u201d"' or len(w) >= 40
+    )
+
+
+def build_passages(doc: dict, lo: int = 250, hi: int = 600) -> list[dict]:
+    """Passages a detector can judge: runs of whole prose paragraphs from one section,
+    aiming at (lo+hi)/2 words. Paragraphs that are not prose (is_prose) are left out; the
+    title page is never included; a section under ~150 words joins the previous passage
+    when the result stays under ``hi`` words, and the label names both sections."""
+    from _common import SKIP_SECTIONS, words
+
+    text = doc["text"]
+    passages: list[dict] = []
+    for sec in doc.get("sections") or [
+        {"title": "(whole text)", "start": 0, "end": len(text)}
+    ]:
+        if sec["title"].lower() in SKIP_SECTIONS:
+            continue
+        cur: dict | None = None
+        pos = sec["start"]
+        for m in [*re.finditer(r"\n\s*\n", text[sec["start"] : sec["end"]]), None]:
+            end = sec["start"] + m.start() if m else sec["end"]
+            par = text[pos:end]
+            p0 = pos + (len(par) - len(par.lstrip()))
+            pos = sec["start"] + m.end() if m else sec["end"]
+            if not is_prose(par):
+                continue
+            n = len(words(par))
+            if cur and cur["n_words"] + n > (lo + hi) // 2 and cur["n_words"] >= lo:
+                passages.append(cur)
+                cur = None
+            if cur is None:
+                cur = {
+                    "sections": [sec["title"]],
+                    "start": p0,
+                    "end": end,
+                    "n_words": 0,
+                    "paras": [],
+                }
+            cur["paras"].append([p0, end])
+            cur["end"] = end
+            cur["n_words"] += n
+        if cur:
+            if sec["title"] == "(start)" and cur["n_words"] < 150:
+                continue  # front matter (title page): never sent
+            if (
+                cur["n_words"] < 150
+                and passages
+                and passages[-1]["n_words"] + cur["n_words"] <= hi
+            ):
+                prev = passages[-1]
+                prev["paras"] += cur["paras"]
+                prev["end"] = cur["end"]
+                prev["n_words"] += cur["n_words"]
+                if cur["sections"][0] not in prev["sections"]:
+                    prev["sections"].append(cur["sections"][0])
+            else:
+                passages.append(cur)
+    return passages
+
+
 def prepare(work: Path) -> dict:
-    """Group consecutive windows (same section first) into chunks of 250-600 words."""
+    """Cut the document into passages (build_passages) and write one file per passage."""
     reg = registry()
     lo, hi = reg["chunk_words"]
     doc = load_text(work)
-    wins = chunks(doc)
-    groups: list[list[dict]] = []
-    for w in wins:
-        cur = groups[-1] if groups else None
-        n = sum(x["n_words"] for x in cur) if cur else 0
-        if (
-            cur
-            and n < lo
-            or (cur and n + w["n_words"] <= hi and cur[-1]["section"] == w["section"])
-        ):
-            cur.append(w)
-        else:
-            groups.append([w])
-    # A short last chunk joins the previous one.
-    if len(groups) > 1 and sum(x["n_words"] for x in groups[-1]) < lo:
-        last = groups.pop()
-        groups[-1] += last
+    text = doc["text"]
+    passages = build_passages(doc, lo, hi)
     out = work / "web"
     out.mkdir(parents=True, exist_ok=True)
+    for old in out.glob("chunk_*.txt"):
+        old.unlink()
     plan = []
-    for k, g in enumerate(groups, 1):
-        a, b = g[0]["start"], g[-1]["end"]
-        text = doc["text"][a:b].strip()
-        (out / f"chunk_{k}.txt").write_text(text, encoding="utf-8")
+    for k, p in enumerate(passages, 1):
+        body = "\n\n".join(text[a:b].strip() for a, b in p["paras"])
+        (out / f"chunk_{k}.txt").write_text(body, encoding="utf-8")
+        windows = [
+            w["id"]
+            for w in chunks(doc)
+            if w["start"] < p["end"] and w["end"] > p["start"]
+        ]
         plan.append(
             {
                 "chunk": k,
-                "windows": [w["id"] for w in g],
-                "start": a,
-                "end": b,
-                "n_words": sum(w["n_words"] for w in g),
-                "sections": sorted({w["section"] for w in g}),
+                "windows": windows,
+                "start": p["start"],
+                "end": p["end"],
+                "paras": p["paras"],
+                "n_words": p["n_words"],
+                "sections": p["sections"],
                 "file": str(out / f"chunk_{k}.txt"),
             }
         )
     state = read_json(work / "web_detectors.json") or {}
+    if state.get("chunks") and state["chunks"] != plan and state.get("results"):
+        # New passage boundaries: earlier results no longer line up. Keep them aside.
+        write_json(work / "web_detectors.previous.json", state)
+        state = {}
     state.update(
         {
             "chunks": plan,
@@ -195,7 +290,7 @@ def main(argv: list[str] | None = None) -> int:
         st = prepare(work)
         for c in st["chunks"]:
             print(
-                f"chunk {c['chunk']}: {c['n_words']} words, windows {','.join(c['windows'])} ({', '.join(c['sections'])}) -> {c['file']}"
+                f"passage {c['chunk']}: {c['n_words']} words, windows {','.join(c['windows'])} ({', '.join(c['sections'])}) -> {c['file']}"
             )
         print("order: " + ", ".join(registry()["default_order"]))
         return 0
