@@ -23,6 +23,14 @@
       "kind": "code",
       "change": "detect_models.py and local Binoculars/Fast-DetectGPT removed; setup_env.sh is a small env (pymupdf, python-docx, playwright); web_detectors.json v2 with 11 tools and a consensus row; grading, report, ledger, baseline and calibration updated",
       "fixture": "web-only"
+    },
+    {
+      "n": 4,
+      "date": "2026-11-16",
+      "feedback": "Work on the artifact: chunks are fine but choose them wisely and make them clear; everything must be much more intuitive",
+      "kind": "code",
+      "change": "passages = whole prose paragraphs within one section (title page, affiliations, captions never sent); report organised by passage: answer + facts, coloured passages table with agreement, text passage by passage with headers, marked sentences shaded by number of tools",
+      "fixture": "chatbot-artifacts"
     }
   ]
 }

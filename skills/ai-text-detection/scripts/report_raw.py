@@ -60,6 +60,7 @@ p.skip { color: var(--grey); font-size: .9em; }
 mark.art { background: #ff8a8a; }
 details { margin: .6em 0; }
 summary { cursor: pointer; font-weight: bold; }
+summary.skip { color: var(--grey); font-weight: normal; font-size: .9em; }
 """
 
 
@@ -281,7 +282,16 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
                 if hot
                 else "No passage where most of them say AI. "
             )
-            + f"They all say human in {len(human)} passage(s) and disagree in {len(mixed)}."
+            + (
+                f"They all say human in {len(human)} and disagree in {len(mixed)}. "
+                if human
+                else f"They disagree in {len(mixed)} of the {len(rows)} passages. "
+            )
+            + (
+                "None of these detectors has independent evidence of accuracy, so their scores are context only."
+                if not any(reg.get(t, {}).get("weight") == "validated" for t in tools)
+                else ""
+            )
         )
         if tools
         else "Detectors: none ran (confidential text, or not run this time).",
@@ -336,9 +346,25 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
 
     # 3. The text, passage by passage, in reading order.
     blocks, pos = [], 0
-    for r in sorted(rows, key=lambda x: x["start"]):
+    for i, r in enumerate(sorted(rows, key=lambda x: x["start"])):
         if r["start"] > pos:
-            blocks.append(gap(text, pos, r["start"]))
+            if i == 0:
+                front = gap(text, pos, r["start"])
+                last_heading = re.findall(r'<div class="sec">([^<]*)</div>$', front)
+                if (
+                    last_heading
+                ):  # keep the heading right before the first passage (e.g. "Abstract")
+                    front = front[: front.rfind('<div class="sec">')]
+                blocks.append(
+                    f'<details><summary class="skip">Title page, authors and affiliations (not checked)</summary>{front}</details>'
+                    + (
+                        f'<div class="sec">{last_heading[0]}</div>'
+                        if last_heading
+                        else ""
+                    )
+                )
+            else:
+                blocks.append(gap(text, pos, r["start"]))
         sent_starts = {a for a, _ in r.get("paras", [[r["start"], r["end"]]])}
         paras_html, ppos = [], r["start"]
         for m in [*re.finditer(r"\n\s*\n", text[r["start"] : r["end"]]), None]:

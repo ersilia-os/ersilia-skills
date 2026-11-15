@@ -127,7 +127,7 @@
     },
     {
       "id": "undetectable",
-      "name": "Undetectable.ai checker",
+      "name": "Undetectable",
       "url": "https://undetectable.ai/",
       "weight": "context",
       "evidence": "Sells a 'humanizer'; no independent low-FPR evidence. Lowest weight.",
@@ -166,7 +166,7 @@
     },
     {
       "id": "binoculars",
-      "name": "Binoculars (authors' hosted demo)",
+      "name": "Binoculars (demo)",
       "url": "https://huggingface.co/spaces/tomg-group-umd/Binoculars",
       "weight": "context",
       "route": "api",
