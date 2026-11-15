@@ -44,6 +44,7 @@ Scripts live in `scripts/`. They run with any `python3`, except PDF/DOCX extract
 | `scan_artifacts.py` | Graded regex markers from `references/markers.json`, each hit quoted and located |
 | `check_references.py` | Each reference looked up; statuses are `ok`, `metadata-mismatch`, `doi-points-elsewhere`, `doi-not-registered`, `not-found`, `unverifiable` |
 | `stylometry.py` | Excess vocabulary, stock phrasing, em dashes, sentence uniformity; percentiles against human text; style score |
+| `api_detectors.py` | Detectors with an API key (Pangram, GPTZero, Sapling, hosted Binoculars): no CAPTCHA; per-service approval |
 | `web_detectors.py`, `browser_detect.py` | Web detectors (Pangram, GPTZero, …): prepare chunks, drive Chrome to run them, record and summarise scores (`references/web_detectors.json`) |
 | `baseline.py` | Optional: the same author's pre-2023 writing (OpenAlex abstracts or files the user gives), scored the same way, to show a change in their own style |
 | `grade.py` | Rules in `references/grading.json` produce the tier plus defensible statements |
@@ -105,12 +106,13 @@ The user used to paste chunks into GPTZero, Pangram and others by hand. Do it fo
    - **No, never:** `manuscript-i-review` and `grant-i-review`. Reviewer confidentiality forbids it (NIH, ERC, UKRI, Wellcome, ICMJE, Springer Nature). Say so in one line and skip this step.
    - **Ask first:** `reviewer-of-my-paper`, because the review is confidential to the journal.
 2. `python web_detectors.py prepare` cuts the scored windows into 250–600-word chunks (`/tmp/ai_text_detection/web/chunk_k.txt`).
-3. **Drive the browser yourself.**
+3. **APIs first, when a key is set** (`python api_detectors.py --status` sends nothing). An API avoids CAPTCHAs entirely. Pangram (validated) gives free research credits on application, GPTZero (validated) is paid, Sapling (context) has a free key, and the Binoculars authors host a free demo (context). The user creates keys; you never do. The first time any service would receive text, ask the user and record their yes with `--approved <service>`. Then run `python api_detectors.py --tools <ids>`.
+4. **Drive the browser yourself** for the sites without an API key.
    - If Claude in Chrome tools are available in the session (`mcp__claude-in-chrome__*`), use them: open each site in `references/web_detectors.json` (`default_order`: Pangram, GPTZero first), paste each chunk, run it, read the result.
    - Otherwise run `conda run -n ai-text-detection python browser_detect.py --tools pangram,gptzero`. It opens the user's Google Chrome with a dedicated profile, pastes each chunk, presses the scan button, and saves each result page as text plus a screenshot. If Playwright is missing, ask once before `conda run -n ai-text-detection pip install playwright` (tens of MB; it uses the installed Chrome).
    - If a site shows a login wall the first time, run `browser_detect.py --login` once and tell the user which site wants them to sign in. The profile remembers it.
-4. **Read every result yourself.** Open the saved page text or screenshot, find the AI likelihood, and record it with `python web_detectors.py record --tool <id> --chunk <k> --score <0-1> --label "<what the site says>"`. The `guess` the script prints is only a hint. Then run `python web_detectors.py summary`.
-5. **Never work around a CAPTCHA, a login wall or a free-use limit.** Record it with `web_detectors.py skip --tool <id> --why "..."` and move on to the next site. Keep a human pace, one document at a time.
+5. **Read every result yourself.** Open the saved page text or screenshot, find the AI likelihood, and record it with `python web_detectors.py record --tool <id> --chunk <k> --score <0-1> --label "<what the site says>"`. The `guess` the script prints is only a hint. Then run `python web_detectors.py summary`.
+6. **Never work around a CAPTCHA, a login wall or a free-use limit.** Record it with `web_detectors.py skip --tool <id> --why "..."` and move on to the next site. Keep a human pace, one document at a time.
 
 `grade.py` reads the results:
 - **Validated tools** (Pangram, GPTZero, Originality) that flag at least half of the words they scanned count as one moderate line of evidence. A tool counts only if it scanned at least half the text.

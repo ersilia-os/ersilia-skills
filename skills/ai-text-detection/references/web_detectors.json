@@ -1,6 +1,6 @@
 {
   "_about": "The skill's statistical layer: web AI-text detectors it runs through Claude in Chrome, in the user's own browser session, chunk by chunk. 'weight' says how grade.py treats a tool: 'validated' tools have independent evidence of a low false-positive rate and can count as a line of evidence; 'context' tools are reported but never raise the verdict above weak. Free-tier limits change: read them on the page, never work around them. Pasting text into these sites uploads it: only for text the user owns or co-authors, or public text (SKILL.md, step 2b).",
-  "version": 2,
+  "version": 3,
   "tools": [
     {
       "id": "pangram",
@@ -14,7 +14,8 @@
       "automation": {
         "checked": "2026-11-15",
         "status": "CAPTCHA (Cloudflare) on automated use; needs the user to tick it"
-      }
+      },
+      "api": "api_detectors.py (PANGRAM_API_KEY; free research credits on application at https://pangram.com/solutions/api)"
     },
     {
       "id": "gptzero",
@@ -28,7 +29,8 @@
       "automation": {
         "checked": "2026-11-15",
         "status": "hCaptcha before results (opens a new tab at app.gptzero.me); needs the user"
-      }
+      },
+      "api": "api_detectors.py (GPTZERO_API_KEY; paid; ask for research credits)"
     },
     {
       "id": "originality",
@@ -88,13 +90,14 @@
       "name": "Sapling AI Detector",
       "url": "https://sapling.ai/ai-content-detector",
       "weight": "context",
-      "evidence": "No independent peer-reviewed low-FPR evidence found.",
+      "evidence": "No peer-reviewed evaluation; non-peer-reviewed benchmarks report about 17-19% false positives.",
       "read": "Record the 'fake' / AI probability (0-1).",
       "max_words": null,
       "automation": {
         "checked": "2026-11-15",
         "status": "text box not found by the automation"
-      }
+      },
+      "api": "api_detectors.py (SAPLING_API_KEY; free key: 50,000 characters a day, 250,000 a month)"
     },
     {
       "id": "scribbr",
@@ -147,14 +150,43 @@
         "checked": "2026-11-15",
         "status": "text box not found by the automation"
       }
+    },
+    {
+      "id": "grammarly",
+      "name": "Grammarly AI Detector",
+      "url": "https://www.grammarly.com/ai-detector",
+      "weight": "context",
+      "evidence": "Vendor-submitted RAID entry (2026-02): 0.995 detection at 5% FPR, 0.982 at 1% FPR; self-submitted and possibly tuned to RAID; no peer-reviewed evaluation.",
+      "read": "Record the share of text reported as AI-generated (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "page loads without CAPTCHA (not yet tried with text)"
+      }
+    },
+    {
+      "id": "binoculars",
+      "name": "Binoculars (authors' hosted demo)",
+      "url": "https://huggingface.co/spaces/tomg-group-umd/Binoculars",
+      "weight": "context",
+      "route": "api",
+      "evidence": "Published zero-shot method (Hans et al., ICML 2024); RAID 0.79 detection at 5% FPR, 0.695 at 1% FPR (no attacks). The demo returns a decision, not a probability.",
+      "read": "api_detectors.py records 1 for 'AI' and 0 for 'human'.",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "API endpoint exists; not yet used (needs the user's approval)"
+      }
     }
   ],
   "default_order": [
     "pangram",
     "gptzero",
     "originality",
-    "copyleaks",
+    "grammarly",
+    "binoculars",
     "sapling",
+    "copyleaks",
     "scribbr",
     "quillbot",
     "winston",
