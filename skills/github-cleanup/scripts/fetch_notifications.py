@@ -1,8 +1,11 @@
 """Read your GitHub notifications inbox for ersilia-os repositories (read-only).
 
-Lists every thread still in the inbox (read or unread), keeps those whose repository
-belongs to ersilia-os, and looks up whether the issue or pull request each one is about
-is already closed or merged. Lookups are de-duplicated by subject and capped by
+Lists the unread threads, keeps those whose repository belongs to ersilia-os, and
+looks up whether the issue or pull request each one is about is already closed or
+merged. Only unread threads are listed: the API has no "done"
+filter, and a thread marked done comes back as read (``all=true`` would re-propose
+every done thread forever). A done thread with new activity is unread again, so it
+returns by itself. Lookups are de-duplicated by subject and capped by
 ``notifications.max_subject_lookups`` in rules.json.
 
 Writes ``<work>/notifications.json``:
@@ -47,7 +50,7 @@ def main(argv: list[str] | None = None) -> int:
     partial: list[str] = []
 
     login = gh_login()
-    raw, err = run_gh_json(["api", "--paginate", "notifications?all=true&per_page=50"])
+    raw, err = run_gh_json(["api", "--paginate", "notifications?per_page=50"])
     if raw is None:
         warn(f"notifications: {err}")
         raw, partial = [], [f"notifications: {err}"]

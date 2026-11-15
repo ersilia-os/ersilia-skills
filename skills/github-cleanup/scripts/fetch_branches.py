@@ -10,8 +10,8 @@ Branches with no pull request are not considered: nothing reliably says who owns
 Writes ``<work>/branches.json``:
 
     {"login", "fetched_at", "branches": [
-       {"key", "repo", "branch", "default_branch", "protected", "last_commit_at",
-        "prs": [{"number", "state", "merged_at", "closed_at", "url"}]}], "partial": [...]}
+       {"key", "repo", "branch", "default_branch", "protected", "sha", "last_commit_at",
+        "prs": [{"number", "state", "merged_at", "closed_at", "url", "head_sha"}]}], "partial": [...]}
 
 Usage:
     python fetch_branches.py [--work /tmp/github_cleanup]
@@ -81,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
                 "--limit",
                 "200",
                 "--json",
-                "number,state,mergedAt,closedAt,url,headRefName,isCrossRepository",
+                "number,state,mergedAt,closedAt,url,headRefName,headRefOid,isCrossRepository",
             ]
         )
         if prs is None:
@@ -98,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
                     "merged_at": pr.get("mergedAt"),
                     "closed_at": pr.get("closedAt"),
                     "url": pr.get("url"),
+                    "head_sha": pr.get("headRefOid"),
                 }
             )
         for name, its_prs in by_branch.items():
@@ -113,6 +114,7 @@ def main(argv: list[str] | None = None) -> int:
                     "branch": name,
                     "default_branch": meta.get("default_branch"),
                     "protected": bool(info.get("protected")),
+                    "sha": (info.get("commit") or {}).get("sha"),
                     "last_commit_at": ((info.get("commit") or {}).get("commit") or {})
                     .get("committer", {})
                     .get("date"),

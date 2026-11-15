@@ -64,7 +64,7 @@ def commands_for(item: dict, action: str, comment: str | None) -> list[dict]:
                     f"notifications/threads/{tid}/subscription",
                 ],
                 "check": {
-                    "type": "gone",
+                    "type": "muted",
                     "api": f"notifications/threads/{tid}/subscription",
                 },
             }

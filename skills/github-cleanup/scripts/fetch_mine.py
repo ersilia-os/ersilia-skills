@@ -1,6 +1,6 @@
 """Read your open issues and pull requests in ersilia-os (read-only).
 
-Four searches, all limited to open items in the ersilia-os organisation:
+Four searches, all limited to open items in non-archived ersilia-os repositories:
 
 - pull requests you opened
 - pull requests where your review is requested
@@ -61,6 +61,7 @@ def search(
         ORG,
         "--state",
         "open",
+        "--archived=false",  # archived repos are read-only: nothing there can be cleaned
         *flags,
         "--json",
         fields,

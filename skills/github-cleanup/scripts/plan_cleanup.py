@@ -10,7 +10,8 @@ Every item lands in exactly one category, in this order:
     stale_prs        your open pull requests with no activity for a while
     stale_issues     open issues you opened or are assigned to, with no activity for a while
     branches         your PR branches whose PR was merged, or closed and abandoned
-    flags            report only (for example your PR has merge conflicts)
+    flags            report only: your PR has merge conflicts, a branch has commits no
+                     PR holds, or a repo sent many CI failure notices
 
 ``proposed`` is the action the script suggests; ``None`` means Claude reads the thread
 and proposes one (a judgement), which the user then approves. ``actions`` lists what may
@@ -111,6 +112,26 @@ def plan_notifications(
             )
         else:
             active += 1
+    # Many CI failure notices from one repo may mean CI is broken: say so once.
+    ci: dict[str, int] = {}
+    for th in data.get("threads", []):
+        if th.get("reason") == "ci_activity":
+            ci[th["repo"]] = ci.get(th["repo"], 0) + 1
+    for repo, count in sorted(ci.items(), key=lambda kv: -kv[1]):
+        if count >= rules["ci_flag_min_threads"]:
+            items.append(
+                {
+                    "key": f"ci:{repo}",
+                    "repo": repo,
+                    "label": f"{repo}: CI",
+                    "url": f"https://github.com/{ORG}/{repo}/actions",
+                    "kind": "flag",
+                    "category": "flags",
+                    "proposed": None,
+                    "actions": [],
+                    "reason": f"{count} CI run notices in the inbox; worth checking whether CI is broken",
+                }
+            )
     return items, active
 
 
@@ -232,6 +253,25 @@ def plan_branches(
         prs = b.get("prs") or []
         if any(p["state"] == "OPEN" for p in prs):
             continue
+        heads = {p.get("head_sha") for p in prs} - {None}
+        if b.get("sha") and heads and b["sha"] not in heads:
+            # Commits after its last PR: deleting would lose work no PR holds.
+            items.append(
+                {
+                    "key": b["key"],
+                    "repo": b["repo"],
+                    "branch": name,
+                    "label": f"{b['repo']}: {name}",
+                    "url": f"https://github.com/{ORG}/{b['repo']}/tree/{name}",
+                    "kind": "branch",
+                    "category": "flags",
+                    "proposed": None,
+                    "actions": [],
+                    "reason": "branch has commits that are in none of its PRs; not proposed for deletion",
+                    "merged": False,
+                }
+            )
+            continue
         merged = [p for p in prs if p.get("merged_at")]
         age = days_since(b.get("last_commit_at"), now)
         if merged:
@@ -262,7 +302,7 @@ def plan_branches(
             }
         )
     # Merged first: those are the safe ones.
-    items.sort(key=lambda i: (not i["merged"], i["label"]))
+    items.sort(key=lambda i: (i["category"] == "flags", not i["merged"], i["label"]))
     return items
 
 

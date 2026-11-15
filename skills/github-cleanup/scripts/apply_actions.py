@@ -114,6 +114,11 @@ def check(spec: dict | None) -> str | None:
     data, err = run_gh_json(["api", spec["api"]])
     if spec["type"] == "gone":
         return None if data is None else "still there"
+    if spec["type"] == "muted":
+        # Unsubscribing keeps the record with ignored=true; no record also means muted.
+        if data is None or data.get("ignored") or not data.get("subscribed"):
+            return None
+        return "still subscribed"
     if data is None:
         return f"cannot read back: {err}"
     if spec["type"] == "closed":

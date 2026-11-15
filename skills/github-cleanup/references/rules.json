@@ -3,10 +3,19 @@
   "notifications": {
     "max_threads": 1000,
     "max_subject_lookups": 400,
-    "noise_reasons": ["ci_activity", "subscribed", "security_alert"],
-    "unsubscribe_reasons": ["subscribed"],
+    "noise_reasons": [
+      "ci_activity",
+      "subscribed",
+      "security_alert"
+    ],
+    "unsubscribe_reasons": [
+      "subscribed"
+    ],
     "old_after_days": 30,
-    "noise_title_patterns": []
+    "noise_title_patterns": [
+      "^🚀 Model Inference Run"
+    ],
+    "ci_flag_min_threads": 5
   },
   "prs": {
     "stale_after_days": 30,
@@ -19,7 +28,15 @@
   "branches": {
     "lookback_days": 365,
     "abandoned_after_days": 30,
-    "protected_patterns": ["main", "master", "dev", "develop", "gh-pages", "release*", "hotfix*"]
+    "protected_patterns": [
+      "main",
+      "master",
+      "dev",
+      "develop",
+      "gh-pages",
+      "release*",
+      "hotfix*"
+    ]
   },
   "render": {
     "max_items_per_step": 10
