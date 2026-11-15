@@ -269,6 +269,37 @@ def grade(work: Path) -> dict:
             }
         )
 
+    # Passages where most of the tools that scored them agree (where to look first).
+    by_chunk: dict[int, list[float]] = {}
+    for r in web.get("results", []):
+        by_chunk.setdefault(r["chunk"], {})[r["tool"]] = r["score"]  # type: ignore[index]
+    hot = []
+    for k, scores in sorted(by_chunk.items()):
+        vals = list(scores.values())  # type: ignore[union-attr]
+        n_flag = sum(v >= 0.5 for v in vals)
+        if len(vals) >= 3 and n_flag >= 3 and n_flag / len(vals) > 0.5:
+            secs = next(
+                (
+                    ", ".join(c["sections"])
+                    for c in web.get("chunks", [])
+                    if c["chunk"] == k
+                ),
+                "",
+            )
+            hot.append(f"chunk {k} ({secs}): {n_flag} of {len(vals)} tools")
+    if hot:
+        met["weak"].append("web-hotspots")
+        statements.append(
+            {
+                "tier": "weak",
+                "text": "Passages where most of the detectors that scored them say AI: "
+                + "; ".join(hot)
+                + ". These are the places to read most closely; the tools are not validated, so this is a pointer, not evidence.",
+                "evidence": ["web"],
+                "check": "Per-passage scores are in the passages table.",
+            }
+        )
+
     # 4b. The author's own earlier writing (baseline.py), when available.
     base = read_json(work / "baseline.json") or {}
     # Style features outside the author's own earlier range, on the AI-typical side.

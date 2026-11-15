@@ -34,6 +34,7 @@ import time
 from pathlib import Path
 
 from _common import LOCAL, REFS, WORK_DIR, die, read_json
+from web_detectors import is_ai_colour
 
 PROFILE = LOCAL / "chrome-profile"
 BUTTON_RE = re.compile(r"\b(detect|scan|check|analy[sz]e|run|submit)\b", re.IGNORECASE)
@@ -49,8 +50,18 @@ PCT_RE = re.compile(
 )
 
 
+SCORE_LINE_RE = re.compile(
+    r"^\s*(\d{1,3}(?:\.\d+)?)\s*%?\s*\n\s*(?:%\s*)?AI\s+(?:score|probability)\b",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
 def guess(text: str) -> float | None:
-    """First percentage that sits next to 'AI' on the result page (a hint only)."""
+    """The AI score on the result page (a hint only): a number on the line above
+    'AI Score' / '% AI probability', else the first percentage next to 'AI'."""
+    m = SCORE_LINE_RE.search(text)
+    if m:
+        return round(float(m.group(1)) / 100, 3)
     m = PCT_RE.search(text)
     if not m:
         return None
@@ -143,6 +154,15 @@ def find_input(page):
     return None
 
 
+MODE_RE = re.compile(
+    r"\b(deep|plagiarism|grammar|upload|sample|example|humani[sz]e|paraphras|translate|upgrade|sign|log ?in)\w*",
+    re.IGNORECASE,
+)
+ACTION_RE = re.compile(
+    r"^(run|start)?\s*(scan|check|detect|analy[sz]e)\b", re.IGNORECASE
+)
+
+
 def click_go(page, box) -> bool:
     """Press the scan/check/detect button nearest to the text box (as a person would)."""
     tb = box.bounding_box() or {"x": 0, "y": 0, "width": 0, "height": 0}
@@ -169,6 +189,11 @@ def click_go(page, box) -> bool:
             d = abs(bb["x"] + bb["width"] / 2 - cx) + abs(
                 bb["y"] + bb["height"] / 2 - cy
             )
+            # Mode tabs and side tools ("Deep AI Scan", "Plagiarism", "Upload") are not the action.
+            if MODE_RE.search(label):
+                d += 2000
+            if ACTION_RE.search(label):
+                d -= 150
             if d < dist:
                 best, dist = el, d
         except Exception:  # noqa: BLE001, S112 - element detached
@@ -220,7 +245,7 @@ def highlights(page, chunk_text: str) -> list[dict]:
     keep = []
     for c in cands:
         t = norm_ws(c["text"])
-        if t in src and len(t) < 0.8 * len(src):
+        if t in src and len(t) < 0.8 * len(src) and is_ai_colour(c["bg"]):
             keep.append({"text": t, "bg": c["bg"]})
     keep = [
         k

@@ -122,6 +122,20 @@ def summary(state: dict) -> dict:
     return out
 
 
+def is_ai_colour(css: str) -> bool:
+    """Whether a highlight colour means 'AI'. Sites mark human sentences green (hue
+    roughly 80-170 degrees) and AI sentences red, orange, yellow, pink or purple."""
+    import colorsys
+
+    nums = [float(x) for x in re.findall(r"[\d.]+", css or "")]
+    if len(nums) < 3:
+        return True
+    r, g, b = (x / 255 for x in nums[:3])
+    h, _light, sat = colorsys.rgb_to_hls(r, g, b)
+    hue = h * 360
+    return not (80 <= hue <= 170 and sat > 0.15)
+
+
 def collect_highlights(work: Path, state: dict) -> list[dict]:
     """Sentences each site marked as AI, from browser_detect.py's per-chunk files, for
     tools and chunks that have a recorded result."""
