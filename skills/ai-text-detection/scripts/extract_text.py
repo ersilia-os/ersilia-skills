@@ -52,6 +52,7 @@ HEADINGS = [
     "competing interests",
     "supplementary information",
     "references",
+    "reference",
     "bibliography",
     "literature cited",
     "works cited",
@@ -93,6 +94,7 @@ HEADINGS = [
 ]
 REF_HEADINGS = {
     "references",
+    "reference",
     "bibliography",
     "literature cited",
     "works cited",
@@ -273,6 +275,30 @@ def from_pdf(path: Path) -> tuple[list[tuple[int, str]], list[dict], dict]:
     return blocks, [h for h in merged if _prose(h["text"])], meta
 
 
+def docx_original(path: Path, out: Path) -> dict:
+    """Write a copy of a DOCX as it was before tracked changes: insertions removed,
+    deletions restored. Returns who made how many changes, for the report."""
+    import zipfile
+
+    with zipfile.ZipFile(path) as z:
+        xml = z.read("word/document.xml").decode("utf-8")
+        names = z.namelist()
+        files = {n: z.read(n) for n in names}
+    authors: dict[str, dict[str, int]] = {}
+    for kind in ("ins", "del"):
+        for a in re.findall(rf'<w:{kind} [^>]*w:author="([^"]*)"', xml):
+            authors.setdefault(a, {"ins": 0, "del": 0})[kind] += 1
+    xml = re.sub(r"<w:ins\b[^>]*/>", "", xml)
+    xml = re.sub(r"<w:ins\b[^>]*>.*?</w:ins>", "", xml, flags=re.DOTALL)
+    xml = re.sub(r"<w:del\b[^>]*>|</w:del>", "", xml)
+    xml = xml.replace("<w:delText", "<w:t").replace("</w:delText>", "</w:t>")
+    files["word/document.xml"] = xml.encode("utf-8")
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
+        for n in names:
+            z.writestr(n, files[n])
+    return authors
+
+
 def from_docx(path: Path) -> tuple[list[tuple[int, str]], list[dict], dict]:
     """Paragraph blocks, hidden runs and core properties from a DOCX."""
     try:
@@ -401,6 +427,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("source", help="file path, or - for stdin")
     p.add_argument("--work", default=str(WORK_DIR))
     p.add_argument("--format", choices=["txt", "md"], help="force plain-text handling")
+    p.add_argument(
+        "--original",
+        action="store_true",
+        help="DOCX with tracked changes: analyse the text as it was before them "
+        "(insertions removed, deletions restored), i.e. the author's draft, not the reviewers' edits",
+    )
     args = p.parse_args(argv)
 
     hidden: list[dict] = []
@@ -422,7 +454,14 @@ def main(argv: list[str] | None = None) -> int:
             blocks, hidden, meta = from_pdf(path)
         elif ext == ".docx":
             fmt = "docx"
+            tracked = None
+            if args.original:
+                orig = Path(args.work) / "original.docx"
+                tracked = docx_original(path, orig)
+                path = orig
             blocks, hidden, meta = from_docx(path)
+            if tracked is not None:
+                meta["tracked_changes_removed"] = tracked
         elif ext in (".txt", ".md", ".markdown", ".text", ""):
             fmt = "md" if ext in (".md", ".markdown") else "txt"
             blocks = from_text(path.read_text(encoding="utf-8", errors="replace"))

@@ -50,17 +50,44 @@ def file_id(url: str) -> str | None:
 
 
 def find_local(name: str) -> list[Path]:
-    """Paths of files with this exact name in the mounted Google Drives."""
+    """Paths of files with this exact name in the mounted Google Drives.
+
+    Uses the Spotlight index (instant); walking the mount instead can take many minutes,
+    because Drive for desktop streams folders on demand. Falls back to a shallow walk
+    when Spotlight finds nothing.
+    """
+    import subprocess
+
     hits: list[Path] = []
     if not MOUNTS.exists():
+        return hits
+    try:
+        out = subprocess.run(
+            ["mdfind", "-onlyin", str(MOUNTS), "-name", name],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        ).stdout
+        hits = [
+            Path(x)
+            for x in out.splitlines()
+            if Path(x).name == name and Path(x).is_file()
+        ]
+    except (OSError, subprocess.TimeoutExpired):
+        hits = []
+    if hits:
         return hits
     for mount in MOUNTS.glob("GoogleDrive-*"):
         if "(" in mount.name:  # stale duplicate mounts
             continue
-        try:
-            hits += [p for p in mount.rglob(name) if p.is_file()]
-        except OSError:
-            continue
+        for base in (mount / "My Drive", *(mount / "Shared drives").glob("*")):
+            try:
+                hits += [p for p in base.glob(f"*/{name}") if p.is_file()] + [
+                    p for p in base.glob(name) if p.is_file()
+                ]
+            except OSError:
+                continue
     return hits
 
 

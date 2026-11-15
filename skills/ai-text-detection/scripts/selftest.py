@@ -51,6 +51,84 @@ def check_markers() -> list[str]:
     return errors
 
 
+def check_units() -> list[str]:
+    """Small checks of helpers that the case files don't reach."""
+    errors = []
+    from drive_intake import file_id
+    from extract_text import is_heading
+
+    for url, want in (
+        (
+            "https://docs.google.com/document/d/1uimSQfhV-QJ4FWz6a5pcxeiwoZWRo63r/edit",
+            "1uimSQfhV-QJ4FWz6a5pcxeiwoZWRo63r",
+        ),
+        (
+            "https://drive.google.com/file/d/1ZyXwVuTsRqPoNmLkJiHgFeDcBa98765/view?usp=sharing",
+            "1ZyXwVuTsRqPoNmLkJiHgFeDcBa98765",
+        ),
+        (
+            "https://drive.google.com/open?id=1ZyXwVuTsRqPoNmLkJiHgFeDcBa98765",
+            "1ZyXwVuTsRqPoNmLkJiHgFeDcBa98765",
+        ),
+    ):
+        if file_id(url) != want:
+            errors.append(f"drive_intake.file_id({url!r}) = {file_id(url)!r}")
+    for line, want in (
+        ("Reference", "Reference"),
+        ("References", "References"),
+        ("2.3 Data collection", "Data collection"),
+        ("100 200 300 400 Compounds", None),
+        ("A. h", None),
+    ):
+        if is_heading(line) != want:
+            errors.append(
+                f"extract_text.is_heading({line!r}) = {is_heading(line)!r}, expected {want!r}"
+            )
+    return errors
+
+
+def check_docx_original() -> list[str]:
+    """A DOCX with tracked changes gives the author's original text with --original."""
+    import zipfile
+
+    errors = []
+    doc_xml = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'
+        '<w:p><w:r><w:t xml:space="preserve">The author wrote this </w:t></w:r>'
+        '<w:del w:id="1" w:author="Reviewer"><w:r><w:delText>original phrase</w:delText></w:r></w:del>'
+        '<w:ins w:id="2" w:author="Reviewer"><w:r><w:t>REVIEWER INSERTION</w:t></w:r></w:ins>'
+        '<w:r><w:t xml:space="preserve"> and kept going.</w:t></w:r></w:p></w:body></w:document>'
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        src = Path(tmp) / "tracked.docx"
+        with zipfile.ZipFile(src, "w") as z:
+            z.writestr(
+                "[Content_Types].xml",
+                '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>',
+            )
+            z.writestr(
+                "_rels/.rels",
+                '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>',
+            )
+            z.writestr("word/document.xml", doc_xml)
+        from extract_text import docx_original
+
+        out = Path(tmp) / "orig.docx"
+        authors = docx_original(src, out)
+        with zipfile.ZipFile(out) as z:
+            xml = z.read("word/document.xml").decode()
+        if (
+            "REVIEWER INSERTION" in xml
+            or "original phrase" not in xml
+            or authors != {"Reviewer": {"ins": 1, "del": 1}}
+        ):
+            errors.append(
+                "extract_text.docx_original did not restore the author's text"
+            )
+    return errors
+
+
 def run(script: str, *args: str) -> str:
     """Run a sibling script; return its stdout (raise on failure)."""
     p = subprocess.run(
@@ -131,6 +209,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--case")
     args = p.parse_args(argv)
     errors = check_markers()
+    units = check_units() + check_docx_original()
+    print(
+        f"{'ok  ' if not units else 'FAIL'} units (Drive links, headings, tracked-changes DOCX)"
+    )
+    errors += units
     print(
         f"{'ok  ' if not errors else 'FAIL'} markers ({len(read_json(REFS / 'markers.json')['patterns'])} patterns)"
     )
