@@ -148,6 +148,13 @@ def main(argv: list[str] | None = None) -> int:
         CAL / "polished.jsonl"
     )
     local = read_jsonl(LOCAL / "cases.jsonl") if args.with_local else []
+    # Extra labelled text kept only on this machine (e.g. datasets whose licence does not
+    # allow redistribution): ~/.ai-text-detection/corpus/*.jsonl, each row with "label".
+    extra = [
+        r for f in sorted((LOCAL / "corpus").glob("*.jsonl")) for r in read_jsonl(f)
+    ]
+    ai += [r for r in extra if r.get("label") == 1]
+    human += [r for r in extra if r.get("label") == 0]
     if not human or not ai:
         print(
             "ERROR: need references/calibration/human*.jsonl and ai*.jsonl",
@@ -327,6 +334,10 @@ def main(argv: list[str] | None = None) -> int:
             for k in sorted({r.get("kind") for r in Htest})
         ],
         ("AI (held out)", Atest),
+        *[
+            (f"AI, {g}", [r for r in Atest if r.get("generator") == g])
+            for g in sorted({r.get("generator") for r in Atest if r.get("generator")})
+        ],
         ("AI-polished human text", polished),
     ):
         ps = [prob(r) for r in subset]
@@ -357,6 +368,7 @@ def main(argv: list[str] | None = None) -> int:
         "kinds": sorted({r.get("kind") for r in H if r.get("kind")}),
         "generators": sorted({r.get("generator") for r in A if r.get("generator")}),
         "local_cases": len({r["doc_id"] for r in local}),
+        "local_corpus_windows": len(extra),
     }
 
     md = render_validation(cal, val)
@@ -381,7 +393,7 @@ def render_validation(cal: dict, val: dict) -> str:
             f"Corpus: {c['human_windows']} human windows from {c['human_docs']} documents written before ChatGPT "
             f"({', '.join(c['kinds'])}); {c['ai_windows']} AI windows from {c['ai_docs']} documents "
             f"(generators: {', '.join(c['generators']) or 'unspecified'}); {c['polished_windows']} AI-polished human windows; "
-            f"{c['local_cases']} of the user's own labelled cases. Windows are ~300 words. Thresholds are set on half of "
+            f"{c['local_cases']} of the user's own labelled cases; {c.get('local_corpus_windows', 0)} windows from datasets kept only on this machine. Windows are ~300 words. Thresholds are set on half of "
             "the human documents; every rate below is measured on the other half (and on AI text never used to set them)."
         ),
         "",

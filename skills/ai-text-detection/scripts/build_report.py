@@ -416,7 +416,7 @@ def build(work: Path, case: str, kind: str, context: str) -> str:
   apply();
 })();
 </script>"""
-    title = f"AI check: {case}"[:60]
+    title = case[:60]
     return (
         f'<title>{e(title)}</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n'
         f"<style>\n{css}\n{PAGE_CSS}\n</style>\n"

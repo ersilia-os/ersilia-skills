@@ -252,6 +252,17 @@ def from_pdf(path: Path) -> tuple[list[tuple[int, str]], list[dict], dict]:
                 blocks.append((pno, raw.strip()))
             elif not _figure_like(raw):
                 blocks.append((pno, clean_block(raw)))
+    # Running headers and footers: the same short block (digits ignored) on 3+ pages.
+    pages_of: dict[str, set[int]] = {}
+    for pno, blk in blocks:
+        if len(blk) < 200:
+            pages_of.setdefault(re.sub(r"\d+", "#", blk.lower()), set()).add(pno)
+    running = {k for k, v in pages_of.items() if len(v) >= 3}
+    blocks = [
+        (pno, blk)
+        for pno, blk in blocks
+        if re.sub(r"\d+", "#", blk.lower()) not in running
+    ]
     meta = {k: v for k, v in (doc.metadata or {}).items() if v}
     merged: list[dict] = []
     for h in hidden:
