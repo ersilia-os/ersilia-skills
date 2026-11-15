@@ -15,7 +15,7 @@ Refuses: unknown or already-applied items, flags, an action the item does not al
 a comment action with no comment, and anything the apply_actions.py whitelist rejects.
 
 Usage:
-    python build_actions.py --approve 1,2,5,10-40 [--judgements /tmp/github_cleanup/judgements.json]
+    python build_actions.py --approve 1,2,5,10-40 [--judgements /tmp/github_inbox_zero/judgements.json]
     python build_actions.py --reject 7 --reason "long-running tracking issue"
 """
 

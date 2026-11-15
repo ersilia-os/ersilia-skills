@@ -8,7 +8,7 @@ Usage:
     python render_plan.py --steps        # numbered steps with counts
     python render_plan.py --step 3       # one step, item by item (notifications: grouped by repo)
     python render_plan.py --step 1 --full  # a notification step, item by item
-    [--plan /tmp/github_cleanup/plan.json] [--judgements /tmp/github_cleanup/judgements.json]
+    [--plan /tmp/github_inbox_zero/plan.json] [--judgements /tmp/github_inbox_zero/judgements.json]
 """
 
 from __future__ import annotations

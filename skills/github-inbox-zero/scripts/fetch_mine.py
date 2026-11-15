@@ -16,7 +16,7 @@ Writes ``<work>/mine.json``:
      "issues": [... each with "assigned" and "authored" booleans], "partial": [...]}
 
 Usage:
-    python fetch_mine.py [--work /tmp/github_cleanup] [--limit 300]
+    python fetch_mine.py [--work /tmp/github_inbox_zero] [--limit 300]
 """
 
 from __future__ import annotations

@@ -14,7 +14,7 @@ Writes ``<work>/branches.json``:
         "prs": [{"number", "state", "merged_at", "closed_at", "url", "head_sha"}]}], "partial": [...]}
 
 Usage:
-    python fetch_branches.py [--work /tmp/github_cleanup]
+    python fetch_branches.py [--work /tmp/github_inbox_zero]
 """
 
 from __future__ import annotations

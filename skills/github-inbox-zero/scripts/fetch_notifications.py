@@ -15,7 +15,7 @@ Writes ``<work>/notifications.json``:
         "number", "key", "state", "merged", "html_url"}], "partial": [...]}
 
 Usage:
-    python fetch_notifications.py [--work /tmp/github_cleanup]
+    python fetch_notifications.py [--work /tmp/github_inbox_zero]
 """
 
 from __future__ import annotations

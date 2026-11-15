@@ -13,7 +13,7 @@ After each command the state is read back from GitHub. Applied items are recorde
 ``<work>/applied.json`` so they are never run twice. Exit 1 on any failure.
 
 Usage:
-    python apply_actions.py [--work /tmp/github_cleanup]
+    python apply_actions.py [--work /tmp/github_inbox_zero]
 """
 
 from __future__ import annotations

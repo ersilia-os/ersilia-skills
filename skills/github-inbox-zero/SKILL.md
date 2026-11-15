@@ -1,5 +1,5 @@
 ---
-name: github-cleanup
+name: github-inbox-zero
 description: >
   Interactively clean up your own GitHub backlog in the ersilia-os organisation:
   notifications about issues and PRs that are already closed or merged, noisy
@@ -8,13 +8,13 @@ description: >
   branches you left behind after a PR was merged or abandoned. Scripts build a
   numbered plan; you walk the user through it one category at a time, and run
   only the gh commands they approve. Learns from feedback on every run.
-  Triggers include: "clean up my GitHub", "github cleanup", "/github-cleanup",
+  Triggers include: "clean up my GitHub", "github inbox zero", "github cleanup", "/github-inbox-zero",
   "triage my notifications", "clear my GitHub inbox", "close my stale issues",
   "which of my PRs are stale", "delete my merged branches", "what's waiting on me
   on GitHub". Always use this skill for these requests, even if the ask seems simple.
 ---
 
-# GitHub cleanup
+# GitHub inbox zero
 
 You help the user clear their own GitHub backlog in `ersilia-os`. Only items that involve them count: their notifications, their PRs and issues, the reviews requested from them, and the branches of their PRs. Other people's work is never touched.
 
@@ -26,7 +26,7 @@ You help the user clear their own GitHub backlog in `ersilia-os`. Only items tha
 
 Scripts decide which items are candidates and build the commands. You explain them, judge the items that need reading (reviews, stale PRs and stale issues), and ask the user. Every threshold lives in `references/rules.json`. If the plan gets something wrong, fix the rule (Step 6) rather than working around it.
 
-Scripts run from `scripts/` with the Python 3 standard library and the `gh` CLI. They work in `/tmp/github_cleanup/`. If `gh` is not found, put Homebrew on the PATH first: `export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"`.
+Scripts run from `scripts/` with the Python 3 standard library and the `gh` CLI. They work in `/tmp/github_inbox_zero/`. If `gh` is not found, put Homebrew on the PATH first: `export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"`.
 
 | Script | Does |
 |---|---|
@@ -47,7 +47,7 @@ Scripts run from `scripts/` with the Python 3 standard library and the `gh` CLI.
 1. `gh auth status`. If you are not logged in, stop and ask the user to run `! gh auth login`.
 2. `gh api rate_limit --jq .resources.core`. A full run needs about 1,500 calls (the quota is 5,000 an hour, shared with every other gh tool). If fewer are left, tell the user when it resets and stop. Any script that hits the limit stops the run on purpose, because a plan built from partial data is wrong.
 3. `python record_feedback.py list`. Read every lesson and apply it this run.
-4. `rm -rf /tmp/github_cleanup && mkdir -p /tmp/github_cleanup`.
+4. `rm -rf /tmp/github_inbox_zero && mkdir -p /tmp/github_inbox_zero`.
 
 ### 1. Fetch and plan (read-only)
 
@@ -70,7 +70,7 @@ Review requests, stale PRs and stale issues have no proposed action. For each on
 - **Review request:** `comment` to give a quick review or a status note. Use `remove-reviewer` when someone else is better placed. If the PR really deserves a proper review, say so and propose no action: the user reviews it outside this skill.
 - If you cannot tell, propose nothing and say why. Keeping an item is always a valid answer.
 
-Write your proposals to `/tmp/github_cleanup/judgements.json`:
+Write your proposals to `/tmp/github_inbox_zero/judgements.json`:
 
 ```json
 {"509": {"action": "close-not-planned", "comment": "Closing: the PAT was rotated in 2025.", "why": "fixed outside GitHub; thread silent for 2 years"}}
@@ -112,7 +112,7 @@ Report the result line. On any `FAILED`, `REFUSED` or `ran, but` line, show it a
 
 ### 5. Summary
 
-A few lines: what was done, closed, unassigned or deleted, with counts, and what was kept or skipped. Read the counts from `/tmp/github_cleanup/applied.json`. Add one line on what is left: the active notifications the plan left alone, and open items that are not stale yet.
+A few lines: what was done, closed, unassigned or deleted, with counts, and what was kept or skipped. Read the counts from `/tmp/github_inbox_zero/applied.json`. Add one line on what is left: the active notifications the plan left alone, and open items that are not stale yet.
 
 ### 6. Learn from the run
 

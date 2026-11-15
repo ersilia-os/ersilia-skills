@@ -1,4 +1,4 @@
-"""Shared helpers for the github-cleanup scripts.
+"""Shared helpers for the github-inbox-zero scripts.
 
 Standard library only. Every GitHub call goes through the ``gh`` CLI, so the user's own
 authentication is used and nothing else needs installing.
@@ -16,7 +16,7 @@ from typing import Any
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 REFS = SKILL_DIR / "references"
-WORK_DIR = "/tmp/github_cleanup"
+WORK_DIR = "/tmp/github_inbox_zero"
 ORG = "ersilia-os"
 
 

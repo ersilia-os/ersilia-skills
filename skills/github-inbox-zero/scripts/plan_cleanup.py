@@ -20,7 +20,7 @@ be done to the item; build_actions.py refuses anything else.
 Writes ``<work>/plan.json``.
 
 Usage:
-    python plan_cleanup.py [--work /tmp/github_cleanup] [--now 2026-11-12T00:00:00Z]
+    python plan_cleanup.py [--work /tmp/github_inbox_zero] [--now 2026-11-12T00:00:00Z]
 """
 
 from __future__ import annotations
