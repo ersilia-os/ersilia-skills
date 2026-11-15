@@ -16,8 +16,9 @@ Sources for the author's earlier text (use one):
 Abstracts are co-written, so treat an OpenAlex baseline as the author's *group* style.
 First-author papers are preferred (--first-author-only).
 
-Writes ``<work>/baseline.json``. With the env, it also runs the detectors on the baseline:
-``conda run -n ai-text-detection python baseline.py ...``.
+Writes ``<work>/baseline.json``. It compares style only; the document itself is never sent
+anywhere (only the author ID goes to OpenAlex). Files given with --files that are PDF or DOCX
+need the env: ``conda run -n ai-text-detection python baseline.py --files ...``.
 
 Usage:
     python baseline.py --openalex-author A5023888391 [--first-author-only] [--max 40]
@@ -124,7 +125,6 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--files", nargs="+")
     p.add_argument("--first-author-only", action="store_true")
     p.add_argument("--max", type=int, default=40)
-    p.add_argument("--no-models", action="store_true")
     args = p.parse_args(argv)
     work = Path(args.work)
 
@@ -151,20 +151,7 @@ def main(argv: list[str] | None = None) -> int:
                     **{k: f[k] for k in FEATURES},
                 }
             )
-    scorer = None
-    if not args.no_models:
-        try:
-            from detect_models import Scorer
-
-            scorer = Scorer()
-        except SystemExit:
-            warn("detectors unavailable (run inside the env); comparing style only")
-    if scorer:
-        for w in windows:
-            w.update(scorer.score(w["text"]))
-
     sty = read_json(work / "stylometry.json") or {}
-    det = read_json(work / "detectors.json") or {}
     doc_vals: dict[str, float] = {}
     for k in FEATURES:
         vals = [
@@ -173,10 +160,6 @@ def main(argv: list[str] | None = None) -> int:
             if w.get(k) == w.get(k) and w.get(k) is not None
         ]
         if vals:
-            doc_vals[k] = statistics.median(vals)
-    for k in ("binoculars", "fast_detectgpt"):
-        vals = [w[k] for w in det.get("windows", []) if w.get(k) is not None]
-        if vals and scorer:
             doc_vals[k] = statistics.median(vals)
 
     comparison = {}

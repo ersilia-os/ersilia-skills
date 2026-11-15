@@ -15,6 +15,14 @@
       "kind": "code",
       "change": "report_raw.py is the default report (scores table with thresholds and held-out error rates, per-window table, text with shaded windows and marked words/phrases/artefacts); stylometry.py records phrase spans and exact window offsets; calibrate.py stores held-out rates",
       "fixture": "chatbot-artifacts"
+    },
+    {
+      "n": 3,
+      "date": "2026-11-15",
+      "feedback": "Don't use downloaded models; use a compendium of web detectors instead",
+      "kind": "code",
+      "change": "detect_models.py and local Binoculars/Fast-DetectGPT removed; setup_env.sh is a small env (pymupdf, python-docx, playwright); web_detectors.json v2 with 11 tools and a consensus row; grading, report, ledger, baseline and calibration updated",
+      "fixture": "web-only"
     }
   ]
 }

@@ -6,10 +6,11 @@ description: >
   defensible evidence report the user can rely on when pushing back. Checks conclusive
   artefacts (chatbot leftovers, oaicite / turn0search / [cite_start] tokens, utm_source=chatgpt.com,
   placeholders, leaked <think> tags, hidden prompt injections), verifies every reference
-  against Crossref / DataCite / OpenAlex to catch fabricated citations, runs local calibrated
-  zero-shot detectors (Binoculars, Fast-DetectGPT) and stylometry (excess vocabulary such as
-  "delve", "underscore", "meticulous"), and adds a close reading. Everything runs locally; the
-  document never leaves the machine. Learns from the user's feedback on every finding and every
+  against Crossref / DataCite / OpenAlex to catch fabricated citations, runs a compendium of
+  web AI detectors (Pangram, GPTZero and others) chunk by chunk in Chrome when the text may
+  leave the machine, plus calibrated stylometry (excess vocabulary such as
+  "delve", "underscore", "meticulous"), and adds a close reading. Confidential manuscripts
+  and grants under review are never sent to any website. Learns from the user's feedback on every finding and every
   case. Triggers include: "is this AI-generated", "was this written by ChatGPT", "check this
   review for AI", "AI detection", "detect AI text", "/ai-text-detection", "this reviewer used
   ChatGPT", "my collaborator's draft reads like AI", "check the references are real",
@@ -26,16 +27,16 @@ You help the user decide, with evidence they can defend, whether a document was 
 1. **Evidence, not a score.** Nothing here proves authorship from style alone. What holds up is: (a) artefacts no human types (`oaicite`, `[cite_start]`, "Certainly, here is", `utm_source=chatgpt.com`), (b) verifiable problems such as references that don't exist, and (c) calibrated statistics reported with their false-positive rate. Rank findings in that order and never let (c) speak louder than it is.
 2. **Every finding is quoted, located and re-checkable** by a third party: an editor, a programme officer, the author.
 3. **Fair to the author.** Detector and style scores are biased against non-native English and are shifted by language editing. Polishing with AI is allowed by most journals and funders when disclosed. The report always says what the evidence does not show.
-4. **The document stays here.** Reading it from the user's own Google Drive through the connectors is fine: it is the user's own storage. Only reference strings go out (Crossref, DataCite, doi.org, OpenAlex, arXiv), plus a reference title when you search by hand. Never paste the document into a web search or any external service. Uploading a confidential manuscript or grant would itself breach review confidentiality.
+4. **Confidential text stays here.** Reading it from the user's own Google Drive through the connectors is fine: it is the user's own storage. Text chunks go to web detectors only under the rules in step 2b, and never for a manuscript or grant the user is reviewing. Otherwise only reference strings go out (Crossref, DataCite, doi.org, OpenAlex, arXiv), plus a reference title when you search by hand. Never paste the document into a web search or any external service. Uploading a confidential manuscript or grant would itself breach review confidentiality.
 5. **Keep improving.** The user's feedback is the most valuable input, and the field moves fast. Ask for it at the three checkpoints below, every run, briefly. Record it with `ledger.py`. Turn it into changes to `markers.json`, `grading.json` and the calibration. Keep scanning for new tools too (`watch.py`).
 
 ## Files
 
-Scripts live in `scripts/`. They run with any `python3`, except PDF/DOCX extraction and `detect_models.py`, which need the conda env: `conda run -n ai-text-detection python <script>`. The work folder is `/tmp/ai_text_detection/` and is reset each run. The private case ledger is `~/.ai-text-detection/`: numbers only, never text or names, never committed.
+Scripts live in `scripts/`. They run with any `python3`, except PDF/DOCX extraction and `browser_detect.py`, which need the small conda env: `conda run -n ai-text-detection python <script>`. The work folder is `/tmp/ai_text_detection/` and is reset each run. The private case ledger is `~/.ai-text-detection/`: numbers only, never text or names, never committed.
 
 | Script | Does |
 |---|---|
-| `setup_env.sh` | One-time, only after the user agrees: conda env `ai-text-detection` and the Qwen2.5-1.5B base/instruct pair (about 6 GB, resumable) |
+| `setup_env.sh` | One-time, only after the user agrees: small conda env `ai-text-detection` (pymupdf, python-docx, Playwright; tens of MB; no models) |
 | `record_feedback.py` | Lists the lessons (`list`) or logs one (`add`) |
 | `ledger.py` | The case ledger: `record`, `finding`, `verdict`, `outcome`, `pending`, `stats` |
 | `drive_intake.py` | Google Drive links: file ID, the local Drive mount for PDF/DOCX, and revision-history summary |
@@ -43,13 +44,12 @@ Scripts live in `scripts/`. They run with any `python3`, except PDF/DOCX extract
 | `scan_artifacts.py` | Graded regex markers from `references/markers.json`, each hit quoted and located |
 | `check_references.py` | Each reference looked up; statuses are `ok`, `metadata-mismatch`, `doi-points-elsewhere`, `doi-not-registered`, `not-found`, `unverifiable` |
 | `stylometry.py` | Excess vocabulary, stock phrasing, em dashes, sentence uniformity; percentiles against human text; style score |
-| `detect_models.py` | Binoculars and Fast-DetectGPT per ~300-word window, against the calibrated 1% / 5% FPR thresholds |
 | `web_detectors.py`, `browser_detect.py` | Web detectors (Pangram, GPTZero, …): prepare chunks, drive Chrome to run them, record and summarise scores (`references/web_detectors.json`) |
 | `baseline.py` | Optional: the same author's pre-2023 writing (OpenAlex abstracts or files the user gives), scored the same way, to show a change in their own style |
 | `grade.py` | Rules in `references/grading.json` produce the tier plus defensible statements |
 | `build_report.py`, `report_raw.py` | The report: raw HTML, scores first, then the text with AI-looking passages highlighted; published as a private Artifact |
-| `build_corpus.py`, `calibrate.py` | Build the human calibration corpus; fit thresholds; write `references/validation.md` |
-| `watch.py` | Monthly scan for new leak tokens, detectors, vocabulary lists, datasets, policies and skills (`references/watchlist.json`) |
+| `build_corpus.py`, `calibrate.py` | Build the human calibration corpus; fit the style-score thresholds; write `references/validation.md` |
+| `watch.py` | Monthly scan for new leak tokens, web detectors and their limits, vocabulary lists, datasets, policies and skills (`references/watchlist.json`) |
 | `selftest.py` | Offline regression test over `examples/cases/` and every marker's examples |
 
 ## Workflow
@@ -59,8 +59,8 @@ Scripts live in `scripts/`. They run with any `python3`, except PDF/DOCX extract
 1. `python record_feedback.py list`. Read every lesson and apply it.
 2. `python ledger.py pending`. If earlier cases wait for an outcome, ask about them in **one** `AskUserQuestion`, e.g. "Did you hear back about case 2026-11-review-r2? AI / human / mixed / no news yet". Record answers with `ledger.py outcome`. This is how the skill learns what was true.
 3. Every 5th case, or when `pending` shows 3 or more new outcomes, run `python ledger.py stats` and act on its SUGGEST lines (step 7).
-4. **Detectors: check, never download unasked.** Run `conda run -n ai-text-detection python detect_models.py --check`; it loads and downloads nothing. If it reports the env or the models missing, **ask** before doing anything: "The model-based detectors need a one-time setup (conda env plus two models, about 7 GB, which can take a while on a slow connection). Set it up now, or run this check without them?" Run `scripts/setup_env.sh` only on a yes. It keeps the models in the shared Hugging Face cache, so it never downloads twice. On a no, run every other check and say in the report that the detectors were not run. PDF and DOCX extraction need the env too; without it, read Drive files through the connector, or ask for the text.
-5. **Watch for new tools.** `python watch.py due`. When a scan is due (monthly), do it before the intake and keep it short: run the listed searches, compare the results with what `markers.json`, `detect_models.py`, `policies.json` and the corpus already have, and record each topic with `watch.py record` ("nothing new" counts). Then `watch.py done`. Turn anything worth adding into a concrete proposal for the user at step 7, e.g. a new leak token with its source, a better open detector, or a new policy. Also do this between scans whenever you meet a tool or artefact the skill doesn't know.
+4. **The small env.** `conda env list | grep ai-text-detection`. It is needed only for PDF/DOCX files and for driving Chrome. If it is missing, ask once before running `scripts/setup_env.sh` (tens of MB, no models). Without it, read Drive files through the connector, and skip the web detectors or use Claude in Chrome if it is connected.
+5. **Watch for new tools.** `python watch.py due`. When a scan is due (monthly), do it before the intake and keep it short: run the listed searches, compare the results with what `markers.json`, `web_detectors.json`, `policies.json` and the corpus already have, and record each topic with `watch.py record` ("nothing new" counts). Then `watch.py done`. Turn anything worth adding into a concrete proposal for the user at step 7, e.g. a new leak token with its source, a web detector with new independent evidence or a changed free limit, or a new policy. Also do this between scans whenever you meet a tool or artefact the skill doesn't know.
 6. `rm -rf /tmp/ai_text_detection && mkdir -p /tmp/ai_text_detection`.
 
 ### 1. Intake
@@ -89,15 +89,14 @@ If the text was written before 30 Nov 2022 (ChatGPT's release), say so and stop:
 
 ```
 python extract_text.py <file> && \
-python scan_artifacts.py & python check_references.py & python stylometry.py & \
-conda run -n ai-text-detection python detect_models.py & wait   # detectors only if --check said ready
+python scan_artifacts.py & python check_references.py & python stylometry.py & wait
 ```
 
 Use `conda run -n ai-text-detection python extract_text.py` for PDF/DOCX. Show the section map and word count. Below 300 words, warn that the statistics are unreliable and lean on artefacts, references and reading.
 
 If the reference list was split badly (the `[n/N]` lines show merged or broken references), write a clean `refs.json` (`[{"raw": ..., "doi": ..., "title": ..., "first_author": ..., "year": ...}]`) and re-run `check_references.py --refs refs.json`.
 
-### 2b. Web detectors in Chrome (you do it; the user shouldn't have to)
+### 2b. Web detectors in Chrome: the statistical layer (you do it; the user shouldn't have to)
 
 The user used to paste chunks into GPTZero, Pangram and others by hand. Do it for them, without asking them to open anything.
 
@@ -119,7 +118,7 @@ The user used to paste chunks into GPTZero, Pangram and others by hand. Do it fo
 - **Unvalidated tools** (Copyleaks, QuillBot, ZeroGPT) are weak context at most.
 - **A validated tool that scores the text human** is reported as counter-evidence.
 
-The report adds one row per tool and one column per tool in the passages table. Record each tool's results in the case ledger like any other detector, so its precision on the user's real cases builds up.
+The report adds one row per tool and one column per tool in the passages table. The ledger keeps each tool's scores per case (`ledger.py record`), so its agreement with real outcomes builds up. That is how the tools are calibrated on the user's documents: running a corpus through them is ruled out by free limits and terms of use. Run the validated tools first; then context tools until at least two have run, so the consensus row means something.
 
 ### 3. Your part: confirm, verify, read
 
@@ -149,7 +148,7 @@ Show the user the verdict line and the conclusive or strong findings: each with 
 
 `python build_report.py --case "<label>" --kind <kind> --context <context>` writes `report.html`: a deliberately raw page.
 - **Scores first:** every number, with the threshold and the held-out error rate it is compared with.
-- **A per-passage table:** each ~300-word window with its style and detector scores and flag.
+- **A per-passage table:** each ~300-word window with its style score, each web detector's score for its chunk, and a flag.
 - **The document's own text,** with only the AI-looking parts highlighted: shaded windows past the 5% or 1% thresholds, and marked artefacts, AI-typical words and stock phrasing. Everything else stays plain.
 - **The findings,** then the limits.
 
@@ -178,10 +177,15 @@ Then `python selftest.py` must pass. Then `python record_feedback.py add --text 
 
 ## Calibration (maintainer task, rarely)
 
-`build_corpus.py` builds the human windows (2015–2021 CC-BY Europe PMC abstracts and full texts, eLife decision letters, NIH RePORTER abstracts). `references/calibration/ai.jsonl` and `polished.jsonl` hold AI-written and AI-polished windows on the same topics, from several generators. Score them with `conda run -n ai-text-detection python detect_models.py --texts <file>.jsonl`, then run `python calibrate.py`. Thresholds come from human text only. `references/validation.md` reports the false-positive rates on held-out human text (overall, by kind, and for authors in non-English-speaking countries) and the detection rates on AI text. Quote those numbers, not the papers' numbers.
+`build_corpus.py` builds the human windows: 2015–2021 CC-BY Europe PMC abstracts and full texts, eLife decision letters, and NIH RePORTER abstracts. `references/calibration/ai.jsonl` and `polished.jsonl` hold AI-written and AI-polished windows on the same topics, from several generators. `python calibrate.py` fits the style-score thresholds on human text only. `references/validation.md` reports:
+- the false-positive rates on held-out human text: overall, by kind, and for authors in non-English-speaking countries;
+- the detection rates on AI text, by generator.
+
+Quote those numbers, not the papers' numbers. Web detectors are weighted by independent published evidence (`web_detectors.json`) and, over time, by the ledger.
 
 ## What this skill does not do
 
 - It does not name which model wrote a text. Tool-specific artefacts appear only as provenance ("this token is produced by ChatGPT's search").
-- It does not use paid detectors or upload the document anywhere.
+- It does not pay for detectors, create accounts, or work around a site's limits or CAPTCHAs.
+- It never sends a manuscript or grant the user is reviewing to any website.
 - It does not accuse anyone. It hands the user evidence and its limits.

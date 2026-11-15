@@ -121,6 +121,23 @@ def summary(state: dict) -> dict:
     return out
 
 
+def consensus(summ: dict) -> dict | None:
+    """How many tools ran and flag the text, and how far their mean scores spread."""
+    if not summ:
+        return None
+    means = [x["mean_score"] for x in summ.values() if x["mean_score"] is not None]
+    flag = [x for x in summ.values() if x["share_words_flagged"] >= 0.5]
+    valid = [x for x in summ.values() if x["weight"] == "validated"]
+    return {
+        "ran": len(summ),
+        "flagging": len(flag),
+        "validated_ran": len(valid),
+        "validated_flagging": sum(1 for x in valid if x["share_words_flagged"] >= 0.5),
+        "min_mean": min(means) if means else None,
+        "max_mean": max(means) if means else None,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     """Dispatch."""
     p = argparse.ArgumentParser(
@@ -181,11 +198,17 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{args.tool}: skipped ({args.why})")
     else:
         st["summary"] = summary(st)
+        st["consensus"] = consensus(st["summary"])
         write_json(work / "web_detectors.json", st)
         for s_ in st["summary"].values():
             print(
                 f"{s_['name']:<16} [{s_['weight']}] flagged {s_['chunks_flagged']}/{s_['chunks']} chunks "
                 f"({s_['share_words_flagged']:.0%} of words scanned; covered {s_.get('coverage', 0):.0%} of the text); mean {s_['mean_score']}"
+            )
+        c = st["consensus"]
+        if c:
+            print(
+                f"consensus: {c['flagging']} of {c['ran']} tools flag the text ({c['validated_flagging']} of {c['validated_ran']} validated); mean scores {c['min_mean']}-{c['max_mean']}"
             )
         for s_ in st.get("skipped", []):
             print(f"{s_['tool']}: not run ({s_['why']})")

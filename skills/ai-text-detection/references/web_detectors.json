@@ -1,29 +1,126 @@
 {
-  "_about": "Web AI-text detectors the skill can run through Claude in Chrome, in the user's own browser session, chunk by chunk. 'weight' says how grade.py treats a tool: 'validated' tools have independent evidence of a low false-positive rate and can count as a line of evidence; 'context' tools are reported but never raise the verdict above weak. Free-tier limits change: read them on the page, never work around them. Pasting text into these sites uploads it: only for text the user owns or co-authors, or public text (SKILL.md, step 2b).",
-  "version": 1,
+  "_about": "The skill's statistical layer: web AI-text detectors it runs through Claude in Chrome, in the user's own browser session, chunk by chunk. 'weight' says how grade.py treats a tool: 'validated' tools have independent evidence of a low false-positive rate and can count as a line of evidence; 'context' tools are reported but never raise the verdict above weak. Free-tier limits change: read them on the page, never work around them. Pasting text into these sites uploads it: only for text the user owns or co-authors, or public text (SKILL.md, step 2b).",
+  "version": 2,
   "tools": [
-    {"id": "pangram", "name": "Pangram", "url": "https://www.pangram.com/", "weight": "validated",
-     "evidence": "Near-zero false positives and robust to humanizers in the University of Chicago study (Jabarian & Imas 2025, NBER w34223); the only tool meeting a 0.5% FPR cap there.",
-     "evidence_url": "https://www.nber.org/papers/w34223",
-     "read": "Record the AI likelihood as 0-1 and the label shown (e.g. 'AI', 'Mixed', 'Human'). If it reports AI share by segment, record the overall share."},
-    {"id": "gptzero", "name": "GPTZero", "url": "https://gptzero.me/", "weight": "validated",
-     "evidence": "False-positive rate under 1% in the University of Chicago study; 0% FPR at its default threshold on the RAID benchmark (Dugan et al. 2024).",
-     "evidence_url": "https://arxiv.org/abs/2405.07940",
-     "read": "Record the probability that the text is AI-generated (0-1) and the classification shown ('AI', 'Mixed', 'Human')."},
-    {"id": "originality", "name": "Originality.ai", "url": "https://originality.ai/ai-checker", "weight": "validated",
-     "evidence": "False-positive rate under 1% in the University of Chicago study; 0.25% FPR at its default threshold on RAID. Mostly paid; use only if the free checker works.",
-     "evidence_url": "https://www.nber.org/papers/w34223",
-     "read": "Record the 'AI' confidence (0-1)."},
-    {"id": "copyleaks", "name": "Copyleaks", "url": "https://copyleaks.com/ai-content-detector", "weight": "context",
-     "evidence": "No independent peer-reviewed false-positive rate found.",
-     "read": "Record the AI score (0-1) or 0/1 from the label."},
-    {"id": "quillbot", "name": "QuillBot AI Detector", "url": "https://quillbot.com/ai-content-detector", "weight": "context",
-     "evidence": "No independent peer-reviewed false-positive rate found.",
-     "read": "Record the share reported as AI-generated (0-1)."},
-    {"id": "zerogpt", "name": "ZeroGPT", "url": "https://www.zerogpt.com/", "weight": "context",
-     "evidence": "Widely reported false positives on human text (it famously flags the US Constitution); no independent low-FPR evidence.",
-     "read": "Record the percentage reported as AI (0-1)."}
+    {
+      "id": "pangram",
+      "name": "Pangram",
+      "url": "https://www.pangram.com/",
+      "weight": "validated",
+      "evidence": "Near-zero false positives and robust to humanizers in the University of Chicago study (Jabarian & Imas 2025, NBER w34223); the only tool meeting a 0.5% FPR cap there.",
+      "evidence_url": "https://www.nber.org/papers/w34223",
+      "read": "Record the AI likelihood as 0-1 and the label shown (e.g. 'AI', 'Mixed', 'Human'). If it reports AI share by segment, record the overall share.",
+      "max_words": null
+    },
+    {
+      "id": "gptzero",
+      "name": "GPTZero",
+      "url": "https://gptzero.me/",
+      "weight": "validated",
+      "evidence": "False-positive rate under 1% in the University of Chicago study; 0% FPR at its default threshold on the RAID benchmark (Dugan et al. 2024).",
+      "evidence_url": "https://arxiv.org/abs/2405.07940",
+      "read": "Record the probability that the text is AI-generated (0-1) and the classification shown ('AI', 'Mixed', 'Human').",
+      "max_words": null
+    },
+    {
+      "id": "originality",
+      "name": "Originality.ai",
+      "url": "https://originality.ai/ai-checker",
+      "weight": "validated",
+      "evidence": "False-positive rate under 1% in the University of Chicago study; 0.25% FPR at its default threshold on RAID. Mostly paid; use only if the free checker works.",
+      "evidence_url": "https://www.nber.org/papers/w34223",
+      "read": "Record the 'AI' confidence (0-1).",
+      "max_words": null
+    },
+    {
+      "id": "copyleaks",
+      "name": "Copyleaks",
+      "url": "https://copyleaks.com/ai-content-detector",
+      "weight": "context",
+      "evidence": "No independent peer-reviewed false-positive rate found.",
+      "read": "Record the AI score (0-1) or 0/1 from the label.",
+      "max_words": null
+    },
+    {
+      "id": "quillbot",
+      "name": "QuillBot AI Detector",
+      "url": "https://quillbot.com/ai-content-detector",
+      "weight": "context",
+      "evidence": "No independent peer-reviewed false-positive rate found.",
+      "read": "Record the share reported as AI-generated (0-1).",
+      "max_words": null
+    },
+    {
+      "id": "zerogpt",
+      "name": "ZeroGPT",
+      "url": "https://www.zerogpt.com/",
+      "weight": "context",
+      "evidence": "Widely reported false positives on human text (it famously flags the US Constitution); no independent low-FPR evidence.",
+      "read": "Record the percentage reported as AI (0-1).",
+      "max_words": null
+    },
+    {
+      "id": "sapling",
+      "name": "Sapling AI Detector",
+      "url": "https://sapling.ai/ai-content-detector",
+      "weight": "context",
+      "evidence": "No independent peer-reviewed low-FPR evidence found.",
+      "read": "Record the 'fake' / AI probability (0-1).",
+      "max_words": null
+    },
+    {
+      "id": "scribbr",
+      "name": "Scribbr AI Detector",
+      "url": "https://www.scribbr.com/ai-detector/",
+      "weight": "context",
+      "evidence": "No independent peer-reviewed low-FPR evidence found.",
+      "read": "Record the share reported as AI (0-1).",
+      "max_words": null
+    },
+    {
+      "id": "winston",
+      "name": "Winston AI",
+      "url": "https://gowinston.ai/",
+      "weight": "context",
+      "evidence": "No independent peer-reviewed low-FPR evidence found. Its score is a 'human score': record 1 minus it.",
+      "read": "Record 1 - (human score / 100).",
+      "max_words": null
+    },
+    {
+      "id": "undetectable",
+      "name": "Undetectable.ai checker",
+      "url": "https://undetectable.ai/",
+      "weight": "context",
+      "evidence": "Sells a 'humanizer'; no independent low-FPR evidence. Lowest weight.",
+      "read": "Record the AI likelihood (0-1) if shown.",
+      "max_words": null
+    },
+    {
+      "id": "writer",
+      "name": "Writer AI Content Detector",
+      "url": "https://writer.com/ai-content-detector/",
+      "weight": "context",
+      "evidence": "No independent peer-reviewed low-FPR evidence found.",
+      "read": "Record 1 - (human-generated share / 100).",
+      "max_words": null
+    }
   ],
-  "default_order": ["pangram", "gptzero", "originality", "copyleaks", "quillbot", "zerogpt"],
-  "chunk_words": [250, 600]
+  "default_order": [
+    "pangram",
+    "gptzero",
+    "originality",
+    "copyleaks",
+    "sapling",
+    "scribbr",
+    "quillbot",
+    "winston",
+    "writer",
+    "zerogpt",
+    "undetectable"
+  ],
+  "chunk_words": [
+    250,
+    600
+  ],
+  "_max_words_note": "max_words: the most text a site accepts per check on its free tier, when known. Unknown values are null: read the limit on the page; watch.py's monthly scan fills them in."
 }

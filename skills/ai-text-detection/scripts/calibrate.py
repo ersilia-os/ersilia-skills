@@ -1,29 +1,26 @@
-"""Fit thresholds on human text, measure how well they work, and write them down.
+"""Fit the style-score thresholds on human text, measure how well they work, write them down.
 
-Honest thresholds are the core of this skill: a score means something only next to the
-rate at which human text gets the same score. Inputs (all in references/calibration/):
+A score means something only next to the rate at which human text gets the same score.
+Inputs (references/calibration/): human.jsonl (pre-ChatGPT human windows, build_corpus.py),
+ai.jsonl (AI-written windows on the same topics, several generators) and polished.jsonl
+(human windows rewritten by an AI "to improve the English", reported separately). Also read:
+~/.ai-text-detection/corpus/*.jsonl (labelled text kept only on this machine) and, with
+``--with-local``, the user's own labelled cases (features only, see ledger.py). That is how
+the skill keeps improving on the user's real documents.
 
-    human.scored.jsonl     pre-ChatGPT human windows (build_corpus.py, then detect_models.py --texts)
-    ai.scored.jsonl        AI-written windows on the same topics (several generators)
-    polished.scored.jsonl  human windows rewritten by an AI "to improve the English"
-                           (reported separately: neither clearly human nor AI)
-
-and, with ``--with-local``, the user's own labelled cases from ~/.ai-text-detection/cases.jsonl
-(features only, see ledger.py). That is how the skill keeps improving on the user's real
-documents.
+Web detectors are not calibrated here (free limits and terms of use rule out running a
+corpus through them); their weight comes from independent studies and, over time, from the
+ledger's record of how they did on the user's cases.
 
 Method:
 * Split human and AI windows by source document (never by window) into a fit half and a
   held-out half, deterministically.
-* Detector thresholds: the 1st and 5th percentile (in the machine-like direction) of the
-  human *fit* windows. AI text is not used to set them.
-* Document rule: across human fit documents with >= 3 windows, the fraction of windows past
-  the 1% threshold; its 99th and 95th percentiles become the document thresholds.
 * Style score: a logistic regression on the stylometric features (fit half, human vs AI),
-  thresholded like the detectors on human fit windows.
+  each weight constrained to its published direction; thresholds at the 99th and 95th
+  percentile of the human fit windows.
 * Everything is then measured on the held-out half: false-positive rate overall, by text
-  kind and for authors in non-English-speaking countries; true-positive rate on AI text;
-  flag rate on AI-polished text; AUROC.
+  kind and for authors in non-English-speaking countries; detection rate on AI text, by
+  generator; flag rate on AI-polished text; AUROC.
 
 Writes references/calibration.json and references/validation.md.
 
@@ -44,7 +41,6 @@ from _common import LOCAL, REFS, read_jsonl, write_json
 from stylometry import DIRECTION, FEATURES, MODEL_FEATURES, features
 
 CAL = REFS / "calibration"
-DETECTORS = {"binoculars": "lower", "fast_detectgpt": "higher"}
 
 
 def half(doc_id: str) -> str:
@@ -78,11 +74,6 @@ def auroc(pos: list[float], neg: list[float]) -> float | None:
         rank_sum += avg * sum(1 for k in range(i, j) if allv[k][1] == 1)
         i = j
     return (rank_sum - len(pos) * (len(pos) + 1) / 2) / (len(pos) * len(neg))
-
-
-def machine_side(v: float, thr: float, direction: str) -> bool:
-    """Whether ``v`` is on the machine-like side of ``thr``."""
-    return v <= thr if direction == "lower" else v >= thr
 
 
 def fit_logistic(
@@ -142,11 +133,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--dry-run", action="store_true", help="print, don't write")
     args = p.parse_args(argv)
 
-    human = read_jsonl(CAL / "human.scored.jsonl") or read_jsonl(CAL / "human.jsonl")
-    ai = read_jsonl(CAL / "ai.scored.jsonl") or read_jsonl(CAL / "ai.jsonl")
-    polished = read_jsonl(CAL / "polished.scored.jsonl") or read_jsonl(
-        CAL / "polished.jsonl"
-    )
+    human = read_jsonl(CAL / "human.jsonl")
+    ai = read_jsonl(CAL / "ai.jsonl")
+    polished = read_jsonl(CAL / "polished.jsonl")
     local = read_jsonl(LOCAL / "cases.jsonl") if args.with_local else []
     # Extra labelled text kept only on this machine (e.g. datasets whose licence does not
     # allow redistribution): ~/.ai-text-detection/corpus/*.jsonl, each row with "label".
@@ -166,7 +155,7 @@ def main(argv: list[str] | None = None) -> int:
     for r in ai:
         r["label"] = 1
     for r in local:
-        # Ledger rows carry features and detector scores, never text.
+        # Ledger rows carry stylometric features, never text.
         r["doc_id"] = f"local-{r['case']}"
         r["kind"] = r.get("kind") or "local"
     rows = human + ai + polished
@@ -192,92 +181,10 @@ def main(argv: list[str] | None = None) -> int:
 
     cal: dict = {
         "version": date.today().isoformat(),
-        "detectors": {},
         "stylometry": {},
         "corpus": {},
     }
-    val: dict = {"detectors": {}, "style": {}}
-
-    # Detectors: thresholds from human fit windows only.
-    have_scores = any(clean(r.get("binoculars")) is not None for r in H)
-    if have_scores:
-        for det, direction in DETECTORS.items():
-            hv = [r[det] for r in Hfit if clean(r.get(det)) is not None]
-            q1, q5 = (0.01, 0.05) if direction == "lower" else (0.99, 0.95)
-            thr = {
-                "direction": direction,
-                "thr_1": quantile(hv, q1),
-                "thr_5": quantile(hv, q5),
-                "n_fit": len(hv),
-            }
-            cal["detectors"][det] = thr
-            v = {}
-            for name, subset in (
-                ("human (held out)", Htest),
-                (
-                    "human, non-English-speaking country",
-                    [r for r in Htest if r.get("native_english") is False],
-                ),
-                *[
-                    (f"human, {k}", [r for r in Htest if r.get("kind") == k])
-                    for k in sorted({r.get("kind") for r in Htest})
-                ],
-                ("AI (held out)", Atest),
-                *[
-                    (f"AI, {g}", [r for r in Atest if r.get("generator") == g])
-                    for g in sorted(
-                        {r.get("generator") for r in Atest if r.get("generator")}
-                    )
-                ],
-                ("AI-polished human text", polished),
-            ):
-                vals = [r[det] for r in subset if clean(r.get(det)) is not None]
-                if not vals:
-                    continue
-                v[name] = {
-                    "n": len(vals),
-                    "past_1pct": sum(
-                        machine_side(x, thr["thr_1"], direction) for x in vals
-                    )
-                    / len(vals),
-                    "past_5pct": sum(
-                        machine_side(x, thr["thr_5"], direction) for x in vals
-                    )
-                    / len(vals),
-                }
-            sign = -1 if direction == "lower" else 1
-            v["auroc"] = auroc(
-                [sign * r[det] for r in Atest if clean(r.get(det)) is not None],
-                [sign * r[det] for r in Htest if clean(r.get(det)) is not None],
-            )
-            val["detectors"][det] = v
-            thr["auroc"] = v["auroc"]
-            thr["heldout"] = {k: x for k, x in v.items() if isinstance(x, dict)}
-        # Document rule from human fit documents with >= 3 windows.
-        docs: dict[str, list[dict]] = {}
-        for r in Hfit:
-            docs.setdefault(r["doc_id"], []).append(r)
-        multi = [w for w in docs.values() if len(w) >= 3]
-        cal["document"] = {}
-        for det, direction in DETECTORS.items():
-            thr = cal["detectors"][det]["thr_1"]
-            fr = [
-                sum(
-                    machine_side(x[det], thr, direction)
-                    for x in w
-                    if clean(x.get(det)) is not None
-                )
-                / len(w)
-                for w in multi
-            ]
-            cal["detectors"]["document"] = None
-            cal.setdefault("document", {})[det] = {
-                "frac_1": quantile(fr, 0.99) if fr else None,
-                "frac_5": quantile(fr, 0.95) if fr else None,
-                "n_docs": len(fr),
-            }
-        cal["detectors"].pop("document", None)
-        cal["detectors"]["document"] = cal.pop("document")
+    val: dict = {"style": {}}
 
     # Stylometry: human quantiles and a logistic style score.
     cal["stylometry"]["human_quantiles"] = {
@@ -402,39 +309,11 @@ def render_validation(cal: dict, val: dict) -> str:
         ),
         "",
         (
-            "Read 'past 1%' as: share of windows the detector flags at its 1% false-positive operating point. For human text "
+            "Read 'past 1%' as: share of windows the style score flags at its 1% false-positive operating point. For human text "
             "that share is the false-positive rate (should be near 1%); for AI text it is the detection rate."
         ),
         "",
     ]
-    for det, v in val["detectors"].items():
-        thr = cal["detectors"][det]
-        lines += [
-            f"## {det}",
-            "",
-            (
-                f"Thresholds ({thr['direction']} = machine-like): 1% FPR at {thr['thr_1']:.4f}, 5% FPR at {thr['thr_5']:.4f} "
-                f"(fitted on {thr['n_fit']} human windows). AUROC on held-out windows: {v.get('auroc') and round(v['auroc'], 3)}."
-            ),
-            "",
-            "| Text | Windows | Past 1% threshold | Past 5% threshold |",
-            "|---|---|---|---|",
-        ]
-        for name, s in v.items():
-            if name == "auroc":
-                continue
-            lines.append(
-                f"| {name} | {s['n']} | {pct(s['past_1pct'])} | {pct(s['past_5pct'])} |"
-            )
-        doc = cal["detectors"]["document"][det]
-        lines += [
-            "",
-            (
-                f"Document rule: a document is flagged at ~1% FPR when more than {pct(doc['frac_1'])} of its windows "
-                f"pass the 1% threshold (from {doc['n_docs']} human documents with 3+ windows; few documents, so treat as approximate)."
-            ),
-            "",
-        ]
     sv = val["style"]
     lines += [
         "## Style score (stylometry)",

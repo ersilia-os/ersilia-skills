@@ -1,7 +1,7 @@
 """The private case ledger: how the skill learns from the user's real documents.
 
 Every analysis is recorded as a *case*. A case holds numbers and identifiers only: per-window
-detector scores and stylometric features, which markers fired, the verdict, and later the
+web-detector scores and stylometric features, which markers fired, the verdict, and later the
 user's feedback. It never holds the document text, names, or titles, so it can stay on
 this machine (~/.ai-text-detection/), outside the repository.
 
@@ -63,7 +63,7 @@ def cmd_record(args: argparse.Namespace) -> None:
     arts = read_json(work / "artifacts.json") or {"hits": []}
     refs = read_json(work / "references.json") or {"counts": {}}
     sty = read_json(work / "stylometry.json") or {"windows": []}
-    det = read_json(work / "detectors.json") or {"windows": []}
+    web = read_json(work / "web_detectors.json") or {}
     text = read_json(work / "text.json") or {}
     idx["cases"][args.case] = {
         "date": date.today().isoformat(),
@@ -78,12 +78,12 @@ def cmd_record(args: argparse.Namespace) -> None:
             for h in arts["hits"]
         ],
         "references": refs.get("counts"),
-        "detector_summary": {
+        "web": {
             k: {
                 kk: v.get(kk)
-                for kk in ("median", "fraction_over_1pct", "document_flag")
+                for kk in ("weight", "mean_score", "share_words_flagged", "coverage")
             }
-            for k, v in (det.get("summary") or {}).items()
+            for k, v in (web.get("summary") or {}).items()
         },
         "findings": {},
         "verdict_feedback": None,
@@ -92,9 +92,7 @@ def cmd_record(args: argparse.Namespace) -> None:
     write_json(INDEX, idx)
     # Window rows for re-calibration; the label is filled in when the outcome is known.
     keep = [r for r in read_jsonl(CASES) if r.get("case") != args.case]
-    dwin = {w["id"]: w for w in det.get("windows", [])}
     for w in sty.get("windows", []):
-        d = dwin.get(w["id"], {})
         keep.append(
             {
                 "case": args.case,
@@ -102,8 +100,6 @@ def cmd_record(args: argparse.Namespace) -> None:
                 "kind": args.kind,
                 "label": None,
                 **{k: w.get(k) for k in FEATURE_KEYS},
-                "binoculars": d.get("binoculars"),
-                "fast_detectgpt": d.get("fast_detectgpt"),
             }
         )
     LOCAL.mkdir(parents=True, exist_ok=True)

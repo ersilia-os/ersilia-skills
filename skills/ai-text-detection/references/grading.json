@@ -1,6 +1,6 @@
 {
   "_about": "How grade.py turns findings into the overall tier. Data, not code: change these values through the Learn step (record_feedback.py logs why). The tier is the highest level whose rule is met. Manipulation (hidden prompts) and paraphraser evidence are reported separately: they are serious, but they are not evidence that an AI wrote the text.",
-  "version": 1,
+  "version": 2,
   "conclusive": {
     "categories": [
       "citation-artifact",
@@ -22,8 +22,6 @@
       "doi-points-elsewhere"
     ],
     "min_fabricated_refs": 2,
-    "detectors_required": 2,
-    "detector_needs_one_moderate": true,
     "strong_categories": [
       "markdown-leftover",
       "unicode-artifact"
@@ -39,7 +37,8 @@
       "model-phrasing"
     ],
     "min_style_auroc": 0.75,
-    "baseline_min_texts": 5
+    "baseline_min_texts": 5,
+    "baseline_min_features": 2
   },
   "weak": {
     "style_fraction_over_5pct": 0.3,
@@ -47,8 +46,7 @@
     "any_weak_hit": true
   },
   "caveats": {
-    "short_text_words": 300,
-    "few_windows": 3
+    "short_text_words": 300
   },
   "_style_note": "The style score counts as moderate evidence only if its validated AUROC (calibration.json) reaches min_style_auroc; otherwise it is weak context at most.",
   "web": {

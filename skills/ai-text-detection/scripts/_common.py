@@ -1,7 +1,7 @@
 """Shared helpers for the ai-text-detection scripts.
 
 The deterministic scripts use the Python standard library only, so they run with any
-python3. The model-based detector (detect_models.py) and PDF/DOCX extraction need the
+python3. PDF/DOCX extraction and the Chrome driver (browser_detect.py) need the small
 conda env created by setup_env.sh.
 
 Three places hold state:
@@ -158,7 +158,7 @@ SKIP_SECTIONS = {
 def chunks(doc: dict, target: int = 300, minimum: int = 80) -> list[dict]:
     """Windows of about ``target`` words, built from whole paragraphs within a section.
 
-    Every per-window measure (detectors, stylometry, calibration) uses this same
+    Every per-window measure (stylometry, web-detector chunks, calibration) uses this same
     chunking, so a document is compared with human text of the same size. Sections that
     are boilerplate (references, funding, ...) are skipped. A window shorter than
     ``minimum`` words is merged into the previous one of the same section.

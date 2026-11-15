@@ -20,16 +20,23 @@ These are strings people paste from a chatbot without noticing; nobody types the
 - GPTZero found 100 hallucinated citations in about 51 accepted [NeurIPS 2025 papers](https://gptzero.me/news/neurips/). NeurIPS and ICLR treat them as grounds for rejection.
 - Every lookup is a public API call (Crossref, DataCite, doi.org, OpenAlex, arXiv) that anyone can re-run. A real paper cited with the wrong year or author is a human error too, and is reported as weak.
 
-## 3. Detectors (`detect_models.py`): moderate; strong only with independent support
+## 3. Web detectors (`web_detectors.py`, `browser_detect.py`): moderate; strong only with independent support
 
-- **Binoculars:** [Hans et al., ICML 2024](https://arxiv.org/abs/2401.12070). **Fast-DetectGPT:** [Bao et al., ICLR 2024](https://arxiv.org/abs/2310.05130). Both measure how predictable a text is to a language model compared with how predictable such text usually is.
-- Here both run on one local pair (Qwen2.5-1.5B and Qwen2.5-1.5B-Instruct), so they are one line of evidence, not two.
-- The published thresholds belong to other models. Ours are fitted on human scientific text written before ChatGPT; see `validation.md` for the false-positive and detection rates on held-out text.
-- **Known failure modes:**
+- The skill pastes the text in 250–600-word chunks into a compendium of web detectors in Chrome, then reads each score. This happens only for text that may leave the machine.
+- **Validated tools** have independent evidence of few false positives:
+  - Pangram: near-zero false positives and robust to "humanizers" in the [University of Chicago study](https://www.nber.org/papers/w34223) (Jabarian & Imas 2025); the only tool that met a 0.5% FPR cap there.
+  - GPTZero and Originality.ai: under 1% false positives in the same study, and 0% and 0.25% at their default thresholds on [RAID](https://arxiv.org/abs/2405.07940) (Dugan et al. 2024).
+- **Other tools** are reported as context only: Copyleaks, Sapling, Scribbr, QuillBot, Winston AI, Writer, ZeroGPT and Undetectable. They have no independent low-FPR evidence, and ZeroGPT is known for false positives on human text.
+- **Grading:**
+  - One validated tool flagging most of the text it scanned (with at least half the text covered) is a moderate line of evidence.
+  - Two validated tools, plus a non-statistical finding, make it strong.
+  - A validated tool scoring the text human is reported as counter-evidence.
+- **Known failure modes, the same as for any detector:**
   - Higher false-positive rates on non-native English ([Liang et al. 2023, *Patterns*](https://arxiv.org/abs/2304.02819)).
-  - Scores shifted by professional editing (Park et al. 2026, [arXiv:2608.26710](https://arxiv.org/abs/2608.26710)).
-  - Evasion by paraphrasing and by "use more complex vocabulary" prompts ([RAID, Dugan et al. 2024](https://arxiv.org/abs/2405.07940)).
-  - Unreliable on short texts.
+  - Scores shifted by professional editing ([Park et al. 2026](https://arxiv.org/abs/2608.26710)).
+  - A security-paper study found commercial detectors with false-positive rates up to 68.6% on pre-ChatGPT papers ([IEEE S&P 2026](https://news.ufl.edu/2026/05/traynor-ai-detector-study/)).
+  - Evasion by paraphrasing.
+- **Why no local model:** an earlier version ran Binoculars and Fast-DetectGPT on a small local model pair. It needed a 6 GB download, and its thresholds could not be validated as well as the web tools'. It was removed in November 2026.
 
 ## 4. Style (`stylometry.py`): weak on its own
 

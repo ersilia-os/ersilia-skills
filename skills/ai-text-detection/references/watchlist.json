@@ -20,19 +20,18 @@
       "lands_in": "references/markers.json"
     },
     {
-      "id": "detectors",
-      "goal": "Open-source, locally runnable AI-text detectors better than Binoculars / Fast-DetectGPT, especially for machine-revised text and for recent models, with public code and weights that fit a 16 GB Mac.",
+      "id": "web-detectors",
+      "goal": "AI-text detectors with a free web checker and independent evidence of a low false-positive rate on scientific text (new tools, changed free limits, new independent evaluations). Update references/web_detectors.json: add tools, set max_words, and move a tool to 'validated' only with independent evidence.",
       "queries": [
-        "zero-shot LLM-generated text detection 2026 github",
-        "AI text detector benchmark RAID leaderboard",
-        "detect machine-revised text open source"
+        "independent evaluation AI text detector false positive rate 2026",
+        "GPTZero Pangram Originality accuracy study",
+        "free AI detector word limit"
       ],
       "feeds": [
         "https://raid-bench.xyz/leaderboard",
-        "https://github.com/baoguangsheng/fast-detect-gpt",
-        "https://github.com/ahans30/Binoculars"
+        "https://www.nber.org/papers/w34223"
       ],
-      "lands_in": "scripts/detect_models.py (new statistic or model pair; re-run calibrate.py)"
+      "lands_in": "references/web_detectors.json"
     },
     {
       "id": "vocabulary",
@@ -90,7 +89,7 @@
     },
     {
       "date": "2026-11-15",
-      "topic": "detectors",
+      "topic": "web-detectors",
       "found": "Binoculars, Fast-DetectGPT (with author-fitted params for 4 pairs), Glimpse (API-only), ImBD (machine-revised text, checkpoint public), AdaDetectGPT (NeurIPS 2025, code public), DetectAnyLLM (no code). Commercial: Pangram has the best independent FPR evidence but is paid.",
       "change": "detect_models.py: Binoculars + Fast-DetectGPT on Qwen2.5-1.5B pair; ImBD and AdaDetectGPT are candidates for a later version"
     },
@@ -117,6 +116,12 @@
       "topic": "skills",
       "found": "blader/humanizer, hardikpandya/stop-slop, tbhb/vale-ai-tells, sam-paech/slop-forensics (all MIT); none checks references or hidden prompts",
       "change": "markers.json style.tells"
+    },
+    {
+      "date": "2026-11-15",
+      "topic": "web-detectors",
+      "found": "User decided against local models: the statistical layer is now web detectors run in Chrome (Pangram, GPTZero, Originality validated; Copyleaks, Sapling, Scribbr, QuillBot, Winston, Writer, ZeroGPT, Undetectable as context).",
+      "change": "detect_models.py removed; web_detectors.json v2"
     }
   ]
 }

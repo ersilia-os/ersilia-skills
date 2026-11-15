@@ -96,7 +96,6 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
     g = read_json(work / "grade.json") or {}
     arts = read_json(work / "artifacts.json") or {"hits": [], "hidden": []}
     refs = read_json(work / "references.json") or {"references": [], "counts": {}}
-    det = read_json(work / "detectors.json") or {}
     sty = read_json(work / "stylometry.json") or {}
     jud = read_json(work / "judgements.json") or {}
     cal = read_json(REFS / "calibration.json") or {}
@@ -105,20 +104,32 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
     sthr = scal.get("thresholds") or {}
     ss = sty.get("summary") or {}
     swin = sty.get("windows") or []
-    dwin = {w["id"]: w for w in det.get("windows") or []}
-    dsum = det.get("summary") or {}
+    web = read_json(work / "web_detectors.json") or {}
+    wsum = web.get("summary") or {}
+    wreg = {
+        t["id"]: t
+        for t in (read_json(REFS / "web_detectors.json") or {}).get("tools", [])
+    }
+    chunk_of = {
+        w_id: str(c["chunk"]) for c in web.get("chunks", []) for w_id in c["windows"]
+    }
 
-    # Per-window flag: the strictest of style score and detectors.
+    # Per-window flag: the style score's threshold, raised to "1%"-strength shading when a
+    # validated web detector flags the chunk the window belongs to.
     for w in swin:
-        flags = []
         sc = w.get("style_score")
-        if sc is not None and sthr:
-            flags.append(
-                "1%" if sc >= sthr["1%"] else ("5%" if sc >= sthr["5%"] else None)
-            )
-        d = dwin.get(w["id"], {})
-        flags += [d.get("binoculars_flag"), d.get("fast_detectgpt_flag")]
-        w["flag"] = "1%" if "1%" in flags else ("5%" if "5%" in flags else None)
+        w["flag"] = (
+            None
+            if sc is None or not sthr
+            else ("1%" if sc >= sthr["1%"] else ("5%" if sc >= sthr["5%"] else None))
+        )
+        w["web_hits"] = [
+            ws["name"]
+            for ws in wsum.values()
+            if ws["weight"] == "validated"
+            and (ws["by_chunk"].get(chunk_of.get(w["id"], "")) or 0) >= 0.5
+        ]
+        w["shade"] = "1%" if w["flag"] == "1%" or w["web_hits"] else w["flag"]
 
     # Findings list (numbered) and the artefact spans that point to it.
     findings, spans = [], []
@@ -215,24 +226,6 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             style_cls,
         ),
     ]
-    for k, label in (
-        ("binoculars", "Binoculars"),
-        ("fast_detectgpt", "Fast-DetectGPT"),
-    ):
-        s = dsum.get(k)
-        if s:
-            t = (cal.get("detectors") or {}).get(k) or {}
-            h = (t.get("heldout") or {}).get("human (held out)") or {}
-            rows.append(
-                row(
-                    label,
-                    f"median {num(s['median'], 3)}; past 1%: {s['over_1pct']}/{s['windows']}; past 5%: {s['over_5pct']}/{s['windows']}; document flag: {e(s.get('document_flag') or 'none')}",
-                    f"thresholds {num(t.get('thr_1'), 3)} / {num(t.get('thr_5'), 3)} ({e(t.get('direction'))} = machine-like); held-out human flagged {pct(h.get('past_1pct'))} / {pct(h.get('past_5pct'))}; AUROC {num(t.get('auroc'))}",
-                    "w1" if s["over_1pct"] else ("w5" if s["over_5pct"] else "ok"),
-                )
-            )
-        else:
-            rows.append(row(label, "not run", "models not installed or skipped"))
     rows += [
         row(
             "Excess vocabulary per 1,000 words",
@@ -307,48 +300,56 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         ),
     ]
 
-    # Web detectors run in Chrome: one row per tool, one column per tool in the passages table.
-    web = read_json(work / "web_detectors.json") or {}
-    wsum = web.get("summary") or {}
-    wreg = {
-        t["id"]: t
-        for t in (read_json(REFS / "web_detectors.json") or {}).get("tools", [])
-    }
-    chunk_of = {
-        w_id: str(c["chunk"]) for c in web.get("chunks", []) for w_id in c["windows"]
-    }
+    # Web detectors: one row per tool, then the consensus, right after the style score.
+    web_rows = []
     for tid, ws in wsum.items():
         share = ws["share_words_flagged"]
         cls = ("w1" if share >= 0.5 else "w5") if share > 0 else "ok"
         if ws["weight"] != "validated" and cls == "w1":
             cls = "w5"  # unvalidated tools never colour stronger than 'past 5%'
-        rows.append(
+        web_rows.append(
             row(
                 f"{ws['name']} (web, {ws['weight']})",
-                f"mean AI score {num(ws['mean_score'])}; chunks flagged {ws['chunks_flagged']}/{ws['chunks']} ({share:.0%} of words)",
+                f"mean AI score {num(ws['mean_score'])}; chunks flagged {ws['chunks_flagged']}/{ws['chunks']} "
+                f"({share:.0%} of words scanned; covered {ws.get('coverage', 1):.0%} of the text)",
                 e(wreg.get(tid, {}).get("evidence", "")),
                 cls,
             )
         )
     for sk in web.get("skipped", []):
-        rows.append(row(f"{sk['tool']} (web)", "not run", e(sk["why"])))
+        web_rows.append(row(f"{sk['tool']} (web)", "not run", e(sk["why"])))
+    cons = web.get("consensus")
+    if cons:
+        web_rows.append(
+            row(
+                "Web detectors, consensus",
+                f"{cons['flagging']} of {cons['ran']} tools flag the text ({cons['validated_flagging']} of {cons['validated_ran']} validated); "
+                f"mean AI scores range {num(cons['min_mean'])}–{num(cons['max_mean'])}",
+                "agreement between independent tools; validated ones weigh more",
+                "w1"
+                if cons["validated_flagging"] >= 2
+                else ("w5" if cons["flagging"] else "ok"),
+            )
+        )
+    if not wsum and not web.get("skipped"):
+        web_rows.append(
+            row("Web detectors", "not run", "confidential text, or not run this time")
+        )
+    rows[2:2] = web_rows
 
     # Per-window table.
     wrows = []
     for w in swin:
-        dd = dwin.get(w["id"], {})
         sc = w.get("style_score")
         s_flag = (
             None
             if sc is None or not sthr
             else ("1%" if sc >= sthr["1%"] else ("5%" if sc >= sthr["5%"] else None))
         )
-        rc = WORD_SHADE.get(w.get("flag"), "")
+        rc = WORD_SHADE.get(w.get("shade"), "")
         wrows.append(
             f'<tr class="{rc}"><td><a href="#{w["id"]}">{w["id"]}</a></td><td>{e(w.get("section"))}</td><td>{w.get("n_words")}</td>'
             f'<td class="{flag_cls(s_flag)}">{num(sc)}</td>'
-            f'<td class="{flag_cls(dd.get("binoculars_flag")) if dd else ""}">{num(dd.get("binoculars"), 3)}</td>'
-            f'<td class="{flag_cls(dd.get("fast_detectgpt_flag")) if dd else ""}">{num(dd.get("fast_detectgpt"))}</td>'
             + "".join(
                 web_cell(ws["by_chunk"].get(chunk_of.get(w["id"], "")))
                 for ws in wsum.values()
@@ -364,16 +365,17 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             continue
         if a > pos:
             parts.append(render_segment(text, pos, a, spans))
-        shade = WORD_SHADE.get(w.get("flag"), "")
-        dd = dwin.get(w["id"], {})
+        shade = WORD_SHADE.get(w.get("shade"), "")
+        web_scores = " · ".join(
+            f"{ws['name']} {num(ws['by_chunk'].get(chunk_of.get(w['id'], '')))}"
+            for ws in wsum.values()
+            if ws["by_chunk"].get(chunk_of.get(w["id"], "")) is not None
+        )
         lab = (
             f"[{w['id']} · style {num(w.get('style_score'))}"
-            + (
-                f" · bino {num(dd.get('binoculars'), 3)} · fdg {num(dd.get('fast_detectgpt'))}"
-                if dd
-                else ""
-            )
-            + (f" · past {w['flag']}" if w.get("flag") else "")
+            + (f" · {web_scores}" if web_scores else "")
+            + (f" · style past {w['flag']}" if w.get("flag") else "")
+            + (f" · flagged by {', '.join(w['web_hits'])}" if w.get("web_hits") else "")
             + "]"
         )
         parts.append(
@@ -393,7 +395,7 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         "artefacts",
         "references" if refs.get("references") else None,
         "style",
-        "detectors" if dsum else None,
+        "web detectors" if wsum else None,
         "close reading" if jud.get("reading") else None,
     ]
     lims = "".join(f"<li>{e(c)}</li>" for c in g.get("caveats", []))
@@ -408,9 +410,9 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         "<p>A window is ~300 words. “Past 1%” means a score that only 1% of human scientific text written before ChatGPT reaches; "
         "the held-out rates show how often that happened on human and on AI text in calibration.</p>"
         "<h2>Passages</h2>"
-        '<div class="scroll"><table><tr><th>Window</th><th>Section</th><th>Words</th><th>Style score</th><th>Binoculars</th>'
-        f"<th>Fast-DetectGPT</th>{''.join(f'<th>{e(ws["name"])}</th>' for ws in wsum.values())}<th>Flag</th><th>AI-typical words</th></tr>{''.join(wrows)}</table></div>"
-        '<h2>Text</h2><p>Highlights: <span class="w5">window past 5%</span> · <span class="w1">window past 1%</span> · '
+        '<div class="scroll"><table><tr><th>Window</th><th>Section</th><th>Words</th><th>Style score</th>'
+        f"{''.join(f'<th>{e(ws["name"])}</th>' for ws in wsum.values())}<th>Flag</th><th>AI-typical words</th></tr>{''.join(wrows)}</table></div>"
+        '<h2>Text</h2><p>Highlights: <span class="w5">window: style past 5%</span> · <span class="w1">window: style past 1%, or flagged by a validated web detector</span> · '
         '<mark class="word">AI-typical word</mark> · <mark class="phrase">stock phrasing</mark> · <mark class="art">artefact</mark>. '
         "Everything else is plain.</p>"
         f'<div class="text">{"".join(parts)}</div>'

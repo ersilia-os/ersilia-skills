@@ -128,7 +128,7 @@ def build(work: Path, case: str, kind: str, context: str) -> str:
     doc = read_json(work / "text.json") or {}
     arts = read_json(work / "artifacts.json") or {"hits": [], "hidden": []}
     refs = read_json(work / "references.json") or {"references": []}
-    det = read_json(work / "detectors.json") or {}
+    det: dict = {}  # local model detectors were removed; web detectors live in the raw report
     sty = read_json(work / "stylometry.json") or {}
     jud = read_json(work / "judgements.json") or {}
     cal = read_json(REFS / "calibration.json") or {}
@@ -264,7 +264,7 @@ def build(work: Path, case: str, kind: str, context: str) -> str:
     )
 
     # Statistical signals: one cell per window.
-    dwin = det.get("windows", [])
+    det.get("windows", [])
     swin = sty.get("windows", [])
     strip_rows = []
 
@@ -278,13 +278,6 @@ def build(work: Path, case: str, kind: str, context: str) -> str:
             )
         return "".join(out)
 
-    if dwin:
-        strip_rows.append(
-            f'<div class="row"><span>Binoculars</span><div class="cells">{cells(dwin, "binoculars_flag")}</div></div>'
-        )
-        strip_rows.append(
-            f'<div class="row"><span>Fast-DetectGPT</span><div class="cells">{cells(dwin, "fast_detectgpt_flag")}</div></div>'
-        )
     sthr = (cal.get("stylometry") or {}).get("thresholds") or {}
     if swin and sthr:
         for w in swin:
@@ -365,23 +358,19 @@ def build(work: Path, case: str, kind: str, context: str) -> str:
         f"{' (summary from secondary sources)' if p.get('secondary') else ''}</li>"
         for p in pols
     )
-    models = det.get("models") or {}
     method = (
         '<dl class="kv">'
         f"<dt>Analysed</dt><dd>{date.today().isoformat()} · {e(doc.get('format'))} · {e(doc.get('n_words'))} words · "
         f"{len(swin)} windows</dd>"
-        f"<dt>Detector models</dt><dd>{e(models.get('observer', 'not run'))} / {e(models.get('performer', ''))} on {e(models.get('device', ''))}</dd>"
         f"<dt>Calibration</dt><dd>{e(cal.get('version', 'not calibrated'))} · {e((cal.get('corpus') or {}).get('human_windows'))} human windows, "
         f"{e((cal.get('corpus') or {}).get('ai_windows'))} AI windows (see references/validation.md)</dd>"
         f"<dt>Rules</dt><dd>markers.json v{e((read_json(REFS / 'markers.json') or {}).get('version'))} · grading.json v{e(g.get('grading_version'))}</dd>"
-        f"<dt>Privacy</dt><dd>All analysis ran on this computer. Only reference strings were sent to Crossref, DataCite, doi.org, OpenAlex and arXiv.</dd>"
+        f"<dt>Privacy</dt><dd>Analysis ran on this computer. Reference strings went to Crossref, DataCite, doi.org, OpenAlex and Semantic Scholar; text chunks went to web detectors only when the user's rules allowed it.</dd>"
         "</dl>"
         '<ul><li>Artefacts: regular expressions for chatbot and AI-tool leftovers, from Wikipedia\'s "Signs of AI writing", '
         "Retraction Watch and Academ-AI cases, and the tools' own citation and interface formats.</li>"
         "<li>References: every DOI resolved in Crossref, DataCite or doi.org; every other reference searched by title in Crossref and OpenAlex.</li>"
-        "<li>Detectors: Binoculars (Hans et al. 2024) and Fast-DetectGPT (Bao et al. 2024), both computed from one local model pair. "
-        "They measure how predictable the text is to a language model, relative to how predictable such text normally is. "
-        "Their agreement is not independent corroboration.</li>"
+        "<li>Web detectors (Pangram, GPTZero and others), run chunk by chunk in Chrome; see the raw report for their scores.</li>"
         "<li>Style: excess vocabulary from Kobak et al. 2025 (Science Advances) and Liang et al. 2024, phrasing patterns from "
         "Wikipedia's list, blader/humanizer and stop-slop, combined in a logistic model fitted on the calibration corpus.</li></ul>"
     )

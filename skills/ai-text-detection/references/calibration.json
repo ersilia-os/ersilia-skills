@@ -1,6 +1,5 @@
 {
   "version": "2026-11-15",
-  "detectors": {},
   "stylometry": {
     "human_quantiles": {
       "excess_rate": [

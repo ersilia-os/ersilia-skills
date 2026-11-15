@@ -1,6 +1,6 @@
 """Combine every check into one graded verdict and a list of defensible statements.
 
-Reads from the work folder: artifacts.json, references.json, detectors.json,
+Reads from the work folder: artifacts.json, references.json, web_detectors.json,
 stylometry.json, text.json, and judgements.json (Claude's own reading, plus its decisions
 on candidate hits and on references it verified by hand). Rules come from
 references/grading.json.
@@ -9,7 +9,7 @@ Tiers, highest first:
 
     conclusive    an AI tool's output was pasted in (a confirmed artefact)
     strong        verifiable problems typical of unchecked AI use (fabricated references),
-                  or both calibrated detectors flag the document *and* something else does
+                  or two validated web detectors flag the document *and* something else does
     moderate      one independent line of evidence
     weak          only stylistic context
     none          nothing found
@@ -52,13 +52,11 @@ def grade(work: Path) -> dict:
     doc = read_json(work / "text.json") or {}
     arts = read_json(work / "artifacts.json") or {"hits": [], "hidden": []}
     refs = read_json(work / "references.json") or {"references": []}
-    det = read_json(work / "detectors.json") or {}
     sty = read_json(work / "stylometry.json") or {}
     jud = read_json(work / "judgements.json") or {}
     ja, jr = jud.get("artifacts", {}), jud.get("references", {})
 
     statements: list[dict] = []
-    det_statement: dict = {}
     separate: list[dict] = []
     met = {t: [] for t in TIERS}
 
@@ -183,46 +181,6 @@ def grade(work: Path) -> dict:
         )
         met["weak"].append("ref-mismatch")
 
-    # 3. Detectors. Both statistics come from one model pair, so they are one line of
-    # evidence: 'both' only raises it to strong when something independent agrees.
-    dsum = det.get("summary") or {}
-    flags1 = [k for k, v in dsum.items() if v.get("document_flag") == "1%"]
-    flags5 = [k for k, v in dsum.items() if v.get("document_flag") in ("1%", "5%")]
-    det_level = None
-    if len(flags1) >= rules["strong"]["detectors_required"]:
-        det_level = "both-1"
-    elif flags1:
-        det_level = "one-1"
-    elif flags5:
-        det_level = "5"
-    if det_level:
-        parts = [
-            f"{k.replace('_', '-')}: {v['over_1pct']} of {v['windows']} windows past the 1% threshold"
-            for k, v in dsum.items()
-        ]
-        if det_level == "5":
-            text = (
-                "Detectors flag the document only at the looser 5% false-positive operating point "
-                f"({'; '.join(parts)})."
-            )
-        else:
-            text = (
-                "Local AI-text detectors, calibrated so that only about 1% of human scientific text written "
-                f"before ChatGPT is flagged, flag this document ({'; '.join(parts)}). This is a statistical "
-                "signal about how predictable the text is to a language model, not proof of authorship."
-            )
-        det_statement = {
-            "tier": "weak" if det_level == "5" else "moderate",
-            "text": text,
-            "evidence": ["detectors"],
-            "check": "Method, thresholds and validation rates are in the report's methods section.",
-        }
-        statements.append(det_statement)
-        if det_level == "5":
-            met["weak"].append("detectors-5")
-        else:
-            met["moderate"].append("detectors")
-
     # 4. Stylometry.
     ss = sty.get("summary") or {}
     wo = ss.get("windows_over") or {}
@@ -313,7 +271,8 @@ def grade(work: Path) -> dict:
 
     # 4b. The author's own earlier writing (baseline.py), when available.
     base = read_json(work / "baseline.json") or {}
-    machine_side = {"binoculars": -1, "fast_detectgpt": 1}
+    # Style features outside the author's own earlier range, on the AI-typical side.
+    machine_side = {"excess_rate": 1, "marked_rate": 1, "tells_rate": 1, "sent_cv": -1}
     shifted = [
         k
         for k, c in (base.get("comparison") or {}).items()
@@ -321,7 +280,10 @@ def grade(work: Path) -> dict:
         and c["outside_range"]
         and (c["document_median"] - c["baseline_median"]) * machine_side[k] > 0
     ]
-    if shifted and base.get("n_texts", 0) >= rules["moderate"]["baseline_min_texts"]:
+    if (
+        len(shifted) >= rules["moderate"].get("baseline_min_features", 2)
+        and base.get("n_texts", 0) >= rules["moderate"]["baseline_min_texts"]
+    ):
         met["moderate"].append("baseline")
         statements.append(
             {
@@ -375,25 +337,15 @@ def grade(work: Path) -> dict:
     ):
         met["moderate"].append("reading")
 
-    # Decide the tier. Detectors at 1% FPR on both statistics become strong only next to
-    # another independent line of moderate-or-higher evidence.
-    independent = [
+    # Decide the tier. Two validated web detectors become strong only next to a
+    # non-statistical line (artefacts, references, close reading, baseline).
+    non_stat = [
         x
         for x in met["moderate"] + met["strong"] + met["conclusive"]
-        if x != "detectors"
-    ]
-    non_stat = [
-        x for x in independent if x not in ("web", "style", "detectors-5", "detectors")
+        if x not in ("web", "style")
     ]
     if len(flagged_valid) >= wr["validated_for_strong"] and non_stat:
         met["strong"].append("web+other")
-    if (
-        det_level == "both-1"
-        and independent
-        and rules["strong"]["detector_needs_one_moderate"]
-    ):
-        met["strong"].append("detectors+other")
-        det_statement["tier"] = "strong"
     tier = next((t for t in TIERS[:-1] if met.get(t)), "none")
 
     caveats = []
@@ -401,13 +353,6 @@ def grade(work: Path) -> dict:
     if nwords < rules["caveats"]["short_text_words"]:
         caveats.append(
             f"The text is short ({nwords} words): statistical checks are unreliable below ~300 words."
-        )
-    if (
-        dsum
-        and max(v["windows"] for v in dsum.values()) < rules["caveats"]["few_windows"]
-    ):
-        caveats.append(
-            "Fewer than 3 windows were scored, so the document-level detector rule could not be applied."
         )
     tracked = (doc.get("metadata") or {}).get("tracked_changes_removed")
     if tracked:
@@ -430,9 +375,9 @@ def grade(work: Path) -> dict:
         )
     for sk in web.get("skipped", []):
         caveats.append(f"Web detector {sk['tool']} was not used: {sk['why']}.")
-    if not dsum:
+    if not wsum:
         caveats.append(
-            "The model-based detectors were not run (environment missing or skipped)."
+            "No web detector was run (confidential text, or not run this time), so there is no detector score."
         )
     if not rlist:
         caveats.append("No reference list was found, so references were not checked.")
