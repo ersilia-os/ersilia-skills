@@ -156,7 +156,13 @@ def check_case(path: Path) -> list[str]:
             doc["format"] = case["format"]
             write_json(work / "text.json", doc)
         run("scan_artifacts.py", "--work", tmp)
-        for name in ("references", "detectors", "stylometry", "judgements"):
+        for name in (
+            "references",
+            "detectors",
+            "stylometry",
+            "judgements",
+            "web_detectors",
+        ):
             if case.get(name) is not None:
                 write_json(work / f"{name}.json", case[name])
         run("grade.py", "--work", tmp)

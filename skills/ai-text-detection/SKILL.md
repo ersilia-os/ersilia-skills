@@ -44,6 +44,7 @@ Scripts live in `scripts/`. They run with any `python3`, except PDF/DOCX extract
 | `check_references.py` | Each reference looked up; statuses are `ok`, `metadata-mismatch`, `doi-points-elsewhere`, `doi-not-registered`, `not-found`, `unverifiable` |
 | `stylometry.py` | Excess vocabulary, stock phrasing, em dashes, sentence uniformity; percentiles against human text; style score |
 | `detect_models.py` | Binoculars and Fast-DetectGPT per ~300-word window, against the calibrated 1% / 5% FPR thresholds |
+| `web_detectors.py`, `browser_detect.py` | Web detectors (Pangram, GPTZero, …): prepare chunks, drive Chrome to run them, record and summarise scores (`references/web_detectors.json`) |
 | `baseline.py` | Optional: the same author's pre-2023 writing (OpenAlex abstracts or files the user gives), scored the same way, to show a change in their own style |
 | `grade.py` | Rules in `references/grading.json` produce the tier plus defensible statements |
 | `build_report.py`, `report_raw.py` | The report: raw HTML, scores first, then the text with AI-looking passages highlighted; published as a private Artifact |
@@ -95,6 +96,30 @@ conda run -n ai-text-detection python detect_models.py & wait   # detectors only
 Use `conda run -n ai-text-detection python extract_text.py` for PDF/DOCX. Show the section map and word count. Below 300 words, warn that the statistics are unreliable and lean on artefacts, references and reading.
 
 If the reference list was split badly (the `[n/N]` lines show merged or broken references), write a clean `refs.json` (`[{"raw": ..., "doi": ..., "title": ..., "first_author": ..., "year": ...}]`) and re-run `check_references.py --refs refs.json`.
+
+### 2b. Web detectors in Chrome (you do it; the user shouldn't have to)
+
+The user used to paste chunks into GPTZero, Pangram and others by hand. Do it for them, without asking them to open anything.
+
+1. **Can the text leave the machine?** Pasting into a website uploads it.
+   - **Yes:** the user's own or co-authored drafts (`collaborator-draft`), and public text.
+   - **No, never:** `manuscript-i-review` and `grant-i-review`. Reviewer confidentiality forbids it (NIH, ERC, UKRI, Wellcome, ICMJE, Springer Nature). Say so in one line and skip this step.
+   - **Ask first:** `reviewer-of-my-paper`, because the review is confidential to the journal.
+2. `python web_detectors.py prepare` cuts the scored windows into 250–600-word chunks (`/tmp/ai_text_detection/web/chunk_k.txt`).
+3. **Drive the browser yourself.**
+   - If Claude in Chrome tools are available in the session (`mcp__claude-in-chrome__*`), use them: open each site in `references/web_detectors.json` (`default_order`: Pangram, GPTZero first), paste each chunk, run it, read the result.
+   - Otherwise run `conda run -n ai-text-detection python browser_detect.py --tools pangram,gptzero`. It opens the user's Google Chrome with a dedicated profile, pastes each chunk, presses the scan button, and saves each result page as text plus a screenshot. If Playwright is missing, ask once before `conda run -n ai-text-detection pip install playwright` (tens of MB; it uses the installed Chrome).
+   - If a site shows a login wall the first time, run `browser_detect.py --login` once and tell the user which site wants them to sign in. The profile remembers it.
+4. **Read every result yourself.** Open the saved page text or screenshot, find the AI likelihood, and record it with `python web_detectors.py record --tool <id> --chunk <k> --score <0-1> --label "<what the site says>"`. The `guess` the script prints is only a hint. Then run `python web_detectors.py summary`.
+5. **Never work around a CAPTCHA, a login wall or a free-use limit.** Record it with `web_detectors.py skip --tool <id> --why "..."` and move on to the next site. Keep a human pace, one document at a time.
+
+`grade.py` reads the results:
+- **Validated tools** (Pangram, GPTZero, Originality) that flag at least half of the words they scanned count as one moderate line of evidence. A tool counts only if it scanned at least half the text.
+- **Two validated tools plus a non-statistical finding** (artefacts, references, close reading) make it strong.
+- **Unvalidated tools** (Copyleaks, QuillBot, ZeroGPT) are weak context at most.
+- **A validated tool that scores the text human** is reported as counter-evidence.
+
+The report adds one row per tool and one column per tool in the passages table. Record each tool's results in the case ledger like any other detector, so its precision on the user's real cases builds up.
 
 ### 3. Your part: confirm, verify, read
 

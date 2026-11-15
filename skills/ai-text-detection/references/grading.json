@@ -50,5 +50,11 @@
     "short_text_words": 300,
     "few_windows": 3
   },
-  "_style_note": "The style score counts as moderate evidence only if its validated AUROC (calibration.json) reaches min_style_auroc; otherwise it is weak context at most."
+  "_style_note": "The style score counts as moderate evidence only if its validated AUROC (calibration.json) reaches min_style_auroc; otherwise it is weak context at most.",
+  "web": {
+    "flag_share": 0.5,
+    "validated_for_strong": 2,
+    "_note": "A web tool flags the document when chunks holding at least flag_share of the words score >= 0.5. Two validated tools flagging, plus one non-statistical line (artefacts, references, reading, baseline), make it strong. A tool counts only if its scanned chunks cover at least min_coverage of the text.",
+    "min_coverage": 0.5
+  }
 }

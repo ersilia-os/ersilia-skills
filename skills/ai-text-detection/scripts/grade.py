@@ -256,6 +256,61 @@ def grade(work: Path) -> dict:
                 }
             )
 
+    # 4a. Web detectors run in Chrome (web_detectors.py / browser_detect.py).
+    web = read_json(work / "web_detectors.json") or {}
+    wsum = web.get("summary") or {}
+    wr = rules.get(
+        "web", {"flag_share": 0.5, "validated_for_strong": 2, "min_coverage": 0.5}
+    )
+    # A tool that scanned too little of the text says nothing about the document.
+    wsum = {
+        k: v
+        for k, v in wsum.items()
+        if v.get("coverage", 1) >= wr.get("min_coverage", 0.5)
+    }
+    flagged_valid = [
+        x
+        for x in wsum.values()
+        if x["weight"] == "validated" and x["share_words_flagged"] >= wr["flag_share"]
+    ]
+    clean_valid = [
+        x
+        for x in wsum.values()
+        if x["weight"] == "validated" and x["share_words_flagged"] < wr["flag_share"]
+    ]
+    flagged_ctx = [
+        x
+        for x in wsum.values()
+        if x["weight"] != "validated" and x["share_words_flagged"] >= wr["flag_share"]
+    ]
+    if flagged_valid:
+        met["moderate"].append("web")
+        statements.append(
+            {
+                "tier": "moderate",
+                "text": "Commercial AI detectors with independent evidence of few false positives flag this text: "
+                + "; ".join(
+                    f"{x['name']} flags {x['chunks_flagged']} of {x['chunks']} chunks ({x['share_words_flagged']:.0%} of the words), mean AI score {x['mean_score']}"
+                    for x in flagged_valid
+                )
+                + ". A detector score is a statistical judgement, not proof.",
+                "evidence": ["web"],
+                "check": "Paste the same chunks into the same sites; the chunks are saved with the report.",
+            }
+        )
+    if flagged_ctx:
+        met["weak"].append("web-context")
+        statements.append(
+            {
+                "tier": "weak",
+                "text": "Detectors without independent validation also flag it ("
+                + ", ".join(x["name"] for x in flagged_ctx)
+                + "); they are known for false positives, so this is context only.",
+                "evidence": ["web"],
+                "check": "",
+            }
+        )
+
     # 4b. The author's own earlier writing (baseline.py), when available.
     base = read_json(work / "baseline.json") or {}
     machine_side = {"binoculars": -1, "fast_detectgpt": 1}
@@ -327,6 +382,11 @@ def grade(work: Path) -> dict:
         for x in met["moderate"] + met["strong"] + met["conclusive"]
         if x != "detectors"
     ]
+    non_stat = [
+        x for x in independent if x not in ("web", "style", "detectors-5", "detectors")
+    ]
+    if len(flagged_valid) >= wr["validated_for_strong"] and non_stat:
+        met["strong"].append("web+other")
     if (
         det_level == "both-1"
         and independent
@@ -359,6 +419,17 @@ def grade(work: Path) -> dict:
             )
             + " were set aside."
         )
+    if clean_valid:
+        caveats.append(
+            "Counter-evidence: "
+            + "; ".join(
+                f"{x['name']} scored {x['chunks'] - x['chunks_flagged']} of {x['chunks']} chunks as human (mean AI score {x['mean_score']})"
+                for x in clean_valid
+            )
+            + "."
+        )
+    for sk in web.get("skipped", []):
+        caveats.append(f"Web detector {sk['tool']} was not used: {sk['why']}.")
     if not dsum:
         caveats.append(
             "The model-based detectors were not run (environment missing or skipped)."

@@ -50,6 +50,12 @@ def num(x: float | None, d: int = 2) -> str:
     return "n/a" if x is None else f"{x:.{d}f}"
 
 
+def web_cell(v: float | None) -> str:
+    """A passages-table cell for one web detector's score on this window's chunk."""
+    cls = "" if v is None else ("w1" if v >= 0.5 else "ok")
+    return f'<td class="{cls}">{num(v)}</td>'
+
+
 def render_segment(text: str, a: int, b: int, spans: list[dict]) -> str:
     """HTML for text[a:b] with non-overlapping <mark>s; paragraphs kept."""
     inside = sorted(
@@ -301,6 +307,32 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         ),
     ]
 
+    # Web detectors run in Chrome: one row per tool, one column per tool in the passages table.
+    web = read_json(work / "web_detectors.json") or {}
+    wsum = web.get("summary") or {}
+    wreg = {
+        t["id"]: t
+        for t in (read_json(REFS / "web_detectors.json") or {}).get("tools", [])
+    }
+    chunk_of = {
+        w_id: str(c["chunk"]) for c in web.get("chunks", []) for w_id in c["windows"]
+    }
+    for tid, ws in wsum.items():
+        share = ws["share_words_flagged"]
+        cls = ("w1" if share >= 0.5 else "w5") if share > 0 else "ok"
+        if ws["weight"] != "validated" and cls == "w1":
+            cls = "w5"  # unvalidated tools never colour stronger than 'past 5%'
+        rows.append(
+            row(
+                f"{ws['name']} (web, {ws['weight']})",
+                f"mean AI score {num(ws['mean_score'])}; chunks flagged {ws['chunks_flagged']}/{ws['chunks']} ({share:.0%} of words)",
+                e(wreg.get(tid, {}).get("evidence", "")),
+                cls,
+            )
+        )
+    for sk in web.get("skipped", []):
+        rows.append(row(f"{sk['tool']} (web)", "not run", e(sk["why"])))
+
     # Per-window table.
     wrows = []
     for w in swin:
@@ -317,7 +349,11 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             f'<td class="{flag_cls(s_flag)}">{num(sc)}</td>'
             f'<td class="{flag_cls(dd.get("binoculars_flag")) if dd else ""}">{num(dd.get("binoculars"), 3)}</td>'
             f'<td class="{flag_cls(dd.get("fast_detectgpt_flag")) if dd else ""}">{num(dd.get("fast_detectgpt"))}</td>'
-            f"<td>{e(w.get('flag') or '')}</td><td>{e(', '.join(w.get('_marked_words') or []))}</td></tr>"
+            + "".join(
+                web_cell(ws["by_chunk"].get(chunk_of.get(w["id"], "")))
+                for ws in wsum.values()
+            )
+            + f"<td>{e(w.get('flag') or '')}</td><td>{e(', '.join(w.get('_marked_words') or []))}</td></tr>"
         )
 
     # The text, window by window, with gaps (headings, skipped sections) as plain text.
@@ -373,7 +409,7 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         "the held-out rates show how often that happened on human and on AI text in calibration.</p>"
         "<h2>Passages</h2>"
         '<div class="scroll"><table><tr><th>Window</th><th>Section</th><th>Words</th><th>Style score</th><th>Binoculars</th>'
-        f"<th>Fast-DetectGPT</th><th>Flag</th><th>AI-typical words</th></tr>{''.join(wrows)}</table></div>"
+        f"<th>Fast-DetectGPT</th>{''.join(f'<th>{e(ws["name"])}</th>' for ws in wsum.values())}<th>Flag</th><th>AI-typical words</th></tr>{''.join(wrows)}</table></div>"
         '<h2>Text</h2><p>Highlights: <span class="w5">window past 5%</span> · <span class="w1">window past 1%</span> · '
         '<mark class="word">AI-typical word</mark> · <mark class="phrase">stock phrasing</mark> · <mark class="art">artefact</mark>. '
         "Everything else is plain.</p>"
