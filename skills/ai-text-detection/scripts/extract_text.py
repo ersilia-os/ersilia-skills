@@ -111,6 +111,9 @@ HEADING_RE = re.compile(
 )
 
 
+TABLE_MARK = "\x00table\x00"
+
+
 def is_heading(line: str) -> str | None:
     """The heading title when ``line`` looks like a section heading."""
     s = line.strip()
@@ -307,9 +310,23 @@ def from_docx(path: Path) -> tuple[list[tuple[int, str]], list[dict], dict]:
         die(
             "DOCX needs python-docx: run with `conda run -n ai-text-detection python ...`"
         )
+    from docx.table import Table
+    from docx.text.paragraph import Paragraph
+
     d = docx.Document(str(path))
     blocks, hidden = [], []
-    for para in d.paragraphs:
+    # Paragraphs and tables in document order (tables must not end up after the references).
+    for child in d.element.body.iterchildren():
+        tag = child.tag.rsplit("}", 1)[-1]
+        if tag == "tbl":
+            for row in Table(child, d).rows:
+                cells = " | ".join(c.text.strip() for c in row.cells if c.text.strip())
+                if cells:
+                    blocks.append((1, TABLE_MARK + cells))
+            continue
+        if tag != "p":
+            continue
+        para = Paragraph(child, d)
         visible = []
         for run in para.runs:
             t = run.text
@@ -335,11 +352,6 @@ def from_docx(path: Path) -> tuple[list[tuple[int, str]], list[dict], dict]:
         text = "".join(visible).strip()
         if text:
             blocks.append((1, text))
-    for table in d.tables:
-        for row in table.rows:
-            cells = " | ".join(c.text.strip() for c in row.cells if c.text.strip())
-            if cells:
-                blocks.append((1, cells))
     cp = d.core_properties
     meta = {
         k: str(getattr(cp, k))
@@ -385,6 +397,10 @@ def assemble(blocks: list[tuple[int, str]]) -> dict:
         if title and title.lower() in REF_HEADINGS:
             in_refs = True
             continue
+        if block.startswith(TABLE_MARK):
+            block = block[len(TABLE_MARK) :]
+            if in_refs:
+                continue  # a table after the reference list is not a reference
         if in_refs:
             # A non-reference heading after the list (e.g. "Supplementary") ends it.
             if title and title.lower() not in REF_HEADINGS and len(refs) > 2:

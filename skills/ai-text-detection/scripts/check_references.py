@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import html
 import itertools
 import json
 import re
@@ -221,7 +222,7 @@ def crossref_doi(doi: str) -> dict | None:
         return None
     m = data["message"]
     return {
-        "title": " ".join(m.get("title") or [""]),
+        "title": html.unescape(" ".join(m.get("title") or [""])),
         "first_author": ((m.get("author") or [{}])[0]).get("family"),
         "year": ((m.get("issued") or {}).get("date-parts") or [[None]])[0][0],
         "venue": " ".join(m.get("container-title") or []),
@@ -284,7 +285,7 @@ def search(raw: str) -> tuple[dict | None, float, list[str], bool]:
         for m in data["message"].get("items", []):
             cands.append(
                 {
-                    "title": " ".join(m.get("title") or [""]),
+                    "title": html.unescape(" ".join(m.get("title") or [""])),
                     "doi": m.get("DOI"),
                     "first_author": ((m.get("author") or [{}])[0]).get("family"),
                     "year": ((m.get("issued") or {}).get("date-parts") or [[None]])[0][
@@ -400,8 +401,17 @@ def check_one(ref: dict, own_doi: str | None = None) -> dict:
     }
     doi = ref.get("doi")
     if not doi:
-        m = DOI_RE.search(raw)
-        doi = m.group(1).rstrip(".,;)]}") if m else None
+        # A DOI broken by a stray space after a dot ("10.1128/aac. 02490-20") is rejoined.
+        raw_fixed = re.sub(
+            r"(\b10\.\d{4,9}/[^\s\"<>]*\.)\s+(\d[\w.\-\u2013]+)", r"\1\2", raw
+        )
+        m = DOI_RE.search(raw_fixed)
+        doi = m.group(1).rstrip(".,;)]}").replace("\u2013", "-") if m else None
+        if doi and len(doi.split("/", 1)[1]) < 5:
+            out["issues"].append(
+                f"DOI '{doi}' is incomplete; searched by title instead"
+            )
+            doi = None
     if doi:
         out["doi"] = doi
         out["queried"].append(f"https://api.crossref.org/works/{doi}")

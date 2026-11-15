@@ -349,6 +349,16 @@ def grade(work: Path) -> dict:
         caveats.append(
             "Fewer than 3 windows were scored, so the document-level detector rule could not be applied."
         )
+    tracked = (doc.get("metadata") or {}).get("tracked_changes_removed")
+    if tracked:
+        caveats.append(
+            "The author's original text was tested: tracked changes by "
+            + ", ".join(
+                f"{a} ({v['ins']} insertions, {v['del']} deletions)"
+                for a, v in tracked.items()
+            )
+            + " were set aside."
+        )
     if not dsum:
         caveats.append(
             "The model-based detectors were not run (environment missing or skipped)."
@@ -376,7 +386,7 @@ def grade(work: Path) -> dict:
         "conclusive": "Conclusive: text produced by an AI tool was pasted into this document.",
         "strong": "Strong evidence of unchecked AI use, based on problems anyone can verify.",
         "moderate": "Moderate evidence of AI use: one independent line of evidence points that way.",
-        "weak": "Weak signals only: the style resembles AI-assisted text, which proves nothing on its own.",
+        "weak": "Weak: only minor observations, none of which shows AI use on its own.",
         "none": "No evidence of AI use was found by these checks.",
     }[tier]
     return {
