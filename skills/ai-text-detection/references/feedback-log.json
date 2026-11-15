@@ -7,6 +7,14 @@
       "kind": "code",
       "change": "extract_text.py --original (tracked changes), DOCX tables kept in order and out of the reference list, 'Reference' heading; drive_intake.py Spotlight lookup; check_references.py rejoins DOIs split by a space and unescapes HTML in titles; grade.py weak headline no longer blames style",
       "fixture": "human-clean"
+    },
+    {
+      "n": 2,
+      "date": "2026-11-15",
+      "feedback": "Not happy with the designed report: wants it very raw (plain HTML), the document's text with only AI-looking parts highlighted, and the scores as the most important part",
+      "kind": "code",
+      "change": "report_raw.py is the default report (scores table with thresholds and held-out error rates, per-window table, text with shaded windows and marked words/phrases/artefacts); stylometry.py records phrase spans and exact window offsets; calibrate.py stores held-out rates",
+      "fixture": "chatbot-artifacts"
     }
   ]
 }

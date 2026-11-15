@@ -46,7 +46,7 @@ Scripts live in `scripts/`. They run with any `python3`, except PDF/DOCX extract
 | `detect_models.py` | Binoculars and Fast-DetectGPT per ~300-word window, against the calibrated 1% / 5% FPR thresholds |
 | `baseline.py` | Optional: the same author's pre-2023 writing (OpenAlex abstracts or files the user gives), scored the same way, to show a change in their own style |
 | `grade.py` | Rules in `references/grading.json` produce the tier plus defensible statements |
-| `build_report.py` | The HTML evidence report (Ersilia style), published as a private Artifact |
+| `build_report.py`, `report_raw.py` | The report: raw HTML, scores first, then the text with AI-looking passages highlighted; published as a private Artifact |
 | `build_corpus.py`, `calibrate.py` | Build the human calibration corpus; fit thresholds; write `references/validation.md` |
 | `watch.py` | Monthly scan for new leak tokens, detectors, vocabulary lists, datasets, policies and skills (`references/watchlist.json`) |
 | `selftest.py` | Offline regression test over `examples/cases/` and every marker's examples |
@@ -122,7 +122,13 @@ Show the user the verdict line and the conclusive or strong findings: each with 
 
 ### 5. The report
 
-`python build_report.py --case "<label>" --kind <kind> --context <context>` writes `report.html`. Publish it as a private Artifact (icon `search`). The page is already Ersilia-styled and self-contained. Then tell the user, in a few lines:
+`python build_report.py --case "<label>" --kind <kind> --context <context>` writes `report.html`: a deliberately raw page.
+- **Scores first:** every number, with the threshold and the held-out error rate it is compared with.
+- **A per-passage table:** each ~300-word window with its style and detector scores and flag.
+- **The document's own text,** with only the AI-looking parts highlighted: shaded windows past the 5% or 1% thresholds, and marked artefacts, AI-typical words and stock phrasing. Everything else stays plain.
+- **The findings,** then the limits.
+
+Publish it as a private Artifact (icon `search`). `--style ersilia` gives the older designed page, only if asked. Then tell the user, in a few lines:
 
 - the tier and its one-line meaning;
 - the two or three statements they can most safely make, quoted from the report's "What you can say";

@@ -15,6 +15,7 @@ Three places hold state:
 
 from __future__ import annotations
 
+import itertools
 import json
 import re
 import sys
@@ -207,24 +208,41 @@ def chunks(doc: dict, target: int = 300, minimum: int = 80) -> list[dict]:
     for i, c in enumerate(out, 1):
         c["id"] = f"c{i}"
         c["text"] = text[c["start"] : c["end"]].strip()
-    # Long single paragraphs: split on sentences so no window is much over 2x target.
+    # Long single paragraphs: split at sentence ends, keeping exact character offsets.
     final: list[dict] = []
     for c in out:
         if c["n_words"] <= 2 * target:
             final.append(c)
             continue
-        sents, buf = sentences(c["text"]), []
-        for s in sents:
-            buf.append(s)
-            if len(words(" ".join(buf))) >= target:
+        cuts, _start, n = [], c["start"], 0
+        seg = text[c["start"] : c["end"]]
+        prev = 0
+        for m in SENT_RE.finditer(seg):
+            n += len(words(seg[prev : m.start()]))
+            prev = m.start()
+            if n >= target:
+                cuts.append(c["start"] + m.start())
+                n = 0
+        bounds = [c["start"], *cuts, c["end"]]
+        for a, b in itertools.pairwise(bounds):
+            piece = text[a:b].strip()
+            if not piece:
+                continue
+            if len(words(piece)) < minimum and final and final[-1]["end"] == a:
+                last = final[-1]
+                last["end"] = b
+                last["text"] = text[last["start"] : b].strip()
+                last["n_words"] = len(words(last["text"]))
+            else:
                 final.append(
-                    {**c, "text": " ".join(buf), "n_words": len(words(" ".join(buf)))}
+                    {
+                        **c,
+                        "start": a,
+                        "end": b,
+                        "text": piece,
+                        "n_words": len(words(piece)),
+                    }
                 )
-                buf = []
-        if buf:
-            final.append(
-                {**c, "text": " ".join(buf), "n_words": len(words(" ".join(buf)))}
-            )
     for i, c in enumerate(final, 1):
         c["id"] = f"c{i}"
     return final

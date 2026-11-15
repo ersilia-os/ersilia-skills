@@ -645,7 +645,79 @@
       "1%": 0.8260747152646527,
       "5%": 0.7040724758358188
     },
-    "auroc": 0.7660400060159422
+    "auroc": 0.7660400060159422,
+    "heldout": {
+      "human (held out)": {
+        "n": 545,
+        "past_1pct": 0.007339449541284404,
+        "past_5pct": 0.031192660550458717
+      },
+      "human, non-English-speaking country": {
+        "n": 236,
+        "past_1pct": 0.01694915254237288,
+        "past_5pct": 0.0423728813559322
+      },
+      "human, abstract": {
+        "n": 222,
+        "past_1pct": 0.009009009009009009,
+        "past_5pct": 0.04504504504504504
+      },
+      "human, article": {
+        "n": 104,
+        "past_1pct": 0.019230769230769232,
+        "past_5pct": 0.04807692307692308
+      },
+      "human, grant": {
+        "n": 105,
+        "past_1pct": 0.0,
+        "past_5pct": 0.01904761904761905
+      },
+      "human, review": {
+        "n": 114,
+        "past_1pct": 0.0,
+        "past_5pct": 0.0
+      },
+      "AI (held out)": {
+        "n": 122,
+        "past_1pct": 0.1885245901639344,
+        "past_5pct": 0.4016393442622951
+      },
+      "AI, claude-haiku": {
+        "n": 12,
+        "past_1pct": 0.0,
+        "past_5pct": 0.0
+      },
+      "AI, claude-opus": {
+        "n": 18,
+        "past_1pct": 0.0,
+        "past_5pct": 0.0
+      },
+      "AI, claude-sonnet": {
+        "n": 15,
+        "past_1pct": 0.0,
+        "past_5pct": 0.0
+      },
+      "AI, gpt-3.5-turbo": {
+        "n": 24,
+        "past_1pct": 0.25,
+        "past_5pct": 0.625
+      },
+      "AI, gpt-3.5-turbo (ChatGPT)": {
+        "n": 50,
+        "past_1pct": 0.34,
+        "past_5pct": 0.64
+      },
+      "AI, gpt4": {
+        "n": 3,
+        "past_1pct": 0.0,
+        "past_5pct": 0.6666666666666666
+      },
+      "AI-polished human text": {
+        "n": 48,
+        "past_1pct": 0.0,
+        "past_5pct": 0.0
+      }
+    }
   },
   "corpus": {
     "human_windows": 1115,

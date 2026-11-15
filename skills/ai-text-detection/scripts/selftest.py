@@ -196,8 +196,22 @@ def check_case(path: Path) -> list[str]:
                     "--kind",
                     case.get("kind", "article"),
                 )
-            if not (work / "report.html").exists():
+            page = (
+                (work / "report.html").read_text()
+                if (work / "report.html").exists()
+                else ""
+            )
+            if not page:
                 errors.append(f"{path.stem}: report not written")
+            for needle in ("<h2>Scores</h2>", "<h2>Passages</h2>", "<h2>Text</h2>"):
+                if needle not in page:
+                    errors.append(f"{path.stem}: raw report lacks {needle}")
+            if (
+                exp.get("markers") and page.count('<mark class="art"') < 2
+            ):  # the legend has one
+                errors.append(
+                    f"{path.stem}: artefacts are not highlighted in the report text"
+                )
     return errors
 
 

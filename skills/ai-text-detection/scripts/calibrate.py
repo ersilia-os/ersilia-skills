@@ -252,6 +252,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             val["detectors"][det] = v
             thr["auroc"] = v["auroc"]
+            thr["heldout"] = {k: x for k, x in v.items() if isinstance(x, dict)}
         # Document rule from human fit documents with >= 3 windows.
         docs: dict[str, list[dict]] = {}
         for r in Hfit:
@@ -350,6 +351,9 @@ def main(argv: list[str] | None = None) -> int:
     sv["auroc"] = auroc([prob(r) for r in Atest], [prob(r) for r in Htest])
     sv["weights"] = {k: round(x, 3) for k, x in zip(MODEL_FEATURES, w)}
     cal["stylometry"]["auroc"] = sv["auroc"]
+    cal["stylometry"]["heldout"] = {
+        k: v for k, v in sv.items() if isinstance(v, dict) and "n" in v
+    }
     val["style"] = sv
     # Feature-by-feature separation, so the report can say which tells actually help.
     val["features_auroc"] = {

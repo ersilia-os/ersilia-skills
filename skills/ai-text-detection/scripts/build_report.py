@@ -450,10 +450,23 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--kind", default="article")
     p.add_argument("--context", default="other")
     p.add_argument("--out")
+    p.add_argument(
+        "--style",
+        choices=["raw", "ersilia"],
+        default="raw",
+        help="raw (default): scores, then the text with AI-looking passages highlighted; "
+        "ersilia: the designed evidence page",
+    )
     args = p.parse_args(argv)
     work = Path(args.work)
     out = Path(args.out) if args.out else work / "report.html"
-    out.write_text(build(work, args.case, args.kind, args.context), encoding="utf-8")
+    if args.style == "raw":
+        from report_raw import build_raw
+
+        page = build_raw(work, args.case, args.kind, args.context)
+    else:
+        page = build(work, args.case, args.kind, args.context)
+    out.write_text(page, encoding="utf-8")
     print(f"report: {out}")
     _ = json
     return 0

@@ -115,6 +115,49 @@ def features(text: str) -> dict:
     }
 
 
+def phrase_spans(text: str) -> list[dict]:
+    """Character spans of marked AI words and stock phrasing, for highlighting."""
+    global LEX
+    if LEX is None:
+        LEX = load_lexicons()
+    _, marked, tells = LEX
+    spans = []
+    if marked:
+        rx = re.compile(
+            r"\b(?:"
+            + "|".join(re.escape(w) for w in sorted(marked, key=len, reverse=True))
+            + r")\b",
+            re.IGNORECASE,
+        )
+        spans += [
+            {
+                "start": m.start(),
+                "end": m.end(),
+                "kind": "word",
+                "label": f"AI-typical word: {m.group(0).lower()}",
+            }
+            for m in rx.finditer(text)
+            # A capitalised word mid-sentence is a name ("Holistic Drug Discovery Centre").
+            if not (
+                m.group(0)[0].isupper()
+                and not re.search(
+                    r"(^|[.!?:]\s+|\n\s*)$", text[max(0, m.start() - 3) : m.start()]
+                )
+            )
+        ]
+    for name, rx in tells.items():
+        spans += [
+            {
+                "start": m.start(),
+                "end": m.end(),
+                "kind": "phrase",
+                "label": f"stock phrasing: {name}",
+            }
+            for m in rx.finditer(text)
+        ]
+    return spans
+
+
 def percentile(value: float, quantiles: list[float]) -> float | None:
     """Percentile of ``value`` given human quantiles at 1, 2, ..., 99 %."""
     if (
@@ -167,11 +210,19 @@ def main(argv: list[str] | None = None) -> int:
     rows = []
     for c in chunks(doc):
         f = features(c["text"])
-        f.update({"id": c["id"], "section": c["section"]})
+        f.update(
+            {
+                "id": c["id"],
+                "section": c["section"],
+                "start": c["start"],
+                "end": c["end"],
+            }
+        )
         f["percentiles"] = {k: percentile(f[k], q.get(k, [])) for k in FEATURES}
         f["style_score"] = style_score(f, model)
         rows.append(f)
     whole = features(doc["text"])
+    spans = phrase_spans(doc["text"])
     over = {
         k: sum(
             1
@@ -202,7 +253,9 @@ def main(argv: list[str] | None = None) -> int:
         },
         "calibrated": bool(model),
     }
-    write_json(work / "stylometry.json", {"summary": summary, "windows": rows})
+    write_json(
+        work / "stylometry.json", {"summary": summary, "windows": rows, "spans": spans}
+    )
     d = summary["document"]
     print(
         f"stylometry: {len(rows)} window(s); excess {d['excess_rate']:.1f}/1k, marked {d['marked_rate']:.1f}/1k, "
