@@ -7,12 +7,13 @@ Called by build_report.py (``--style raw``, the default).
 from __future__ import annotations
 
 import html
+import re
 from pathlib import Path
 
 from _common import REFS, read_json
 from stylometry import DIRECTION
 
-WORD_SHADE = {"1%": "w1", "5%": "w5"}
+WORD_SHADE = {"1%": "w1", "5%": "w5", "0": "w0"}
 PRIORITY = {"art": 3, "phrase": 2, "word": 1}
 
 CSS = """
@@ -23,6 +24,7 @@ main { max-width: 52em; margin: 0 auto; padding-block: 12px 40px;
 table { border-collapse: collapse; font-size: 13px; }
 th, td { border: 1px solid #aaa; padding: 2px 6px; text-align: left; vertical-align: top; }
 .scroll { overflow-x: auto; }
+.w0 { background: #fffbe6; }
 .w5 { background: #fff4c2; }
 .w1 { background: #ffd2bd; }
 mark.word { background: #ffe066; }
@@ -32,6 +34,8 @@ mark.art { background: #ff9b9b; }
 .ok { background: #e4f4e1; }
 .bad { background: #ff9b9b; }
 .text p { margin: 0 0 .8em; }
+.ws { background: #ffcf9e; border-bottom: 2px solid #e8833a; }
+.ws1 { background: #ffb98a; border-bottom: 2px solid #c8501a; }
 """
 
 
@@ -63,8 +67,8 @@ def web_cell(v: float | None, weight: str = "context") -> str:
     return f'<td class="{cls}">{num(v)}</td>'
 
 
-def render_segment(text: str, a: int, b: int, spans: list[dict]) -> str:
-    """HTML for text[a:b] with non-overlapping <mark>s; paragraphs kept."""
+def _inline(text: str, a: int, b: int, spans: list[dict]) -> str:
+    """HTML for text[a:b] with non-overlapping <mark>s (no paragraph handling)."""
     inside = sorted(
         (s for s in spans if s["start"] >= a and s["end"] <= b),
         key=lambda s: (s["start"], -PRIORITY[s["kind"]]),
@@ -91,9 +95,40 @@ def render_segment(text: str, a: int, b: int, spans: list[dict]) -> str:
         )
         pos = s["end"]
     out.append(e(text[pos:b]))
-    body = "".join(out).strip()
-    paras = [p.replace("\n", "<br>") for p in body.split("\n\n") if p.strip()]
-    return "".join(f"<p>{p}</p>" for p in paras)
+    return "".join(out).replace("\n", "<br>")
+
+
+def render_segment(
+    text: str, a: int, b: int, spans: list[dict], sentences: list[dict] | None = None
+) -> str:
+    """HTML for text[a:b]: paragraphs, sentences flagged by web detectors (shaded, with
+    the tools named on hover), and word/phrase/artefact marks inside them."""
+    sentences = sorted(
+        (x for x in (sentences or []) if x["start"] < b and x["end"] > a),
+        key=lambda x: x["start"],
+    )
+    html_paras = []
+    pa = a
+    for m in [*re.finditer(r"\n\s*\n", text[a:b]), None]:
+        pb = a + m.start() if m else b
+        pieces, pos = [], pa
+        for sn in sentences:
+            s0, s1 = max(sn["start"], pa), min(sn["end"], pb)
+            if s1 <= s0 or s0 < pos:
+                continue
+            pieces.append(_inline(text, pos, s0, spans))
+            cls = "ws1" if sn.get("strong") else "ws"
+            pieces.append(
+                f'<span class="{cls}" title="{e(sn["label"])}">{_inline(text, s0, s1, spans)}</span>'
+            )
+            pos = s1
+        pieces.append(_inline(text, pos, pb, spans))
+        body = "".join(pieces).strip()
+        if body:
+            html_paras.append(f"<p>{body}</p>")
+        if m:
+            pa = a + m.end()
+    return "".join(html_paras)
 
 
 def build_raw(work: Path, case: str, kind: str, context: str) -> str:
@@ -136,7 +171,45 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             if ws["weight"] == "validated"
             and (ws["by_chunk"].get(chunk_of.get(w["id"], "")) or 0) >= 0.5
         ]
-        w["shade"] = "1%" if w["flag"] == "1%" or w["web_hits"] else w["flag"]
+        w["web_any"] = [
+            ws["name"]
+            for ws in wsum.values()
+            if (ws["by_chunk"].get(chunk_of.get(w["id"], "")) or 0) >= 0.5
+        ]
+        # Shade: strongest when the style score is past 1% or a validated tool flags it;
+        # then when the style score is past 5% or two or more tools agree; lightest when a
+        # single unvalidated tool flags it.
+        if w["flag"] == "1%" or w["web_hits"]:
+            w["shade"] = "1%"
+        elif w["flag"] == "5%" or len(w["web_any"]) >= 2:
+            w["shade"] = "5%"
+        elif w["web_any"]:
+            w["shade"] = "0"
+        else:
+            w["shade"] = None
+
+    # Sentences the web detectors marked as AI, located in the document text.
+    weight_of = {k: v["weight"] for k, v in wsum.items()}
+    name_of = {k: v["name"] for k, v in wsum.items()}
+    span_of = {c["chunk"]: (c["start"], c["end"]) for c in web.get("chunks", [])}
+    merged: dict[tuple[int, int], set[str]] = {}
+    for h in web.get("highlights", []):
+        a0, b0 = span_of.get(h["chunk"], (0, len(text)))
+        pat = r"\s+".join(re.escape(tok) for tok in h["text"].split())
+        m = re.search(pat, text[a0:b0]) if pat else None
+        if m:
+            merged.setdefault((a0 + m.start(), a0 + m.end()), set()).add(h["tool"])
+    web_sentences = [
+        {
+            "start": k[0],
+            "end": k[1],
+            "label": "marked as AI by "
+            + ", ".join(sorted(name_of.get(t, t) for t in tools)),
+            "strong": len(tools) >= 2
+            or any(weight_of.get(t) == "validated" for t in tools),
+        }
+        for k, tools in sorted(merged.items())
+    ]
 
     # Findings list (numbered) and the artefact spans that point to it.
     findings, spans = [], []
@@ -371,7 +444,7 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         if a is None:
             continue
         if a > pos:
-            parts.append(render_segment(text, pos, a, spans))
+            parts.append(render_segment(text, pos, a, spans, web_sentences))
         shade = WORD_SHADE.get(w.get("shade"), "")
         web_scores = " · ".join(
             f"{ws['name']} {num(ws['by_chunk'].get(chunk_of.get(w['id'], '')))}"
@@ -386,11 +459,11 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             + "]"
         )
         parts.append(
-            f'<div id="{w["id"]}" class="{shade}"><span class="lab">{e(lab)}</span>{render_segment(text, a, b, spans)}</div>'
+            f'<div id="{w["id"]}" class="{shade}"><span class="lab">{e(lab)}</span>{render_segment(text, a, b, spans, web_sentences)}</div>'
         )
         pos = b
     if pos < len(text):
-        parts.append(render_segment(text, pos, len(text), spans))
+        parts.append(render_segment(text, pos, len(text), spans, web_sentences))
 
     tracked = (doc.get("metadata") or {}).get("tracked_changes_removed")
     tested = (
@@ -419,7 +492,8 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         "<h2>Passages</h2>"
         '<div class="scroll"><table><tr><th>Window</th><th>Section</th><th>Words</th><th>Style score</th>'
         f"{''.join(f'<th>{e(ws["name"])}</th>' for ws in wsum.values())}<th>Flag</th><th>AI-typical words</th></tr>{''.join(wrows)}</table></div>"
-        '<h2>Text</h2><p>Highlights: <span class="w5">window: style past 5%</span> · <span class="w1">window: style past 1%, or flagged by a validated web detector</span> · '
+        '<h2>Text</h2><p>Passages (~300 words): <span class="w0">flagged by one unvalidated tool</span> · <span class="w5">flagged by two or more tools, or style past 5%</span> · <span class="w1">flagged by a validated tool, or style past 1%</span>. '
+        'Sentences: <span class="ws">marked as AI by one tool</span> · <span class="ws1">by two or more, or by a validated tool</span> (hover to see which). Words: '
         '<mark class="word">AI-typical word</mark> · <mark class="phrase">stock phrasing</mark> · <mark class="art">artefact</mark>. '
         "Everything else is plain.</p>"
         f'<div class="text">{"".join(parts)}</div>'

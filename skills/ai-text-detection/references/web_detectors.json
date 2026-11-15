@@ -1,6 +1,6 @@
 {
   "_about": "The skill's statistical layer: web AI-text detectors it runs through Claude in Chrome, in the user's own browser session, chunk by chunk. 'weight' says how grade.py treats a tool: 'validated' tools have independent evidence of a low false-positive rate and can count as a line of evidence; 'context' tools are reported but never raise the verdict above weak. Free-tier limits change: read them on the page, never work around them. Pasting text into these sites uploads it: only for text the user owns or co-authors, or public text (SKILL.md, step 2b).",
-  "version": 3,
+  "version": 4,
   "tools": [
     {
       "id": "pangram",
@@ -177,6 +177,137 @@
         "checked": "2026-11-16",
         "status": "works through the API without a key (Gradio 4 endpoint /call/run_detector)"
       }
+    },
+    {
+      "id": "clever",
+      "name": "Clever AI Detector",
+      "url": "https://cleverhumanizer.ai/ai-detector",
+      "weight": "context",
+      "evidence": "Vendor claim 96.7% (GEDE); one non-peer-reviewed test caught 3/10 edited AI texts. No independent evidence.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "Terms §6.3 forbid robots/scripts: the skill never runs it automatically; the user may paste chunks by hand."
+      },
+      "terms": "no-automation"
+    },
+    {
+      "id": "trinka",
+      "name": "Trinka AI Detector",
+      "url": "https://www.trinka.ai/ai-detector",
+      "weight": "context",
+      "evidence": "Vendor-submitted RAID entry 0.998 (abstracts 1.000) at 5% FPR; built for academic writing; no peer-reviewed evaluation.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "reCAPTCHA marker on the page; free quota may need a login."
+      }
+    },
+    {
+      "id": "aidetector_review",
+      "name": "AIDetector.review",
+      "url": "https://aidetector.review",
+      "weight": "context",
+      "evidence": "Vendor-submitted RAID entry 0.811 (abstracts 0.937); no peer-reviewed evaluation. Free API (1,000 requests/day) as well.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "no CAPTCHA markers on page load; 10,000 characters per scan; sentence highlights."
+      }
+    },
+    {
+      "id": "itsai",
+      "name": "It's AI",
+      "url": "https://its-ai.org",
+      "weight": "context",
+      "evidence": "Vendor-submitted RAID entry 0.970 (abstracts 0.985); no peer-reviewed evaluation.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "no CAPTCHA markers on page load; 4,000 free words; sentence highlights only in 3 free deep scans."
+      }
+    },
+    {
+      "id": "veredict",
+      "name": "Veredict Labs",
+      "url": "https://veredictlabs.com",
+      "weight": "context",
+      "evidence": "Vendor-submitted RAID entry 0.996; no peer-reviewed evaluation.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "500 words per scan, 5 scans an hour without login."
+      }
+    },
+    {
+      "id": "decopy",
+      "name": "Decopy AI Detector",
+      "url": "https://decopy.ai/ai-detector/",
+      "weight": "context",
+      "evidence": "No independent evidence found.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "no CAPTCHA markers on page load; daily cap."
+      }
+    },
+    {
+      "id": "detecting_ai",
+      "name": "detecting-ai.com",
+      "url": "https://detecting-ai.com/",
+      "weight": "context",
+      "evidence": "No independent evidence tied to this site.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "no CAPTCHA markers on page load; 15,000 characters free; no signup."
+      }
+    },
+    {
+      "id": "isgen",
+      "name": "isgen.ai",
+      "url": "https://isgen.ai/",
+      "weight": "context",
+      "evidence": "Vendor claim 96.4%; no independent evidence.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "no CAPTCHA markers on page load; 5,000 characters per check."
+      }
+    },
+    {
+      "id": "slopornot",
+      "name": "Slop Or Not",
+      "url": "https://slopornot.ai",
+      "weight": "context",
+      "evidence": "Vendor-submitted RAID entry 0.995 (abstracts 0.996); no peer-reviewed evaluation.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "Cloudflare Turnstile marker: may need the user."
+      }
+    },
+    {
+      "id": "scispace",
+      "name": "SciSpace AI Detector",
+      "url": "https://scispace.com/ai-detector",
+      "weight": "context",
+      "evidence": "No independent evidence; aimed at academic text.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "account probably needed."
+      }
     }
   ],
   "default_order": [
@@ -185,18 +316,29 @@
     "originality",
     "grammarly",
     "binoculars",
+    "trinka",
+    "itsai",
+    "aidetector_review",
+    "veredict",
+    "slopornot",
     "sapling",
+    "detecting_ai",
+    "decopy",
+    "isgen",
     "copyleaks",
     "scribbr",
     "quillbot",
     "winston",
     "writer",
+    "scispace",
     "zerogpt",
-    "undetectable"
+    "undetectable",
+    "clever"
   ],
   "chunk_words": [
     250,
     600
   ],
-  "_max_words_note": "max_words: the most text a site accepts per check on its free tier, when known. Unknown values are null: read the limit on the page; watch.py's monthly scan fills them in."
+  "_max_words_note": "max_words: the most text a site accepts per check on its free tier, when known. Unknown values are null: read the limit on the page; watch.py's monthly scan fills them in.",
+  "_terms_note": "'terms': 'no-automation' marks sites whose terms forbid scripted access. browser_detect.py never runs them; the skill may open the page for the user to paste a chunk by hand."
 }

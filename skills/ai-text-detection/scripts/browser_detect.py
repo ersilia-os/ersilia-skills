@@ -188,6 +188,53 @@ def click_go(page, box) -> bool:
     return True
 
 
+HIGHLIGHT_JS = """() => { const out = [];
+  for (const el of document.querySelectorAll('body *')) {
+    const t = (el.innerText || '').trim();
+    if (t.length < 25 || t.length > 1500) continue;
+    const bg = getComputedStyle(el).backgroundColor;
+    if (!bg || bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent') continue;
+    const m = (bg.match(/[\\d.]+/g) || []).map(Number);
+    if (m.length >= 3 && m[0] > 240 && m[1] > 240 && m[2] > 240) continue;
+    out.push({text: t, bg});
+  }
+  return out; }"""
+
+
+def norm_ws(t: str) -> str:
+    """Collapse whitespace, for matching page text against the chunk."""
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def highlights(page, chunk_text: str) -> list[dict]:
+    """Sentences the site marked (coloured background) that come from the chunk itself.
+
+    Page furniture (buttons, banners) is excluded because it is not part of the chunk.
+    Nested duplicates are removed, keeping the innermost element.
+    """
+    try:
+        cands = page.evaluate(HIGHLIGHT_JS)
+    except Exception:  # noqa: BLE001 - page navigating
+        return []
+    src = norm_ws(chunk_text)
+    keep = []
+    for c in cands:
+        t = norm_ws(c["text"])
+        if t in src and len(t) < 0.8 * len(src):
+            keep.append({"text": t, "bg": c["bg"]})
+    keep = [
+        k
+        for k in keep
+        if not any(k["text"] != o["text"] and o["text"] in k["text"] for o in keep)
+    ]
+    seen, out = set(), []
+    for k in keep:
+        if k["text"] not in seen:
+            seen.add(k["text"])
+            out.append(k)
+    return out
+
+
 def run_one(
     page, tool: dict, k: int, text: str, out: Path, human_wait: int = 0
 ) -> dict:
@@ -264,6 +311,10 @@ def run_one(
     stem.with_suffix(".txt").write_text(after, encoding="utf-8")
     result = stem.with_name(stem.name + "_result.txt")
     result.write_text(fresh, encoding="utf-8")
+    marks = highlights(page, text)
+    stem.with_name(stem.name + "_highlights.json").write_text(
+        json.dumps(marks, ensure_ascii=False), encoding="utf-8"
+    )
     page.screenshot(
         path=str(stem.with_suffix(".png"))
     )  # the visible viewport, where results show
@@ -272,6 +323,7 @@ def run_one(
         "status": "done" if fresh else "no-result",
         "guess": guess(fresh),
         "result_text": str(result),
+        "highlighted_sentences": len(marks),
         "page_text": str(stem.with_suffix(".txt")),
         "screenshot": str(stem.with_suffix(".png")),
     }
@@ -343,6 +395,18 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         wanted = {int(x) for x in args.chunks.split(",")} if args.chunks else None
         for tid in order:
+            if tools[tid].get("terms") == "no-automation":
+                print(
+                    json.dumps(
+                        {
+                            "tool": tid,
+                            "status": "skipped",
+                            "why": "the site's terms forbid automated use; use it by hand",
+                        }
+                    ),
+                    flush=True,
+                )
+                continue
             for c in state["chunks"]:
                 if wanted and c["chunk"] not in wanted:
                     continue

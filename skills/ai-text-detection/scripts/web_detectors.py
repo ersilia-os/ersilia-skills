@@ -25,6 +25,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -121,6 +122,22 @@ def summary(state: dict) -> dict:
     return out
 
 
+def collect_highlights(work: Path, state: dict) -> list[dict]:
+    """Sentences each site marked as AI, from browser_detect.py's per-chunk files, for
+    tools and chunks that have a recorded result."""
+    done = {(r["tool"], r["chunk"]) for r in state.get("results", [])}
+    out = []
+    for f in sorted((work / "web").glob("*_chunk*_highlights.json")):
+        m = re.match(r"(.+)_chunk(\d+)_highlights\.json$", f.name)
+        if not m or (m.group(1), int(m.group(2))) not in done:
+            continue
+        for h in read_json(f) or []:
+            out.append(
+                {"tool": m.group(1), "chunk": int(m.group(2)), "text": h["text"]}
+            )
+    return out
+
+
 def consensus(summ: dict) -> dict | None:
     """How many tools ran and flag the text, and how far their mean scores spread."""
     if not summ:
@@ -198,6 +215,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{args.tool}: skipped ({args.why})")
     else:
         st["summary"] = summary(st)
+        st["highlights"] = collect_highlights(work, st)
         st["consensus"] = consensus(st["summary"])
         write_json(work / "web_detectors.json", st)
         for s_ in st["summary"].values():
