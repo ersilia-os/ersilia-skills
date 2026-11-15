@@ -160,8 +160,8 @@
       "read": "Record the share of text reported as AI-generated (0-1).",
       "max_words": null,
       "automation": {
-        "checked": "2026-11-15",
-        "status": "page loads without CAPTCHA (not yet tried with text)"
+        "checked": "2026-11-16",
+        "status": "one anonymous scan works; then a sign-up wall (a free account removes it: sign in once with browser_detect.py --login)"
       }
     },
     {
@@ -174,8 +174,8 @@
       "read": "api_detectors.py records 1 for 'AI' and 0 for 'human'.",
       "max_words": null,
       "automation": {
-        "checked": "2026-11-15",
-        "status": "API endpoint exists; not yet used (needs the user's approval)"
+        "checked": "2026-11-16",
+        "status": "works through the API without a key (Gradio 4 endpoint /call/run_detector)"
       }
     }
   ],

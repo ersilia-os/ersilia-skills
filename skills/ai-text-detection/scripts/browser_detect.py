@@ -39,7 +39,8 @@ PROFILE = LOCAL / "chrome-profile"
 BUTTON_RE = re.compile(r"\b(detect|scan|check|analy[sz]e|run|submit)\b", re.IGNORECASE)
 BLOCK_RE = re.compile(
     r"verify you are human|captcha|are you a robot|unusual traffic|log ?in to continue|sign (?:up|in) to (?:continue|scan|check)|"
-    r"(?:daily|monthly|free) (?:limit|quota)|limit reached|upgrade to (?:continue|scan)|out of (?:credits|words)",
+    r"(?:daily|monthly|free) (?:limit|quota)|limit reached|upgrade to (?:continue|scan)|out of (?:credits|words)|"
+    r"sign up with google|for free to get more|create (?:a )?free account to (?:continue|scan)",
     re.IGNORECASE,
 )
 PCT_RE = re.compile(
@@ -59,7 +60,8 @@ def guess(text: str) -> float | None:
 
 PCT_ANY = re.compile(r"\d{1,3}(?:\.\d+)?\s*%")
 COOKIE_RE = re.compile(
-    r"^(decline|reject all|reject|only necessary|necessary only|deny|refuse)$",
+    r"^(decline( all)?|reject( all| non-essential)?( cookies)?|reject non-essential cookies|"
+    r"(use )?(only|strictly) (necessary|essential)( cookies)?( only)?|necessary only|deny( all)?|refuse( all)?)$",
     re.IGNORECASE,
 )
 
@@ -174,7 +176,15 @@ def click_go(page, box) -> bool:
     if best is None:
         return False
     best.scroll_into_view_if_needed()
-    best.click()
+    for attempt in range(3):
+        try:
+            best.click(timeout=5000)
+            break
+        except Exception:
+            dismiss_cookies(page)
+            page.keyboard.press("Escape")
+            if attempt == 2:
+                raise
     return True
 
 
@@ -198,7 +208,7 @@ def run_one(
             "status": "no-input",
             "why": "no text box found; the site may need a login",
         }
-    box.click()
+    box.focus()
     if box.evaluate("e => e.tagName") == "TEXTAREA":
         box.fill(text)
     else:
@@ -206,6 +216,7 @@ def run_one(
     page.wait_for_timeout(800)
     pasted = page.inner_text("body")
     n_tabs = len(page.context.pages)
+    dismiss_cookies(page)  # banners that appeared late
     if not click_go(page, box):
         return {**row, "status": "no-button", "why": "no scan/check button found"}
     # Some sites open the result in a new tab: follow it.

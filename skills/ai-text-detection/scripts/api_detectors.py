@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -102,7 +103,7 @@ def sapling(text: str, key: str) -> tuple[float, str]:
 def binoculars(text: str, token: str | None) -> tuple[float, str]:
     """The Binoculars authors' hosted demo (Gradio). Returns 1.0 for 'AI' and 0.0 for 'human',
     with the demo's own label, since the demo reports a decision rather than a probability."""
-    base = "https://tomg-group-umd-binoculars.hf.space/gradio_api/call/run_detector"
+    base = "https://tomg-group-umd-binoculars.hf.space/call/run_detector"
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     ev = post(base, {"data": [text]}, headers)
     req = urllib.request.Request(
@@ -112,7 +113,9 @@ def binoculars(text: str, token: str | None) -> tuple[float, str]:
         stream = r.read().decode()
     data = [ln[5:].strip() for ln in stream.splitlines() if ln.startswith("data:")]
     label = json.loads(data[-1])[0] if data else ""
-    ai = "ai" in label.lower() or "machine" in label.lower()
+    ai = bool(
+        re.search(r"\b(AI|machine)\b", str(label), re.IGNORECASE)
+    ) and not re.search(r"human", str(label), re.IGNORECASE)
     return (1.0 if ai else 0.0), str(label)
 
 
