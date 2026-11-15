@@ -10,6 +10,7 @@ import html
 from pathlib import Path
 
 from _common import REFS, read_json
+from stylometry import DIRECTION
 
 WORD_SHADE = {"1%": "w1", "5%": "w5"}
 PRIORITY = {"art": 3, "phrase": 2, "word": 1}
@@ -28,6 +29,8 @@ mark.word { background: #ffe066; }
 mark.phrase { background: #cfe5ff; }
 mark.art { background: #ff9b9b; }
 .lab { font: 12px monospace; color: #444; }
+.ok { background: #e4f4e1; }
+.bad { background: #ff9b9b; }
 .text p { margin: 0 0 .8em; }
 """
 
@@ -158,20 +161,52 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
     nw = ss.get("n_windows", 0)
     held = scal.get("heldout") or {}
 
-    def row(name: str, value: str, ref: str) -> str:
-        return f"<tr><td>{e(name)}</td><td>{value}</td><td>{ref}</td></tr>"
+    def row(name: str, value: str, ref: str, cls: str = "") -> str:
+        c = f' class="{cls}"' if cls else ""
+        return f"<tr><td>{e(name)}</td><td{c}>{value}</td><td>{ref}</td></tr>"
 
     def p_(k: str) -> str:
         return f" (human percentile {mp[k]:.0f})" if mp.get(k) is not None else ""
 
+    def p_cls(k: str) -> str:
+        """Colour by how unusual the median percentile is, in the AI-like direction."""
+        v = mp.get(k)
+        if v is None:
+            return ""
+        v = v if DIRECTION.get(k, 1) > 0 else 100 - v
+        return "w1" if v >= 99 else ("w5" if v >= 95 else "ok")
+
+    def flag_cls(flag: str | None) -> str:
+        return {"1%": "w1", "5%": "w5"}.get(flag or "", "ok")
+
+    tier_cls = {"conclusive": "bad", "strong": "w1", "moderate": "w5"}.get(
+        g.get("tier"), "ok"
+    )
+    n1, n5 = wo.get("1%", {}).get("count", 0), wo.get("5%", {}).get("count", 0)
+    style_cls = "w1" if n1 else ("w5" if n5 else "ok")
+    n_bad_refs = sum(
+        v
+        for k, v in (refs.get("counts") or {}).items()
+        if k not in ("ok", "unverifiable")
+    )
+    n_arts = sum(
+        1 for h in arts["hits"] if ja.get(h["id"], {}).get("confirmed", True)
+    ) + len(arts.get("hidden", []))
+
     rows = [
-        row("Verdict", f"<b>{e(g.get('tier', 'n/a'))}</b>", e(g.get("headline", ""))),
+        row(
+            "Verdict",
+            f"<b>{e(g.get('tier', 'n/a'))}</b>",
+            e(g.get("headline", "")),
+            tier_cls,
+        ),
         row(
             "Style score, median over windows",
             f"{num(ss.get('style_score_median'))}; past 1%: {wo.get('1%', {}).get('count', 0)}/{nw}; past 5%: {wo.get('5%', {}).get('count', 0)}/{nw}",
             f"thresholds {num(sthr.get('1%'))} (1%) / {num(sthr.get('5%'))} (5%); held-out human windows flagged: "
             f"{pct((held.get('human (held out)') or {}).get('past_1pct'))} / {pct((held.get('human (held out)') or {}).get('past_5pct'))}; "
             f"AI windows flagged: {pct((held.get('AI (held out)') or {}).get('past_1pct'))} / {pct((held.get('AI (held out)') or {}).get('past_5pct'))}; AUROC {num(scal.get('auroc'))}",
+            style_cls,
         ),
     ]
     for k, label in (
@@ -187,6 +222,7 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
                     label,
                     f"median {num(s['median'], 3)}; past 1%: {s['over_1pct']}/{s['windows']}; past 5%: {s['over_5pct']}/{s['windows']}; document flag: {e(s.get('document_flag') or 'none')}",
                     f"thresholds {num(t.get('thr_1'), 3)} / {num(t.get('thr_5'), 3)} ({e(t.get('direction'))} = machine-like); held-out human flagged {pct(h.get('past_1pct'))} / {pct(h.get('past_5pct'))}; AUROC {num(t.get('auroc'))}",
+                    "w1" if s["over_1pct"] else ("w5" if s["over_5pct"] else "ok"),
                 )
             )
         else:
@@ -196,26 +232,31 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             "Excess vocabulary per 1,000 words",
             f"{num(d.get('excess_rate'), 1)}{p_('excess_rate')}",
             "Kobak et al. 2025 word list",
+            p_cls("excess_rate"),
         ),
         row(
             "AI-typical words per 1,000 words",
             f"{num(d.get('marked_rate'), 1)}{p_('marked_rate')}: {e(', '.join(ss.get('marked_words', [])) or 'none')}",
             "delve, underscore, meticulous, …",
+            p_cls("marked_rate"),
         ),
         row(
             "Stock phrasing per 1,000 words",
             f"{num(d.get('tells_rate'), 1)}{p_('tells_rate')}: {e(', '.join(f'{k} {v}' for k, v in (ss.get('tells') or {}).items()) or 'none')}",
             "Wikipedia 'Signs of AI writing', humanizer, stop-slop",
+            p_cls("tells_rate"),
         ),
         row(
             "Em dashes per 1,000 words",
             f"{num(d.get('em_dash_rate'), 1)}{p_('em_dash_rate')}",
             "",
+            p_cls("em_dash_rate"),
         ),
         row(
             "Sentence-length variation (CV)",
             f"{num(d.get('sent_cv'))}{p_('sent_cv')}",
             "lower = more uniform",
+            p_cls("sent_cv"),
         ),
         row(
             "References",
@@ -226,6 +267,9 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
                 or "none found"
             ),
             "Crossref, DataCite, doi.org, OpenAlex, Semantic Scholar",
+            ("w1" if n_bad_refs >= 2 else "w5")
+            if n_bad_refs
+            else ("ok" if refs.get("references") else ""),
         ),
         row(
             "Artefacts (leftover chatbot text, tokens, hidden text)",
@@ -238,17 +282,41 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
                 + len(arts.get("hidden", []))
             ),
             "conclusive when confirmed in context",
+            "bad" if n_arts else "ok",
         ),
-        row("Close-reading findings", str(len(jud.get("reading", []))), "listed below"),
+        row(
+            "Close-reading findings",
+            str(len(jud.get("reading", []))),
+            "listed below",
+            "w1"
+            if any(
+                r.get("tier") in ("strong", "conclusive")
+                for r in jud.get("reading", [])
+            )
+            else (
+                "w5"
+                if any(r.get("tier") == "moderate" for r in jud.get("reading", []))
+                else ""
+            ),
+        ),
     ]
 
     # Per-window table.
     wrows = []
     for w in swin:
         dd = dwin.get(w["id"], {})
+        sc = w.get("style_score")
+        s_flag = (
+            None
+            if sc is None or not sthr
+            else ("1%" if sc >= sthr["1%"] else ("5%" if sc >= sthr["5%"] else None))
+        )
+        rc = WORD_SHADE.get(w.get("flag"), "")
         wrows.append(
-            f'<tr><td><a href="#{w["id"]}">{w["id"]}</a></td><td>{e(w.get("section"))}</td><td>{w.get("n_words")}</td>'
-            f"<td>{num(w.get('style_score'))}</td><td>{num(dd.get('binoculars'), 3)}</td><td>{num(dd.get('fast_detectgpt'))}</td>"
+            f'<tr class="{rc}"><td><a href="#{w["id"]}">{w["id"]}</a></td><td>{e(w.get("section"))}</td><td>{w.get("n_words")}</td>'
+            f'<td class="{flag_cls(s_flag)}">{num(sc)}</td>'
+            f'<td class="{flag_cls(dd.get("binoculars_flag")) if dd else ""}">{num(dd.get("binoculars"), 3)}</td>'
+            f'<td class="{flag_cls(dd.get("fast_detectgpt_flag")) if dd else ""}">{num(dd.get("fast_detectgpt"))}</td>'
             f"<td>{e(w.get('flag') or '')}</td><td>{e(', '.join(w.get('_marked_words') or []))}</td></tr>"
         )
 
@@ -300,6 +368,7 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         f"<p>{e(kind)}, {e(context)} · {e(doc.get('n_words'))} words · tested: {e(tested)} · checks: {e(', '.join(x for x in ran if x))}</p>"
         "<h2>Scores</h2>"
         f'<div class="scroll"><table><tr><th>Measure</th><th>This document</th><th>Compared with</th></tr>{"".join(rows)}</table></div>'
+        '<p>Colours: <span class="ok">within the human range</span> · <span class="w5">past the 5% threshold (or above the human 95th percentile)</span> · <span class="w1">past the 1% threshold (or above the 99th)</span> · <span class="bad">artefact found</span>.</p>'
         "<p>A window is ~300 words. “Past 1%” means a score that only 1% of human scientific text written before ChatGPT reaches; "
         "the held-out rates show how often that happened on human and on AI text in calibration.</p>"
         "<h2>Passages</h2>"
