@@ -8,7 +8,8 @@ words; web_detectors.build_passages). Every score is given per passage.
     2. Text + panel     the text with AI-like sentences highlighted (brighter = stronger,
                         human text left plain), beside a panel of per-passage combined
                         scores and each detector's per-passage scores and track record
-    3. Other evidence   close reading and any problem found (below)
+    3. Other evidence   only findings that cannot be placed in the text (close-reading
+                        notes are tags in the text, hover or tap to read)
 
 Called by build_report.py (``--style raw``, the default).
 """
@@ -109,6 +110,13 @@ p.skip, .skip { color: var(--muted); font-size: .85rem; font-family: Inter, syst
 mark.art { background: var(--art); color: inherit; outline: 2px solid var(--ai); border-radius: 3px; }
 /* tables and folds */
 .scroll { overflow-x: auto; }
+.noted { outline: 1.5px dashed var(--accent); outline-offset: 1px; border-radius: 2px; }
+.note { position: relative; font: 700 .68rem/1 Inter, system-ui, sans-serif; color: #fff; background: var(--accent);
+        border-radius: 4px; padding: 2px 5px; margin-left: 4px; vertical-align: 2px; cursor: help; }
+.note:hover::after, .note:focus::after { content: attr(data-note); position: absolute; left: 0; top: 1.6em; z-index: 5;
+        width: min(340px, 80vw); background: var(--card); color: var(--ink); border: 1px solid var(--line);
+        border-radius: 8px; padding: 8px 10px; font: 400 .8rem/1.45 Inter, system-ui, sans-serif;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, .15); }
 table.doctable { font: .8rem/1.4 Inter, system-ui, sans-serif; margin: .4rem 0 1rem; }
 table.doctable td, table.doctable th { padding: 3px 8px; }
 table.doctable tr.grp td { font-weight: 650; color: var(--muted); padding-top: 8px; }
@@ -387,13 +395,39 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         if h["in"] == "body" and ja.get(h["id"], {}).get("confirmed", True)
     ]
 
+    def find_quote(q: str) -> tuple[int, int] | None:
+        """Where a close-reading quote sits in the text (its first locatable fragment;
+        quotes may elide with '…' or join two places with '/')."""
+        for frag in re.split(r"\s*(?:…|\.\.\.|\s/\s)\s*", q or ""):
+            toks = frag.strip(" “”\"'").split()
+            if len(toks) < 3:
+                continue
+            pat = r"\s+".join(
+                re.sub(r"\\[‘’'\"“”]", "[‘’'\"“”]", re.escape(t)) for t in toks
+            )
+            m = re.search(pat, text)
+            if m:
+                return m.start(), m.end()
+        return None
+
+    notes_placed: set[int] = set()
+    for ni, x in enumerate(jud.get("reading", [])):
+        loc = find_quote(x.get("quote", ""))
+        if loc:
+            events_all.append((loc[0], loc[1], f"note{ni}", x["claim"]))
+
     def marks(a: int, b: int) -> str:
         """Escaped text[a:b]: artefacts marked red; sentences the sites marked as AI underlined
         (dotted: one site, solid: two or more); without heat, those sentences are shaded."""
-        evs = sorted(
-            (x for x in events_all if x[0] < b and x[1] > a),
-            key=lambda x: (x[0], x[2] != "art"),
-        )
+        here = [x for x in events_all if x[0] < b and x[1] > a]
+        keep = [x for x in here if x[2] == "art" or x[2].startswith("note")]
+        # Site marks (hover text only, since the heat shows them) give way to notes and artefacts.
+        here = keep + [
+            x
+            for x in here
+            if x not in keep and not any(k[0] < x[1] and k[1] > x[0] for k in keep)
+        ]
+        evs = sorted(here, key=lambda x: (x[0], x[2] != "art"))
         out, pos = [], a
         for s0, s1, cls, lab in evs:
             s0, s1 = max(s0, a), min(s1, b)
@@ -403,6 +437,12 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             if cls == "art":
                 out.append(
                     f'<mark class="art" title="{e(lab)}">{e(text[s0:s1])}</mark>'
+                )
+            elif cls.startswith("note"):
+                notes_placed.add(int(cls[4:]))
+                out.append(
+                    f'<span class="noted">{e(text[s0:s1])}</span>'
+                    f'<span class="note" tabindex="0" data-note="{e(lab)}">note</span>'
                 )
             else:
                 if heat_sents and cls == "m1":
@@ -519,7 +559,7 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             if style_flags
             else "within the range of human scientific text in every passage."
         ),
-        f"Close reading: {len(jud.get('reading', []))} observation(s), under Other evidence.",
+        f"Close reading: {len(jud.get('reading', []))} observation(s), marked in the text.",
     ]
     hotp = sorted(
         (
@@ -637,7 +677,8 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
     legend = (
         '<div class="doclegend"><span class="sw h3">10× or more AI</span><span class="sw h2">3× or more AI</span>'
         '<span class="sw h1">leans AI</span><span>plain = no signal, or human</span>'
-        '<mark class="art">red box</mark><span>= leftover chatbot text</span><span>Hover a sentence for each site\'s verdict.</span></div>'
+        '<mark class="art">red box</mark><span>= leftover chatbot text</span>'
+        '<span class="note">note</span><span>= close-reading note (hover or tap)</span><span>Hover a sentence for each site\'s verdict.</span></div>'
         if heat_sents
         else '<div class="doclegend"><span class="sw m1">one detector says AI</span><span class="sw m2">two or more</span>'
         '<mark class="art">red box</mark><span>= leftover chatbot text</span></div>'
@@ -662,14 +703,16 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         ev.append(
             f"<li><b>Reference {r['n']}: {e(r['status'])}</b>. {e(r['raw'][:200])} {links}</li>"
         )
-    for x in jud.get("reading", []):
+    for ni, x in enumerate(jud.get("reading", [])):
+        if ni in notes_placed:
+            continue  # shown in the text, where it occurs
         ev.append(
             f"<li><b>Close reading ({e(x.get('tier'))})</b>: {e(x['claim'])} "
             f"<i>“{e(x.get('quote', ''))}”</i> ({e(x.get('where', ''))})</li>"
         )
     for s in g.get("separate", []):
         ev.append(f"<li><b>{e(s['kind'])}</b>: {e(s['text'])}</li>")
-    other = f"<ul>{''.join(ev)}</ul>" if ev else "<p>Nothing else to report.</p>"
+    other = f"<ul>{''.join(ev)}</ul>" if ev else ""
 
     tracked = (doc.get("metadata") or {}).get("tracked_changes_removed")
     tested = (
@@ -851,6 +894,6 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         f"tested {e(tested)} · {len(rows)} passages</p>"
         f"<!-- section: answer -->{hero}"
         f'<div class="cols"><article class="card doc" id="text"><!-- section: text -->{text_html}</article>{side}</div>'
-        f'<h2>Other evidence</h2><div class="card">{other}</div>'
-        "</div>"
+        + (f'<h2>Other evidence</h2><div class="card">{other}</div>' if other else "")
+        + "</div>"
     )
