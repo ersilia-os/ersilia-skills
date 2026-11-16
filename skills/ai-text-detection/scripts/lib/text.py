@@ -1,85 +1,13 @@
-"""Shared helpers for the ai-text-detection scripts.
-
-The deterministic scripts use the Python standard library only, so they run with any
-python3. PDF/DOCX extraction and the Chrome driver (browser_detect.py) need the small
-conda env created by setup_env.sh.
-
-Three places hold state:
-
-* ``WORK_DIR`` (/tmp/ai_text_detection): one analysis at a time, reset per run.
-* ``REFS`` (references/ in the repo): markers, grading rules, calibration. Shared and
-  versioned; improved through feedback and PRs. Never holds anyone's text or name.
-* ``LOCAL`` (~/.ai-text-detection): the user's private case ledger: features, verdicts
-  and later outcomes of their own cases, used to re-calibrate. Never committed.
-"""
+"""Text primitives: tokens, sentences, prose detection, where an offset sits, and the
+fixed-size windows the style score and its calibration use."""
 
 from __future__ import annotations
 
 import itertools
-import json
 import re
-import sys
 from pathlib import Path
-from typing import Any
 
-SKILL_DIR = Path(__file__).resolve().parent.parent
-REFS = SKILL_DIR / "references"
-EXAMPLES = SKILL_DIR / "examples"
-WORK_DIR = Path("/tmp/ai_text_detection")
-LOCAL = Path.home() / ".ai-text-detection"
-ENV_NAME = "ai-text-detection"
-USER_AGENT = "ai-text-detection/1.0 (reference checker; https://github.com/ersilia-os/ersilia-skills)"
-
-TIERS = ["conclusive", "strong", "moderate", "weak", "none"]
-
-
-def warn(message: str) -> None:
-    """Print a warning to stderr; the run continues."""
-    print(f"WARNING: {message}", file=sys.stderr, flush=True)
-
-
-def die(message: str) -> None:
-    """Print an error and exit 1."""
-    print(f"ERROR: {message}", file=sys.stderr, flush=True)
-    sys.exit(1)
-
-
-def read_json(path: str | Path) -> Any:
-    """Read JSON from ``path``; None when the file is missing or empty."""
-    p = Path(path).expanduser()
-    if not p.exists() or p.stat().st_size == 0:
-        return None
-    return json.loads(p.read_text(encoding="utf-8"))
-
-
-def write_json(path: str | Path, data: Any) -> None:
-    """Write ``data`` as indented JSON, creating parent folders."""
-    p = Path(path).expanduser()
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(
-        json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
-
-
-def read_jsonl(path: str | Path) -> list[dict]:
-    """Read a JSON-lines file; [] when missing."""
-    p = Path(path).expanduser()
-    if not p.exists():
-        return []
-    return [
-        json.loads(line)
-        for line in p.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
-
-
-def append_jsonl(path: str | Path, row: dict) -> None:
-    """Append one row to a JSON-lines file."""
-    p = Path(path).expanduser()
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(row, ensure_ascii=False) + "\n")
-
+from lib.common import WORK_DIR, die, read_json
 
 LIGATURES = str.maketrans(
     {
@@ -100,6 +28,8 @@ def unligature(text: str) -> str:
 
 
 WORD_RE = re.compile(r"[A-Za-z][A-Za-z'\-]*")
+
+
 SENT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9\"'(\[])")
 
 
@@ -246,3 +176,44 @@ def chunks(doc: dict, target: int = 300, minimum: int = 80) -> list[dict]:
     for i, c in enumerate(final, 1):
         c["id"] = f"c{i}"
     return final
+
+
+NON_PROSE = re.compile(
+    r"^(?:fig(?:ure)?\.?\s*\d|table\s*\d|eq\.?\s*\d|eq\d|supplementary|orcid|\*?corresponding author|keywords?:)",
+    re.IGNORECASE,
+)
+
+
+def is_prose(par: str) -> bool:
+    """Whether a paragraph is running prose worth sending to a detector.
+
+    Excluded: headings, author lists and affiliations, ORCIDs and e-mails, figure and
+    table captions, equation labels, table rows, and anything mostly numbers.
+    """
+
+    t = par.strip()
+    w = words(t)
+    if len(w) < 12 or NON_PROSE.match(t):
+        return False
+    if re.search(
+        r"\b\d{4}-\d{4}-\d{4}-\d{3}[\dX]\b|@|\|", t
+    ):  # ORCID, e-mail, table row
+        return False
+    if t.count(",") > 4 and len(re.findall(r"\d", t)) > len(
+        w
+    ):  # author list with affiliation numbers
+        return False
+    if (
+        len(w) < 60
+        and t.count(",") >= 2
+        and re.search(
+            r"\b(University|Institute|Department|Centre|Center|Faculty|School of|Laboratory|Hospital)\b",
+            t,
+        )
+    ):  # affiliation
+        return False
+    tokens = t.split()
+    alpha = sum(1 for x in tokens if re.search(r"[A-Za-z]{3,}", x))
+    return (
+        alpha / max(len(tokens), 1) >= 0.6 and t[-1:] in '.?!)\u201d"' or len(w) >= 40
+    )

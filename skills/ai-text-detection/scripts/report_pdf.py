@@ -14,7 +14,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from _common import SKILL_DIR
+from lib.common import SKILL_DIR
 
 PRINT_CSS = SKILL_DIR / "assets" / "report-print.css"
 MARGIN = {"top": "12mm", "bottom": "12mm", "left": "10mm", "right": "10mm"}

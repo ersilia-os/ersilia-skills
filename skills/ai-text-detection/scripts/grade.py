@@ -46,7 +46,7 @@ import math
 import sys
 from pathlib import Path
 
-from _common import REFS, TIERS, WORK_DIR, read_json, write_json
+from lib.common import REFS, TIERS, WORK_DIR, read_json, write_json
 
 # Rule labels that come from detectors or style statistics. They never count as the
 # independent, non-statistical support that lifts two validated detectors to strong.

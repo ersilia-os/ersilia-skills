@@ -35,16 +35,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from _common import (
-    USER_AGENT,
-    WORK_DIR,
-    chunks,
-    die,
-    read_json,
-    warn,
-    words,
-    write_json,
-)
+from lib.common import USER_AGENT, WORK_DIR, die, read_json, warn, write_json
+from lib.text import chunks, words
 from stylometry import FEATURES, features
 
 

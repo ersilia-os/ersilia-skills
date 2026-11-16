@@ -27,7 +27,8 @@ import re
 import sys
 from pathlib import Path
 
-from _common import WORK_DIR, die, unligature, warn, words, write_json
+from lib.common import WORK_DIR, die, warn, write_json
+from lib.text import unligature, words
 
 HEADINGS = [
     "abstract",

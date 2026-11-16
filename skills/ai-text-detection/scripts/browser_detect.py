@@ -37,8 +37,8 @@ import sys
 import time
 from pathlib import Path
 
-from _common import LOCAL, REFS, WORK_DIR, die, read_json
-from web_detectors import is_ai_colour, parse_score, record_result
+from lib.common import LOCAL, REFS, WORK_DIR, die, read_json
+from lib.detectors import is_ai_colour, parse_score, record_result
 
 PROFILE = LOCAL / "chrome-profile"
 BUTTON_RE = re.compile(r"\b(detect|scan|check|analy[sz]e|run|submit)\b", re.IGNORECASE)

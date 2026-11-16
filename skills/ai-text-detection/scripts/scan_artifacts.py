@@ -23,7 +23,8 @@ import re
 import sys
 from pathlib import Path
 
-from _common import REFS, WORK_DIR, context, load_text, locate, read_json, write_json
+from lib.common import REFS, WORK_DIR, read_json, write_json
+from lib.text import context, load_text, locate
 
 FLAG_MAP = {"i": re.IGNORECASE, "m": re.MULTILINE, "s": re.DOTALL}
 

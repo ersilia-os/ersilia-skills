@@ -24,7 +24,7 @@ import argparse
 import sys
 from datetime import date
 
-from _common import REFS, die, read_json, write_json
+from lib.common import REFS, die, read_json, write_json
 
 WATCH = REFS / "watchlist.json"
 

@@ -30,9 +30,11 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from _common import REFS, SKILL_DIR, read_json, words
+from lib.common import REFS, SKILL_DIR, read_json
+from lib.detectors import marks_ai
+from lib.splits import build_passages
+from lib.text import is_prose, words
 from stylometry import features, style_score
-from web_detectors import build_passages, is_prose, marks_ai
 
 CSS_FILE = SKILL_DIR / "assets" / "report.css"
 FONTS = (

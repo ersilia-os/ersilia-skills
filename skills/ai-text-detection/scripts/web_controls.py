@@ -35,12 +35,12 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from _common import REFS, read_json, read_jsonl, write_json
+from lib.common import REFS, read_json, read_jsonl, write_json
+from lib.evidence import thresholds
 
 CAL = REFS / "calibration"
 OUT = REFS / "web_calibration.json"
 READABLE = REFS / "web_validation.md"
-MIN_N = 5  # as in evidence.py: fewer known texts than this, and a tool is not counted
 
 
 def pick(rows: list[dict], n: int, key) -> list[dict]:
@@ -60,7 +60,7 @@ def pick(rows: list[dict], n: int, key) -> list[dict]:
 
 def build(d: Path, n: int) -> dict:
     """Write the control plan."""
-    from _common import words
+    from lib.text import words
 
     human = [
         r
@@ -116,7 +116,7 @@ def shuffle(d: Path) -> dict:
     """
     import random
 
-    from _common import sentences
+    from lib.text import sentences
 
     plan = read_json(d / "controls.json")
     units = []
@@ -302,11 +302,12 @@ def write_readable(cal: dict) -> None:
     def count(rate: float | None, n: int | None) -> str:
         return "—" if rate is None or not n else f"{round(rate * n)}/{n}"
 
+    min_n, min_auroc = thresholds()
     rows, thin = [], []
     for tool, c in sorted(
         cal["tools"].items(), key=lambda kv: -(kv[1].get("auroc") or 0)
     ):
-        if (c.get("n_human") or 0) < MIN_N or (c.get("n_ai") or 0) < MIN_N:
+        if (c.get("n_human") or 0) < min_n or (c.get("n_ai") or 0) < min_n:
             thin.append(f"{tool} ({c.get('n_human')} human, {c.get('n_ai')} AI)")
             continue
         rows.append(
@@ -328,7 +329,7 @@ def write_readable(cal: dict) -> None:
         "|---|---|---|---|---|---|---|---|---|---|\n" + "\n".join(rows) + "\n\n"
         "LR = likelihood ratio, with add-one smoothing so a small sample never gives infinity: how much "
         "more likely the tool's verdict is if the text is AI-written than if it is human. evidence.py "
-        f"counts a tool only with at least {MIN_N} human and {MIN_N} AI texts and an AUROC of 0.6 or more.\n"
+        f"counts a tool only with at least {min_n} human and {min_n} AI texts and an AUROC of {min_auroc} or more.\n"
         + (f"\nNot enough known texts yet: {', '.join(thin)}.\n" if thin else "")
         + "\n## Limits\n\n"
         "- The samples are small: one more miss among 10 AI texts moves a detection rate by 10 points.\n"

@@ -33,7 +33,7 @@ import urllib.request
 from datetime import date
 from pathlib import Path
 
-from _common import LOCAL, USER_AGENT, WORK_DIR, die, read_json, write_json
+from lib.common import LOCAL, USER_AGENT, WORK_DIR, die, read_json, write_json
 
 APPROVALS = LOCAL / "approved_services.json"
 KEYS = {

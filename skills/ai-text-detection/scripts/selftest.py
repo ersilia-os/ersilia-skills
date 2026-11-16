@@ -29,7 +29,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from _common import EXAMPLES, REFS, read_json, write_json
+from lib.common import EXAMPLES, REFS, read_json, write_json
 from scan_artifacts import compile_pattern
 
 HERE = Path(__file__).resolve().parent

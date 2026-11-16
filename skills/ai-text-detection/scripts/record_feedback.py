@@ -25,7 +25,7 @@ import argparse
 import sys
 from datetime import date
 
-from _common import SKILL_DIR, die, read_json, write_json
+from lib.common import SKILL_DIR, die, read_json, write_json
 
 LOG = SKILL_DIR / "references" / "feedback-log.json"
 CASES = SKILL_DIR / "examples" / "cases"

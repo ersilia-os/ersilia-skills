@@ -19,8 +19,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from _common import WORK_DIR, die
-from report_html import render
+from lib.common import WORK_DIR, die
+from lib.report import render
 
 KINDS = ["article", "grant", "review", "response-letter", "email", "other"]
 CONTEXTS = [

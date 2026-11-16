@@ -32,7 +32,7 @@ import argparse
 import sys
 from datetime import date
 
-from _common import LOCAL, WORK_DIR, die, read_json, read_jsonl, write_json
+from lib.common import LOCAL, WORK_DIR, die, read_json, read_jsonl, write_json
 
 CASES = (
     LOCAL / "cases.jsonl"

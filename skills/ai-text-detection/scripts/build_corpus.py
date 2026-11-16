@@ -36,7 +36,8 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from _common import REFS, USER_AGENT, chunks, warn, words
+from lib.common import REFS, USER_AGENT, warn
+from lib.text import chunks, words
 
 EPMC = "https://www.ebi.ac.uk/europepmc/webservices/rest"
 TOPICS = [

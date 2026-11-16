@@ -31,16 +31,8 @@ import statistics
 import sys
 from pathlib import Path
 
-from _common import (
-    REFS,
-    WORK_DIR,
-    chunks,
-    load_text,
-    read_json,
-    sentences,
-    words,
-    write_json,
-)
+from lib.common import REFS, WORK_DIR, read_json, write_json
+from lib.text import chunks, load_text, sentences, words
 
 FEATURES = [
     "excess_rate",

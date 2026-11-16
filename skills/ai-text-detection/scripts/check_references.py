@@ -40,15 +40,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from _common import (
-    USER_AGENT,
-    WORK_DIR,
-    load_text,
-    read_json,
-    unligature,
-    warn,
-    write_json,
-)
+from lib.common import USER_AGENT, WORK_DIR, read_json, warn, write_json
+from lib.text import load_text, unligature
 
 DOI_RE = re.compile(r"\b(10\.\d{4,9}/[^\s\"<>]+)", re.IGNORECASE)
 ARXIV_RE = re.compile(r"arXiv[:\s]*(\d{4}\.\d{4,5})(v\d+)?", re.IGNORECASE)

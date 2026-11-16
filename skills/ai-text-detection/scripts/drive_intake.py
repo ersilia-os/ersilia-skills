@@ -30,7 +30,7 @@ import re
 import sys
 from pathlib import Path
 
-from _common import WORK_DIR, die, read_json, write_json
+from lib.common import WORK_DIR, die, read_json, write_json
 
 ID_PATTERNS = [
     r"/d/([A-Za-z0-9_-]{20,})",
