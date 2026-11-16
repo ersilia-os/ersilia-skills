@@ -176,6 +176,45 @@
       "n_domain": 0,
       "fpr_domain": null,
       "domain_scores": []
+    },
+    "scribbr": {
+      "date": "2026-11-16",
+      "n_human": 28,
+      "n_ai": 10,
+      "n_polished": 3,
+      "fpr": 0.0,
+      "tpr": 0.3,
+      "polished_flagged": 0.0,
+      "auroc": 0.8,
+      "lr_flag": 10.0,
+      "lr_clear": 0.69,
+      "mean_human": 0.0,
+      "mean_ai": 0.357,
+      "n_shuffled": 10,
+      "fpr_shuffled": 0.0,
+      "fpr_generic": 0.0,
+      "n_domain": 18,
+      "fpr_domain": 0.0,
+      "domain_scores": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
     }
   }
 }

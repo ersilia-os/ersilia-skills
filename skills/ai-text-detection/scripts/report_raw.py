@@ -8,7 +8,7 @@ words; web_detectors.build_passages). Every score is given per passage.
     2. Text + panel     the text with AI-like sentences highlighted (brighter = stronger,
                         human text left plain), beside a panel of per-passage combined
                         scores and each detector's per-passage scores and track record
-    3. Scores by passage, trust in each detector, other evidence, details (below)
+    3. Other evidence   close reading and any problem found (below)
 
 Called by build_report.py (``--style raw``, the default).
 """
@@ -578,57 +578,6 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             + ", the detectors with the best independent evidence (they need a CAPTCHA ticked or an API key)."
         )
 
-    # How much to trust each detector (known-text calibration and stability across splits).
-    trust_rows = []
-    for t in tools:
-        c = (tcal.get(t) or {}).get("cal") or {}
-        w = tcal.get(t) or {}
-        stab = (evd.get("stability") or {}).get(t)
-        counted = "yes" if w.get("used") else f"no: {w.get('why', 'not calibrated')}"
-        fpr_cls = (
-            "c-human"
-            if c and (c.get("fpr") or 0) <= 0.1
-            else ("c-ai" if c else "c-none")
-        )
-        trust_rows.append(
-            f"<tr><td>{e(name(t))}</td>"
-            f'<td class="n {fpr_cls}">{pc(c.get("fpr")) if c else "\u2014"}</td>'
-            f'<td class="n {"c-human" if c and c.get("fpr_domain") is not None and c["fpr_domain"] <= 0.1 else ("c-ai" if c and c.get("fpr_domain") is not None else "c-none")}" '
-            f'title="{e(", ".join(pc(x) for x in c.get("domain_scores", [])) if c else "")}">'
-            f"{pc(c.get('fpr_domain')) if c and c.get('fpr_domain') is not None else '\u2014'}</td>"
-            f'<td class="n {"c-human" if c and c.get("fpr_shuffled") is not None and c["fpr_shuffled"] <= 0.1 else ("c-ai" if c and c.get("fpr_shuffled") is not None else "c-none")}">'
-            f"{pc(c.get('fpr_shuffled')) if c and c.get('fpr_shuffled') is not None else '\u2014'}</td>"
-            f'<td class="n">{pc(c.get("tpr")) if c else "\u2014"}</td>'
-            f'<td class="n">{pc(c.get("polished_flagged")) if c else "\u2014"}</td>'
-            f'<td class="n">{num(c.get("auroc")) if c else "\u2014"}</td>'
-            f'<td class="n">{pc(stab) if stab is not None else "\u2014"}</td><td>{e(counted)}</td></tr>'
-        )
-    ncal = next(
-        (
-            (tcal.get(t) or {}).get("cal") or {}
-            for t in tools
-            if (tcal.get(t) or {}).get("cal")
-        ),
-        {},
-    )
-    trust = (
-        "<p>Before trusting a detector on this document, the skill ran it on texts whose origin is known: "
-        f"{ncal.get('n_human', '?')} published human scientific texts from before ChatGPT "
-        f"({ncal.get('n_domain', 0)} of them from this document's own field) and {ncal.get('n_ai', '?')} AI-written ones "
-        "(Claude and GPT), plus AI-polished human texts. "
-        "<b>Cries wolf</b> = share of the human texts it called AI (lower is better); <b>same field</b> = only the texts from this document's field. <b>Catches</b> = share of the AI texts it called AI. "
-        "<b>Split-dependent</b> = share of this document's sentences whose verdict changed with how the text was split (lower is steadier).</p>"
-        f"<p>Caveats: the samples are small ({ncal.get('n_human', '?')} human, {ncal.get('n_ai', '?')} AI), so on the AI side one more "
-        f"miss moves a rate by {round(100 / max(ncal.get('n_ai') or 10, 1))} points. The human texts are "
-        "published papers that the detectors may have been trained on; <b>Cries wolf, shuffled</b> repeats the test with the "
-        "sentences of those texts in a random order, which keeps the style but defeats memorisation. The AI texts are "
-        "Claude and GPT output written for this skill; other models and human-edited AI text can be harder to catch.</p>"
-        '<div class="scroll"><table><tr><th>Detector</th><th>Cries wolf</th><th>Cries wolf, same field</th><th>Cries wolf, shuffled</th><th>Catches</th><th>Flags AI-polished</th>'
-        f"<th>AUROC</th><th>Split-dependent</th><th>Counted in Combined</th></tr>{''.join(trust_rows)}</table></div>"
-        if tools
-        else "<p>No detector ran.</p>"
-    )
-
     # 3. The text, passage by passage, in reading order.
     blocks, pos = [], 0
     for i, r in enumerate(sorted(rows, key=lambda x: x["start"])):
@@ -721,51 +670,6 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
     for s in g.get("separate", []):
         ev.append(f"<li><b>{e(s['kind'])}</b>: {e(s['text'])}</li>")
     other = f"<ul>{''.join(ev)}</ul>" if ev else "<p>Nothing else to report.</p>"
-
-    # How the numbers were computed (folded).
-    mp = read_json(work / "multi" / "plan.json") or {"units": [], "sentences": []}
-    n_scale = {sc: sum(1 for u in mp["units"] if u["scale"] == sc) for sc in "SPW"}
-    per_tool = {t: len(v) for t, v in (evd.get("units_scored") or {}).items()}
-    method_html = (
-        "<details><summary>How the scores were computed</summary><ul>"
-        f"<li>The prose was split three ways: {n_scale.get('S', 0)} whole sections, {n_scale.get('P', 0)} passages of whole paragraphs, "
-        f"and {n_scale.get('W', 0)} overlapping windows of about 350 words that move forward half a window at a time. "
-        "Each detector received only the splits within the text length it handles well.</li>"
-        + (
-            f"<li>Scans per detector on this document: {', '.join(f'{name(t)} {n}' for t, n in sorted(per_tool.items()))}.</li>"
-            if per_tool
-            else ""
-        )
-        + "<li>Each detector was first run on texts of known origin (see How much to trust each detector). Its rate of "
-        "calling human text AI, and of catching AI text, turns each of its verdicts into a likelihood ratio.</li>"
-        "<li>For each sentence, every split that contains it and every detector that scored that split vote. The votes "
-        "are weighted by those likelihood ratios and combined, allowing for the detectors sharing part of their mistakes "
-        "(average evidence times the square root of the number of detectors). Passages and the whole text average their sentences, weighted by length.</li>"
-        "<li>Only detectors that were tested on at least 5 human and 5 AI texts and did better than chance are counted.</li>"
-        "</ul></details>"
-    )
-
-    # 5. Details.
-    trows = []
-    for tid, t in reg.items():
-        done = sum(1 for k in scores if tid in scores[k])
-        skip = next((s["why"] for s in web.get("skipped", []) if s["tool"] == tid), "")
-        status = (
-            f"ran on {done} of {len(rows)} passages"
-            if done
-            else (f"not run: {skip}" if skip else "not tried")
-        )
-        trows.append(
-            f"<tr><td>{e(t['name'])}</td><td>{e(t['weight'])}</td><td>{e(status)}</td><td>{e(t.get('evidence', ''))}</td></tr>"
-        )
-    details = (
-        method_html
-        + "<details><summary>The detectors, their track record, and what did not run</summary>"
-        f'<div class="scroll"><table><tr><th>Detector</th><th>Weight</th><th>This document</th><th>Independent evidence</th></tr>{"".join(trows)}</table></div>'
-        "<p>Validated (\u2713) means published independent studies found few false positives. The others count only "
-        "through the skill's own tests on known texts (the calibrated combination); their raw scores alone never raise the verdict.</p></details>"
-        f"<details><summary>Limits</summary><ul>{''.join(f'<li>{e(c)}</li>' for c in g.get('caveats', []))}</ul></details>"
-    )
 
     tracked = (doc.get("metadata") or {}).get("tracked_changes_removed")
     tested = (
@@ -948,8 +852,5 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         f"<!-- section: answer -->{hero}"
         f'<div class="cols"><article class="card doc" id="text"><!-- section: text -->{text_html}</article>{side}</div>'
         f'<h2>Other evidence</h2><div class="card">{other}</div>'
-        '<h2>Details</h2><div class="card">'
-        f'<details class="fold"><summary>How much to trust each detector</summary><div class="plain">{trust}</div></details>'
-        f'<details class="fold"><summary>Every check in one list</summary><ul class="facts">{"".join(f"<li>{x}</li>" for x in facts)}</ul></details>'
-        f"{details}</div></div>"
+        "</div>"
     )
