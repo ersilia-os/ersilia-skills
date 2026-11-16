@@ -1,0 +1,43 @@
+{
+  "about": "Document only 3.3x, but one passage 22x with two well-calibrated tools: moderate, worded as localised.",
+  "text": "Introduction\n\nTuberculosis killed an estimated 1.5 million people in 2020, and drug-resistant strains now account for a growing share of new cases in several high-burden countries. Current regimens last at least six months, and adherence drops sharply after the intensive phase. We screened 1,200 compounds from an open-access library against Mycobacterium tuberculosis H37Rv in a resazurin microtitre assay, and followed up 38 hits with dose-response curves and cytotoxicity in HepG2 cells. Eleven compounds had MIC90 values below 5 uM and selectivity indices above 10. Two of them share a nitroimidazole scaffold that had not been reported against mycobacteria before; the others fall into known chemotypes. We discuss why the hit rate was lower than in earlier screens of the same library, which used a different medium, and we release all raw plate reads so that others can re-analyse them.\n\nMethods\n\nCompounds were dissolved in DMSO at 10 mM and stored at -20 C. Plates were read after seven days of incubation at 37 C.\n",
+  "kind": "article",
+  "evidence": {
+    "used": [
+      "a",
+      "b"
+    ],
+    "tools": {
+      "a": {
+        "used": true,
+        "cal": {
+          "auroc": 0.95
+        }
+      },
+      "b": {
+        "used": true,
+        "cal": {
+          "auroc": 0.9
+        }
+      }
+    },
+    "document": {
+      "evidence": 1.2,
+      "times": 3.3
+    },
+    "passages": [
+      {
+        "chunk": "P1",
+        "evidence": 0.1
+      },
+      {
+        "chunk": "P2",
+        "evidence": 3.1
+      }
+    ],
+    "sentences": []
+  },
+  "expect": {
+    "tier": "moderate"
+  }
+}

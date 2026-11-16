@@ -233,7 +233,35 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
     # Sentences the detectors marked, located in the text and merged across tools.
     span_of = {p["chunk"]: (p["start"], p["end"]) for p in passages}
     marked: dict[tuple[int, int], set[str]] = {}
-    for h in web.get("highlights", []):
+    # Sentence marks from every split: passages (web_detectors.json) and the multi-split runs.
+    from web_detectors import is_ai_colour
+
+    mplan = read_json(work / "multi" / "plan.json") or {"units": []}
+    multi_marks = []
+    for u in mplan["units"]:
+        if u["scale"] == "P":
+            continue
+        for f in (work / "plan").glob(f"*_chunk{u['chunk']}_highlights.json"):
+            tool = f.name.split("_chunk")[0]
+            for h in read_json(f) or []:
+                if is_ai_colour(h.get("bg", "")):
+                    multi_marks.append(
+                        {
+                            "tool": tool,
+                            "span": (u["start"], u["end"]),
+                            "text": h["text"],
+                        }
+                    )
+    for h in web.get("highlights", []) + multi_marks:
+        if "span" in h:
+            a0, b0 = h["span"]
+            pat = r"\s+".join(re.escape(tok) for tok in h["text"].split())
+            m = re.search(pat, text[a0:b0]) if pat else None
+            if m:
+                marked.setdefault((a0 + m.start(), a0 + m.end()), set()).add(
+                    name(h["tool"])
+                )
+            continue
         a0, b0 = span_of.get(h["chunk"], (0, len(text)))
         pat = r"\s+".join(re.escape(tok) for tok in h["text"].split())
         m = re.search(pat, text[a0:b0]) if pat else None
@@ -278,10 +306,15 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
                     f'<mark class="art" title="{e(lab)}">{e(text[s0:s1])}</mark>'
                 )
             else:
-                c = ({"m1": "u1", "m2": "u2"}[cls]) if heat_sents else cls
-                out.append(
-                    f'<span class="{c}" title="{e(lab)}">{e(text[s0:s1])}</span>'
-                )
+                if heat_sents and cls == "m1":
+                    out.append(
+                        e(text[s0:s1])
+                    )  # one site only: the heat already carries it
+                else:
+                    c = "u2" if heat_sents else cls
+                    out.append(
+                        f'<span class="{c}" title="{e(lab)}">{e(text[s0:s1])}</span>'
+                    )
             pos = s1
         out.append(e(text[pos:b]))
         return "".join(out)
@@ -372,7 +405,7 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
                 else f"They disagree in {len(mixed)} of the {len(rows)} passages. "
             )
             + (
-                "None of these detectors has independent evidence of accuracy, so their scores are context only."
+                "None of them has published independent validation; the skill measured each one on known texts (see How much to trust each detector)."
                 if not any(reg.get(t, {}).get("weight") == "validated" for t in tools)
                 else ""
             )
@@ -387,6 +420,25 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         ),
         f"Close reading: {len(jud.get('reading', []))} observation(s), under Other evidence.",
     ]
+    hotp = sorted(
+        (
+            pa
+            for pa in evd.get("passages", [])
+            if pa.get("evidence") is not None and math.exp(pa["evidence"]) >= 3
+        ),
+        key=lambda pa: -pa["evidence"],
+    )
+    if hotp:
+        secs = {f"P{r['chunk']}": " + ".join(r["sections"]) for r in rows}
+        facts.insert(
+            0,
+            "Where: "
+            + "; ".join(
+                f"<b>passage {pa['chunk'][1:]} ({e(secs.get(pa['chunk'], ''))}), about {math.exp(pa['evidence']):.0f}× as likely AI</b>"
+                for pa in hotp[:3]
+            )
+            + ". Elsewhere the calibrated signal is weak or absent.",
+        )
     dtimes = (evd.get("document") or {}).get("times")
     if dtimes is not None:
         facts.insert(
@@ -486,6 +538,11 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         trust_rows.append(
             f"<tr><td>{e(name(t))}</td>"
             f'<td class="n {fpr_cls}">{pc(c.get("fpr")) if c else "\u2014"}</td>'
+            f'<td class="n {"c-human" if c and c.get("fpr_domain") is not None and c["fpr_domain"] <= 0.1 else ("c-ai" if c and c.get("fpr_domain") is not None else "c-none")}" '
+            f'title="{e(", ".join(pc(x) for x in c.get("domain_scores", [])) if c else "")}">'
+            f"{pc(c.get('fpr_domain')) if c and c.get('fpr_domain') is not None else '\u2014'}</td>"
+            f'<td class="n {"c-human" if c and c.get("fpr_shuffled") is not None and c["fpr_shuffled"] <= 0.1 else ("c-ai" if c and c.get("fpr_shuffled") is not None else "c-none")}">'
+            f"{pc(c.get('fpr_shuffled')) if c and c.get('fpr_shuffled') is not None else '\u2014'}</td>"
             f'<td class="n">{pc(c.get("tpr")) if c else "\u2014"}</td>'
             f'<td class="n">{pc(c.get("polished_flagged")) if c else "\u2014"}</td>'
             f'<td class="n">{num(c.get("auroc")) if c else "\u2014"}</td>'
@@ -501,11 +558,17 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
     )
     trust = (
         "<p>Before trusting a detector on this document, the skill ran it on texts whose origin is known: "
-        f"{ncal.get('n_human', '?')} published human scientific texts from before ChatGPT and {ncal.get('n_ai', '?')} AI-written ones "
+        f"{ncal.get('n_human', '?')} published human scientific texts from before ChatGPT "
+        f"({ncal.get('n_domain', 0)} of them from this document's own field) and {ncal.get('n_ai', '?')} AI-written ones "
         "(Claude and GPT), plus AI-polished human texts. "
-        "<b>Cries wolf</b> = share of the human texts it called AI (lower is better). <b>Catches</b> = share of the AI texts it called AI. "
+        "<b>Cries wolf</b> = share of the human texts it called AI (lower is better); <b>same field</b> = only the texts from this document's field. <b>Catches</b> = share of the AI texts it called AI. "
         "<b>Split-dependent</b> = share of this document's sentences whose verdict changed with how the text was split (lower is steadier).</p>"
-        '<div class="scroll"><table><tr><th>Detector</th><th>Cries wolf</th><th>Catches</th><th>Flags AI-polished</th>'
+        f"<p>Caveats: the samples are small ({ncal.get('n_human', '?')} human, {ncal.get('n_ai', '?')} AI), so on the AI side one more "
+        f"miss moves a rate by {round(100 / max(ncal.get('n_ai') or 10, 1))} points. The human texts are "
+        "published papers that the detectors may have been trained on; <b>Cries wolf, shuffled</b> repeats the test with the "
+        "sentences of those texts in a random order, which keeps the style but defeats memorisation. The AI texts are "
+        "Claude and GPT output written for this skill; other models and human-edited AI text can be harder to catch.</p>"
+        '<div class="scroll"><table><tr><th>Detector</th><th>Cries wolf</th><th>Cries wolf, same field</th><th>Cries wolf, shuffled</th><th>Catches</th><th>Flags AI-polished</th>'
         f"<th>AUROC</th><th>Split-dependent</th><th>Counted in Combined</th></tr>{''.join(trust_rows)}</table></div>"
         if tools
         else "<p>No detector ran.</p>"
@@ -568,7 +631,7 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             "<p>The left bar of each passage has the colour of its agreement. Each sentence is shaded by the combined, "
             'calibrated evidence: <span class="g2">leans human</span> \u00b7 <span class="g1">slightly human</span> \u00b7 no shade = no signal \u00b7 '
             '<span class="h1">slightly AI</span> \u00b7 <span class="h2">3\u00d7 or more AI</span> \u00b7 <span class="h3">10\u00d7 or more AI</span>. '
-            '<span class="u1">Dotted</span> / <span class="u2">solid</span> underline = one / several sites marked the sentence as AI. '
+            '<span class="u2">Underlined</span> = two or more sites marked this sentence as AI. '
             "Hover any sentence for the details. "
             if heat_sents
             else "<p>The left bar of each passage has the colour of its agreement. Inside, "

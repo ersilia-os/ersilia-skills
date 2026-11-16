@@ -60,6 +60,7 @@
     "min_good_tools": 2,
     "good_auroc": 0.75,
     "counter_times": 0.1,
-    "_note": "Calibrated combination of web detectors across splits (evidence.py). Moderate needs the document to be at least moderate_times more likely under AI, with at least min_good_tools tools that reached good_auroc on known texts among those counted. At most counter_times is reported as counter-evidence. Never strong on its own."
+    "_note": "Calibrated combination of web detectors across splits (evidence.py). Moderate needs the document to be at least moderate_times more likely under AI, with at least min_good_tools tools that reached good_auroc on known texts among those counted. At most counter_times is reported as counter-evidence. Never strong on its own. passage_times: a single passage at or above this (stricter than the document bar, since several passages are tested) also gives moderate, worded as localised evidence.",
+    "passage_times": 20
   }
 }

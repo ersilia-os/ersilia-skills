@@ -305,7 +305,7 @@ def run_one(
             "why": "CAPTCHA (left for the user; never solved automatically)",
         }
     after, fresh = pasted, ""
-    for _ in range(30):  # up to ~60 s for the verdict to appear
+    for _ in range(45):  # up to ~90 s for the verdict to appear
         page.wait_for_timeout(2000)
         after = page.inner_text("body")
         if captcha_shown(page) and not (

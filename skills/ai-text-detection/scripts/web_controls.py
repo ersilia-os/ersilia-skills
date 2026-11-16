@@ -130,6 +130,55 @@ def shuffle(d: Path) -> dict:
     return out
 
 
+def domain(d: Path, queries: list[str], n: int) -> dict:
+    """Human controls matched to the document's field (open-access CC BY, 2015-2021).
+
+    A detector may treat formulaic technical prose (models, doses, statistics) as machine-
+    like. These controls test that on the document's own kind of text. Each query is a
+    Europe PMC query; one Introduction or Discussion window per matching paper is used.
+    """
+    import random
+
+    from build_corpus import fulltext_windows, search
+
+    units, seen = [], set()
+    for q in queries:
+        full = f'({q}) AND OPEN_ACCESS:y AND LICENSE:"cc by" AND PUB_YEAR:[2015 TO 2021] AND HAS_FT:y'
+        res = [r for r in search(full, 1) if r.get("pmcid") and r["pmcid"] not in seen]
+        random.Random(q).shuffle(res)
+        for r in res:
+            if sum(1 for u in units if u["query"] == q) >= n:
+                break
+            seen.add(r["pmcid"])
+            wins = [
+                w for w in fulltext_windows(r, "article") if 250 <= w["n_words"] <= 450
+            ]
+            if not wins:
+                continue
+            w = wins[0]
+            cid = f"d{len(units) + 1:02d}"
+            f = d / f"{cid}.txt"
+            f.write_text(w["text"], encoding="utf-8")
+            units.append(
+                {
+                    "chunk": cid,
+                    "file": str(f),
+                    "label": "human_domain",
+                    "source_id": w["id"],
+                    "kind": "article",
+                    "native_english": w.get("native_english"),
+                    "country": w.get("country"),
+                    "year": w.get("year"),
+                    "source_url": w.get("source_url"),
+                    "query": q,
+                    "n_words": w["n_words"],
+                }
+            )
+    out = {"built": date.today().isoformat(), "queries": queries, "units": units}
+    write_json(d / "domain.json", out)
+    return out
+
+
 def auroc(pos: list[float], neg: list[float]) -> float | None:
     """P(random AI text scores above random human text); ties count half."""
     if not pos or not neg:
@@ -145,13 +194,15 @@ def analyze(d: Path) -> dict:
     label_of.update(
         {
             u["chunk"]: u["label"]
-            for u in (read_json(d / "shuffled.json") or {"units": []})["units"]
+            for extra in ("shuffled", "domain")
+            for u in (read_json(d / f"{extra}.json") or {"units": []})["units"]
         }
     )
     res = [
         r
         for r in read_jsonl(d / "controls.results.jsonl")
         + read_jsonl(d / "shuffled.results.jsonl")
+        + read_jsonl(d / "domain.results.jsonl")
         if r.get("score") is not None
     ]
     latest: dict[tuple[str, str], float] = {}
@@ -161,7 +212,9 @@ def analyze(d: Path) -> dict:
     cal["_about"] = (
         "Measured on known texts by web_controls.py: human = published scientific prose from 2015-2021 "
         "(CC BY / public domain), ai = written by Claude or GPT models, polished = human text rewritten by an AI. "
-        "fpr = share of human texts scored >= 0.5; tpr = share of AI texts scored >= 0.5. Small samples: "
+        "human_domain = human prose from the document's own field. fpr, lr_* and auroc pool all human texts (general and "
+        "domain); fpr_generic and fpr_domain show them apart. fpr = share of human texts scored >= 0.5; tpr = share of "
+        "AI texts scored >= 0.5. Small samples: "
         "the intervals in 'n' matter. Re-run monthly (watch.py) and after any site change."
     )
     for tool in sorted({t for t, _ in latest}):
@@ -181,6 +234,13 @@ def analyze(d: Path) -> dict:
             for (t, c), v in latest.items()
             if t == tool and label_of.get(c) == "human_shuffled"
         ]
+        hd = [
+            v
+            for (t, c), v in latest.items()
+            if t == tool and label_of.get(c) == "human_domain"
+        ]
+        fpr_generic = round(sum(v >= 0.5 for v in h) / len(h), 3) if h else None
+        h = h + hd  # rates and likelihood ratios use every independent human text
         fp, tp = sum(v >= 0.5 for v in h), sum(v >= 0.5 for v in a)
         cal["tools"][tool] = {
             "date": date.today().isoformat(),
@@ -209,6 +269,10 @@ def analyze(d: Path) -> dict:
             "fpr_shuffled": round(sum(v >= 0.5 for v in hs) / len(hs), 3)
             if hs
             else None,
+            "fpr_generic": fpr_generic,
+            "n_domain": len(hd),
+            "fpr_domain": round(sum(v >= 0.5 for v in hd) / len(hd), 3) if hd else None,
+            "domain_scores": sorted(round(v, 2) for v in hd),
         }
     write_json(OUT, cal)
     return cal
@@ -219,11 +283,23 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    p.add_argument("cmd", choices=["build", "shuffle", "analyze"])
+    p.add_argument("cmd", choices=["build", "shuffle", "domain", "analyze"])
+    p.add_argument(
+        "--query",
+        action="append",
+        help="Europe PMC query for domain controls (repeatable)",
+    )
     p.add_argument("--dir", default="/tmp/ai_text_detection_controls")
     p.add_argument("--n", type=int, default=8)
     args = p.parse_args(argv)
     d = Path(args.dir)
+    if args.cmd == "domain":
+        out = domain(d, args.query or [], args.n)
+        for u in out["units"]:
+            print(
+                f"{u['chunk']}: {u['n_words']} words, {u.get('year')}, {u.get('country')}, {u['source_url']}"
+            )
+        return 0
     if args.cmd == "shuffle":
         out = shuffle(d)
         print(

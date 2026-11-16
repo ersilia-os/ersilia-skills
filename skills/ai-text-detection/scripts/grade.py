@@ -35,6 +35,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 from pathlib import Path
 
@@ -262,9 +263,10 @@ def grade(work: Path) -> dict:
         statements.append(
             {
                 "tier": "weak",
-                "text": "Detectors without independent validation also flag it ("
+                "text": "Detectors without published independent validation flag it ("
                 + ", ".join(x["name"] for x in flagged_ctx)
-                + "); they are known for false positives, so this is context only.",
+                + "). Their weight comes from the skill's own tests on known texts (see the calibrated combination), "
+                "not from their scores alone.",
                 "evidence": ["web"],
                 "check": "",
             }
@@ -295,7 +297,7 @@ def grade(work: Path) -> dict:
                 "tier": "weak",
                 "text": "Passages where most of the detectors that scored them say AI: "
                 + "; ".join(hot)
-                + ". These are the places to read most closely; the tools are not validated, so this is a pointer, not evidence.",
+                + ". These are the places to read most closely; the weighted combination above says how much the agreement is worth.",
                 "evidence": ["web"],
                 "check": "Per-passage scores are in the passages table.",
             }
@@ -325,7 +327,35 @@ def grade(work: Path) -> dict:
                     "check": "The calibration table shows each detector's results on the known texts.",
                 }
             )
-        elif times <= cr["counter_times"]:
+        elif cr.get("passage_times"):
+            strong_p = [
+                pa
+                for pa in evd.get("passages", [])
+                if pa.get("evidence") is not None
+                and math.exp(pa["evidence"]) >= cr["passage_times"]
+            ]
+            if strong_p and len(good) >= cr["min_good_tools"]:
+                met["moderate"].append("combined-passage")
+                secs = {
+                    f"P{c['chunk']}": " + ".join(c["sections"])
+                    for c in (web.get("chunks") or [])
+                }
+                statements.append(
+                    {
+                        "tier": "moderate",
+                        "text": "Localised: "
+                        + "; ".join(
+                            f"passage {pa['chunk'][1:]} ({secs.get(pa['chunk'], '')}) is about {math.exp(pa['evidence']):.0f} times as likely under AI-written text"
+                            for pa in strong_p
+                        )
+                        + f", combining {len(evd.get('used', []))} detectors weighted by their results on known texts and every way of "
+                        f"splitting the text. For the whole document the figure is about {times:.1f}. "
+                        "This points to AI involvement in part of the text, not in all of it.",
+                        "evidence": ["combined"],
+                        "check": "The calibration table shows each detector's results on the known texts.",
+                    }
+                )
+        if times <= cr["counter_times"]:
             caveats_pre.append(
                 f"Counter-evidence: the calibrated combination of detectors ({names}) leans human: about {1 / times:.0f} times as likely under human text."
             )
