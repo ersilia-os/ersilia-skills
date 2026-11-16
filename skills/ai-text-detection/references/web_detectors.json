@@ -55,8 +55,8 @@
       "read": "Record the AI score (0-1) or 0/1 from the label.",
       "max_words": null,
       "automation": {
-        "checked": "2026-11-15",
-        "status": "text box not found by the automation (embedded frame or login)"
+        "checked": "2026-11-16",
+        "status": "cookie dialog offers only 'Accept All' or 'Customize'; the skill does not consent to non-essential cookies on the user's behalf"
       }
     },
     {
@@ -68,7 +68,7 @@
       "read": "Record the share reported as AI-generated (0-1).",
       "max_words": null,
       "automation": {
-        "checked": "2026-11-15",
+        "checked": "2026-11-16",
         "status": "scan button covered by an overlay"
       }
     },
@@ -100,8 +100,8 @@
       "read": "Record the 'fake' / AI probability (0-1).",
       "max_words": null,
       "automation": {
-        "checked": "2026-11-15",
-        "status": "text box not found by the automation"
+        "checked": "2026-11-16",
+        "status": "free web checker shows 'Unexpected error' to visitors; use the free API key instead"
       },
       "api": "api_detectors.py (SAPLING_API_KEY; free key: 50,000 characters a day, 250,000 a month)"
     },
@@ -114,8 +114,8 @@
       "read": "Record the share reported as AI (0-1).",
       "max_words": null,
       "automation": {
-        "checked": "2026-11-15",
-        "status": "text box not found by the automation"
+        "checked": "2026-11-16",
+        "status": "text box found; scan button covered (cookie dialog); same cookie question as Copyleaks"
       }
     },
     {
@@ -127,8 +127,8 @@
       "read": "Record 1 - (human score / 100).",
       "max_words": null,
       "automation": {
-        "checked": "2026-11-15",
-        "status": "no result captured"
+        "checked": "2026-11-16",
+        "status": "no result captured; login likely needed"
       }
     },
     {
@@ -159,8 +159,8 @@
       "read": "Record 1 - (human-generated share / 100).",
       "max_words": null,
       "automation": {
-        "checked": "2026-11-15",
-        "status": "text box not found by the automation"
+        "checked": "2026-11-16",
+        "status": "no text box found (page redirects to writer.com home)"
       }
     },
     {
@@ -272,7 +272,7 @@
       "max_words": null,
       "automation": {
         "checked": "2026-11-16",
-        "status": "500 words per scan, 5 scans an hour without login."
+        "status": "free limit hit at once for automated use"
       }
     },
     {
@@ -282,11 +282,17 @@
       "weight": "context",
       "evidence": "No independent evidence found.",
       "read": "Record the AI likelihood or AI share shown (0-1).",
-      "max_words": null,
+      "max_words": 1500,
       "automation": {
         "checked": "2026-11-16",
-        "status": "no CAPTCHA markers on page load; daily cap."
-      }
+        "status": "works without CAPTCHA or login (probe 2026-11-16); parser verified"
+      },
+      "parse": {
+        "score": "(?m)^\\s*(\\d+(?:\\.\\d+)?)%\\s*$\\s*^\\s*AI Probability",
+        "scale": 100,
+        "label": "(?m)^Final Verdict\\s*$\\s*^([^\\n]+)$"
+      },
+      "min_words": 100
     },
     {
       "id": "detecting_ai",
@@ -298,7 +304,7 @@
       "max_words": null,
       "automation": {
         "checked": "2026-11-16",
-        "status": "no CAPTCHA markers on page load; 15,000 characters free; no signup."
+        "status": "CAPTCHA on automated use"
       }
     },
     {
@@ -311,7 +317,7 @@
       "max_words": null,
       "automation": {
         "checked": "2026-11-16",
-        "status": "no CAPTCHA markers on page load; 5,000 characters per check."
+        "status": "CAPTCHA on automated use"
       }
     },
     {
@@ -324,7 +330,7 @@
       "max_words": null,
       "automation": {
         "checked": "2026-11-16",
-        "status": "Cloudflare Turnstile marker: may need the user."
+        "status": "a local app for Mac/iPhone (text never leaves the device); needs the user to install it"
       }
     },
     {
@@ -334,11 +340,17 @@
       "weight": "context",
       "evidence": "No independent evidence; aimed at academic text.",
       "read": "Record the AI likelihood or AI share shown (0-1).",
-      "max_words": null,
+      "max_words": 1000,
       "automation": {
         "checked": "2026-11-16",
-        "status": "account probably needed."
-      }
+        "status": "works without login; shows a 1,000-word counter (per-scan limit); parser verified"
+      },
+      "parse": {
+        "score": "AI detection report\\s*\\n\\s*(\\d+(?:\\.\\d+)?)%",
+        "scale": 100,
+        "label": "AI detection report\\s*\\n\\s*\\d+(?:\\.\\d+)?%\\s*\\n([^\\n]+)"
+      },
+      "min_words": 100
     }
   ],
   "default_order": [

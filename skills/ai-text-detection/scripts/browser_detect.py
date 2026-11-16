@@ -138,8 +138,9 @@ def dismiss_cookies(page) -> None:
 def find_input(page):
     """The main text input: largest visible textarea, else largest contenteditable."""
     best, area = None, 0
+    frames = [page.main_frame] + [f for f in page.frames if f != page.main_frame]
     for sel in ("textarea", "[contenteditable='true']", "[contenteditable='']"):
-        for el in page.query_selector_all(sel):
+        for el in [x for fr in frames for x in fr.query_selector_all(sel)]:
             try:
                 if not el.is_visible():
                     continue
@@ -168,7 +169,15 @@ def click_go(page, box) -> bool:
     tb = box.bounding_box() or {"x": 0, "y": 0, "width": 0, "height": 0}
     cx, cy = tb["x"] + tb["width"] / 2, tb["y"] + tb["height"]
     best, dist = None, float("inf")
-    for el in page.query_selector_all("button, [role='button'], input[type='submit']"):
+    scope = box.owner_frame() or page.main_frame
+    candidates = scope.query_selector_all(
+        "button, [role='button'], input[type='submit']"
+    )
+    if scope != page.main_frame:
+        candidates += page.query_selector_all(
+            "button, [role='button'], input[type='submit']"
+        )
+    for el in candidates:
         try:
             label = (
                 el.inner_text()
