@@ -109,6 +109,10 @@ p.skip, .skip { color: var(--muted); font-size: .85rem; font-family: Inter, syst
 mark.art { background: var(--art); color: inherit; outline: 2px solid var(--ai); border-radius: 3px; }
 /* tables and folds */
 .scroll { overflow-x: auto; }
+table.doctable { font: .8rem/1.4 Inter, system-ui, sans-serif; margin: .4rem 0 1rem; }
+table.doctable td, table.doctable th { padding: 3px 8px; }
+table.doctable tr.grp td { font-weight: 650; color: var(--muted); padding-top: 8px; }
+details.tbl summary { font-weight: 400; }
 .plain td, .plain th { background: none !important; text-align: right; white-space: nowrap; }
 .plain td:first-child, .plain th:first-child, .plain td:last-child, .plain th:last-child { text-align: left; }
 .plain th { white-space: normal; vertical-align: bottom; }
@@ -170,12 +174,48 @@ def is_heading_like(par: str) -> bool:
     return len(words(t)) <= 12 and not t.endswith(".")
 
 
-def gap(text: str, a: int, b: int) -> str:
-    """Text between passages: headings shown plainly, other text greyed (not checked)."""
+def table_html(rows: list[str]) -> str:
+    """A document table (rows with " | " between cells) as a simple HTML table; a row
+    with one cell is a group label spanning the table."""
+    cells = [[c.strip() for c in r.split(" | ")] for r in rows]
+    n = max(len(c) for c in cells)
     out = []
-    for raw in re.split(r"\n\s*\n", text[a:b]):
-        t = raw.strip()
-        if not t:
+    for i, c in enumerate(cells):
+        if len(c) == 1:
+            out.append(f'<tr class="grp"><td colspan="{n}">{e(c[0])}</td></tr>')
+        else:
+            tag = "th" if i == 0 else "td"
+            out.append("<tr>" + "".join(f"<{tag}>{e(x)}</{tag}>" for x in c) + "</tr>")
+    return f'<div class="scroll"><table class="doctable">{"".join(out)}</table></div>'
+
+
+def gap(text: str, a: int, b: int) -> str:
+    """Text between passages (not checked): headings shown plainly, document tables as
+    simple folded tables under their caption, other text greyed."""
+    paras = [t.strip() for t in re.split(r"\n\s*\n", text[a:b]) if t.strip()]
+    out: list[str] = []
+    i = 0
+    while i < len(paras):
+        t = paras[i]
+        if " | " in t:  # a table: rows, plus one-cell group labels between rows
+            rows = []
+            while i < len(paras) and (
+                " | " in paras[i]
+                or (
+                    i + 1 < len(paras)
+                    and " | " in paras[i + 1]
+                    and len(words(paras[i])) <= 8
+                )
+            ):
+                rows.append(paras[i])
+                i += 1
+            caption = "Table"
+            if out and out[-1].startswith('<div class="sec">Table'):
+                caption = html.unescape(re.sub(r"<[^>]+>", "", out.pop()))
+            out.append(
+                f'<details class="tbl"><summary class="skip">{e(caption)} '
+                f"<i>(table, {len(rows)} rows; not checked)</i></summary>{table_html(rows)}</details>"
+            )
             continue
         if is_heading_like(t):
             out.append(f'<div class="sec">{e(t)}</div>')
@@ -183,6 +223,7 @@ def gap(text: str, a: int, b: int) -> str:
             short = t[:300] + ("…" if len(t) > 300 else "")
             why = "not checked" if is_prose(t) else "not prose; not checked"
             out.append(f'<p class="skip">{e(short)} <i>({why})</i></p>')
+        i += 1
     return "".join(out)
 
 
@@ -610,21 +651,24 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             else:
                 blocks.append(gap(text, pos, r["start"]))
         sent_starts = {a for a, _ in r.get("paras", [[r["start"], r["end"]]])}
-        paras_html, ppos = [], r["start"]
+        paras_html, ppos, held = [], r["start"], None  # held: start of unchecked text
         for m in [*re.finditer(r"\n\s*\n", text[r["start"] : r["end"]]), None]:
             pend = r["start"] + m.start() if m else r["end"]
             raw = text[ppos:pend]
             a0 = ppos + (len(raw) - len(raw.lstrip()))
             if raw.strip():
                 if a0 in sent_starts:
+                    if (
+                        held is not None
+                    ):  # headings, captions, tables before this paragraph
+                        paras_html.append(gap(text, held, a0))
+                        held = None
                     paras_html.append(f"<p>{inline(a0, pend)}</p>")
-                elif is_heading_like(raw):
-                    paras_html.append(f'<div class="sec">{e(raw.strip())}</div>')
-                else:
-                    paras_html.append(
-                        f'<p class="skip">{e(raw.strip())} <i>(not sent to the detectors)</i></p>'
-                    )
+                elif held is None:
+                    held = a0
             ppos = r["start"] + m.end() if m else r["end"]
+        if held is not None:
+            paras_html.append(gap(text, held, r["end"]))
         pev = comb_of.get(f"P{r['chunk']}")
         pcls = times_class(pev) if comb_of else r["cls"]
         sc_line = " · ".join(
