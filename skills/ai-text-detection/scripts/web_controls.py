@@ -99,6 +99,37 @@ def build(d: Path, n: int) -> dict:
     return plan
 
 
+def shuffle(d: Path) -> dict:
+    """Sentence-shuffled copies of the human controls (a memorisation check).
+
+    The human controls are published papers that detectors were probably trained on, so a
+    detector could recognise them instead of judging their style. Shuffling the sentence
+    order keeps the vocabulary and style but breaks any memorised sequence. If a tool also
+    calls the shuffled texts human, its low false-positive rate is not just memory.
+    """
+    import random
+
+    from _common import sentences
+
+    plan = read_json(d / "controls.json")
+    units = []
+    for u in plan["units"]:
+        if u["label"] != "human":
+            continue
+        sents = sentences(Path(u["file"]).read_text(encoding="utf-8"))
+        rng = random.Random(u["chunk"])
+        order = list(range(len(sents)))
+        while order == sorted(order) and len(order) > 1:
+            rng.shuffle(order)
+        cid = "s" + u["chunk"][1:]
+        f = d / f"{cid}.txt"
+        f.write_text(" ".join(sents[i] for i in order), encoding="utf-8")
+        units.append({**u, "chunk": cid, "file": str(f), "label": "human_shuffled"})
+    out = {"built": date.today().isoformat(), "units": units}
+    write_json(d / "shuffled.json", out)
+    return out
+
+
 def auroc(pos: list[float], neg: list[float]) -> float | None:
     """P(random AI text scores above random human text); ties count half."""
     if not pos or not neg:
@@ -111,9 +142,16 @@ def analyze(d: Path) -> dict:
     """Per-tool rates on the controls, merged into references/web_calibration.json."""
     plan = read_json(d / "controls.json")
     label_of = {u["chunk"]: u["label"] for u in plan["units"]}
+    label_of.update(
+        {
+            u["chunk"]: u["label"]
+            for u in (read_json(d / "shuffled.json") or {"units": []})["units"]
+        }
+    )
     res = [
         r
         for r in read_jsonl(d / "controls.results.jsonl")
+        + read_jsonl(d / "shuffled.results.jsonl")
         if r.get("score") is not None
     ]
     latest: dict[tuple[str, str], float] = {}
@@ -137,6 +175,11 @@ def analyze(d: Path) -> dict:
             v
             for (t, c), v in latest.items()
             if t == tool and label_of.get(c) == "polished"
+        ]
+        hs = [
+            v
+            for (t, c), v in latest.items()
+            if t == tool and label_of.get(c) == "human_shuffled"
         ]
         fp, tp = sum(v >= 0.5 for v in h), sum(v >= 0.5 for v in a)
         cal["tools"][tool] = {
@@ -162,6 +205,10 @@ def analyze(d: Path) -> dict:
             else None,
             "mean_human": round(sum(h) / len(h), 3) if h else None,
             "mean_ai": round(sum(a) / len(a), 3) if a else None,
+            "n_shuffled": len(hs),
+            "fpr_shuffled": round(sum(v >= 0.5 for v in hs) / len(hs), 3)
+            if hs
+            else None,
         }
     write_json(OUT, cal)
     return cal
@@ -172,11 +219,17 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    p.add_argument("cmd", choices=["build", "analyze"])
+    p.add_argument("cmd", choices=["build", "shuffle", "analyze"])
     p.add_argument("--dir", default="/tmp/ai_text_detection_controls")
     p.add_argument("--n", type=int, default=8)
     args = p.parse_args(argv)
     d = Path(args.dir)
+    if args.cmd == "shuffle":
+        out = shuffle(d)
+        print(
+            f"{len(out['units'])} sentence-shuffled human controls -> {d / 'shuffled.json'}"
+        )
+        return 0
     if args.cmd == "build":
         plan = build(d, args.n)
         for u in plan["units"]:
@@ -187,12 +240,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     cal = analyze(d)
     print(
-        f"{'tool':<18} {'FPR (human)':>12} {'TPR (AI)':>9} {'polished':>9} {'AUROC':>6} {'LR flag':>8} {'LR clear':>9}"
+        f"{'tool':<18} {'FPR (human)':>12} {'TPR (AI)':>9} {'polished':>9} {'AUROC':>6} {'LR flag':>8} {'LR clear':>9} {'FPR shuffled':>13}"
     )
     for t, v in cal["tools"].items():
         print(
             f"{t:<18} {v['fpr']!s:>6} of {v['n_human']:<3} {v['tpr']!s:>5}/{v['n_ai']:<3} {v['polished_flagged']!s:>9} "
-            f"{v['auroc']!s:>6} {v['lr_flag']!s:>8} {v['lr_clear']!s:>9}"
+            f"{v['auroc']!s:>6} {v['lr_flag']!s:>8} {v['lr_clear']!s:>9} {v.get('fpr_shuffled')!s:>6} of {v.get('n_shuffled', 0)}"
         )
     _ = json
     return 0

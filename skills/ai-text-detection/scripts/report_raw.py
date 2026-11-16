@@ -399,6 +399,25 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             )
             + f" (detectors counted: {', '.join(name(t) for t in evd.get('used', [])) or 'none'}).",
         )
+    stab = {
+        t: v
+        for t, v in (evd.get("stability") or {}).items()
+        if v is not None and t in tools
+    }
+    if stab:
+        shaky = [
+            f"{name(t)} ({pc(v)})"
+            for t, v in sorted(stab.items(), key=lambda kv: -kv[1])
+            if v >= 0.2
+        ]
+        facts.append(
+            "Stability across splits: "
+            + (
+                f"verdicts change with how the text is cut for {', '.join(shaky)} of sentences, which lowers their weight in practice."
+                if shaky
+                else "every detector gives the same verdict on a sentence however the text is cut."
+            )
+        )
     if not_run_valid:
         facts.append(
             "Not run: "
