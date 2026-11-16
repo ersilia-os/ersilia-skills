@@ -670,6 +670,29 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         ev.append(f"<li><b>{e(s['kind'])}</b>: {e(s['text'])}</li>")
     other = f"<ul>{''.join(ev)}</ul>" if ev else "<p>Nothing else to report.</p>"
 
+    # How the numbers were computed (folded).
+    mp = read_json(work / "multi" / "plan.json") or {"units": [], "sentences": []}
+    n_scale = {sc: sum(1 for u in mp["units"] if u["scale"] == sc) for sc in "SPW"}
+    per_tool = {t: len(v) for t, v in (evd.get("units_scored") or {}).items()}
+    method_html = (
+        "<details><summary>How the scores were computed</summary><ul>"
+        f"<li>The prose was split three ways: {n_scale.get('S', 0)} whole sections, {n_scale.get('P', 0)} passages of whole paragraphs, "
+        f"and {n_scale.get('W', 0)} overlapping windows of about 350 words that move forward half a window at a time. "
+        "Each detector received only the splits within the text length it handles well.</li>"
+        + (
+            f"<li>Scans per detector on this document: {', '.join(f'{name(t)} {n}' for t, n in sorted(per_tool.items()))}.</li>"
+            if per_tool
+            else ""
+        )
+        + "<li>Each detector was first run on texts of known origin (see How much to trust each detector). Its rate of "
+        "calling human text AI, and of catching AI text, turns each of its verdicts into a likelihood ratio.</li>"
+        "<li>For each sentence, every split that contains it and every detector that scored that split vote. The votes "
+        "are weighted by those likelihood ratios and combined, allowing for the detectors sharing part of their mistakes "
+        "(average evidence times the square root of the number of detectors). Passages and the whole text average their sentences, weighted by length.</li>"
+        "<li>Only detectors that were tested on at least 5 human and 5 AI texts and did better than chance are counted.</li>"
+        "</ul></details>"
+    )
+
     # 5. Details.
     trows = []
     for tid, t in reg.items():
@@ -684,10 +707,11 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             f"<tr><td>{e(t['name'])}</td><td>{e(t['weight'])}</td><td>{e(status)}</td><td>{e(t.get('evidence', ''))}</td></tr>"
         )
     details = (
-        "<details><summary>The detectors, their track record, and what did not run</summary>"
+        method_html
+        + "<details><summary>The detectors, their track record, and what did not run</summary>"
         f'<div class="scroll"><table><tr><th>Detector</th><th>Weight</th><th>This document</th><th>Independent evidence</th></tr>{"".join(trows)}</table></div>'
-        "<p>Validated (✓) means independent studies found few false positives. The others are context only: "
-        "they never raise the verdict above weak.</p></details>"
+        "<p>Validated (\u2713) means published independent studies found few false positives. The others count only "
+        "through the skill's own tests on known texts (the calibrated combination); their raw scores alone never raise the verdict.</p></details>"
         f"<details><summary>Limits</summary><ul>{''.join(f'<li>{e(c)}</li>' for c in g.get('caveats', []))}</ul></details>"
     )
 

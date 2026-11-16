@@ -285,7 +285,7 @@
       "max_words": 1500,
       "automation": {
         "checked": "2026-11-16",
-        "status": "works without CAPTCHA or login (probe 2026-11-16); parser verified"
+        "status": "sign-in wall after 4 free scans in one session (calibration run 2026-11-16); not calibrated; do not work around"
       },
       "parse": {
         "score": "(?m)^\\s*(\\d+(?:\\.\\d+)?)%\\s*$\\s*^\\s*AI Probability",
@@ -343,7 +343,7 @@
       "max_words": 1000,
       "automation": {
         "checked": "2026-11-16",
-        "status": "works without login; shows a 1,000-word counter (per-scan limit); parser verified"
+        "status": "worked once in the probe; on 41 calibration texts the scan button no longer produced a result (page scrolled to FAQ); not calibrated; re-check the page before relying on it"
       },
       "parse": {
         "score": "AI detection report\\s*\\n\\s*(\\d+(?:\\.\\d+)?)%",

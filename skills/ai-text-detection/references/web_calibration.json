@@ -156,6 +156,26 @@
         0.0,
         0.0
       ]
+    },
+    "decopy": {
+      "date": "2026-11-16",
+      "n_human": 4,
+      "n_ai": 0,
+      "n_polished": 0,
+      "fpr": 0.25,
+      "tpr": null,
+      "polished_flagged": null,
+      "auroc": null,
+      "lr_flag": null,
+      "lr_clear": null,
+      "mean_human": 0.128,
+      "mean_ai": null,
+      "n_shuffled": 0,
+      "fpr_shuffled": null,
+      "fpr_generic": 0.25,
+      "n_domain": 0,
+      "fpr_domain": null,
+      "domain_scores": []
     }
   }
 }
