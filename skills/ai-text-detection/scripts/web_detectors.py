@@ -274,6 +274,14 @@ def is_ai_colour(css: str) -> bool:
     return not (80 <= hue <= 170 and sat > 0.15)
 
 
+def marks_ai(tool_id: str, css: str) -> bool:
+    """Whether a site's highlight on a sentence means 'AI': the site must use its colours
+    for that (``"marks_ai": false`` in the registry when its shading carries no verdict),
+    and the colour must not be a human green."""
+    tool = next((t for t in registry()["tools"] if t["id"] == tool_id), {})
+    return tool.get("marks_ai", True) and is_ai_colour(css)
+
+
 def collect_highlights(work: Path, state: dict) -> list[dict]:
     """Sentences each site marked as AI, from browser_detect.py's per-chunk files, for
     tools and chunks that have a recorded result."""
@@ -284,9 +292,10 @@ def collect_highlights(work: Path, state: dict) -> list[dict]:
         if not m or (m.group(1), int(m.group(2))) not in done:
             continue
         for h in read_json(f) or []:
-            out.append(
-                {"tool": m.group(1), "chunk": int(m.group(2)), "text": h["text"]}
-            )
+            if marks_ai(m.group(1), h.get("bg", "")):
+                out.append(
+                    {"tool": m.group(1), "chunk": int(m.group(2)), "text": h["text"]}
+                )
     return out
 
 

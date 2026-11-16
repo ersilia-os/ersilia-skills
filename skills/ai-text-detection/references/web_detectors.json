@@ -251,7 +251,9 @@
         "scale": 100,
         "label": "(?m)^(HUMAN WRITTEN|LIKELY AI|AI WRITTEN|MIXED[^\\n]*|LIKELY HUMAN)\\s*$"
       },
-      "min_words": 50
+      "min_words": 50,
+      "marks_ai": false,
+      "marks_note": "Its sentence shading is the same faint orange at the same opacities on passages it scores 2% and 67% (GRADIENT run, 2026-11-16): the shading carries no AI verdict, so it is not used as one."
     },
     {
       "id": "itsai",

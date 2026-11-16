@@ -48,8 +48,9 @@ def prose_paragraphs(doc: dict) -> list[dict]:
     for sec in doc.get("sections") or [
         {"title": "(whole text)", "start": 0, "end": len(text)}
     ]:
-        if sec["title"].lower() in SKIP_SECTIONS or sec["title"] == "(start)":
+        if sec["title"].lower() in SKIP_SECTIONS:
             continue
+        found: list[dict] = []
         pos = sec["start"]
         for m in [*re.finditer(r"\n\s*\n", text[sec["start"] : sec["end"]]), None]:
             end = sec["start"] + m.start() if m else sec["end"]
@@ -57,8 +58,15 @@ def prose_paragraphs(doc: dict) -> list[dict]:
             a = pos + (len(raw) - len(raw.lstrip()))
             b = a + len(raw.strip())
             if is_prose(raw):
-                out.append({"section": sec["title"], "start": a, "end": b})
+                found.append({"section": sec["title"], "start": a, "end": b})
             pos = sec["start"] + m.end() if m else sec["end"]
+        # The text before the first heading is front matter unless it holds real prose
+        # (a document without headings): the same rule as build_passages.
+        if sec["title"] == "(start)" and (
+            sum(len(words(text[x["start"] : x["end"]])) for x in found) < 150
+        ):
+            continue
+        out.extend(found)
     return out
 
 
@@ -142,7 +150,7 @@ def build(doc: dict, window: int, stride: int) -> dict:
             c += x["n_words"]
         total = c
         wlen = window if total > 1.2 * window else max(150, int(total * 0.6))
-        step = max(60, wlen // 2)
+        step = max(60, stride if wlen == window else wlen // 2)
         made: list[tuple[int, int]] = []
         start = 0
         while start < total:
@@ -166,6 +174,10 @@ def build(doc: dict, window: int, stride: int) -> dict:
             if j == len(ss) - 1:
                 break
             start += step
+    p_spans = [u["spans"] for u in units if u["scale"] == "P"]
+    # Ids stay as numbered (a gap where an S was dropped), so results recorded against
+    # them never point at a different unit.
+    units = [u for u in units if not (u["scale"] == "S" and u["spans"] in p_spans)]
     return {"units": units, "sentences": sents}
 
 

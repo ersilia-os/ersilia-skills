@@ -380,8 +380,13 @@ def run_one(
             re.IGNORECASE,
         ):
             continue  # still working
-        if PCT_ANY.search(fresh) and re.search(
-            r"\b(AI|human|generated|written)\b", fresh, re.IGNORECASE
+        if (
+            # With a parser, wait for the verdict it knows; marketing text such as
+            # "99% accurate" on a freshly opened result tab must not end the wait.
+            parse_score(tool["id"], fresh)[0] is not None
+            if tool.get("parse")
+            else PCT_ANY.search(fresh)
+            and re.search(r"\b(AI|human|generated|written)\b", fresh, re.IGNORECASE)
         ):
             page.wait_for_timeout(2000)  # let the numbers settle
             after = all_text(page)

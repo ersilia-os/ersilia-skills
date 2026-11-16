@@ -182,6 +182,13 @@ def domain(d: Path, queries: list[str], n: int) -> dict:
                 }
             )
     out = {"built": date.today().isoformat(), "queries": queries, "units": units}
+    old = d / "domain.results.jsonl"
+    if old.exists():  # ids d01.. are reused: never pool old scores with new texts
+        kept = old.with_name(f"domain.results.{date.today().isoformat()}.jsonl.bak")
+        old.rename(kept)
+        print(
+            f"earlier domain results set aside in {kept.name}; re-run the tools on the new set"
+        )
     write_json(d / "domain.json", out)
     return out
 

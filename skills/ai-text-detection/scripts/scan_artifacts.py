@@ -98,6 +98,8 @@ def main(argv: list[str] | None = None) -> int:
     for h in hits:
         h.update(locate(doc, h["offset"]))
     hits += scan(doc.get("references_text", ""), markers, doc["format"], "references")
+    # Link addresses (PDF and Word): utm_source=chatgpt.com usually sits in the address.
+    hits += scan("\n".join(doc.get("links", [])), markers, doc["format"], "links")
     hidden = []
     for i, h in enumerate(doc.get("hidden", [])):
         inner = scan(h["text"], markers, doc["format"], "hidden")

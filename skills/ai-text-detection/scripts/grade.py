@@ -48,6 +48,17 @@ from pathlib import Path
 
 from _common import REFS, TIERS, WORK_DIR, read_json, write_json
 
+# Rule labels that come from detectors or style statistics. They never count as the
+# independent, non-statistical support that lifts two validated detectors to strong.
+STATISTICAL = {
+    "web",
+    "web-context",
+    "web-hotspots",
+    "combined",
+    "combined-passage",
+    "style",
+}
+
 
 def plural(n: int, word: str) -> str:
     """'1 reference' / '3 references'."""
@@ -103,6 +114,9 @@ def grade(work: Path) -> dict:
                 }
             )
             continue
+        # The category's strongest hit decides (hits come body first, then references,
+        # then hidden text, so the first one is not necessarily the strongest).
+        hits = sorted(hits, key=lambda h: TIERS.index(h["tier"]))
         tier = hits[0]["tier"]
         if cat in rules["conclusive"]["categories"] and tier == "conclusive":
             met["conclusive"].append(cat)
@@ -313,7 +327,9 @@ def grade(work: Path) -> dict:
     # 4a'. The calibrated combination across tools and splits (evidence.py).
     evd = read_json(work / "evidence.json") or {}
     cr = rules.get("combined", {})
-    times = (evd.get("document") or {}).get("times")
+    # From the log value at full precision: the rounded "times" can be 0.0.
+    doc_ev = (evd.get("document") or {}).get("evidence")
+    times = None if doc_ev is None else math.exp(doc_ev)
     good = [
         t
         for t in evd.get("used", [])
@@ -328,7 +344,7 @@ def grade(work: Path) -> dict:
                 {
                     "tier": "moderate",
                     "text": f"Combining {len(evd.get('used', []))} detectors ({names}), each weighted by how it did on known human and "
-                    f"AI scientific texts, and every way of splitting the text, the document is about {times:g} times as likely "
+                    f"AI scientific texts, and every way of splitting the text, the document is about {times:.1f} times as likely "
                     "under AI-written text as under human text. The detectors' own error rates are built in; they may still share mistakes.",
                     "evidence": ["combined"],
                     "check": "The calibration table shows each detector's results on the known texts.",
@@ -362,16 +378,17 @@ def grade(work: Path) -> dict:
                         "check": "The calibration table shows each detector's results on the known texts.",
                     }
                 )
+        fired = {"combined", "combined-passage"} & set(met["moderate"])
         if times <= cr["counter_times"]:
             caveats_pre.append(
                 f"Counter-evidence: the calibrated combination of detectors ({names}) leans human: about {1 / times:.0f} times as likely under human text."
             )
-        else:
+        elif not fired:
             statements.append(
                 {
                     "tier": "weak" if times > 1 else "none",
                     "text": f"Combining the calibrated detectors ({names}) across all splits gives no clear answer "
-                    f"(about {times:g} times as likely under AI as under human text).",
+                    f"(about {times:.1f} times as likely under AI as under human text).",
                     "evidence": ["combined"],
                     "check": "",
                 }
@@ -450,7 +467,7 @@ def grade(work: Path) -> dict:
     non_stat = [
         x
         for x in met["moderate"] + met["strong"] + met["conclusive"]
-        if x not in ("web", "style")
+        if x not in STATISTICAL
     ]
     if len(flagged_valid) >= wr["validated_for_strong"] and non_stat:
         met["strong"].append("web+other")

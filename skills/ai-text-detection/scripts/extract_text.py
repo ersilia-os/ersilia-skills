@@ -269,6 +269,9 @@ def from_pdf(path: Path) -> tuple[list[tuple[int, str]], list[dict], dict]:
         if re.sub(r"\d+", "#", blk.lower()) not in running
     ]
     meta = {k: v for k, v in (doc.metadata or {}).items() if v}
+    meta["links"] = sorted(
+        {ln["uri"] for page in doc for ln in page.get_links() if ln.get("uri")}
+    )
     merged: list[dict] = []
     for h in hidden:
         if merged and merged[-1]["page"] == h["page"] and merged[-1]["why"] == h["why"]:
@@ -312,6 +315,7 @@ def from_docx(path: Path) -> tuple[list[tuple[int, str]], list[dict], dict]:
         )
     from docx.table import Table
     from docx.text.paragraph import Paragraph
+    from docx.text.run import Run
 
     d = docx.Document(str(path))
     blocks, hidden = [], []
@@ -320,15 +324,25 @@ def from_docx(path: Path) -> tuple[list[tuple[int, str]], list[dict], dict]:
         tag = child.tag.rsplit("}", 1)[-1]
         if tag == "tbl":
             for row in Table(child, d).rows:
-                cells = " | ".join(c.text.strip() for c in row.cells if c.text.strip())
+                cells: list[str] = []
+                for c in row.cells:  # a merged cell is returned once per grid column
+                    t = c.text.strip()
+                    if t and (not cells or cells[-1] != t):
+                        cells.append(t)
                 if cells:
-                    blocks.append((1, TABLE_MARK + cells))
+                    # A one-cell row (group label, table note) keeps a separator, so it is
+                    # never mistaken for prose.
+                    row_text = " | ".join(cells) if len(cells) > 1 else cells[0] + " |"
+                    blocks.append((1, TABLE_MARK + row_text))
             continue
         if tag != "p":
             continue
         para = Paragraph(child, d)
         visible = []
-        for run in para.runs:
+        # Every run, including those inside links and tracked insertions (para.runs skips
+        # them); deleted text is not part of the current version.
+        for r in child.xpath(".//w:r[not(ancestor::w:del)]"):
+            run = Run(r, para)
             t = run.text
             if not t:
                 continue
@@ -353,6 +367,13 @@ def from_docx(path: Path) -> tuple[list[tuple[int, str]], list[dict], dict]:
         if text:
             blocks.append((1, text))
     cp = d.core_properties
+    links = sorted(
+        {
+            rel.target_ref
+            for rel in d.part.rels.values()
+            if rel.is_external and rel.reltype.endswith("/hyperlink")
+        }
+    )
     meta = {
         k: str(getattr(cp, k))
         for k in (
@@ -365,6 +386,7 @@ def from_docx(path: Path) -> tuple[list[tuple[int, str]], list[dict], dict]:
         )
         if getattr(cp, k, None)
     }
+    meta["links"] = links
     return blocks, hidden, meta
 
 
@@ -489,6 +511,7 @@ def main(argv: list[str] | None = None) -> int:
             "source": args.source,
             "format": fmt,
             "hidden": hidden,
+            "links": meta.pop("links", []) if fmt in ("pdf", "docx") else [],
             "metadata": meta,
             "n_words": len(words(doc["text"])),
         }

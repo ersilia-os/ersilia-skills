@@ -32,7 +32,7 @@ from pathlib import Path
 
 from _common import REFS, SKILL_DIR, read_json, words
 from stylometry import features, style_score
-from web_detectors import build_passages, is_ai_colour, is_prose
+from web_detectors import build_passages, is_prose, marks_ai
 
 CSS_FILE = SKILL_DIR / "assets" / "report.css"
 FONTS = (
@@ -118,7 +118,8 @@ def is_heading_like(par: str) -> bool:
 def table_html(rows: list[str]) -> str:
     """A document table (cells separated by " | ") as a plain table; a one-cell row is a
     group label spanning the table."""
-    cells = [[c.strip() for c in r.split(" | ")] for r in rows]
+    cells = [[c.strip() for c in r.split("|") if c.strip()] for r in rows]
+    cells = [c for c in cells if c]
     n = max(len(c) for c in cells)
     out = []
     for i, c in enumerate(cells):
@@ -138,13 +139,13 @@ def unchecked_html(text: str, a: int, b: int) -> str:
     i = 0
     while i < len(paras):
         t = paras[i]
-        if " | " in t:  # table rows, plus one-cell group labels between rows
+        if "|" in t:  # table rows, plus one-cell group labels between rows
             rows = []
             while i < len(paras) and (
-                " | " in paras[i]
+                "|" in paras[i]
                 or (
                     i + 1 < len(paras)
-                    and " | " in paras[i + 1]
+                    and "|" in paras[i + 1]
                     and len(words(paras[i])) <= 8
                 )
             ):
@@ -186,6 +187,7 @@ class Inputs:
     reg: dict[str, dict]
     style_model: dict | None
     style_thr: dict
+    rules: dict
     tools: list[str] = field(default_factory=list)
 
     @property
@@ -217,6 +219,32 @@ class Inputs:
         """An artefact hit not set aside in judgements.json."""
         return self.jud.get("artifacts", {}).get(hit["id"], {}).get("confirmed", True)
 
+    def is_leftover(self, hit: dict) -> bool:
+        """A confirmed hit that is leftover AI-tool output: a conclusive or strong marker in
+        a category grading.json treats as such (not tortured phrases, prompt injections,
+        weak typography quirks or stock phrasing)."""
+        cats = set(self.rules.get("conclusive", {}).get("categories", [])) | set(
+            self.rules.get("strong", {}).get("strong_categories", [])
+        )
+        return (
+            self.confirmed(hit)
+            and hit["category"] in cats
+            and hit["tier"] in ("conclusive", "strong")
+        )
+
+    def bad_refs(self) -> list[dict]:
+        """References not found as cited, minus those Claude cleared by hand."""
+        cleared = {
+            k
+            for k, v in (self.jud.get("references") or {}).items()
+            if v.get("fabricated") is False
+        }
+        return [
+            r
+            for r in self.refs
+            if r["status"] in BAD_REF and str(r["n"]) not in cleared
+        ]
+
 
 def load(work: Path) -> Inputs:
     """Read the work folder."""
@@ -234,6 +262,7 @@ def load(work: Path) -> Inputs:
         reg={t["id"]: t for t in wreg.get("tools", [])},
         style_model=cal.get("model"),
         style_thr=cal.get("thresholds") or {},
+        rules=read_json(REFS / "grading.json") or {},
     )
     order = wreg.get("default_order", [])
     ran = (
@@ -311,7 +340,7 @@ class TextRenderer:
                 f"*_chunk{u['chunk']}_highlights.json"
             ):
                 for h in read_json(f) or []:
-                    if is_ai_colour(h.get("bg", "")):
+                    if marks_ai(f.name.split("_chunk")[0], h.get("bg", "")):
                         found.append(
                             (
                                 f.name.split("_chunk")[0],
@@ -343,7 +372,7 @@ class TextRenderer:
                 f"leftover chatbot text ({h['marker']}): {h.get('shows', '')}",
             )
             for h in self.inp.arts["hits"]
-            if h["in"] == "body" and self.inp.confirmed(h)
+            if h["in"] == "body" and self.inp.is_leftover(h)
         ]
 
     def _find_quote(self, q: str) -> tuple[int, int] | None:
@@ -579,7 +608,10 @@ def headline(inp: Inputs, rows: list[dict]) -> str:
         if hot
         else ""
     )
-    dt = (inp.evd.get("document") or {}).get("times")
+    doc_ev = (inp.evd.get("document") or {}).get("evidence")
+    dt = (
+        None if doc_ev is None else math.exp(doc_ev)
+    )  # not the rounded "times" (can be 0.0)
     whole = (
         ""
         if dt is None
@@ -605,25 +637,37 @@ def checks(inp: Inputs, rows: list[dict]) -> str:
         sym = {"ok": "✓", "bad": "!", "meh": "?"}[kind]
         return f'<li><span class="{kind}">{sym}</span><span>{txt}</span></li>'
 
-    n_art = sum(1 for h in inp.arts["hits"] if inp.confirmed(h)) + len(
-        inp.arts.get("hidden", [])
-    )
-    bad = [r for r in inp.refs if r["status"] in BAD_REF]
+    n_art = sum(1 for h in inp.arts["hits"] if inp.is_leftover(h))
+    n_hidden = len(inp.arts.get("hidden", []))
+    bad = inp.bad_refs()
+    n_ok = sum(1 for r in inp.refs if r["status"] == "ok")
+    n_unsure = len(inp.refs) - n_ok - sum(1 for r in inp.refs if r["status"] in BAD_REF)
+    if bad:
+        refs_line = li(
+            "bad", f"References: <b>{len(bad)} of {len(inp.refs)} not found</b>"
+        )
+    elif not inp.refs:
+        refs_line = li("ok", "No reference list")
+    elif n_unsure:
+        refs_line = li(
+            "meh",
+            f"References: {len(inp.refs) - n_unsure} of {len(inp.refs)} found; "
+            f"{n_unsure} with details that differ or not checkable",
+        )
+    else:
+        refs_line = li("ok", f"All {len(inp.refs)} references are real")
     n_style = sum(1 for r in rows if r["style_flag"])
     n_read = len(inp.jud.get("reading", []))
+    hidden_line = (
+        li("bad", f"Hidden text: <b>{n_hidden} passage(s)</b>") if n_hidden else ""
+    )
     return "".join(
         [
             li("bad", f"Leftover chatbot text: <b>{n_art} found</b>")
             if n_art
             else li("ok", "No leftover chatbot text"),
-            li("bad", f"References: <b>{len(bad)} of {len(inp.refs)} not found</b>")
-            if bad
-            else li(
-                "ok",
-                f"All {len(inp.refs)} references are real"
-                if inp.refs
-                else "No reference list",
-            ),
+            hidden_line,
+            refs_line,
             li("meh", f"Style: AI-like in {n_style} of {len(rows)} passages")
             if n_style
             else li("ok", "Style within the human range"),
@@ -698,7 +742,8 @@ def other_evidence(inp: Inputs, placed: set[int]) -> str:
     """The list of findings to quote from: leftover chatbot text (also boxed in the text),
     hidden text, references not found, notes whose quote was not located, grade's extras."""
     items = [
-        f"<li><b>Leftover text ({e(h['tier'])})</b>: “{e(h['match'])}” in "
+        f"<li><b>{'Leftover chatbot text' if inp.is_leftover(h) else 'Marker'} ({e(h['tier'])}, "
+        f"{e(h['category'])})</b>: “{e(h['match'])}” in "
         f"{e(h.get('section') or h['in'])}. {e(h['shows'])}</li>"
         for h in inp.arts["hits"]
         if inp.confirmed(h)
@@ -707,7 +752,7 @@ def other_evidence(inp: Inputs, placed: set[int]) -> str:
         f"<li><b>Hidden text</b> ({e(h['why'])}): “{e(h['text'][:200])}”</li>"
         for h in inp.arts.get("hidden", [])
     ]
-    for r in (r for r in inp.refs if r["status"] in BAD_REF):
+    for r in inp.bad_refs():
         links = " ".join(
             f'<a href="{e(u)}">lookup</a>' for u in r.get("queried", [])[:2]
         )

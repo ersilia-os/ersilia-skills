@@ -36,9 +36,7 @@ def main(argv: list[str] | None = None) -> int:
         page.goto(args.report.resolve().as_uri())
         page.wait_for_timeout(2000)  # web fonts
         page.add_style_tag(content=PRINT_CSS.read_text(encoding="utf-8"))
-        page.pdf(
-            path=str(args.out), format="A4", print_background=True, margin=MARGIN
-        )
+        page.pdf(path=str(args.out), format="A4", print_background=True, margin=MARGIN)
         browser.close()
     print(f"pdf: {args.out}")
     return 0
