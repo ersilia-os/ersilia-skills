@@ -3,13 +3,12 @@
 One unit throughout: the *passage* (whole prose paragraphs from one section, ~250-500
 words; web_detectors.build_passages). Every score is given per passage.
 
-    1. The answer       verdict in plain words, then the facts behind it
-    2. At a glance      one row per passage, one coloured cell per detector, agreement
-    3. The text         passage by passage, each headed and coloured by agreement;
-                        sentences the detectors marked are shaded (darker = more tools),
-                        hover names the tools; text not sent to detectors is greyed
-    4. Other evidence   references, leftover chatbot text, close reading
-    5. Details          the detectors and their evidence, what did not run, limits
+    1. Headline         like web detectors: share of the prose that reads as AI (ring and
+                        breakdown bar), the verdict tier, and the non-statistical checks
+    2. Text + panel     the text with AI-like sentences highlighted (brighter = stronger,
+                        human text left plain), beside a panel of per-passage combined
+                        scores and each detector's per-passage scores and track record
+    3. Scores by passage, trust in each detector, other evidence, details (below)
 
 Called by build_report.py (``--style raw``, the default).
 """
@@ -26,46 +25,102 @@ from stylometry import features, style_score
 from web_detectors import build_passages, is_prose
 
 CSS = """
-:root { color-scheme: light; --human: #dff2da; --mixed: #fff1bd; --ai: #ffcfb8; --strong: #ff9f80;
-        --s1: #ffe0c2; --s2: #ffb784; --grey: #8a8a8a; --line: #bbbbbb; --ink: #151515; --bg: #ffffff; }
-body { background: var(--bg); color: var(--ink); }
-main { max-width: 54em; margin: 0 auto; padding-block: 14px 48px;
-       padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-       font: 15px/1.55 Georgia, "Times New Roman", serif; }
-h1 { font-size: 1.5em; margin: 0 0 .2em; }
-h2 { margin-top: 1.8em; border-bottom: 1px solid var(--line); }
-.answer { font-size: 1.15em; font-weight: bold; margin: .6em 0; }
-ul.facts { margin: .3em 0 0; padding-left: 1.2em; }
-ul.facts li { margin: .3em 0; }
-table { border-collapse: collapse; font: 13px/1.35 system-ui, sans-serif; }
-th, td { border: 1px solid var(--line); padding: 3px 7px; text-align: left; vertical-align: middle; }
-td.n { text-align: right; font-variant-numeric: tabular-nums; }
+:root { --bg: #f6f7fb; --card: #ffffff; --ink: #14161f; --muted: #5d6275; --line: #e3e5ee;
+        --ai: #ff5a36; --ai-soft: #ffe1d8; --amber: #ffb000; --amber-soft: #fff0c2; --hu: #12b76a; --hu-soft: #d9f7e8;
+        --un: #c9ccd8; --accent: #5b4bdb;
+        --h1: rgba(255, 214, 0, .28); --h2: rgba(255, 166, 0, .45); --h3: rgba(255, 84, 46, .42);
+        --art: rgba(230, 0, 60, .35); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+        --bg: #0f1117; --card: #181b24; --ink: #eceef5; --muted: #a2a7b8; --line: #2a2e3b;
+        --ai-soft: #4a2219; --amber-soft: #3f3311; --hu-soft: #12382a; --un: #3a3f50;
+        --h1: rgba(255, 214, 0, .18); --h2: rgba(255, 166, 0, .32); --h3: rgba(255, 84, 46, .42); color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #0f1117; --card: #181b24; --ink: #eceef5; --muted: #a2a7b8; --line: #2a2e3b;
+        --ai-soft: #4a2219; --amber-soft: #3f3311; --hu-soft: #12382a; --un: #3a3f50;
+        --h1: rgba(255, 214, 0, .18); --h2: rgba(255, 166, 0, .32); --h3: rgba(255, 84, 46, .42); color-scheme: dark; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 Inter, system-ui, -apple-system, sans-serif; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 20px 56px;
+        padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-size: 1.35rem; margin: 0; text-wrap: balance; }
+.meta { color: var(--muted); font-size: .85rem; margin: .2rem 0 1rem; }
+h2 { font-size: 1.05rem; margin: 2.2rem 0 .6rem; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; min-width: 0; }
+a { color: var(--accent); }
+/* headline */
+.hero { display: grid; grid-template-columns: minmax(180px, 220px) 1fr minmax(220px, 300px); gap: 24px; align-items: center; }
+.gauge { text-align: center; }
+.ring { width: 160px; height: 160px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center; }
+.ring > div { width: 122px; height: 122px; border-radius: 50%; background: var(--card); display: grid; place-items: center; }
+.big { font-size: 2.6rem; font-weight: 800; line-height: 1; }
+.big small { font-size: 1.1rem; font-weight: 700; }
+.cap { color: var(--muted); font-size: .8rem; margin-top: .6rem; }
+.pill { display: inline-block; font-weight: 700; font-size: .8rem; letter-spacing: .04em; text-transform: uppercase;
+        padding: 4px 10px; border-radius: 999px; }
+.t-conclusive, .t-strong { background: var(--ai); color: #fff; }
+.t-moderate { background: var(--amber); color: #2a1d00; }
+.t-weak { background: var(--amber-soft); color: var(--ink); }
+.t-none { background: var(--hu-soft); color: var(--ink); }
+.headline { font-size: 1.15rem; font-weight: 650; margin: .6rem 0 .8rem; text-wrap: balance; }
+.bar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--un); }
+.bar span { display: block; height: 100%; }
+.b-ai { background: var(--ai); } .b-un { background: var(--un); } .b-hu { background: var(--hu); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .82rem; color: var(--muted); margin-top: .5rem; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.where { margin: .8rem 0 0; font-size: .9rem; }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: .88rem; }
+.checks li { display: flex; gap: 8px; align-items: flex-start; }
+.ok, .bad, .meh { flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #fff; }
+.ok { background: var(--hu); } .bad { background: var(--ai); } .meh { background: var(--amber); color: #2a1d00; }
+/* two columns */
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; margin-top: 20px; align-items: start; }
+.side { position: sticky; top: env(safe-area-inset-top, 0px); display: grid; gap: 14px; }
+.side h3 { font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 .6rem; }
+.prow { display: grid; grid-template-columns: 2.2rem minmax(0, 1fr) 5.4rem; gap: 8px; align-items: center; font-size: .85rem;
+        padding: 5px 0; text-decoration: none; color: var(--ink); }
+.prow .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prow .nm small { color: var(--muted); }
+.mini { height: 6px; border-radius: 999px; background: var(--un); overflow: hidden; margin-top: 3px; }
+.mini span { display: block; height: 100%; }
+.tag { font-weight: 700; font-size: .78rem; text-align: center; border-radius: 6px; padding: 2px 4px; }
+.tag.c-strong { background: var(--ai); color: #fff; } .tag.c-ai { background: var(--amber); color: #2a1d00; }
+.tag.c-human { background: var(--hu-soft); } .tag.c-none, .tag.c-mid { background: var(--line); }
+.drow { font-size: .85rem; padding: 6px 0; border-top: 1px solid var(--line); }
+.drow:first-of-type { border-top: 0; }
+.drow b { font-weight: 650; }
+.drow .sub { color: var(--muted); font-size: .78rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.chip { font-size: .72rem; font-weight: 700; border-radius: 5px; padding: 1px 5px; }
+.chip.ai { background: var(--ai); color: #fff; } .chip.hu { background: var(--hu-soft); } .chip.na { background: var(--line); color: var(--muted); }
+/* the text */
+.doc { font: 16.5px/1.75 "Source Serif 4", Georgia, serif; }
+.doclegend { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; background: var(--card); font: .8rem/1.6 Inter, system-ui, sans-serif;
+             color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 8px 0 10px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.doclegend span.sw { padding: 0 6px; border-radius: 4px; color: var(--ink); }
+.psg { margin: 1.4rem 0; scroll-margin-top: 60px; }
+.phead { font: 600 .82rem/1.4 Inter, system-ui, sans-serif; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+         border-top: 2px dashed var(--line); padding-top: .7rem; margin-bottom: .4rem; color: var(--muted); }
+.phead .tag { font-size: .78rem; }
+.psg p { margin: 0 0 .9rem; }
+p.skip, .skip { color: var(--muted); font-size: .85rem; font-family: Inter, system-ui, sans-serif; }
+.sec { font: 700 .95rem Inter, system-ui, sans-serif; margin: 1.6rem 0 .3rem; }
+.h1 { background: var(--h1); } .h2 { background: var(--h2); } .h3 { background: var(--h3); }
+.h1, .h2, .h3 { border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; padding: 1px 0; }
+.u2 { text-decoration: underline solid var(--ai); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.m1 { background: var(--h1); } .m2 { background: var(--h2); }
+mark.art { background: var(--art); color: inherit; outline: 2px solid var(--ai); border-radius: 3px; }
+/* tables and folds */
 .scroll { overflow-x: auto; }
-.c-human { background: var(--human); }
-.c-mixed { background: var(--mixed); }
-.c-ai { background: var(--ai); }
-.c-strong { background: var(--strong); }
-.c-none { color: var(--grey); }
-.psg { border-left: 6px solid var(--line); padding: 2px 0 2px 12px; margin: 1.2em 0; background: none; }
-.psg.c-human { border-color: #7cc576; background: none; }
-.psg.c-mixed { border-color: #e2b72c; background: none; }
-.psg.c-ai { border-color: #f08a5d; background: none; }
-.psg.c-strong { border-color: #d9481f; background: none; }
-.phead { font: 600 14px/1.4 system-ui, sans-serif; }
-.pscores { font: 12.5px/1.4 system-ui, sans-serif; color: #333333; margin-bottom: .5em; }
-.psg p { margin: 0 0 .7em; }
-p.skip { color: var(--grey); font-size: .9em; }
-.sec { font: 600 13px system-ui, sans-serif; color: #555555; margin: 1.4em 0 .2em; }
-.m1 { background: var(--s1); }
-.m2 { background: var(--s2); }
-.u1 { text-decoration: underline dotted #c65a1e; text-underline-offset: 3px; }
-.u2 { text-decoration: underline solid #c65a1e; text-decoration-thickness: 2px; text-underline-offset: 3px; }
-.h1 { background: #ffeadb; } .h2 { background: #ffcfb0; } .h3 { background: #ff9f7a; }
-.g1 { background: #eef8eb; } .g2 { background: #d6eecf; }
-mark.art { background: #ff8a8a; }
-details { margin: .6em 0; }
-summary { cursor: pointer; font-weight: bold; }
-summary.skip { color: var(--grey); font-weight: normal; font-size: .9em; }
+table { border-collapse: collapse; font-size: .82rem; width: 100%; }
+th, td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: middle; }
+th { color: var(--muted); font-weight: 600; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; }
+td.c-human { background: var(--hu-soft); } td.c-ai, td.c-mixed { background: var(--amber-soft); } td.c-strong { background: var(--ai-soft); }
+td.c-none { color: var(--muted); }
+details { margin: .6rem 0; }
+summary { cursor: pointer; font-weight: 650; }
+.fold > summary { font-size: 1rem; padding: 4px 0; }
+ul.facts li, .card ul li { margin: .3rem 0; }
+@media (max-width: 980px) { .hero { grid-template-columns: 1fr; } .cols { grid-template-columns: minmax(0, 1fr); }
+  .side { position: static; order: -1; } }
 """
 
 
@@ -311,10 +366,12 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
                         e(text[s0:s1])
                     )  # one site only: the heat already carries it
                 else:
-                    c = "u2" if heat_sents else cls
-                    out.append(
-                        f'<span class="{c}" title="{e(lab)}">{e(text[s0:s1])}</span>'
-                    )
+                    if heat_sents:  # the heat already carries it; hover names the sites
+                        out.append(f'<span title="{e(lab)}">{e(text[s0:s1])}</span>')
+                    else:
+                        out.append(
+                            f'<span class="{cls}" title="{e(lab)}">{e(text[s0:s1])}</span>'
+                        )
             pos = s1
         out.append(e(text[pos:b]))
         return "".join(out)
@@ -326,10 +383,6 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             return "h2"
         if ev > 0.4:
             return "h1"
-        if ev <= -math.log(3):
-            return "g2"
-        if ev <= -0.4:
-            return "g1"
         return ""
 
     def heat_title(x: dict) -> str:
@@ -341,12 +394,16 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
 
     def inline(a: int, b: int) -> str:
         """Text with the combined-evidence heat per sentence (when available) and marks."""
-        out, pos = [], a
+        out, pos, prev = [], a, ""
         for x in heat_sents:
             if x["start"] < a or x["end"] > b:
                 continue
-            out.append(marks(pos, x["start"]))
             cls = heat_class(x["evidence"])
+            between = marks(pos, x["start"])
+            if prev and cls == prev and not text[pos : x["start"]].strip():
+                between = f'<span class="{cls}">{between}</span>'  # no gap inside a run
+            out.append(between)
+            prev = cls
             inner = marks(x["start"], x["end"])
             out.append(
                 f'<span class="{cls}" title="{e(heat_title(x))}">{inner}</span>'
@@ -476,7 +533,6 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             + ", ".join(not_run_valid)
             + ", the detectors with the best independent evidence (they need a CAPTCHA ticked or an API key)."
         )
-    answer = f'<p class="answer">{e(g.get("headline", ""))}</p><ul class="facts">{"".join(f"<li>{x}</li>" for x in facts)}</ul>'
 
     # 2. At a glance.
     def cell(v: float | None, t: str, k: int) -> str:
@@ -611,37 +667,31 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
                         f'<p class="skip">{e(raw.strip())} <i>(not sent to the detectors)</i></p>'
                     )
             ppos = r["start"] + m.end() if m else r["end"]
+        pev = comb_of.get(f"P{r['chunk']}")
+        pcls = times_class(pev) if comb_of else r["cls"]
         sc_line = " · ".join(
             f"{e(name(t))} {pc(r['sc'][t])}" for t in tools if t in r["sc"]
         )
-        style_line = f"style {num(r['style'])}" + (
-            f" (past {r['sflag']})" if r["sflag"] else ""
-        )
         blocks.append(
-            f'<section class="psg {r["cls"]}" id="p{r["chunk"]}">'
-            f'<div class="phead">Passage {r["chunk"]} · {e(" + ".join(r["sections"]))} · {r["n_words"]} words — '
-            f"{e(agreement_words(r['n_ai'], r['n']))}</div>"
-            f'<div class="pscores">{sc_line}{" · " if sc_line else ""}{style_line}</div>{"".join(paras_html)}</section>'
+            f'<section class="psg" id="p{r["chunk"]}">'
+            f'<div class="phead"><span class="tag {pcls or "c-mid"}">'
+            f"{times_text(pev) if comb_of else e(agreement_words(r['n_ai'], r['n']))}</span>"
+            f"<span>Passage {r['chunk']} · {e(' + '.join(r['sections']))} · {r['n_words']} words</span>"
+            f'<span title="{e(sc_line)}">ⓘ</span></div>'
+            f"{''.join(paras_html)}</section>"
         )
         pos = r["end"]
     if pos < len(text):
         blocks.append(gap(text, pos, len(text)))
-    text_html = (
-        (
-            "<p>The left bar of each passage has the colour of its agreement. Each sentence is shaded by the combined, "
-            'calibrated evidence: <span class="g2">leans human</span> \u00b7 <span class="g1">slightly human</span> \u00b7 no shade = no signal \u00b7 '
-            '<span class="h1">slightly AI</span> \u00b7 <span class="h2">3\u00d7 or more AI</span> \u00b7 <span class="h3">10\u00d7 or more AI</span>. '
-            '<span class="u2">Underlined</span> = two or more sites marked this sentence as AI. '
-            "Hover any sentence for the details. "
-            if heat_sents
-            else "<p>The left bar of each passage has the colour of its agreement. Inside, "
-            '<span class="m1">sentences one detector marked as AI</span> and <span class="m2">sentences two or more marked</span> '
-            "are shaded (hover to see which). "
-        )
-        + '<mark class="art">Red</mark> = leftover chatbot text. '
-        "Grey text was not sent to the detectors (title page, captions, equations, references).</p>"
-        + "".join(blocks)
+    legend = (
+        '<div class="doclegend"><span class="sw h3">10× or more AI</span><span class="sw h2">3× or more AI</span>'
+        '<span class="sw h1">leans AI</span><span>plain = no signal, or human</span>'
+        '<mark class="art">red box</mark><span>= leftover chatbot text</span><span>Hover a sentence for each site\'s verdict.</span></div>'
+        if heat_sents
+        else '<div class="doclegend"><span class="sw m1">one detector says AI</span><span class="sw m2">two or more</span>'
+        '<mark class="art">red box</mark><span>= leftover chatbot text</span></div>'
     )
+    text_html = legend + "".join(blocks)
 
     # 4. Other evidence.
     ev = []
@@ -721,15 +771,182 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         if tracked
         else "the text as it stands"
     )
+
+    # Headline numbers, the way web detectors show them: share of the prose that reads as AI.
+    tw = sum(x["n_words"] for x in heat_sents)
+    if tw:
+        ai_sh = (
+            sum(x["n_words"] for x in heat_sents if x["evidence"] >= math.log(3)) / tw
+        )
+        hu_sh = (
+            sum(x["n_words"] for x in heat_sents if x["evidence"] <= -math.log(3)) / tw
+        )
+        share_note = "of the checked prose is at least 3× more likely AI-written than human, combining the calibrated detectors"
+    else:
+        pw = sum(r["n_words"] for r in rows if r["n"]) or 1
+        ai_sh = (
+            sum(r["n_words"] for r in rows if r["n"] and r["n_ai"] / r["n"] > 0.5) / pw
+        )
+        hu_sh = sum(r["n_words"] for r in rows if r["n"] and r["n_ai"] == 0) / pw
+        share_note = "of the checked prose is called AI by most detectors"
+    un_sh = max(0.0, 1 - ai_sh - hu_sh)
+    tier = g.get("tier", "none")
+    tier_word = {
+        "conclusive": "Conclusive evidence",
+        "strong": "Strong evidence",
+        "moderate": "Moderate evidence",
+        "weak": "Weak evidence",
+        "none": "No evidence",
+    }.get(tier, tier)
+    ring_col = (
+        "var(--ai)"
+        if ai_sh >= 0.5
+        else ("var(--amber)" if ai_sh >= 0.15 else "var(--hu)")
+    )
+    deg = round(360 * ai_sh)
+    where = ""
+    if hotp:
+        secs = {f"P{r['chunk']}": " + ".join(r["sections"]) for r in rows}
+        where = (
+            '<p class="where">Most AI-like: '
+            + ", ".join(
+                f'<a href="#p{pa["chunk"][1:]}">{e(secs.get(pa["chunk"], pa["chunk"]))}</a> ({math.exp(pa["evidence"]):.0f}×)'
+                for pa in hotp[:3]
+            )
+            + "</p>"
+        )
+    doc_line = (
+        f'<p class="where">Whole text: about <b>{dtimes:.1f}×</b> as likely AI-written as human '
+        f"({len(evd.get('used', []))} calibrated detectors).</p>"
+        if dtimes is not None and dtimes >= 1
+        else (
+            f'<p class="where">Whole text: about <b>{1 / dtimes:.1f}×</b> as likely human-written.</p>'
+            if dtimes
+            else ""
+        )
+    )
+
+    def check(kind: str, txt: str) -> str:
+        sym = {"ok": "✓", "bad": "!", "meh": "?"}[kind]
+        return f'<li><span class="{kind}">{sym}</span><span>{txt}</span></li>'
+
+    nread = len(jud.get("reading", []))
+    checks = "".join(
+        [
+            check(
+                "bad" if n_art else "ok",
+                f"Leftover chatbot text: <b>{n_art} found</b>"
+                if n_art
+                else "No leftover chatbot text",
+            ),
+            check(
+                "bad" if bad_refs else "ok",
+                f"References: <b>{len(bad_refs)} of {len(rl)} not found</b>"
+                if bad_refs
+                else (
+                    f"All {len(rl)} references are real" if rl else "No reference list"
+                ),
+            ),
+            check(
+                "meh" if style_flags else "ok",
+                f"Style: AI-like in {style_flags} of {len(rows)} passages"
+                if style_flags
+                else "Style within the human range",
+            ),
+            check(
+                "meh" if nread else "ok",
+                f"Close reading: {nread} note(s)"
+                if nread
+                else "Close reading: nothing to note",
+            ),
+        ]
+    )
+    hero = (
+        '<section class="card hero" id="verdict">'
+        f'<div class="gauge"><div class="ring" style="background: conic-gradient({ring_col} {deg}deg, var(--un) 0)">'
+        f'<div><div class="big">{round(100 * ai_sh)}<small>%</small></div></div></div>'
+        f'<div class="cap">{e(share_note)}</div></div>'
+        f'<div><span class="pill t-{e(tier)}">{e(tier_word)}</span><p class="headline">{e(g.get("headline", ""))}</p>'
+        f'<div class="bar"><span class="b-ai" style="width:{100 * ai_sh:.1f}%"></span>'
+        f'<span class="b-un" style="width:{100 * un_sh:.1f}%"></span><span class="b-hu" style="width:{100 * hu_sh:.1f}%"></span></div>'
+        f'<div class="legend"><span><i class="dot b-ai"></i>Likely AI {pc(ai_sh)}</span>'
+        f'<span><i class="dot b-un"></i>Unclear {pc(un_sh)}</span><span><i class="dot b-hu"></i>Likely human {pc(hu_sh)}</span></div>'
+        f"{where}{doc_line}</div>"
+        f'<ul class="checks">{checks}</ul></section>'
+    )
+
+    # Side panel: passages and detectors.
+    prow = []
+    for r in sorted(rows, key=lambda x: x["start"]):
+        pev = comb_of.get(f"P{r['chunk']}")
+        if comb_of:
+            cls = times_class(pev) or "c-mid"
+            w = 0 if pev is None else max(0, min(100, 50 + 50 * pev / math.log(30)))
+            lab = times_text(pev).replace(" AI", "")
+            colr = (
+                "var(--ai)"
+                if cls == "c-strong"
+                else (
+                    "var(--amber)"
+                    if cls == "c-ai"
+                    else ("var(--hu)" if cls == "c-human" else "var(--muted)")
+                )
+            )
+        else:
+            cls = r["cls"]
+            w = 100 * r["n_ai"] / r["n"] if r["n"] else 0
+            lab = f"{r['n_ai']}/{r['n']}"
+            colr = (
+                "var(--ai)" if r["n"] and r["n_ai"] / r["n"] > 0.5 else "var(--amber)"
+            )
+        prow.append(
+            f'<a class="prow" href="#p{r["chunk"]}"><span class="tag {cls}">P{r["chunk"]}</span>'
+            f'<span class="nm">{e(" + ".join(r["sections"]))} <small>{r["n_words"]}w</small>'
+            f'<div class="mini"><span style="width:{w:.0f}%;background:{colr}"></span></div></span>'
+            f'<span class="tag {cls}">{e(lab)}</span></a>'
+        )
+    drows = []
+    for t in tools:
+        c = (tcal.get(t) or {}).get("cal") or {}
+        used = (tcal.get(t) or {}).get("used")
+        chips = "".join(
+            f'<span class="chip {"na" if r["sc"].get(t) is None else ("ai" if r["sc"][t] >= 0.5 else "hu")}" '
+            f'title="passage {r["chunk"]}">{"–" if r["sc"].get(t) is None else pc(r["sc"][t])}</span>'
+            for r in sorted(rows, key=lambda x: x["start"])
+        )
+        track = (
+            f"on known texts: {round((c.get('fpr') or 0) * c.get('n_human', 0))}/{c.get('n_human')} false alarms, "
+            f"caught {round((c.get('tpr') or 0) * c.get('n_ai', 0))}/{c.get('n_ai')} AI"
+            if c
+            else "not yet tested on known texts"
+        )
+        drows.append(
+            f'<div class="drow"><b>{e(name(t))}</b>{" ✓" if reg.get(t, {}).get("weight") == "validated" else ""}'
+            f"{'' if used else ' <span class=sub>(shown, not counted)</span>'}"
+            f'<div class="sub">{e(track)}</div><div class="chips">{chips}</div></div>'
+        )
+    side = (
+        '<aside class="side">'
+        f'<div class="card"><h3>Passages {"· combined, calibrated" if comb_of else "· detectors saying AI"}</h3>{"".join(prow)}</div>'
+        + (
+            f'<div class="card"><h3>Detectors · score per passage</h3>{"".join(drows)}</div>'
+            if drows
+            else ""
+        )
+        + "</aside>"
+    )
+
     return (
-        f'<title>{e(case[:60])}</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n<style>{CSS}</style>\n'
-        "<!-- Single light look on purpose: a plain working document. -->\n<main>"
-        f"<h1>{e(case)}</h1><p>{e(kind)} · {e(context.replace('-', ' '))} · {e(doc.get('n_words'))} words · "
+        f'<title>{e(case[:60])}</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n'
+        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Source+Serif+4:wght@400;600&display=swap">\n'
+        f"<style>{CSS}</style>\n"
+        '<div class="wrap">'
+        f'<h1>{e(case)}</h1><p class="meta">{e(kind)} · {e(context.replace("-", " "))} · {e(doc.get("n_words"))} words · '
         f"tested {e(tested)} · {len(rows)} passages</p>"
-        f"<h2>The answer</h2>{answer}"
-        f"<h2>Passages at a glance</h2>{glance}"
-        f"<h2>How much to trust each detector</h2>{trust}"
-        f"<h2>The text</h2>{text_html}"
-        f"<h2>Other evidence</h2>{other}"
-        f"<h2>Details</h2>{details}</main>"
+        f"<!-- section: answer -->{hero}"
+        f'<div class="cols"><article class="card doc" id="text"><!-- section: text -->{text_html}</article>{side}</div>'
+        f'<h2 id="passages">Scores by passage</h2><div class="card"><!-- section: glance -->{glance}</div>'
+        f'<h2>How much to trust each detector</h2><div class="card">{trust}</div>'
+        f'<h2>Other evidence</h2><div class="card"><ul class="facts">{"".join(f"<li>{x}</li>" for x in facts)}</ul>{other}</div>'
+        f'<h2>Details</h2><div class="card">{details}</div></div>'
     )

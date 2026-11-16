@@ -56,8 +56,11 @@
       "max_words": null,
       "automation": {
         "checked": "2026-11-16",
-        "status": "cookie dialog offers only 'Accept All' or 'Customize'; the skill does not consent to non-essential cookies on the user's behalf"
-      }
+        "status": "Cloudflare Turnstile challenge after Scan: manual use only (the skill never solves CAPTCHAs)"
+      },
+      "cookies": "accept",
+      "cookies_note": "User approved accepting this site's cookies in the skill's own Chrome profile (2026-11-16); the site offers no decline option.",
+      "input_click": "text=Paste your content"
     },
     {
       "id": "quillbot",
@@ -112,11 +115,17 @@
       "weight": "context",
       "evidence": "No independent peer-reviewed low-FPR evidence found.",
       "read": "Record the share reported as AI (0-1).",
-      "max_words": null,
+      "max_words": 1200,
       "automation": {
         "checked": "2026-11-16",
-        "status": "text box found; scan button covered (cookie dialog); same cookie question as Copyleaks"
-      }
+        "status": "cookie dialog has 'Only functional cookies' (declined); the detector is QuillBot's, embedded in a frame from quillbot.scribbr.com"
+      },
+      "parse": {
+        "score": "([\\d.]+)\\s*%\\s*of text is\\s*likely AI",
+        "scale": 100,
+        "label": "(of text is\\s*likely AI)"
+      },
+      "min_words": 40
     },
     {
       "id": "winston",

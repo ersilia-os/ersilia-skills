@@ -211,9 +211,9 @@ def check_case(path: Path) -> list[str]:
             if not page:
                 errors.append(f"{path.stem}: report not written")
             for needle in (
-                "<h2>The answer</h2>",
-                "<h2>Passages at a glance</h2>",
-                "<h2>The text</h2>",
+                "<!-- section: answer -->",
+                "<!-- section: glance -->",
+                "<!-- section: text -->",
             ):
                 if needle not in page:
                     errors.append(f"{path.stem}: raw report lacks {needle}")

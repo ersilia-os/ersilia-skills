@@ -39,7 +39,7 @@ from web_detectors import is_ai_colour, parse_score, record_result
 PROFILE = LOCAL / "chrome-profile"
 BUTTON_RE = re.compile(r"\b(detect|scan|check|analy[sz]e|run|submit)\b", re.IGNORECASE)
 BLOCK_RE = re.compile(
-    r"verify you are human|captcha|are you a robot|unusual traffic|log ?in to continue|sign (?:up|in) to (?:continue|scan|check)|"
+    r"verify you are human|(?<![a-z])captcha|are you a robot|unusual traffic|log ?in to continue|sign (?:up|in) to (?:continue|scan|check)|"
     r"(?:daily|monthly|free) (?:limit|quota)|limit reached|upgrade to (?:continue|scan)|out of (?:credits|words)|"
     r"sign up with google|for free to get more|create (?:a )?free account to (?:continue|scan)",
     re.IGNORECASE,
@@ -72,7 +72,11 @@ def guess(text: str) -> float | None:
 PCT_ANY = re.compile(r"\d{1,3}(?:\.\d+)?\s*%")
 COOKIE_RE = re.compile(
     r"^(decline( all)?|reject( all| non-essential)?( cookies)?|reject non-essential cookies|"
-    r"(use )?(only|strictly) (necessary|essential)( cookies)?( only)?|necessary only|deny( all)?|refuse( all)?)$",
+    r"(use )?(only|strictly) (necessary|essential|functional)( cookies)?( only)?|necessary only|deny( all)?|refuse( all)?)$",
+    re.IGNORECASE,
+)
+ACCEPT_RE = re.compile(
+    r"^(accept( all)?( cookies)?|allow( all)?( cookies)?|agree|i agree|got it)$",
     re.IGNORECASE,
 )
 
@@ -83,15 +87,38 @@ CAPTCHA_FRAME = re.compile(
 )
 
 
+def _challenge_frame(f) -> bool:
+    """A CAPTCHA frame a person would have to answer: not the invisible reCAPTCHA
+    badge many sites load on every page (``size=invisible``, nothing to solve unless
+    a challenge frame then appears on screen)."""
+    url = f.url or ""
+    if not CAPTCHA_FRAME.search(url) or "size=invisible" in url:
+        return False
+    try:
+        el = f.frame_element()
+        box = el.bounding_box() or {}
+        return el.is_visible() and box.get("height", 0) > 40
+    except Exception:  # noqa: BLE001 - frame detached
+        return False
+
+
+def all_text(page) -> str:
+    """Visible text of the page and of its embedded frames (some sites show the
+    detector, and its verdict, inside a frame)."""
+    parts = []
+    for f in page.frames:
+        try:
+            parts.append(f.inner_text("body", timeout=2000))
+        except Exception:  # noqa: BLE001, S112 - frame without body or detached
+            continue
+    return "\n".join(parts)
+
+
 def captcha_shown(page) -> bool:
     """Whether a CAPTCHA widget or a human-verification wall is on the page."""
     try:
-        frames = any(
-            CAPTCHA_FRAME.search(f.url or "")
-            for f in page.frames
-            if f != page.main_frame
-        )
-        return frames or bool(BLOCK_RE.search(page.inner_text("body")[:3000]))
+        frames = any(_challenge_frame(f) for f in page.frames if f != page.main_frame)
+        return frames or bool(BLOCK_RE.search(all_text(page)[:3000]))
     except Exception:  # noqa: BLE001 - page navigating
         return False
 
@@ -122,17 +149,22 @@ def new_lines(before: str, after: str) -> str:
     return "\n".join(ln for ln in after.splitlines() if ln.strip() and ln not in seen)
 
 
-def dismiss_cookies(page) -> None:
-    """Close a cookie banner by declining non-essential cookies, if one is shown."""
-    for el in page.query_selector_all("button, [role='button'], a"):
-        try:
-            label = (el.inner_text() or "").strip()
-            if el.is_visible() and COOKIE_RE.match(label):
-                el.click()
-                page.wait_for_timeout(500)
-                return
-        except Exception:  # noqa: BLE001, S112 - element detached
-            continue
+def dismiss_cookies(page, accept: bool = False) -> None:
+    """Close a cookie banner by declining non-essential cookies, if one is shown.
+
+    Only when the site offers no way to decline and the user approved accepting for that
+    site ("cookies": "accept" in references/web_detectors.json) is "Accept" clicked.
+    """
+    for pattern in (COOKIE_RE, ACCEPT_RE) if accept else (COOKIE_RE,):
+        for el in page.query_selector_all("button, [role='button'], a"):
+            try:
+                label = (el.inner_text() or "").strip()
+                if el.is_visible() and pattern.match(label):
+                    el.click()
+                    page.wait_for_timeout(500)
+                    return
+            except Exception:  # noqa: BLE001, S112 - element detached
+                continue
 
 
 def find_input(page):
@@ -164,7 +196,7 @@ ACTION_RE = re.compile(
 )
 
 
-def click_go(page, box) -> bool:
+def click_go(page, box, accept_cookies: bool = False) -> bool:
     """Press the scan/check/detect button nearest to the text box (as a person would)."""
     tb = box.bounding_box() or {"x": 0, "y": 0, "width": 0, "height": 0}
     cx, cy = tb["x"] + tb["width"] / 2, tb["y"] + tb["height"]
@@ -215,7 +247,7 @@ def click_go(page, box) -> bool:
             best.click(timeout=5000)
             break
         except Exception:
-            dismiss_cookies(page)
+            dismiss_cookies(page, accept_cookies)
             page.keyboard.press("Escape")
             if attempt == 2:
                 raise
@@ -274,15 +306,27 @@ def run_one(
 ) -> dict:
     """One submission; saves the result page; returns a status row."""
     row = {"tool": tool["id"], "chunk": k}
+    accept = tool.get("cookies") == "accept"
     page.goto(tool["url"], wait_until="domcontentloaded", timeout=60000)
     page.wait_for_timeout(3000)
-    dismiss_cookies(page)
+    dismiss_cookies(page, accept)
     if captcha_shown(page) and human_wait:
         wait_for_human(page, human_wait)
-    before = page.inner_text("body")
+    before = all_text(page)
     if BLOCK_RE.search(before):
         return {**row, "status": "blocked", "why": BLOCK_RE.search(before).group(0)}
     box = find_input(page)
+    if not box and tool.get("input_click"):  # editors created on first click
+        try:
+            page.click(tool["input_click"], timeout=8000)
+            page.wait_for_timeout(1000)
+        except Exception:  # noqa: BLE001, S110 - fall through to the retry below
+            pass
+        box = find_input(page)
+    if not box:  # some editors appear only once the page has finished loading
+        page.wait_for_timeout(5000)
+        dismiss_cookies(page, accept)
+        box = find_input(page)
     if not box:
         return {
             **row,
@@ -295,10 +339,10 @@ def run_one(
     else:
         page.keyboard.insert_text(text)
     page.wait_for_timeout(800)
-    pasted = page.inner_text("body")
+    pasted = all_text(page)
     n_tabs = len(page.context.pages)
-    dismiss_cookies(page)  # banners that appeared late
-    if not click_go(page, box):
+    dismiss_cookies(page, accept)  # banners that appeared late
+    if not click_go(page, box, accept):
         return {**row, "status": "no-button", "why": "no scan/check button found"}
     # Some sites open the result in a new tab: follow it.
     page.wait_for_timeout(2500)
@@ -316,7 +360,7 @@ def run_one(
     after, fresh = pasted, ""
     for _ in range(45):  # up to ~90 s for the verdict to appear
         page.wait_for_timeout(2000)
-        after = page.inner_text("body")
+        after = all_text(page)
         if captcha_shown(page) and not (
             human_wait and wait_for_human(page, human_wait)
         ):
@@ -336,7 +380,7 @@ def run_one(
             r"\b(AI|human|generated|written)\b", fresh, re.IGNORECASE
         ):
             page.wait_for_timeout(2000)  # let the numbers settle
-            after = page.inner_text("body")
+            after = all_text(page)
             fresh = new_lines(pasted, after)
             break
     else:
