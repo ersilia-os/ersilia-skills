@@ -31,6 +31,13 @@
       "kind": "code",
       "change": "passages = whole prose paragraphs within one section (title page, affiliations, captions never sent); report organised by passage: answer + facts, coloured passages table with agreement, text passage by passage with headers, marked sentences shaded by number of tools",
       "fixture": "chatbot-artifacts"
+    },
+    {
+      "n": 5,
+      "date": "2026-11-16",
+      "feedback": "Report not clear whether it is AI slop; wants brighter colours and a cleaner layout, like the web detectors",
+      "kind": "process",
+      "change": "report_raw.py follows web-detector layout: headline share of AI-like prose (ring + breakdown bar), verdict pill, checks, highlighted text with human text plain, side panel of per-passage and per-detector scores"
     }
   ]
 }

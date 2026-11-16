@@ -109,6 +109,9 @@ p.skip, .skip { color: var(--muted); font-size: .85rem; font-family: Inter, syst
 mark.art { background: var(--art); color: inherit; outline: 2px solid var(--ai); border-radius: 3px; }
 /* tables and folds */
 .scroll { overflow-x: auto; }
+.plain td, .plain th { background: none !important; text-align: right; white-space: nowrap; }
+.plain td:first-child, .plain th:first-child, .plain td:last-child, .plain th:last-child { text-align: left; }
+.plain th { white-space: normal; vertical-align: bottom; }
 table { border-collapse: collapse; font-size: .82rem; width: 100%; }
 th, td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: middle; }
 th { color: var(--muted); font-weight: 600; }
@@ -534,51 +537,6 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             + ", the detectors with the best independent evidence (they need a CAPTCHA ticked or an API key)."
         )
 
-    # 2. At a glance.
-    def cell(v: float | None, t: str, k: int) -> str:
-        if v is None:
-            return '<td class="c-none">—</td>'
-        cls = (
-            ("c-strong" if reg.get(t, {}).get("weight") == "validated" else "c-ai")
-            if v >= 0.5
-            else "c-human"
-        )
-        return f'<td class="n {cls}" title="{e(labels.get((k, t), ""))}">{pc(v)}</td>'
-
-    head = "".join(
-        f'<th title="{e(cal_text(t))}. {e(reg.get(t, {}).get("evidence", ""))}">{e(name(t))}'
-        + (" ✓" if reg.get(t, {}).get("weight") == "validated" else "")
-        + "</th>"
-        for t in tools
-    )
-    trs = "".join(
-        f'<tr><td class="n"><a href="#p{r["chunk"]}">{r["chunk"]}</a></td><td>{e(" + ".join(r["sections"]))}</td>'
-        f'<td class="n">{r["n_words"]}</td><td class="n {"c-ai" if r["sflag"] else "c-human"}">{num(r["style"])}</td>'
-        + "".join(cell(r["sc"].get(t), t, r["chunk"]) for t in tools)
-        + f'<td class="{r["cls"]}">{e(agreement_words(r["n_ai"], r["n"]))}</td>'
-        + (
-            f'<td class="n {times_class(comb_of.get(f"P{r["chunk"]}"))}">{times_text(comb_of.get(f"P{r["chunk"]}"))}</td>'
-            if comb_of
-            else ""
-        )
-        + "</tr>"
-        for r in rows
-    )
-    glance = (
-        "<p>Each detector's number is its estimated chance that the passage is AI-written. "
-        '<span class="c-human">&nbsp;Green&nbsp;</span> = says human, <span class="c-ai">&nbsp;orange&nbsp;</span> = says AI, '
-        '<span class="c-strong">&nbsp;red&nbsp;</span> = a validated detector (✓) says AI. '
-        "Style is this skill's own score (0–1), calibrated on human scientific text. "
-        "Hover a detector's name for how it did on known texts; click a passage number to jump to it. "
-        + (
-            "<b>Combined</b> weighs every detector by its results on known human and AI texts and uses every way of "
-            "splitting the text: \u201c5\u00d7 AI\u201d means five times as likely if AI-written.</p>"
-            if comb_of
-            else "</p>"
-        )
-        + f'<div class="scroll"><table><tr><th>#</th><th>Section</th><th>Words</th><th>Style</th>{head}<th>Agreement</th>{"<th>Combined (calibrated)</th>" if comb_of else ""}</tr>{trs}</table></div>'
-    )
-
     # How much to trust each detector (known-text calibration and stability across splits).
     trust_rows = []
     for t in tools:
@@ -926,7 +884,7 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             f'<div class="sub">{e(track)}</div><div class="chips">{chips}</div></div>'
         )
     side = (
-        '<aside class="side">'
+        '<aside class="side"><!-- section: glance -->'
         f'<div class="card"><h3>Passages {"· combined, calibrated" if comb_of else "· detectors saying AI"}</h3>{"".join(prow)}</div>'
         + (
             f'<div class="card"><h3>Detectors · score per passage</h3>{"".join(drows)}</div>'
@@ -945,8 +903,9 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         f"tested {e(tested)} · {len(rows)} passages</p>"
         f"<!-- section: answer -->{hero}"
         f'<div class="cols"><article class="card doc" id="text"><!-- section: text -->{text_html}</article>{side}</div>'
-        f'<h2 id="passages">Scores by passage</h2><div class="card"><!-- section: glance -->{glance}</div>'
-        f'<h2>How much to trust each detector</h2><div class="card">{trust}</div>'
-        f'<h2>Other evidence</h2><div class="card"><ul class="facts">{"".join(f"<li>{x}</li>" for x in facts)}</ul>{other}</div>'
-        f'<h2>Details</h2><div class="card">{details}</div></div>'
+        f'<h2>Other evidence</h2><div class="card">{other}</div>'
+        '<h2>Details</h2><div class="card">'
+        f'<details class="fold"><summary>How much to trust each detector</summary><div class="plain">{trust}</div></details>'
+        f'<details class="fold"><summary>Every check in one list</summary><ul class="facts">{"".join(f"<li>{x}</li>" for x in facts)}</ul></details>'
+        f"{details}</div></div>"
     )
