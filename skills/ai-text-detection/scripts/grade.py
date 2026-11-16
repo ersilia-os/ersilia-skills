@@ -1,22 +1,29 @@
 """Combine every check into one graded verdict and a list of defensible statements.
 
-Reads from the work folder: artifacts.json, references.json, web_detectors.json,
-stylometry.json, text.json, and judgements.json (Claude's own reading, plus its decisions
-on candidate hits and on references it verified by hand). Rules come from
-references/grading.json.
+Reads from the work folder: text.json, artifacts.json, references.json, stylometry.json,
+web_detectors.json, evidence.json, baseline.json (optional), and judgements.json (Claude's
+own reading, plus its decisions on candidate hits and on references verified by hand).
+Every threshold is in references/grading.json. The tier is the highest one whose rule is
+met:
 
-Tiers, highest first:
-
-    conclusive    an AI tool's output was pasted in (a confirmed artefact)
-    strong        verifiable problems typical of unchecked AI use (fabricated references),
-                  or two validated web detectors flag the document *and* something else does
-    moderate      one independent line of evidence
-    weak          only stylistic context
+    conclusive    a confirmed artefact of an AI tool's output (chatbot leftovers, citation
+                  tokens, placeholders, leaked reasoning, interface leftovers)
+    strong        two or more fabricated references; a strong close-reading finding
+                  (a verified false claim or invented fact); markdown or unicode
+                  artefacts; or two validated web detectors flagging the document plus a
+                  non-statistical finding
+    moderate      one independent line: a fabricated reference; two close-reading
+                  findings; the style score past its 1% threshold in most windows; one
+                  validated web detector flagging the text; the calibrated combination of
+                  detectors (evidence.py) at 10x for the document or 20x for one passage;
+                  or a clear shift from the author's own earlier writing
+    weak          context only: a single reading observation, style past 5%, unvalidated
+                  detectors, a weak marker
     none          nothing found
 
-Each statement is phrased so the user can say it out loud and back it up: what was
-found, where, and how anyone can re-check it. Statements never claim more than the
-evidence (a detector flag is "at a 1% false-positive operating point", not "AI-written").
+Prompt injections and paraphraser traces are reported separately: serious, but not
+evidence that an AI wrote the text. Statements never claim more than the evidence: what
+was found, where, and how anyone can re-check it.
 
 judgements.json (written by Claude, all keys optional):
 

@@ -20,23 +20,24 @@ These are strings people paste from a chatbot without noticing; nobody types the
 - GPTZero found 100 hallucinated citations in about 51 accepted [NeurIPS 2025 papers](https://gptzero.me/news/neurips/). NeurIPS and ICLR treat them as grounds for rejection.
 - Every lookup is a public API call (Crossref, DataCite, doi.org, OpenAlex, arXiv) that anyone can re-run. A real paper cited with the wrong year or author is a human error too, and is reported as weak.
 
-## 3. Web detectors (`web_detectors.py`, `browser_detect.py`): moderate; strong only with independent support
+## 3. Web detectors (`browser_detect.py`, `api_detectors.py`, `evidence.py`): moderate at most on their own
 
-- The skill pastes the text in 250–600-word chunks into a compendium of web detectors in Chrome, then reads each score. This happens only for text that may leave the machine.
-- **Validated tools** have independent evidence of few false positives:
+Only for text that may leave the machine: never a manuscript or grant the user is reviewing.
+
+- **Each detector is tested before it counts** (`web_controls.py`; results in `web_validation.md`). It is run on published human scientific prose from before ChatGPT, including texts from the document's own field; on AI-written texts (Claude and GPT); on AI-polished human texts; and on the human texts with their sentences shuffled, so a tool cannot pass by recognising papers it was trained on. Its false-alarm and detection rates become likelihood ratios. A tool with fewer than 5 known texts of either kind, or an AUROC under 0.6, is shown but not counted.
+- **The text is split several ways** (`segments.py`): whole sections, passages of ~250–500 words, and ~350-word windows that overlap by half. Each tool gets the splits within its size limits. A verdict that changes with the split is worth less, and the report shows how often that happens.
+- **Combination** (`evidence.py`): for each sentence, each tool's AI votes across the splits that contain it are weighted by its likelihood ratios; the tools are combined conservatively (mean × √k), assuming they share part of their mistakes. Passages and the document average their sentences, weighted by length.
+- **Grading** (`grading.json` "combined"): the document at 10× or more as likely AI-written, or one passage at 20× or more (stricter, because several passages are tested), with at least two counted tools reaching AUROC 0.75 on known texts, is one moderate line of evidence. It is never strong on its own. 0.1× or less is reported as counter-evidence.
+- **Independent evidence,** beyond the skill's own tests:
   - Pangram: near-zero false positives and robust to "humanizers" in the [University of Chicago study](https://www.nber.org/papers/w34223) (Jabarian & Imas 2025); the only tool that met a 0.5% FPR cap there.
   - GPTZero and Originality.ai: under 1% false positives in the same study, and 0% and 0.25% at their default thresholds on [RAID](https://arxiv.org/abs/2405.07940) (Dugan et al. 2024).
-- **Other tools** are reported as context only: Copyleaks, Sapling, Scribbr, QuillBot, Winston AI, Writer, ZeroGPT and Undetectable. They have no independent low-FPR evidence, and ZeroGPT is known for false positives on human text.
-- **Grading:**
-  - One validated tool flagging most of the text it scanned (with at least half the text covered) is a moderate line of evidence.
-  - Two validated tools, plus a non-statistical finding, make it strong.
-  - A validated tool scoring the text human is reported as counter-evidence.
+  - These three sit behind CAPTCHAs or paid APIs, so they run only when the user ticks the CAPTCHA or provides a key. Two validated tools flagging the text, plus a non-statistical finding, make the verdict strong.
 - **Known failure modes, the same as for any detector:**
   - Higher false-positive rates on non-native English ([Liang et al. 2023, *Patterns*](https://arxiv.org/abs/2304.02819)).
   - Scores shifted by professional editing ([Park et al. 2026](https://arxiv.org/abs/2608.26710)).
   - A security-paper study found commercial detectors with false-positive rates up to 68.6% on pre-ChatGPT papers ([IEEE S&P 2026](https://news.ufl.edu/2026/05/traynor-ai-detector-study/)).
-  - Evasion by paraphrasing.
-- **Why no local model:** an earlier version ran Binoculars and Fast-DetectGPT on a small local model pair. It needed a 6 GB download, and its thresholds could not be validated as well as the web tools'. It was removed in November 2026.
+  - Evasion by paraphrasing, and silent model changes on the sites (re-test monthly).
+- **Why no local model:** an earlier version ran Binoculars and Fast-DetectGPT on a small local model pair. It needed a 6 GB download, and its thresholds could not be validated as well as the web tools'. It was removed in November 2026; the authors' hosted Binoculars demo is used instead.
 
 ## 4. Style (`stylometry.py`): weak on its own
 

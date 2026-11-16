@@ -1,20 +1,24 @@
-"""Run web AI-text detectors chunk by chunk, through Claude in Chrome, and keep the results.
+"""The web-detector registry, the passages they scan, and their results for one document.
 
-Many detectors (Pangram, GPTZero, ...) offer a free web checker but no free API. The user
-used to paste chunks by hand. With Claude in Chrome connected (``/chrome`` in Claude Code),
-Claude does it in the user's own browser session: this script prepares the chunks, records
-what each site reports, and summarises it for grade.py and the report.
+The skill runs free web AI detectors (ZeroGPT, Undetectable, Scribbr and others) on the
+document's prose, through browser_detect.py or api_detectors.py. This module holds what
+they share:
 
-    prepare             cut the scored windows into chunks the sites accept (250-600
-                        words), one file each in <work>/web/, and print the plan
+    registry          references/web_detectors.json: each tool's URL, size limits,
+                      parser, terms, cookie rule and published evidence
+    build_passages    the passages: whole prose paragraphs from one section, 250-600
+                      words (title page, captions, tables and references left out)
+    parse_score       a site's AI likelihood (0-1) from its result page, by its parser
+    record_result     store one result; the latest per tool and passage wins
+
+and a small CLI for the per-document state in <work>/web_detectors.json:
+
+    prepare             write the passages to <work>/web/chunk_k.txt and print the plan
     record --tool ID --chunk K --score 0.93 [--label "AI"] [--note "..."]
-                        store one site's result for one chunk (score: AI likelihood 0-1)
+                        store a result read by eye (sites without a parser)
     skip --tool ID --why "free limit reached"
-                        note that a site could not be used, so the report says so
-    summary             per tool: chunks and words flagged (score >= 0.5), mean score
-
-Tools, their evidence and how to read their output: references/web_detectors.json.
-Results: <work>/web_detectors.json.
+                        note that a site could not be used, so the report can say so
+    summary             per tool: passages and words flagged (score >= 0.5), mean score
 
 Usage:
     python web_detectors.py prepare

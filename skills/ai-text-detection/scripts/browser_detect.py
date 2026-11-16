@@ -1,26 +1,30 @@
-"""Open Chrome and run web AI detectors on the prepared chunks, at a human pace.
+"""Run web AI detectors in Chrome on the prepared text, at a human pace.
 
-The skill drives the user's installed Google Chrome itself (Playwright, ``channel="chrome"``),
-with a dedicated profile in ~/.ai-text-detection/chrome-profile. Logins to GPTZero, Pangram
-and the like are remembered there, so the user signs in once, if a site requires it, and
-never again. If Claude in Chrome is connected in the session, SKILL.md prefers that instead.
+Drives the user's installed Google Chrome (Playwright, ``channel="chrome"``) with a
+dedicated profile in ~/.ai-text-detection/chrome-profile, so a site the user signs in to
+once stays signed in. For each tool and chunk it:
 
-For every tool and chunk it opens the site, finds the main text box (the largest visible
-textarea or editable area), pastes the chunk, presses the button that says scan, check,
-detect or analyse, and waits for the result. It saves the page text and a screenshot to
-<work>/web/<tool>_chunk<k>.{txt,png} and prints one JSON line per attempt. Claude then
-reads each result page and records the score with ``web_detectors.py record``, so no
-site-specific parsing has to keep up with redesigns. A first percentage near "AI" is
-printed as ``guess``, only as a hint.
+1. opens the site, declines non-essential cookies (accepts only where the user approved it
+   for that site: ``"cookies": "accept"`` in references/web_detectors.json);
+2. finds the main text box, also inside embedded frames, clicking ``input_click`` first
+   for editors that only appear on click;
+3. pastes the chunk, presses the nearest scan / check / detect button, and waits up to
+   ~90 s for a verdict;
+4. saves the page text, the new result text, the sentences the site highlighted and a
+   screenshot under <work>/web/ (or <work>/plan/ with --plan), and prints one JSON line.
 
-It stops using a site as soon as it sees a CAPTCHA, a login wall or a usage limit, and
-reports it. It never works around them. It waits several seconds between submissions.
+Scores are read with the site's parser in web_detectors.json when it has one and recorded
+automatically; check a sample of pages by eye after every run. Without a parser the
+printed ``guess`` is only a hint: read the page and use ``web_detectors.py record``.
 
-Run inside the env (Playwright is installed there):
-    conda run -n ai-text-detection python browser_detect.py --tools pangram,gptzero [--chunks 1,2] [--login]
+It stops on a site as soon as it sees a CAPTCHA a person would have to answer, a login
+wall or a free-use limit, and reports it; it never works around them. Sites whose terms
+forbid automation (``"terms": "no-automation"``) are skipped.
 
-``--login`` only opens the sites in the dedicated profile so the user can sign in, then waits
-until the window is closed.
+Usage (inside the conda env, which has Playwright):
+    python browser_detect.py --tools zerogpt,undetectable [--chunks 1,2]
+    python browser_detect.py --plan <work>/multi/plan.json --tools zerogpt --chunks S1,W3
+    python browser_detect.py --login --tools gptzero      # let the user sign in once
 """
 
 from __future__ import annotations
@@ -453,7 +457,15 @@ def main(argv: list[str] | None = None) -> int:
         )
     reg = read_json(REFS / "web_detectors.json")
     tools = {t["id"]: t for t in reg["tools"]}
-    order = args.tools.split(",") if args.tools else reg["default_order"]
+    order = (
+        args.tools.split(",")
+        if args.tools
+        else [
+            t
+            for t in reg["default_order"]
+            if t not in {x["id"] for x in reg["tools"] if x.get("route") == "api"}
+        ]
+    )
     unknown = [t for t in order if t not in tools]
     if unknown:
         die(f"unknown tool(s): {', '.join(unknown)}")

@@ -34,7 +34,6 @@ from __future__ import annotations
 
 import argparse
 import math
-import re
 import sys
 from pathlib import Path
 
@@ -190,7 +189,6 @@ def main(argv: list[str] | None = None) -> int:
         "stability (share of sentences whose verdict depends on the split): "
         + ", ".join(f"{t} {v:.0%}" for t, v in stability.items() if v is not None)
     )
-    _ = re
     return 0
 
 

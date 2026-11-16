@@ -1,6 +1,6 @@
 {
   "_about": "The skill's statistical layer: web AI-text detectors it runs through Claude in Chrome, in the user's own browser session, chunk by chunk. 'weight' says how grade.py treats a tool: 'validated' tools have independent evidence of a low false-positive rate and can count as a line of evidence; 'context' tools are reported but never raise the verdict above weak. Free-tier limits change: read them on the page, never work around them. Pasting text into these sites uploads it: only for text the user owns or co-authors, or public text (SKILL.md, step 2b).",
-  "version": 4,
+  "version": 5,
   "tools": [
     {
       "id": "pangram",
@@ -106,7 +106,8 @@
         "checked": "2026-11-16",
         "status": "free web checker shows 'Unexpected error' to visitors; use the free API key instead"
       },
-      "api": "api_detectors.py (SAPLING_API_KEY; free key: 50,000 characters a day, 250,000 a month)"
+      "api": "api_detectors.py (SAPLING_API_KEY; free key: 50,000 characters a day, 250,000 a month)",
+      "route": "api"
     },
     {
       "id": "scribbr",
@@ -363,29 +364,29 @@
     }
   ],
   "default_order": [
+    "zerogpt",
+    "undetectable",
+    "aidetector_review",
+    "scribbr",
     "pangram",
     "gptzero",
     "originality",
-    "grammarly",
-    "binoculars",
-    "trinka",
     "itsai",
-    "aidetector_review",
-    "veredict",
-    "slopornot",
-    "sapling",
-    "detecting_ai",
+    "grammarly",
     "decopy",
-    "isgen",
+    "scispace",
     "copyleaks",
-    "scribbr",
     "quillbot",
     "winston",
     "writer",
-    "scispace",
-    "zerogpt",
-    "undetectable",
-    "clever"
+    "trinka",
+    "veredict",
+    "detecting_ai",
+    "isgen",
+    "slopornot",
+    "clever",
+    "binoculars",
+    "sapling"
   ],
   "chunk_words": [
     250,
@@ -394,5 +395,6 @@
   "_max_words_note": "max_words: the most text a site accepts per check on its free tier, when known. Unknown values are null: read the limit on the page; watch.py's monthly scan fills them in.",
   "_terms_note": "'terms': 'no-automation' marks sites whose terms forbid scripted access. browser_detect.py never runs them; the skill may open the page for the user to paste a chunk by hand.",
   "_parse_note": "'parse': how to read a site's result page. 'score' is a regex whose first group is the AI likelihood; 'scale' divides it to 0-1 (and 'invert': true means the site reports a human score). 'label' captures the site's own verdict line. Add a parser only after checking it against real result pages (store the check in 'automation').",
-  "_size_note": "min_words / max_words: the range of text sizes a tool handles well (Binoculars reads only the first 512 tokens). segments.py --for-tool <id> lists the splits that fit."
+  "_size_note": "min_words / max_words: the range of text sizes a tool handles well (Binoculars reads only the first 512 tokens). segments.py --for-tool <id> lists the splits that fit.",
+  "_order_note": "default_order: the tools that run unattended and are calibrated first (ZeroGPT, Undetectable, AIDetector.review, Scribbr); then the validated tools, which need the user to tick a CAPTCHA (run with --human-wait); then the rest. Tools with route 'api' run through api_detectors.py, not the browser."
 }
