@@ -50,7 +50,8 @@ Scripts live in `scripts/`. They run with any `python3`, except PDF/DOCX extract
 | `web_detectors.py`, `browser_detect.py` | Web detectors (Pangram, GPTZero, …): prepare chunks, drive Chrome to run them, record and summarise scores (`references/web_detectors.json`) |
 | `baseline.py` | Optional: the same author's pre-2023 writing (OpenAlex abstracts or files the user gives), scored the same way, to show a change in their own style |
 | `grade.py` | Rules in `references/grading.json` produce the tier plus defensible statements |
-| `build_report.py`, `report_raw.py` | The report: raw HTML, scores first, then the text with AI-looking passages highlighted; published as a private Artifact |
+| `build_report.py`, `report_raw.py` | The report, in the layout web detectors use: headline share of AI-like prose, the text with AI-like sentences highlighted and close-reading notes as tags, a side panel of per-passage and per-detector scores; published as a private Artifact |
+| `report_pdf.py` | The report as an A4 PDF (conda env), notes printed beside their paragraph; when the user asks for a file |
 | `build_corpus.py`, `calibrate.py` | Build the human calibration corpus; fit the style-score thresholds; write `references/validation.md` |
 | `watch.py` | Monthly scan for new leak tokens, web detectors and their limits, vocabulary lists, datasets, policies and skills (`references/watchlist.json`) |
 | `selftest.py` | Offline regression test over `examples/cases/` and every marker's examples |
@@ -153,7 +154,7 @@ Show the user the verdict line and the conclusive or strong findings: each with 
 
 ### 5. The report
 
-`python build_report.py --case "<label>" --kind <kind> --context <context>` writes `report.html`: a deliberately raw page.
+`python build_report.py --case "<label>" --kind <kind> --context <context>` writes `report.html`. For a PDF: `conda run -n ai-text-detection python report_pdf.py report.html <out.pdf>`.
 - **Scores first:** every number, with the threshold and the held-out error rate it is compared with.
 - **A per-passage table:** each ~300-word window with its style score, each web detector's score for its chunk, and a flag.
 - **The document's own text,** with only the AI-looking parts highlighted: shaded windows past the 5% or 1% thresholds, and marked artefacts, AI-typical words and stock phrasing. Everything else stays plain.
