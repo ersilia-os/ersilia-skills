@@ -217,6 +217,45 @@ def summary(state: dict) -> dict:
     return out
 
 
+def record_result(
+    work: Path, tool: str, chunk, score: float, label: str, note: str = "parsed"
+) -> None:
+    """Append one result to the draft's web_detectors.json (the latest per tool and passage wins)."""
+    st = read_json(work / "web_detectors.json") or {
+        "chunks": [],
+        "results": [],
+        "skipped": [],
+    }
+    st.setdefault("results", []).append(
+        {
+            "tool": tool,
+            "chunk": chunk,
+            "score": round(score, 4),
+            "label": label,
+            "note": note,
+            "date": date.today().isoformat(),
+        }
+    )
+    write_json(work / "web_detectors.json", st)
+
+
+def parse_score(tool_id: str, result_text: str) -> tuple[float | None, str]:
+    """(AI likelihood 0-1, site's verdict line) from a result page, using the site's
+    parser in web_detectors.json; (None, "") when the page does not match."""
+    tool = next((t for t in registry()["tools"] if t["id"] == tool_id), {})
+    rule = tool.get("parse")
+    if not rule:
+        return None, ""
+    m = re.search(rule["score"], result_text or "")
+    if not m:
+        return None, ""
+    v = float(m.group(1)) / float(rule.get("scale", 1))
+    if rule.get("invert"):
+        v = 1 - v
+    lab = re.search(rule.get("label", r"$^"), result_text or "")
+    return max(0.0, min(1.0, v)), (lab.group(1).strip() if lab else "")
+
+
 def is_ai_colour(css: str) -> bool:
     """Whether a highlight colour means 'AI'. Sites mark human sentences green (hue
     roughly 80-170 degrees) and AI sentences red, orange, yellow, pink or purple."""

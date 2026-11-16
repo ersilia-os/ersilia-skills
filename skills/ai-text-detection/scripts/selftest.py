@@ -162,6 +162,7 @@ def check_case(path: Path) -> list[str]:
             "stylometry",
             "judgements",
             "web_detectors",
+            "evidence",
         ):
             if case.get(name) is not None:
                 write_json(work / f"{name}.json", case[name])

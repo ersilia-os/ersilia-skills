@@ -79,11 +79,17 @@
       "weight": "context",
       "evidence": "Widely reported false positives on human text (it famously flags the US Constitution); no independent low-FPR evidence.",
       "read": "Record the percentage reported as AI (0-1).",
-      "max_words": null,
+      "max_words": 1500,
       "automation": {
         "checked": "2026-11-15",
         "status": "works without CAPTCHA or login"
-      }
+      },
+      "parse": {
+        "score": "(?m)^\\s*([\\d.]+)\\s*%\\s*$\\s*^\\s*AI GPT",
+        "scale": 100,
+        "label": "(?m)^(Your Text[^\\n]*|Most of Your Text[^\\n]*)"
+      },
+      "min_words": 100
     },
     {
       "id": "sapling",
@@ -132,11 +138,17 @@
       "weight": "context",
       "evidence": "Sells a 'humanizer'; no independent low-FPR evidence. Lowest weight.",
       "read": "Record the AI likelihood (0-1) if shown.",
-      "max_words": null,
+      "max_words": 800,
       "automation": {
         "checked": "2026-11-15",
         "status": "works without CAPTCHA or login"
-      }
+      },
+      "parse": {
+        "score": "(?m)^\\s*(\\d+(?:\\.\\d+)?)\\s*%\\s*$\\s*^\\s*AI / GPT",
+        "scale": 100,
+        "label": "(?m)^(Your text is[^\\n]*)"
+      },
+      "min_words": 100
     },
     {
       "id": "writer",
@@ -158,11 +170,17 @@
       "weight": "context",
       "evidence": "Vendor-submitted RAID entry (2026-02): 0.995 detection at 5% FPR, 0.982 at 1% FPR; self-submitted and possibly tuned to RAID; no peer-reviewed evaluation.",
       "read": "Record the share of text reported as AI-generated (0-1).",
-      "max_words": null,
+      "max_words": 1400,
       "automation": {
         "checked": "2026-11-16",
         "status": "one anonymous scan works; then a sign-up wall (a free account removes it: sign in once with browser_detect.py --login)"
-      }
+      },
+      "parse": {
+        "score": "(\\d+(?:\\.\\d+)?)% of this text appears to be AI-generated",
+        "scale": 100,
+        "label": "(\\d+% of this text appears to be AI-generated)"
+      },
+      "min_words": 100
     },
     {
       "id": "binoculars",
@@ -172,11 +190,12 @@
       "route": "api",
       "evidence": "Published zero-shot method (Hans et al., ICML 2024); RAID 0.79 detection at 5% FPR, 0.695 at 1% FPR (no attacks). The demo returns a decision, not a probability.",
       "read": "api_detectors.py records 1 for 'AI' and 0 for 'human'.",
-      "max_words": null,
+      "max_words": 380,
       "automation": {
         "checked": "2026-11-16",
         "status": "works through the API without a key (Gradio 4 endpoint /call/run_detector)"
-      }
+      },
+      "min_words": 120
     },
     {
       "id": "clever",
@@ -212,11 +231,17 @@
       "weight": "context",
       "evidence": "Vendor-submitted RAID entry 0.811 (abstracts 0.937); no peer-reviewed evaluation. Free API (1,000 requests/day) as well.",
       "read": "Record the AI likelihood or AI share shown (0-1).",
-      "max_words": null,
+      "max_words": 1400,
       "automation": {
         "checked": "2026-11-16",
         "status": "works without CAPTCHA or login; sentence colours (green = human)"
-      }
+      },
+      "parse": {
+        "score": "(?m)^\\s*(\\d+(?:\\.\\d+)?)\\s*$\\s*^\\s*% AI PROBABILITY",
+        "scale": 100,
+        "label": "(?m)^(HUMAN WRITTEN|LIKELY AI|AI WRITTEN|MIXED[^\\n]*|LIKELY HUMAN)\\s*$"
+      },
+      "min_words": 50
     },
     {
       "id": "itsai",
@@ -225,11 +250,17 @@
       "weight": "context",
       "evidence": "Vendor-submitted RAID entry 0.970 (abstracts 0.985); no peer-reviewed evaluation.",
       "read": "Record the AI likelihood or AI share shown (0-1).",
-      "max_words": null,
+      "max_words": 1500,
       "automation": {
         "checked": "2026-11-16",
         "status": "works; 3 anonymous scans, then login (free account: 4,000 words); 'Run scan' button, sentence colours (green = human)"
-      }
+      },
+      "parse": {
+        "score": "(?m)^\\s*(\\d+(?:\\.\\d+)?)\\s*$\\s*^\\s*AI Score",
+        "scale": 100,
+        "label": "(?m)^(Likely [^\\n]*|Mostly [^\\n]*|Probably [^\\n]*)$"
+      },
+      "min_words": 100
     },
     {
       "id": "veredict",
@@ -340,5 +371,7 @@
     600
   ],
   "_max_words_note": "max_words: the most text a site accepts per check on its free tier, when known. Unknown values are null: read the limit on the page; watch.py's monthly scan fills them in.",
-  "_terms_note": "'terms': 'no-automation' marks sites whose terms forbid scripted access. browser_detect.py never runs them; the skill may open the page for the user to paste a chunk by hand."
+  "_terms_note": "'terms': 'no-automation' marks sites whose terms forbid scripted access. browser_detect.py never runs them; the skill may open the page for the user to paste a chunk by hand.",
+  "_parse_note": "'parse': how to read a site's result page. 'score' is a regex whose first group is the AI likelihood; 'scale' divides it to 0-1 (and 'invert': true means the site reports a human score). 'label' captures the site's own verdict line. Add a parser only after checking it against real result pages (store the check in 'automation').",
+  "_size_note": "min_words / max_words: the range of text sizes a tool handles well (Binoculars reads only the first 512 tokens). segments.py --for-tool <id> lists the splits that fit."
 }

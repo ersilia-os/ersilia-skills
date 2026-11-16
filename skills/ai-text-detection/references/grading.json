@@ -1,6 +1,6 @@
 {
   "_about": "How grade.py turns findings into the overall tier. Data, not code: change these values through the Learn step (record_feedback.py logs why). The tier is the highest level whose rule is met. Manipulation (hidden prompts) and paraphraser evidence are reported separately: they are serious, but they are not evidence that an AI wrote the text.",
-  "version": 2,
+  "version": 3,
   "conclusive": {
     "categories": [
       "citation-artifact",
@@ -54,5 +54,12 @@
     "validated_for_strong": 2,
     "_note": "A web tool flags the document when chunks holding at least flag_share of the words score >= 0.5. Two validated tools flagging, plus one non-statistical line (artefacts, references, reading, baseline), make it strong. A tool counts only if its scanned chunks cover at least min_coverage of the text.",
     "min_coverage": 0.5
+  },
+  "combined": {
+    "moderate_times": 10,
+    "min_good_tools": 2,
+    "good_auroc": 0.75,
+    "counter_times": 0.1,
+    "_note": "Calibrated combination of web detectors across splits (evidence.py). Moderate needs the document to be at least moderate_times more likely under AI, with at least min_good_tools tools that reached good_auroc on known texts among those counted. At most counter_times is reported as counter-evidence. Never strong on its own."
   }
 }

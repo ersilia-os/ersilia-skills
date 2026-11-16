@@ -135,6 +135,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--work", default=str(WORK_DIR))
     p.add_argument("--tools", default="pangram,gptzero,sapling,binoculars")
     p.add_argument("--chunks")
+    p.add_argument(
+        "--plan",
+        help="JSON {units: [{chunk, file}]} to scan instead of the draft's passages",
+    )
+    p.add_argument(
+        "--log", help="JSONL to append results to (default: <plan>.results.jsonl)"
+    )
     p.add_argument("--status", action="store_true")
     p.add_argument(
         "--approved",
@@ -154,10 +161,17 @@ def main(argv: list[str] | None = None) -> int:
             )
         return 0
     work = Path(args.work)
-    st = read_json(work / "web_detectors.json") or die(
-        "run `web_detectors.py prepare` first"
-    )
-    wanted = {int(x) for x in args.chunks.split(",")} if args.chunks else None
+    if args.plan:
+        units = (read_json(args.plan) or die(f"cannot read {args.plan}"))["units"]
+        log_path = Path(args.log or str(args.plan).replace(".json", ".results.jsonl"))
+        st = None
+    else:
+        st = read_json(work / "web_detectors.json") or die(
+            "run `web_detectors.py prepare` first"
+        )
+        units = st["chunks"]
+        log_path = Path(args.log) if args.log else None
+    wanted = set(args.chunks.split(",")) if args.chunks else None
     for t in args.tools.split(","):
         if t not in PROVIDERS:
             die(f"unknown API tool {t}")
@@ -176,8 +190,8 @@ def main(argv: list[str] | None = None) -> int:
         if not key and t != "binoculars":
             print(json.dumps({"tool": t, "status": "no-key", "why": f"set {KEYS[t]}"}))
             continue
-        for c in st["chunks"]:
-            if wanted and c["chunk"] not in wanted:
+        for c in units:
+            if wanted and str(c["chunk"]) not in wanted:
                 continue
             text = Path(c["file"]).read_text(encoding="utf-8")
             try:
@@ -197,17 +211,34 @@ def main(argv: list[str] | None = None) -> int:
                 if "402" in str(ex) or "429" in str(ex):
                     break  # quota reached: stop using this service
                 continue
-            st["results"].append(
-                {
-                    "tool": t,
-                    "chunk": c["chunk"],
-                    "score": round(score, 4),
-                    "label": label,
-                    "note": "api",
-                    "date": date.today().isoformat(),
-                }
-            )
-            write_json(work / "web_detectors.json", st)
+            if st is not None:
+                st["results"].append(
+                    {
+                        "tool": t,
+                        "chunk": c["chunk"],
+                        "score": round(score, 4),
+                        "label": label,
+                        "note": "api",
+                        "date": date.today().isoformat(),
+                    }
+                )
+                write_json(work / "web_detectors.json", st)
+            if log_path:
+                with log_path.open("a", encoding="utf-8") as f:
+                    f.write(
+                        json.dumps(
+                            {
+                                "tool": t,
+                                "chunk": c["chunk"],
+                                "status": "done",
+                                "score": round(score, 4),
+                                "label": label,
+                                "parsed": True,
+                                "date": time.strftime("%Y-%m-%d %H:%M"),
+                            }
+                        )
+                        + "\n"
+                    )
             print(
                 json.dumps(
                     {

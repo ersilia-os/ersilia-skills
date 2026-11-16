@@ -34,7 +34,7 @@ import time
 from pathlib import Path
 
 from _common import LOCAL, REFS, WORK_DIR, die, read_json
-from web_detectors import is_ai_colour
+from web_detectors import is_ai_colour, parse_score, record_result
 
 PROFILE = LOCAL / "chrome-profile"
 BUTTON_RE = re.compile(r"\b(detect|scan|check|analy[sz]e|run|submit)\b", re.IGNORECASE)
@@ -364,7 +364,22 @@ def main(argv: list[str] | None = None) -> int:
         "--tools",
         help="comma-separated tool ids (default: the registry's default order)",
     )
-    p.add_argument("--chunks", help="comma-separated chunk numbers (default: all)")
+    p.add_argument("--chunks", help="comma-separated chunk ids (default: all)")
+    p.add_argument(
+        "--plan",
+        help="JSON {units: [{chunk, file}]} to scan instead of the draft's passages",
+    )
+    p.add_argument(
+        "--log",
+        help="JSONL to append parsed results to (default: <plan>.results.jsonl)",
+    )
+    p.add_argument(
+        "--pace",
+        type=float,
+        nargs=2,
+        default=[5, 9],
+        help="seconds to wait between submissions",
+    )
     p.add_argument(
         "--login",
         action="store_true",
@@ -390,11 +405,19 @@ def main(argv: list[str] | None = None) -> int:
     if unknown:
         die(f"unknown tool(s): {', '.join(unknown)}")
     work = Path(args.work)
-    state = read_json(work / "web_detectors.json")
-    if not args.login and not state:
-        die("run `web_detectors.py prepare` first")
+    if args.plan:
+        units = (read_json(args.plan) or die(f"cannot read {args.plan}"))["units"]
+        log_path = Path(args.log or str(args.plan).replace(".json", ".results.jsonl"))
+        out_dir_name = Path(args.plan).stem
+    else:
+        state = read_json(work / "web_detectors.json")
+        if not args.login and not state:
+            die("run `web_detectors.py prepare` first")
+        units = (state or {}).get("chunks", [])
+        log_path = Path(args.log) if args.log else None
+        out_dir_name = "web"
     PROFILE.mkdir(parents=True, exist_ok=True)
-    out = work / "web"
+    out = work / out_dir_name
     out.mkdir(parents=True, exist_ok=True)
 
     with sync_playwright() as pw:
@@ -418,7 +441,7 @@ def main(argv: list[str] | None = None) -> int:
             except Exception:  # noqa: BLE001, S110 - user closed the window
                 pass
             return 0
-        wanted = {int(x) for x in args.chunks.split(",")} if args.chunks else None
+        wanted = set(args.chunks.split(",")) if args.chunks else None
         for tid in order:
             if tools[tid].get("terms") == "no-automation":
                 print(
@@ -432,8 +455,8 @@ def main(argv: list[str] | None = None) -> int:
                     flush=True,
                 )
                 continue
-            for c in state["chunks"]:
-                if wanted and c["chunk"] not in wanted:
+            for c in units:
+                if wanted and str(c["chunk"]) not in wanted:
                     continue
                 text = Path(c["file"]).read_text(encoding="utf-8")
                 try:
@@ -450,10 +473,25 @@ def main(argv: list[str] | None = None) -> int:
                         "status": "error",
                         "why": str(ex)[:200],
                     }
+                if row.get("result_text"):
+                    score, label = parse_score(
+                        tid, Path(row["result_text"]).read_text(encoding="utf-8")
+                    )
+                    row.update(
+                        {"score": score, "label": label, "parsed": score is not None}
+                    )
+                    if score is not None and not args.plan:
+                        record_result(work, tid, c["chunk"], score, label)
+                if log_path:
+                    with log_path.open("a", encoding="utf-8") as f:
+                        f.write(
+                            json.dumps({**row, "date": time.strftime("%Y-%m-%d %H:%M")})
+                            + "\n"
+                        )
                 print(json.dumps(row), flush=True)
                 if row["status"] in ("blocked", "no-input"):
                     break  # stop using this site; never work around a wall
-                time.sleep(random.uniform(5, 9))  # human pace
+                time.sleep(random.uniform(*args.pace))  # human pace
         ctx.close()
     return 0
 

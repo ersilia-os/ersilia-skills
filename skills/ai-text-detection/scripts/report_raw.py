@@ -17,6 +17,7 @@ Called by build_report.py (``--style raw``, the default).
 from __future__ import annotations
 
 import html
+import math
 import re
 from pathlib import Path
 
@@ -57,6 +58,10 @@ p.skip { color: var(--grey); font-size: .9em; }
 .sec { font: 600 13px system-ui, sans-serif; color: #555555; margin: 1.4em 0 .2em; }
 .m1 { background: var(--s1); }
 .m2 { background: var(--s2); }
+.u1 { text-decoration: underline dotted #c65a1e; text-underline-offset: 3px; }
+.u2 { text-decoration: underline solid #c65a1e; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.h1 { background: #ffeadb; } .h2 { background: #ffcfb0; } .h3 { background: #ff9f7a; }
+.g1 { background: #eef8eb; } .g2 { background: #d6eecf; }
 mark.art { background: #ff8a8a; }
 details { margin: .6em 0; }
 summary { cursor: pointer; font-weight: bold; }
@@ -132,6 +137,8 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
     refs = read_json(work / "references.json") or {"references": [], "counts": {}}
     jud = read_json(work / "judgements.json") or {}
     web = read_json(work / "web_detectors.json") or {}
+    evd = read_json(work / "evidence.json") or {}
+    heat_sents = [x for x in evd.get("sentences", []) if x.get("evidence") is not None]
     cal = read_json(REFS / "calibration.json") or {}
     wreg = read_json(REFS / "web_detectors.json") or {}
     reg = {t["id"]: t for t in wreg.get("tools", [])}
@@ -159,6 +166,39 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
 
     def name(t: str) -> str:
         return reg.get(t, {}).get("name", t)
+
+    tcal = evd.get("tools", {})
+    comb_of = {
+        pa["chunk"]: pa["evidence"]
+        for pa in evd.get("passages", [])
+        if pa.get("evidence") is not None
+    }
+
+    def times_text(ev: float | None) -> str:
+        if ev is None:
+            return "\u2014"
+        x = math.exp(ev)
+        return f"{x:.1f}\u00d7 AI" if x >= 1 else f"{1 / x:.1f}\u00d7 human"
+
+    def times_class(ev: float | None) -> str:
+        if ev is None:
+            return "c-none"
+        if ev >= math.log(10):
+            return "c-strong"
+        if ev >= math.log(3):
+            return "c-ai"
+        if ev <= -math.log(3):
+            return "c-human"
+        return ""
+
+    def cal_text(t: str) -> str:
+        c = (tcal.get(t) or {}).get("cal") or {}
+        if not c:
+            return "not yet tested on known texts"
+        return (
+            f"On known texts: said AI for {round((c.get('fpr') or 0) * c.get('n_human', 0))} of {c.get('n_human')} human, "
+            f"{round((c.get('tpr') or 0) * c.get('n_ai', 0))} of {c.get('n_ai')} AI"
+        )
 
     rows = []
     for p in passages:
@@ -220,8 +260,9 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         if h["in"] == "body" and ja.get(h["id"], {}).get("confirmed", True)
     ]
 
-    def inline(a: int, b: int) -> str:
-        """Escaped text[a:b] with marked sentences and artefacts."""
+    def marks(a: int, b: int) -> str:
+        """Escaped text[a:b]: artefacts marked red; sentences the sites marked as AI underlined
+        (dotted: one site, solid: two or more); without heat, those sentences are shaded."""
         evs = sorted(
             (x for x in events_all if x[0] < b and x[1] > a),
             key=lambda x: (x[0], x[2] != "art"),
@@ -232,12 +273,55 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
             if s0 < pos:
                 continue
             out.append(e(text[pos:s0]))
-            tag = "mark" if cls == "art" else "span"
-            out.append(
-                f'<{tag} class="{cls}" title="{e(lab)}">{e(text[s0:s1])}</{tag}>'
-            )
+            if cls == "art":
+                out.append(
+                    f'<mark class="art" title="{e(lab)}">{e(text[s0:s1])}</mark>'
+                )
+            else:
+                c = ({"m1": "u1", "m2": "u2"}[cls]) if heat_sents else cls
+                out.append(
+                    f'<span class="{c}" title="{e(lab)}">{e(text[s0:s1])}</span>'
+                )
             pos = s1
         out.append(e(text[pos:b]))
+        return "".join(out)
+
+    def heat_class(ev: float) -> str:
+        if ev >= math.log(10):
+            return "h3"
+        if ev >= math.log(3):
+            return "h2"
+        if ev > 0.4:
+            return "h1"
+        if ev <= -math.log(3):
+            return "g2"
+        if ev <= -0.4:
+            return "g1"
+        return ""
+
+    def heat_title(x: dict) -> str:
+        votes = "; ".join(
+            f"{name(t)}: AI in {round(v['v'] * v['n'])} of {v['n']} splits"
+            for t, v in sorted(x.get("tools", {}).items())
+        )
+        return f"combined: {math.exp(x['evidence']):.2g} times as likely AI as human · {votes}"
+
+    def inline(a: int, b: int) -> str:
+        """Text with the combined-evidence heat per sentence (when available) and marks."""
+        out, pos = [], a
+        for x in heat_sents:
+            if x["start"] < a or x["end"] > b:
+                continue
+            out.append(marks(pos, x["start"]))
+            cls = heat_class(x["evidence"])
+            inner = marks(x["start"], x["end"])
+            out.append(
+                f'<span class="{cls}" title="{e(heat_title(x))}">{inner}</span>'
+                if cls
+                else f'<span title="{e(heat_title(x))}">{inner}</span>'
+            )
+            pos = x["end"]
+        out.append(marks(pos, b))
         return "".join(out).replace("\n", "<br>")
 
     def plabel(r: dict) -> str:
@@ -303,6 +387,18 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         ),
         f"Close reading: {len(jud.get('reading', []))} observation(s), under Other evidence.",
     ]
+    dtimes = (evd.get("document") or {}).get("times")
+    if dtimes is not None:
+        facts.insert(
+            3,
+            "Combined, calibrated on known texts: the whole text is "
+            + (
+                f"<b>about {dtimes:.1f} times as likely if AI-written</b>"
+                if dtimes >= 1
+                else f"<b>about {1 / dtimes:.1f} times as likely if human-written</b>"
+            )
+            + f" (detectors counted: {', '.join(name(t) for t in evd.get('used', [])) or 'none'}).",
+        )
     if not_run_valid:
         facts.append(
             "Not run: "
@@ -323,7 +419,7 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         return f'<td class="n {cls}" title="{e(labels.get((k, t), ""))}">{pc(v)}</td>'
 
     head = "".join(
-        f'<th title="{e(reg.get(t, {}).get("evidence", ""))}">{e(name(t))}'
+        f'<th title="{e(cal_text(t))}. {e(reg.get(t, {}).get("evidence", ""))}">{e(name(t))}'
         + (" ✓" if reg.get(t, {}).get("weight") == "validated" else "")
         + "</th>"
         for t in tools
@@ -332,7 +428,13 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         f'<tr><td class="n"><a href="#p{r["chunk"]}">{r["chunk"]}</a></td><td>{e(" + ".join(r["sections"]))}</td>'
         f'<td class="n">{r["n_words"]}</td><td class="n {"c-ai" if r["sflag"] else "c-human"}">{num(r["style"])}</td>'
         + "".join(cell(r["sc"].get(t), t, r["chunk"]) for t in tools)
-        + f'<td class="{r["cls"]}">{e(agreement_words(r["n_ai"], r["n"]))}</td></tr>'
+        + f'<td class="{r["cls"]}">{e(agreement_words(r["n_ai"], r["n"]))}</td>'
+        + (
+            f'<td class="n {times_class(comb_of.get(f"P{r["chunk"]}"))}">{times_text(comb_of.get(f"P{r["chunk"]}"))}</td>'
+            if comb_of
+            else ""
+        )
+        + "</tr>"
         for r in rows
     )
     glance = (
@@ -340,8 +442,54 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         '<span class="c-human">&nbsp;Green&nbsp;</span> = says human, <span class="c-ai">&nbsp;orange&nbsp;</span> = says AI, '
         '<span class="c-strong">&nbsp;red&nbsp;</span> = a validated detector (✓) says AI. '
         "Style is this skill's own score (0–1), calibrated on human scientific text. "
-        "Hover a detector's name for its track record; click a passage number to jump to it.</p>"
-        f'<div class="scroll"><table><tr><th>#</th><th>Section</th><th>Words</th><th>Style</th>{head}<th>Agreement</th></tr>{trs}</table></div>'
+        "Hover a detector's name for how it did on known texts; click a passage number to jump to it. "
+        + (
+            "<b>Combined</b> weighs every detector by its results on known human and AI texts and uses every way of "
+            "splitting the text: \u201c5\u00d7 AI\u201d means five times as likely if AI-written.</p>"
+            if comb_of
+            else "</p>"
+        )
+        + f'<div class="scroll"><table><tr><th>#</th><th>Section</th><th>Words</th><th>Style</th>{head}<th>Agreement</th>{"<th>Combined (calibrated)</th>" if comb_of else ""}</tr>{trs}</table></div>'
+    )
+
+    # How much to trust each detector (known-text calibration and stability across splits).
+    trust_rows = []
+    for t in tools:
+        c = (tcal.get(t) or {}).get("cal") or {}
+        w = tcal.get(t) or {}
+        stab = (evd.get("stability") or {}).get(t)
+        counted = "yes" if w.get("used") else f"no: {w.get('why', 'not calibrated')}"
+        fpr_cls = (
+            "c-human"
+            if c and (c.get("fpr") or 0) <= 0.1
+            else ("c-ai" if c else "c-none")
+        )
+        trust_rows.append(
+            f"<tr><td>{e(name(t))}</td>"
+            f'<td class="n {fpr_cls}">{pc(c.get("fpr")) if c else "\u2014"}</td>'
+            f'<td class="n">{pc(c.get("tpr")) if c else "\u2014"}</td>'
+            f'<td class="n">{pc(c.get("polished_flagged")) if c else "\u2014"}</td>'
+            f'<td class="n">{num(c.get("auroc")) if c else "\u2014"}</td>'
+            f'<td class="n">{pc(stab) if stab is not None else "\u2014"}</td><td>{e(counted)}</td></tr>'
+        )
+    ncal = next(
+        (
+            (tcal.get(t) or {}).get("cal") or {}
+            for t in tools
+            if (tcal.get(t) or {}).get("cal")
+        ),
+        {},
+    )
+    trust = (
+        "<p>Before trusting a detector on this document, the skill ran it on texts whose origin is known: "
+        f"{ncal.get('n_human', '?')} published human scientific texts from before ChatGPT and {ncal.get('n_ai', '?')} AI-written ones "
+        "(Claude and GPT), plus AI-polished human texts. "
+        "<b>Cries wolf</b> = share of the human texts it called AI (lower is better). <b>Catches</b> = share of the AI texts it called AI. "
+        "<b>Split-dependent</b> = share of this document's sentences whose verdict changed with how the text was split (lower is steadier).</p>"
+        '<div class="scroll"><table><tr><th>Detector</th><th>Cries wolf</th><th>Catches</th><th>Flags AI-polished</th>'
+        f"<th>AUROC</th><th>Split-dependent</th><th>Counted in Combined</th></tr>{''.join(trust_rows)}</table></div>"
+        if tools
+        else "<p>No detector ran.</p>"
     )
 
     # 3. The text, passage by passage, in reading order.
@@ -397,9 +545,18 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
     if pos < len(text):
         blocks.append(gap(text, pos, len(text)))
     text_html = (
-        "<p>The left bar of each passage has the colour of its agreement. Inside, "
-        '<span class="m1">sentences one detector marked as AI</span> and <span class="m2">sentences two or more marked</span> '
-        'are shaded (hover to see which). <mark class="art">Red</mark> = leftover chatbot text. '
+        (
+            "<p>The left bar of each passage has the colour of its agreement. Each sentence is shaded by the combined, "
+            'calibrated evidence: <span class="g2">leans human</span> \u00b7 <span class="g1">slightly human</span> \u00b7 no shade = no signal \u00b7 '
+            '<span class="h1">slightly AI</span> \u00b7 <span class="h2">3\u00d7 or more AI</span> \u00b7 <span class="h3">10\u00d7 or more AI</span>. '
+            '<span class="u1">Dotted</span> / <span class="u2">solid</span> underline = one / several sites marked the sentence as AI. '
+            "Hover any sentence for the details. "
+            if heat_sents
+            else "<p>The left bar of each passage has the colour of its agreement. Inside, "
+            '<span class="m1">sentences one detector marked as AI</span> and <span class="m2">sentences two or more marked</span> '
+            "are shaded (hover to see which). "
+        )
+        + '<mark class="art">Red</mark> = leftover chatbot text. '
         "Grey text was not sent to the detectors (title page, captions, equations, references).</p>"
         + "".join(blocks)
     )
@@ -465,6 +622,7 @@ def build_raw(work: Path, case: str, kind: str, context: str) -> str:
         f"tested {e(tested)} · {len(rows)} passages</p>"
         f"<h2>The answer</h2>{answer}"
         f"<h2>Passages at a glance</h2>{glance}"
+        f"<h2>How much to trust each detector</h2>{trust}"
         f"<h2>The text</h2>{text_html}"
         f"<h2>Other evidence</h2>{other}"
         f"<h2>Details</h2>{details}</main>"

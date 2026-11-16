@@ -57,6 +57,7 @@ def grade(work: Path) -> dict:
     ja, jr = jud.get("artifacts", {}), jud.get("references", {})
 
     statements: list[dict] = []
+    caveats_pre: list[str] = []
     separate: list[dict] = []
     met = {t: [] for t in TIERS}
 
@@ -300,6 +301,45 @@ def grade(work: Path) -> dict:
             }
         )
 
+    # 4a'. The calibrated combination across tools and splits (evidence.py).
+    evd = read_json(work / "evidence.json") or {}
+    cr = rules.get("combined", {})
+    times = (evd.get("document") or {}).get("times")
+    good = [
+        t
+        for t in evd.get("used", [])
+        if ((evd.get("tools", {}).get(t) or {}).get("cal") or {}).get("auroc", 0)
+        >= cr.get("good_auroc", 0.75)
+    ]
+    if times is not None and cr:
+        names = ", ".join(evd.get("used", []))
+        if times >= cr["moderate_times"] and len(good) >= cr["min_good_tools"]:
+            met["moderate"].append("combined")
+            statements.append(
+                {
+                    "tier": "moderate",
+                    "text": f"Combining {len(evd.get('used', []))} detectors ({names}), each weighted by how it did on known human and "
+                    f"AI scientific texts, and every way of splitting the text, the document is about {times:g} times as likely "
+                    "under AI-written text as under human text. The detectors' own error rates are built in; they may still share mistakes.",
+                    "evidence": ["combined"],
+                    "check": "The calibration table shows each detector's results on the known texts.",
+                }
+            )
+        elif times <= cr["counter_times"]:
+            caveats_pre.append(
+                f"Counter-evidence: the calibrated combination of detectors ({names}) leans human: about {1 / times:.0f} times as likely under human text."
+            )
+        else:
+            statements.append(
+                {
+                    "tier": "weak" if times > 1 else "none",
+                    "text": f"Combining the calibrated detectors ({names}) across all splits gives no clear answer "
+                    f"(about {times:g} times as likely under AI as under human text).",
+                    "evidence": ["combined"],
+                    "check": "",
+                }
+            )
+
     # 4b. The author's own earlier writing (baseline.py), when available.
     base = read_json(work / "baseline.json") or {}
     # Style features outside the author's own earlier range, on the AI-typical side.
@@ -379,7 +419,7 @@ def grade(work: Path) -> dict:
         met["strong"].append("web+other")
     tier = next((t for t in TIERS[:-1] if met.get(t)), "none")
 
-    caveats = []
+    caveats = list(caveats_pre)
     nwords = doc.get("n_words", 0)
     if nwords < rules["caveats"]["short_text_words"]:
         caveats.append(
