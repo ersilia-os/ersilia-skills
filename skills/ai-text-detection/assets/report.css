@@ -100,5 +100,6 @@ table { border-collapse: collapse; font-size: .82rem; width: 100%; }
 th, td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: middle; }
 th { color: var(--muted); font-weight: 600; }
 td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.cols.single { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 980px) { .hero { grid-template-columns: 1fr; } .cols { grid-template-columns: minmax(0, 1fr); }
   .side { position: static; order: -1; } }

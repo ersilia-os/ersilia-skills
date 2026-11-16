@@ -37,7 +37,8 @@
     }
   },
   "expect": {
-    "tier": "strong"
+    "tier": "strong",
+    "report": true
   },
   "judgements": {
     "reading": [

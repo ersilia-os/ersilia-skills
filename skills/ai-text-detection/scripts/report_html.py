@@ -47,7 +47,18 @@ TIER_WORD = {
     "weak": "Weak evidence",
     "none": "No evidence",
 }
-BAD_REF = ("not-found", "doi-not-registered", "doi-points-elsewhere")
+BAD_REF = {
+    "not-found": "not found in any literature database",
+    "doi-not-registered": "its DOI is not registered",
+    "doi-points-elsewhere": "its DOI belongs to a different paper",
+}
+CONTEXT = {
+    "collaborator-draft": "a collaborator's draft",
+    "reviewer-of-my-paper": "a review of your manuscript",
+    "manuscript-i-review": "a manuscript you are reviewing",
+    "grant-i-review": "a grant application you are reviewing",
+    "other": "a document",
+}
 
 
 # ---------------------------------------------------------------- small formatters
@@ -225,7 +236,11 @@ def load(work: Path) -> Inputs:
         style_thr=cal.get("thresholds") or {},
     )
     order = wreg.get("default_order", [])
-    ran = {r["tool"] for r in inp.web.get("results", [])}
+    ran = (
+        {r["tool"] for r in inp.web.get("results", [])}
+        | set(inp.web.get("summary") or {})
+        | set(inp.evd.get("used") or [])
+    )
     inp.tools = sorted(
         ran,
         key=lambda t: (
@@ -494,6 +509,8 @@ class TextRenderer:
             '<span class="sw h1">leans AI</span><span>plain = no signal, or human</span>'
             if self.heat
             else '<span class="sw m1">one detector says AI</span><span class="sw m2">two or more</span>'
+            if self.inp.tools
+            else ""
         )
         legend += (
             '<mark class="art">red box</mark><span>= leftover chatbot text</span>'
@@ -660,6 +677,8 @@ def side_panel(inp: Inputs, rows: list[dict]) -> str:
             f"{'' if w.get('used') else ' <span class=sub>(shown, not counted)</span>'}"
             f'<div class="sub">{e(record)}</div><div class="chips">{chips}</div></div>'
         )
+    if not inp.tools and not comb:
+        return ""
     title = (
         "Passages · combined, calibrated" if comb else "Passages · detectors saying AI"
     )
@@ -693,7 +712,7 @@ def other_evidence(inp: Inputs, placed: set[int]) -> str:
             f'<a href="{e(u)}">lookup</a>' for u in r.get("queried", [])[:2]
         )
         items.append(
-            f"<li><b>Reference {r['n']}: {e(r['status'])}</b>. {e(r['raw'][:200])} {links}</li>"
+            f"<li><b>Reference {r['n']}: {e(BAD_REF[r['status']])}</b>. {e(r['raw'][:200])} {links}</li>"
         )
     items += [
         f"<li><b>Close reading ({e(x.get('tier'))})</b>: {e(x['claim'])} "
@@ -721,6 +740,7 @@ def render(work: Path, case: str, kind: str, context: str) -> str:
     rows = passage_rows(inp)
     tr = TextRenderer(inp, rows)
     text_html = tr.document(rows)  # first: it records which notes found their place
+    side = side_panel(inp, rows)
     tested = (
         "the author's original text (tracked changes set aside)"
         if (inp.doc.get("metadata") or {}).get("tracked_changes_removed")
@@ -731,10 +751,11 @@ def render(work: Path, case: str, kind: str, context: str) -> str:
         f'<link rel="stylesheet" href="{FONTS}">\n'
         f"<style>{CSS_FILE.read_text(encoding='utf-8')}</style>\n"
         '<div class="wrap">'
-        f'<h1>{e(case)}</h1><p class="meta">{e(kind)} · {e(context.replace("-", " "))} · '
-        f"{e(inp.doc.get('n_words'))} words · tested {e(tested)} · {len(rows)} passages</p>"
+        f'<h1>{e(case)}</h1><p class="meta">{e(kind.replace("-", " ").capitalize())} · '
+        f"{e(CONTEXT.get(context, context))} · {e(inp.doc.get('n_words'))} words · tested {e(tested)} · "
+        f"{len(rows)} passage{'s' if len(rows) != 1 else ''}</p>"
         f"<!-- section: answer -->{headline(inp, rows)}"
-        f'<div class="cols"><article class="card doc" id="text"><!-- section: text -->{text_html}</article>'
-        f"{side_panel(inp, rows)}</div>"
+        f'<div class="cols{"" if side else " single"}"><article class="card doc" id="text">'
+        f"<!-- section: text -->{text_html}</article>{side}</div>"
         f"{other_evidence(inp, tr.notes_placed)}</div>"
     )

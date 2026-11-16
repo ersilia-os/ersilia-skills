@@ -38,6 +38,7 @@
     "sentences": []
   },
   "expect": {
-    "tier": "moderate"
+    "tier": "moderate",
+    "report": true
   }
 }

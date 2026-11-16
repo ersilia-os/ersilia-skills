@@ -1,16 +1,17 @@
-"""Offline regression test: markers and grading, no models and no network.
+"""Offline regression test of the markers, the grading and the report. No network.
 
 1. Every pattern in references/markers.json matches each of its positive examples and none
    of its negative examples.
-2. Every case in examples/cases/*.json is run through extract -> scan -> (prebuilt
-   references, detectors, stylometry if given) -> grade, and must land in its expected tier
-   (and produce the expected separate findings).
+2. Every case in examples/cases/*.json goes through extract -> scan -> grade, with any
+   prebuilt inputs it gives, and must land in its expected tier, with the expected separate
+   findings and markers. Cases with ``"report": true`` also build the report and check it.
 
-A case file:
-    {"about": "...", "text": "...", "kind": "article",
-     "judgements": {...}, "references": {...references.json...},
-     "detectors": {...detectors.json...}, "stylometry": {...stylometry.json...},
-     "expect": {"tier": "strong", "separate": ["manipulation"], "markers": ["oaicite"]}}
+A case file (every key but "text" and "expect" optional):
+    {"about": "what the case pins down", "text": "...", "kind": "article", "format": "txt",
+     "references": {...references.json...}, "stylometry": {...}, "judgements": {...},
+     "web_detectors": {...}, "evidence": {...evidence.json...},
+     "expect": {"tier": "moderate", "tier_not": ["strong"], "separate": ["manipulation"],
+                "markers": ["oaicite"], "markers_not": ["..."], "report": true}}
 
 Run after every change to markers.json, grading.json or a script. Exit 1 on any failure.
 
@@ -158,7 +159,6 @@ def check_case(path: Path) -> list[str]:
         run("scan_artifacts.py", "--work", tmp)
         for name in (
             "references",
-            "detectors",
             "stylometry",
             "judgements",
             "web_detectors",
@@ -212,11 +212,17 @@ def check_case(path: Path) -> list[str]:
                 errors.append(f"{path.stem}: report not written")
             for needle in (
                 "<!-- section: answer -->",
-                "<!-- section: glance -->",
                 "<!-- section: text -->",
             ):
                 if needle not in page:
                     errors.append(f"{path.stem}: raw report lacks {needle}")
+            if not case.get("web_detectors") and not case.get("evidence"):
+                if "no detector was run" not in page:
+                    errors.append(
+                        f"{path.stem}: report does not say that no detector ran"
+                    )
+            elif "<!-- section: glance -->" not in page or 'class="prow"' not in page:
+                errors.append(f"{path.stem}: report lacks the passage panel")
             if (
                 exp.get("markers") and page.count('<mark class="art"') < 2
             ):  # the legend has one
