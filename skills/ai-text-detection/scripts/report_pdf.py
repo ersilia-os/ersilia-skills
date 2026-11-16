@@ -1,44 +1,46 @@
 """The report as an A4 PDF, for sending or archiving.
 
-Renders the HTML report in Chrome (Playwright) with print adjustments: the side panel
-and legend are not sticky, and each close-reading note is printed in full in a box
-beside its paragraph (hover does not exist on paper).
+Renders the HTML report in Chrome (Playwright) with the print adjustments in
+``assets/report-print.css``: nothing sticky, and each close-reading note printed in full in
+a box beside its paragraph (hover does not exist on paper).
 
-Usage (conda env, which has Playwright):
+Usage (in the conda env, which has Playwright):
     python report_pdf.py <report.html> <out.pdf>
 """
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
-PRINT_CSS = ".side,.doclegend{position:static!important} .card{break-inside:auto} .psg{break-inside:auto} .hero{break-inside:avoid} .note{position:static} .note::after,.note:hover::after,.note:focus::after{content:attr(data-note);display:block;float:right;position:static;width:36%;margin:4px 0 8px 14px;padding:6px 10px;border:1px solid var(--accent);border-left:4px solid var(--accent);border-radius:6px;background:var(--card);color:var(--ink);font:400 .78rem/1.45 Inter,system-ui,sans-serif;box-shadow:none} .note{display:inline} .doclegend span:nth-last-child(2){display:none}"
+from _common import SKILL_DIR
+
+PRINT_CSS = SKILL_DIR / "assets" / "report-print.css"
+MARGIN = {"top": "12mm", "bottom": "12mm", "left": "10mm", "right": "10mm"}
 
 
 def main(argv: list[str] | None = None) -> int:
     """Write the PDF."""
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    p.add_argument("report", type=Path)
+    p.add_argument("out", type=Path)
+    args = p.parse_args(argv)
     from playwright.sync_api import sync_playwright
 
-    args = argv if argv is not None else sys.argv[1:]
-    if len(args) != 2:
-        print(__doc__)
-        return 2
-    src, dst = Path(args[0]).resolve(), Path(args[1])
-    with sync_playwright() as p:
-        b = p.chromium.launch(channel="chrome")
-        pg = b.new_page(color_scheme="light")
-        pg.goto(src.as_uri())
-        pg.wait_for_timeout(2000)  # web fonts
-        pg.add_style_tag(content=PRINT_CSS)
-        pg.pdf(
-            path=str(dst),
-            format="A4",
-            print_background=True,
-            margin={"top": "12mm", "bottom": "12mm", "left": "10mm", "right": "10mm"},
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(channel="chrome")
+        page = browser.new_page(color_scheme="light")
+        page.goto(args.report.resolve().as_uri())
+        page.wait_for_timeout(2000)  # web fonts
+        page.add_style_tag(content=PRINT_CSS.read_text(encoding="utf-8"))
+        page.pdf(
+            path=str(args.out), format="A4", print_background=True, margin=MARGIN
         )
-        b.close()
-    print(f"pdf: {dst}")
+        browser.close()
+    print(f"pdf: {args.out}")
     return 0
 
 
