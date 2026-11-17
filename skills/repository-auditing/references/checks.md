@@ -133,7 +133,8 @@ annotate why.
 | `T0-GITIGNORE-MISSING` | Blocker | `.gitignore` exists. (`ersilia-app` has none.) |
 | `T0-JUNK-TRACKED` | Should-fix | git tracks `.DS_Store`, `__pycache__/`, `*.pyc`, `.ipynb_checkpoints/`, `tmp/`, `*.old.md`, `*.orig`, `*.rej`, `.vscode/`, `.idea/`. |
 | `T0-DATA-TRACKED` | Blocker / Should-fix | git tracks a dataset: any `.csv .tsv .parquet .h5 .hdf5 .pkl .pickle .joblib .npy .npz .sqlite .db` under `data/` or `output(s)/`, or anywhere over 1 MB outside a fixture path. **Severity scales with size**: over 64 KB is a Blocker (real bloat in git history); under it a Should-fix (the `data/`-is-gitignored convention was bypassed, but nothing is bloated). `ersilia-app`'s 0 KB `data/example.csv` is the case this split exists for. |
-| `T0-LARGE-FILE` | Blocker | git tracks any file over 5 MB that is not LFS-managed. |
+| `T0-LARGE-FILE` | Blocker | git tracks any file over 5 MB that is not LFS-managed (LFS files are reported by `T0-GIT-LFS`). |
+| `T0-GIT-LFS` | Blocker / Should-fix | No Git LFS anywhere: Ersilia does not use it in any repository (ersilia-os/ersilia#1967). Blocker when a tracked file goes through an LFS filter; Should-fix when `.gitattributes` has `filter=lfs` rules that match no tracked file. |
 | `T0-SECRETS` | Blocker | git tracks `.env`, `*.pem`, `*.key`, `id_rsa*`, `credentials.json`, `service-account*.json`, or a file containing a credential-shaped string (see the pattern list in `check_hygiene.py`). |
 | `T0-GH-DESC-MISSING` | Should-fix | The GitHub repository description is set. |
 | `T0-GH-TOPICS-FEW` | Should-fix | At least 3 GitHub topics are set. |

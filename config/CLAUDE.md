@@ -183,7 +183,8 @@ Two GUIs exist for non-experts. Do **not** use them unless strictly necessary. T
 - Open, monitor and make suggestions for issues.
 - Keep `README` files up to date.
 - Use CI/CD (GitHub Actions) for tests and maintenance.
-- Do not store files over 100 MB in GitHub. Use the `eosvc` tool to store them in S3 buckets (in a model repo, the whole folder that holds them).
+- Do not store files over 100 MB in GitHub. Use the `eosvc` tool to store them in S3 buckets (in a model repo, the whole folder that holds them). Do not use Git LFS.
+- In a model repo, `model/checkpoints/` stays in Git only if every file is under 100 MiB, `model/framework/fit/` always goes to eosvc, and weights are never downloaded at run time.
 
 ## Agent behaviour
 

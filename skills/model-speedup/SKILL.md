@@ -64,7 +64,8 @@ you may ask before the final report.
 
 You may edit files under `model/framework/code/` (including vendored libraries, unless
 their licence forbids it; then put the faster version in Ersilia's own file) and, only
-for pattern 5, `model/checkpoints/` (new checkpoint file, `.gitattributes` LFS entry).
+for pattern 5, `model/checkpoints/` (new checkpoint file; the folder stays in git if every
+file is under 100 MiB, otherwise it goes to eosvc as a whole; never Git LFS).
 
 Never touch `run.sh`, `metadata.*`, `install.yml` / `Dockerfile` (dependencies are the
 `model-optimization` skill's job), `src/service.py`, `pack.py`, or

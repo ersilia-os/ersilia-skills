@@ -6,7 +6,7 @@ description: >
   original ML code, (2) an ersilia-model-template repository (already forked/cloned),
   and (3) optionally a PDF of the scientific article — and needs to wire up the
   actual model code. The skill handles all coding steps: copying checkpoints into
-  the repo (eosvc only for a folder with a file over 100 MB), adapting main.py to
+  the repo (eosvc only for a folder with a file of 100 MiB or more; fit/ always eosvc), adapting main.py to
   replace the molecular-weight placeholder with real inference, creating run_columns.csv, updating install.yml with pinned versions,
   and producing run_input.csv and run_output.csv by actually running the model.
   Trigger on phrases like "incorporate model code", "fill in the template", "adapt
@@ -70,7 +70,7 @@ than to make wrong assumptions that affect the whole integration.
 
 ### 1c. Read the template repository
 Open the template's `model/framework/code/main.py` to see the placeholder structure.
-Also read `install.yml`, `.gitattributes`, and `model/framework/run.sh` so you understand
+Also read `install.yml`, `.gitattributes` (if present), and `model/framework/run.sh` so you understand
 the wiring before writing anything.
 
 ---
@@ -91,26 +91,35 @@ Google Drive, direct URL) in the README.
 ### Step 2 — Copy / download checkpoints (normal flow)
 
 1. Copy checkpoint files into `<template-repo-path>/model/checkpoints/`. If they are linked
-   externally, download them using `wget`, `curl`, or the appropriate Python client
-   (e.g. `huggingface_hub`, `gdown`).
-2. Store them in git unless a file is larger than 100 MB. This applies to
-   `model/checkpoints/` and to the training data in `model/framework/fit/`. Do not ask how to
-   store them, and never offer Git LFS. Check from the model repo root:
-   ```bash
-   find model/checkpoints model/framework/fit -type f -size +100000000c
-   ```
-   - **No output** (the usual case): both folders are committed with the rest of the model.
-     If `.gitignore` still lists `model/checkpoints/` or `model/framework/fit/` (forks made
-     before the rule changed), remove those lines, and delete `access.json` if there is one.
-   - **A file is listed**: the whole folder that holds it goes to eosvc, never part of it.
-     Add that folder to `.gitignore`, write an `access.json` naming it (e.g.
-     `{"checkpoints": "public"}`), and upload only that folder (requires the `eosvc` conda
-     environment and AWS credentials configured in `.env` or `.config`):
+   externally, download them now using `wget`, `curl`, or the appropriate Python client
+   (e.g. `huggingface_hub`, `gdown`), and pin the exact version (e.g. a Hugging Face
+   revision). The model must never download weights at run time: `main.py` loads them from
+   `model/checkpoints/` (for Hugging Face, `local_files_only=True`). Weights never live in
+   `model/framework/code/`; update the paths in the copied code instead.
+2. Store them following the Ersilia storage rule ([Checkpoints and storage](https://ersilia.gitbook.io/ersilia-book/ersilia-model-hub/model-contribution/model-template#checkpoints-and-storage)).
+   Do not ask how to store them, and never offer Git LFS.
+   - `model/checkpoints/` goes to git if every file is under 100 MiB (104,857,600 bytes,
+     GitHub's limit). Check from the model repo root:
+     ```bash
+     find model/checkpoints -type f -size +104857599c
+     ```
+     **No output** (the usual case): the folder is committed with the rest of the model.
+     **A file is listed**: the whole folder goes to eosvc, never part of it.
+   - `model/framework/fit/` always goes to eosvc when it holds anything beyond the template
+     skeleton (`README.md` and the `.gitkeep` files), whatever its size.
+   - For each folder on eosvc: add it to `.gitignore` under a `#eosvc managed` block
+     (`model/checkpoints/*`, `model/framework/fit/*`), name it in `access.json` (e.g.
+     `{"checkpoints": "public", "fit": "public"}`), and upload only that folder (requires the
+     `eosvc` conda environment and AWS credentials configured in `.env` or `.config`):
      ```bash
      conda run -n eosvc eosvc upload --path checkpoints    # or --path fit
      ```
      Never `--path .`: it uploads both folders, and a folder kept in both git and S3 has its
      git copy overwritten by the S3 one in CI.
+     Leaving a folder out of `access.json` does not protect it: eosvc treats a missing key as
+     public, and CI runs `eosvc download --path .` whenever `access.json` exists.
+   - If `.gitignore` or `access.json` list a folder that now goes to git (forks made before
+     the rule changed), remove it from both.
 
 3. If no checkpoints are needed (pure algorithmic model), note this explicitly and
    leave the directory empty.
@@ -119,8 +128,9 @@ Google Drive, direct URL) in the README.
    rm -f <template-repo-path>/mock.txt <template-repo-path>/.gitattributes
    rm -rf <template-repo-path>/.eosvc
    ```
-   `mock.txt` and `.gitattributes` exist only for a Git LFS mock the template is created with,
-   and `.gitattributes` holds nothing else. `.eosvc/` is a lock file that any eosvc command leaves
+   The current template ships neither file, but repositories created from older versions
+   may hold a `mock.txt` and a `.gitattributes` with Git LFS rules only; Ersilia models do not
+   use Git LFS. `.eosvc/` is a lock file that any eosvc command leaves
    in the repository root; it is not gitignored, so it would show up as untracked.
 
 ---
@@ -393,7 +403,7 @@ before writing the file. DO NOT FABRICATE OUTPUT VALUES.
 
 Before declaring the work done, verify:
 
-- [ ] `model/checkpoints/` contains all required files. It and `model/framework/fit/` are committed to git, except a folder with a file over 100 MB, which is gitignored, named in `access.json` and uploaded with eosvc
+- [ ] `model/checkpoints/` contains all required files, and `main.py` loads them from there (no downloads at run time). It is committed to git unless a file is 100 MiB or larger; then it is gitignored, named in `access.json` and uploaded with eosvc. A populated `model/framework/fit/` is always on eosvc
 - [ ] `mock.txt`, `.gitattributes` and `.eosvc/` deleted from the template root
 - [ ] `model/framework/code/main.py` runs end-to-end without errors
 - [ ] `model/framework/columns/run_columns.csv` has correct headers and follows naming rules

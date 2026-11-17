@@ -7,7 +7,7 @@
 ├── install.yml             # dependency specification
 ├── metadata.yml            # model metadata (filled separately)
 └── model/
-    ├── checkpoints/        # pretrained weights / scalers (in git; eosvc if a file is over 100 MB)
+    ├── checkpoints/        # pretrained weights / scalers (in git; eosvc if a file is ≥ 100 MiB)
     └── framework/
         ├── run.sh          # entry-point shell script (rarely needs editing)
         ├── code/
@@ -18,7 +18,7 @@
         ├── examples/
         │   ├── run_input.csv
         │   └── run_output.csv
-        └── fit/            # training code — populated only when checkpoints are not
+        └── fit/            # training code (always eosvc) — populated only when checkpoints are not
             ├── README.md   #   publicly available and retraining is needed
             ├── data/       # training data or download scripts
             ├── results/    # output checkpoints from training (copy to model/checkpoints/)
@@ -158,19 +158,23 @@ commands:
 
 ## Checkpoints and training data (git, or eosvc)
 
-`model/checkpoints/` and `model/framework/fit/` are committed to git. If any file in one of
-them is larger than 100 MB, that whole folder is gitignored and persisted with eosvc
-instead, from the model repo root:
+`model/checkpoints/` is committed to git if every file is under 100 MiB (104,857,600 bytes).
+If any file is 100 MiB or larger, the whole folder is gitignored and persisted with eosvc.
+`model/framework/fit/`, once it holds training code or data, always goes to eosvc. From the
+model repo root:
 
 ```bash
-find model/checkpoints model/framework/fit -type f -size +100000000c   # no output: all in git
-conda run -n eosvc eosvc upload --path checkpoints                     # only for a folder on eosvc
+find model/checkpoints -type f -size +104857599c      # no output: checkpoints in git
+conda run -n eosvc eosvc upload --path checkpoints    # only for a folder on eosvc
+conda run -n eosvc eosvc upload --path fit            # whenever fit/ is populated
 ```
 
-A folder on eosvc is named in `access.json`, which also sets public or private. A model with
-both folders in git has no `access.json`. Never keep a folder in both places: CI downloads the
-S3 copy over the git one.
-The template also ships a `.gitattributes` and a `mock.txt` for a Git LFS mock; delete both.
+A folder on eosvc is named in `access.json`, which also sets public or private, and listed
+under a `#eosvc managed` block in `.gitignore`. A model with nothing on eosvc has no
+`access.json`. Never keep a folder in both places: CI downloads the S3 copy over the git one.
+No Git LFS. Weights live in `model/checkpoints/` and are never downloaded at run time.
+Repositories created from older templates may hold a `.gitattributes` and a `mock.txt` for a
+Git LFS mock; delete both.
 
 ---
 
