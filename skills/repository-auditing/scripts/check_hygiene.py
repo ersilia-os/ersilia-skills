@@ -325,11 +325,10 @@ def check_git_lfs(repo: Path, findings: list) -> None:
     Ersilia does not use Git LFS in any repository (org rule, ersilia-os/ersilia#1967):
     small files belong in git and large ones in eosvc. Files tracked through an LFS filter
     are a Blocker; LFS rules in `.gitattributes` that match no tracked file are a
-    Should-fix, because the next matching file would silently go to LFS.
+    Should-fix, because the next matching file would silently go to LFS. The pathspec
+    query honours every `.gitattributes` in the tree, not only the root one.
     """
     rules = sorted(lfs_paths(repo))
-    if not rules:
-        return
     proc = run(["git", "-C", str(repo), "ls-files", ":(attr:filter=lfs)"])
     lfs_files = (
         [p for p in proc.stdout.splitlines() if p] if proc.returncode == 0 else []
@@ -348,7 +347,7 @@ def check_git_lfs(repo: Path, findings: list) -> None:
                 detail=rollup(lfs_files),
             )
         )
-    else:
+    elif rules:
         findings.append(
             finding(
                 "T0-GIT-LFS",

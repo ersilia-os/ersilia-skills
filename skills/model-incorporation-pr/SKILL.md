@@ -98,8 +98,8 @@ conda run -n ersilia python <skill-dir>/scripts/check_metadata.py "$PWD"
 find model/checkpoints -type f -size +104857599c
 find model/framework/fit -type f ! -name .gitkeep ! -path model/framework/fit/README.md
 cat access.json 2>/dev/null       # names only the folders on eosvc; absent when nothing is on eosvc
-git ls-files | xargs -r git check-attr filter | grep -c ': filter: lfs$'   # must be 0: no Git LFS
-grep -n -E 'from_pretrained|hf_hub_download|snapshot_download|gdown|wget|urlretrieve|requests\.get' model/framework/code -r   # each hit: is it a run-time weight download?
+git ls-files ':(attr:filter=lfs)'   # must print nothing: no Git LFS
+grep -n -E 'from_pretrained|hf_hub_download|snapshot_download|gdown|wget|urlretrieve|requests\.get|torch\.hub|load_state_dict_from_url' model/framework/code -r   # each hit: is it a run-time weight download?
 # for each folder on eosvc (skip if none), S3 must match local:
 conda run -n eosvc eosvc view --path model/checkpoints    # and/or --path model/framework/fit
 # the last line must read "0 modified · 0 local-only · 0 remote-only"
@@ -135,8 +135,12 @@ why). If the files changed after the last test, say so and offer to re-test firs
 ## Step 1: Commit
 
 Build the file list from `git status --porcelain`, drop the strays, and add the paths by
-name. Never `git add -A` or `git add .`. Deleted template files are staged the same way
-(`git add -- mock.txt .gitattributes`).
+name. Never `git add -A` or `git add .`. A `mock.txt` or `.gitattributes` from an older
+template is staged as a deletion only if git tracks it, so a missing file never breaks the
+`git add`:
+```bash
+for f in mock.txt .gitattributes; do git ls-files --error-unmatch -- "$f" >/dev/null 2>&1 && git add -- "$f"; done
+```
 
 ```bash
 git add -- <path> <path> ...
