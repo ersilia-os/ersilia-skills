@@ -1,6 +1,6 @@
 {
   "_about": "The skill's statistical layer: web AI-text detectors it runs through Claude in Chrome, in the user's own browser session, chunk by chunk. 'weight' says how grade.py treats a tool: 'validated' tools have independent evidence of a low false-positive rate and can count as a line of evidence; 'context' tools are reported but never raise the verdict above weak. Free-tier limits change: read them on the page, never work around them. Pasting text into these sites uploads it: only for text the user owns or co-authors, or public text (SKILL.md, step 2b).",
-  "version": 7,
+  "version": 8,
   "tools": [
     {
       "id": "pangram",
@@ -390,7 +390,7 @@
       "max_words": 1500,
       "automation": {
         "checked": "2026-11-17",
-        "status": "accepts text without login (7,000 characters); the probe did not press its Submit button, so no result yet: fix the click, add a parser, then test on known texts before it counts"
+        "status": "accepts text without login, but the result stays at 00% after Submit for automated use"
       }
     },
     {
@@ -398,14 +398,13 @@
       "name": "Paperguide AI detector",
       "url": "https://paperguide.ai/ai-detector/",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "CAPTCHA after submitting (probe on control texts)"
       }
     },
     {
@@ -413,14 +412,13 @@
       "name": "Wordvice AI detector",
       "url": "https://wordvice.ai/tools/ai-detector",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "login wall"
       }
     },
     {
@@ -428,14 +426,13 @@
       "name": "Writefull GPT detector",
       "url": "https://x.writefull.com/gpt-detector",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "login wall (Writefull X)"
       }
     },
     {
@@ -443,14 +440,13 @@
       "name": "Quetext AI detector",
       "url": "https://www.quetext.com/ai-detector",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "one anonymous scan (it scored a human control 0%), then reCAPTCHA"
       }
     },
     {
@@ -458,29 +454,19 @@
       "name": "Plagiarism Checker X AI detector",
       "url": "https://plagiarismcheckerx.com/ai-content-detector",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
-      }
-    },
-    {
-      "id": "hcodx",
-      "name": "HCODX AI detector",
-      "url": "https://hcodx.com/tools/ai-detector",
-      "weight": "context",
-      "candidate": true,
-      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
-      "read": "Record the AI likelihood (0-1).",
-      "min_words": 100,
-      "max_words": 1200,
-      "automation": {
-        "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "runs without login or CAPTCHA; scored both a human and an AI control 0% AI: being tested on known texts"
+      },
+      "parse": {
+        "score": "Human Written:\\s*([\\d.]+)\\s*%",
+        "scale": 100,
+        "invert": true,
+        "label": "(Human Written:[^\\n]*)"
       }
     },
     {
@@ -488,14 +474,13 @@
       "name": "Dechecker",
       "url": "https://dechecker.ai/",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "the scan starts but no result is returned to anonymous automated use (stays at '--%'); promotional pop-ups"
       }
     },
     {
@@ -503,44 +488,13 @@
       "name": "Smodin AI detector",
       "url": "https://smodin.io/ai-content-detector",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
-      }
-    },
-    {
-      "id": "crossplag",
-      "name": "Crossplag AI detector",
-      "url": "https://crossplag.com/ai-content-detector/",
-      "weight": "context",
-      "candidate": true,
-      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
-      "read": "Record the AI likelihood (0-1).",
-      "min_words": 100,
-      "max_words": 1200,
-      "automation": {
-        "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
-      }
-    },
-    {
-      "id": "contentdetector",
-      "name": "ContentDetector.AI",
-      "url": "https://contentdetector.ai/",
-      "weight": "context",
-      "candidate": true,
-      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
-      "read": "Record the AI likelihood (0-1).",
-      "min_words": 100,
-      "max_words": 1200,
-      "automation": {
-        "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "unreliable: scored a 2015 human paper higher (48) than an AI text (32) and claimed other detectors flag it; sells a humanizer. Do not use"
       }
     },
     {
@@ -548,14 +502,13 @@
       "name": "Hive Moderation AI text detection",
       "url": "https://hivemoderation.com/ai-generated-content-detection",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "sales demo only: no public text box"
       }
     },
     {
@@ -563,29 +516,13 @@
       "name": "Phrasly AI detector",
       "url": "https://phrasly.ai/ai-detector",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
-      }
-    },
-    {
-      "id": "brandwell",
-      "name": "BrandWell AI detector",
-      "url": "https://brandwell.ai/ai-content-detector/",
-      "weight": "context",
-      "candidate": true,
-      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
-      "read": "Record the AI likelihood (0-1).",
-      "min_words": 100,
-      "max_words": 1200,
-      "automation": {
-        "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "Cloudflare challenge on load"
       }
     },
     {
@@ -593,74 +530,13 @@
       "name": "NoteGPT AI detector",
       "url": "https://notegpt.io/ai-detector",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
-      }
-    },
-    {
-      "id": "monica",
-      "name": "Monica AI detector",
-      "url": "https://monica.im/tools/ai-detector",
-      "weight": "context",
-      "candidate": true,
-      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
-      "read": "Record the AI likelihood (0-1).",
-      "min_words": 100,
-      "max_words": 1200,
-      "automation": {
-        "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
-      }
-    },
-    {
-      "id": "smallseotools",
-      "name": "SmallSEOTools AI detector",
-      "url": "https://smallseotools.com/ai-detector/",
-      "weight": "context",
-      "candidate": true,
-      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
-      "read": "Record the AI likelihood (0-1).",
-      "min_words": 100,
-      "max_words": 1200,
-      "automation": {
-        "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
-      }
-    },
-    {
-      "id": "duplichecker",
-      "name": "DupliChecker AI detector",
-      "url": "https://www.duplichecker.com/ai-detector.php",
-      "weight": "context",
-      "candidate": true,
-      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
-      "read": "Record the AI likelihood (0-1).",
-      "min_words": 100,
-      "max_words": 1200,
-      "automation": {
-        "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
-      }
-    },
-    {
-      "id": "editpad",
-      "name": "Editpad AI detector",
-      "url": "https://www.editpad.org/tool/ai-detector",
-      "weight": "context",
-      "candidate": true,
-      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
-      "read": "Record the AI likelihood (0-1).",
-      "min_words": 100,
-      "max_words": 1200,
-      "automation": {
-        "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "sign-in wall ('15 free quotas per month')"
       }
     },
     {
@@ -668,14 +544,18 @@
       "name": "SEO.ai AI detector",
       "url": "https://seo.ai/tools/ai-content-detector",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "runs without login or CAPTCHA; scored an AI control 1% AI: being tested on known texts"
+      },
+      "parse": {
+        "score": "Probability for AI is\\s*([\\d.]+)\\s*%",
+        "scale": 100,
+        "label": "(Human-made|AI-generated|[A-Za-z-]+made|Your text appears[^\\n]*)"
       }
     },
     {
@@ -683,14 +563,13 @@
       "name": "Surfer AI detector",
       "url": "https://surferseo.com/ai-content-detector/",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "CAPTCHA after submitting"
       }
     },
     {
@@ -698,14 +577,13 @@
       "name": "CodaOne AI detector",
       "url": "https://www.codaone.ai/ai-detector",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "CAPTCHA widget on the page"
       }
     },
     {
@@ -713,14 +591,13 @@
       "name": "JustDone AI detector",
       "url": "https://justdone.com/ai-detector",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "unreliable: called a 2015 human paper 93% AI and an AI text 89%; sells 'Remove AI'. Do not use"
       }
     },
     {
@@ -728,14 +605,13 @@
       "name": "NeuralWriter content detector",
       "url": "https://neuralwriter.com/content-detector-tool/",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "CAPTCHA widget on the page"
       }
     },
     {
@@ -743,14 +619,13 @@
       "name": "PlagiarismDetector.net AI detector",
       "url": "https://plagiarismdetector.net/ai-content-detector",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "CAPTCHA after submitting"
       }
     },
     {
@@ -758,14 +633,13 @@
       "name": "Corrector.app AI detector",
       "url": "https://corrector.app/ai-content-detector/",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "cookie dialog offers only 'Agree' (not approved)"
       }
     },
     {
@@ -773,14 +647,13 @@
       "name": "IsItAI text detector",
       "url": "https://isitai.com/ai-text-detector/",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "the 'Check Text' button stays disabled for automated input"
       }
     },
     {
@@ -788,14 +661,13 @@
       "name": "CopyChecker AI detector",
       "url": "https://copychecker.com/ai-detector",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "reCAPTCHA verification fails for automated use"
       }
     },
     {
@@ -803,14 +675,13 @@
       "name": "DetecAI",
       "url": "https://detecai.pages.dev/ai-detector",
       "weight": "context",
-      "candidate": true,
       "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
       "read": "Record the AI likelihood (0-1).",
       "min_words": 100,
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "candidate from the web search; being probed"
+        "status": "accepts text but shows no result"
       }
     }
   ],
@@ -845,19 +716,11 @@
     "writefull",
     "quetext",
     "plagiarismcheckerx",
-    "hcodx",
     "dechecker",
     "smodin",
-    "crossplag",
-    "contentdetector",
     "hive",
     "phrasly",
-    "brandwell",
     "notegpt",
-    "monica",
-    "smallseotools",
-    "duplichecker",
-    "editpad",
     "seoai",
     "surfer",
     "codaone",
@@ -877,5 +740,18 @@
   "_terms_note": "'terms': 'no-automation' marks sites whose terms forbid scripted access. browser_detect.py never runs them; the skill may open the page for the user to paste a chunk by hand.",
   "_parse_note": "'parse': how to read a site's result page. 'score' is a regex whose first group is the AI likelihood; 'scale' divides it to 0-1 (and 'invert': true means the site reports a human score). 'label' captures the site's own verdict line. Add a parser only after checking it against real result pages (store the check in 'automation').",
   "_size_note": "min_words / max_words: the range of text sizes a tool handles well (Binoculars reads only the first 512 tokens). segments.py --for-tool <id> lists the splits that fit.",
-  "_order_note": "default_order: the tools that run unattended and are calibrated first (ZeroGPT, Undetectable, AIDetector.review, Scribbr); then the validated tools, which need the user to tick a CAPTCHA (run with --human-wait); then the rest. Tools with route 'api' run through api_detectors.py, not the browser."
+  "_order_note": "default_order: the tools that run unattended and are calibrated first (ZeroGPT, Undetectable, AIDetector.review, Scribbr); then the validated tools, which need the user to tick a CAPTCHA (run with --human-wait); then the rest. Tools with route 'api' run through api_detectors.py, not the browser.",
+  "_rejected": {
+    "_note": "Sites tried and dropped, so the monthly search does not retry them: the address is gone or redirects elsewhere (checked 2026-11-17).",
+    "ids": [
+      "brandwell",
+      "contentdetector",
+      "crossplag",
+      "duplichecker",
+      "editpad",
+      "hcodx",
+      "monica",
+      "smallseotools"
+    ]
+  }
 }

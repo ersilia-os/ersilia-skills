@@ -41,10 +41,15 @@ from lib.common import LOCAL, REFS, WORK_DIR, die, read_json
 from lib.detectors import is_ai_colour, parse_score, record_result
 
 PROFILE = LOCAL / "chrome-profile"
-BUTTON_RE = re.compile(r"\b(detect|scan|check|analy[sz]e|run|submit)\b", re.IGNORECASE)
+BUTTON_RE = re.compile(
+    r"\b(detect\w*|scan\w*|check\w*|analy[sz]\w*|test|run|submit)\b", re.IGNORECASE
+)
 BLOCK_RE = re.compile(
     r"verify you are human|(?<![a-z])captcha|are you a robot|unusual traffic|log ?in to continue|sign (?:up|in) to (?:continue|scan|check)|"
-    r"(?:daily|monthly|free) (?:limit|quota)|limit reached|upgrade to (?:continue|scan)|out of (?:credits|words)|"
+    # A limit that was hit, not marketing copy such as "no daily limit".
+    r"(?:daily|monthly|free) (?:limit|quota) (?:reached|exceeded|hit|used)|"
+    r"(?:reached|exceeded|hit|used up) (?:your|the) (?:daily |monthly |free )*(?:limit|quota|scans|credits)|"
+    r"limit reached|upgrade to (?:continue|scan)|out of (?:credits|words)|"
     r"sign up with google|for free to get more|create (?:a )?free account to (?:continue|scan)",
     re.IGNORECASE,
 )
@@ -191,12 +196,17 @@ def find_input(page):
     return None
 
 
+# Buttons, including the links and inputs some sites style as buttons.
+BUTTONS = (
+    "button, [role='button'], input[type='submit'], input[type='button'], "
+    "a[class*='btn'], a[class*='button'], div[class*='btn']"
+)
 MODE_RE = re.compile(
     r"\b(deep|plagiarism|grammar|upload|sample|example|humani[sz]e|paraphras|translate|upgrade|sign|log ?in)\w*",
     re.IGNORECASE,
 )
 ACTION_RE = re.compile(
-    r"^(run|start)?\s*(scan|check|detect|analy[sz]e)\b", re.IGNORECASE
+    r"^(run|start)?\s*(scan|check|detect|analy[sz]|test)\w*\b", re.IGNORECASE
 )
 
 
@@ -206,13 +216,9 @@ def click_go(page, box, accept_cookies: bool = False) -> bool:
     cx, cy = tb["x"] + tb["width"] / 2, tb["y"] + tb["height"]
     best, dist = None, float("inf")
     scope = box.owner_frame() or page.main_frame
-    candidates = scope.query_selector_all(
-        "button, [role='button'], input[type='submit']"
-    )
+    candidates = scope.query_selector_all(BUTTONS)
     if scope != page.main_frame:
-        candidates += page.query_selector_all(
-            "button, [role='button'], input[type='submit']"
-        )
+        candidates += page.query_selector_all(BUTTONS)
     for el in candidates:
         try:
             label = (
@@ -226,6 +232,8 @@ def click_go(page, box, accept_cookies: bool = False) -> bool:
                 and el.is_enabled()
                 and BUTTON_RE.search(label)
                 and len(label) < 40
+                and "?"
+                not in label  # an FAQ entry ("What does it check?"), not an action
             ):
                 continue
             bb = el.bounding_box()
