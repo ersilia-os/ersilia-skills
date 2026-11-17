@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from lib.common import REFS, TIERS, read_json
-from lib.detectors import Detections
+from lib.detectors import Detections, tool
 
 # Rule labels that come from detectors or style statistics. They never count as the
 # independent, non-statistical support that lifts two validated detectors to strong.
@@ -236,7 +236,7 @@ def _references(inp: Inputs, out: Verdict) -> list:
             + " Fabricated references are a well-documented failure of language models (Walters & Wilder 2023: 18-55% of"
             " ChatGPT citations); whatever their origin, they must be corrected.",
             evidence=[f"ref{r['n']}" for r in fabricated],
-            check="Every lookup URL is listed in the reference table; anyone can re-run them.",
+            check="The lookups are linked under Evidence items; anyone can re-run them.",
         )
     mism = [r for r in rlist if r["status"] == "metadata-mismatch"]
     if len(mism) >= 3:
@@ -244,7 +244,7 @@ def _references(inp: Inputs, out: Verdict) -> list:
             tier="weak",
             text=f"{len(mism)} references exist but with a different year, first author or title than cited. Humans make such errors too.",
             evidence=[f"ref{r['n']}" for r in mism],
-            check="See the reference table.",
+            check="Each reference's lookup is in references.json.",
         )
         out.met["weak"].append("ref-mismatch")
     return rlist
@@ -357,7 +357,7 @@ def _hotspots(inp: Inputs, out: Verdict) -> None:
             + "; ".join(hot)
             + ". These are the places to read most closely; the weighted combination above says how much the agreement is worth.",
             evidence=["web"],
-            check="Per-passage scores are in the passages table.",
+            check="The side panel shows each detector's score for every passage.",
         )
 
 
@@ -374,7 +374,7 @@ def _combined(inp: Inputs, out: Verdict) -> None:
         >= cr.get("good_auroc", 0.75)
     ]
     if times is not None and cr:
-        names = ", ".join(inp.evd.get("used", []))
+        names = ", ".join(tool(t).get("name", t) for t in inp.evd.get("used", []))
         if times >= cr["moderate_times"] and len(good) >= cr["min_good_tools"]:
             out.met["moderate"].append("combined")
             out.state(
@@ -383,7 +383,7 @@ def _combined(inp: Inputs, out: Verdict) -> None:
                 f"AI scientific texts, and every way of splitting the text, the document is about {times:.1f} times as likely "
                 "under AI-written text as under human text. The detectors' own error rates are built in; they may still share mistakes.",
                 evidence=["combined"],
-                check="The calibration table shows each detector's results on the known texts.",
+                check="The side panel shows each detector's record on known texts.",
             )
         elif cr.get("passage_times"):
             strong_p = [
@@ -406,7 +406,7 @@ def _combined(inp: Inputs, out: Verdict) -> None:
                     f"splitting the text. For the whole document the figure is about {times:.1f}. "
                     "This points to AI involvement in part of the text, not in all of it.",
                     evidence=["combined"],
-                    check="The calibration table shows each detector's results on the known texts.",
+                    check="The side panel shows each detector's record on known texts.",
                 )
         fired = {"combined", "combined-passage"} & set(out.met["moderate"])
         if times <= cr["counter_times"]:
@@ -539,8 +539,8 @@ def _caveats(
             "English, professional language editing, grammar tools, and formulaic sections all shift them (Liang et al. 2023)."
         ),
         (
-            "Using an AI tool for language polishing is allowed by most journals and funders when disclosed; the policies "
-            "section lists what applies."
+            "Using an AI tool for language polishing is allowed by most journals and funders when disclosed; check the "
+            "policy of the journal or funder concerned."
         ),
     ]
 

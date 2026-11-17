@@ -1,18 +1,20 @@
 """Render the evidence report as one self-contained HTML fragment (build_report.py).
 
-The layout follows the web detectors people already know:
+The verdict comes first and the detector statistics never speak louder than it:
 
-    Headline     share of the checked prose that reads as AI-written (ring and breakdown
-                 bar), the verdict tier and headline from grade.json, the most AI-like
-                 passages, and the non-statistical checks (leftover chatbot text,
-                 references, style, close reading)
+    Verdict      the tier and headline from grade.json; one sentence and one bar on
+                 what the combined detectors say; the non-statistical checks (leftover
+                 chatbot text, references, style, close reading)
+    Findings     what the user can say (grade.json's statements, each with how to
+                 re-check it; close-reading ones link to their place in the text), next
+                 to what the evidence does not show (its caveats)
     Text         the document, passage by passage; sentences shaded by the combined,
                  calibrated evidence (evidence.py), human-leaning text left plain;
-                 leftover chatbot text boxed in red; close-reading notes as tags beside
-                 the words they quote; title page, captions and tables folded or greyed
-    Side panel   each passage's combined score, then each detector's score per passage
-                 and its record on known texts
-    Other        the findings to quote from: leftover chatbot text, hidden text,
+                 leftover chatbot text boxed; close-reading notes as tags beside the
+                 words they quote; title page, captions and tables folded or greyed
+    Side panel   each passage's combined value, then a grid of each detector's score per
+                 passage with its record on known texts
+    Items        every item to quote from: leftover chatbot text, hidden text,
                  references not found, notes whose quote could not be placed
 
 A passage is whole prose paragraphs from one section, 250-600 words
@@ -42,6 +44,7 @@ FONTS = (
     "&family=Source+Serif+4:wght@400;600&display=swap"
 )
 LN3, LN10 = math.log(3), math.log(10)
+EVEN = math.log(1.2)  # closer to 1 than this either way reads as no signal
 TIER_WORD = {
     "conclusive": "Conclusive evidence",
     "strong": "Strong evidence",
@@ -77,11 +80,18 @@ def pc(x: float | None) -> str:
 
 
 def times_text(ev: float | None) -> str:
-    """Log evidence -> '5.3× AI' or '1.5× human'."""
+    """Log evidence -> '5.3× AI', '1.5× human', or 'even' within 1.2× either way."""
     if ev is None:
         return "—"
+    if abs(ev) < EVEN:
+        return "even"
     x = math.exp(ev)
     return f"{x:.1f}× AI" if x >= 1 else f"{1 / x:.1f}× human"
+
+
+def plural(n: int, word: str) -> str:
+    """'1 note' / '3 notes'."""
+    return f"{n} {word}{'' if n == 1 else 's'}"
 
 
 def times_class(ev: float | None) -> str:
@@ -404,7 +414,7 @@ class TextRenderer:
             elif cls.startswith("note"):
                 self.notes_placed.add(int(cls[4:]))
                 out.append(
-                    f'<span class="noted">{seg}</span>'
+                    f'<span class="noted" id="note{cls[4:]}">{seg}</span>'
                     f'<span class="note" tabindex="0" data-note="{e(lab)}">note</span>'
                 )
             elif self.heat:  # the sentence's hover already lists every site's verdict
@@ -516,18 +526,20 @@ class TextRenderer:
             blocks.append(unchecked_html(text, pos, len(text)))
         legend = (
             '<span class="sw h3">10× or more AI</span><span class="sw h2">3× or more AI</span>'
-            '<span class="sw h1">leans AI</span><span>plain = no signal, or human</span>'
+            '<span class="sw h1">leans AI</span>'
             if self.heat
             else '<span class="sw m1">one detector says AI</span><span class="sw m2">two or more</span>'
             if self.inp.tools
             else ""
         )
         legend += (
-            '<mark class="art">red box</mark><span>= leftover chatbot text</span>'
-            '<span class="note">note</span><span>= close-reading note</span>'
-            '<span class="hover-only">Hover or tap a note to read it'
-            + ("; hover a sentence for each site's verdict." if self.heat else ".")
-            + "</span>"
+            '<span><mark class="art">boxed</mark> leftover chatbot text</span>'
+            '<span><span class="note">note</span> close-reading note</span>'
+            + (
+                '<span class="hover-only">Hover a sentence for each detector\'s verdict.</span>'
+                if self.heat
+                else ""
+            )
         )
         return f'<div class="doclegend">{legend}</div>' + "".join(blocks)
 
@@ -535,79 +547,153 @@ class TextRenderer:
 # ---------------------------------------------------------------- headline and panel
 
 
-def headline(inp: Inputs, rows: list[dict]) -> str:
-    """Ring with the share of AI-like prose, verdict, breakdown bar, checks."""
+def share_bar(parts: list[tuple[str, str, float]], basis: str) -> str:
+    """A stacked bar of shares of the checked prose (by words) with its legend. Each part
+    is (css class, label, share)."""
+    bar = "".join(
+        f'<span class="{cls}" style="width:{100 * share:.1f}%"></span>'
+        for cls, _, share in parts
+    )
+    legend = "".join(
+        f'<span><i class="dot {cls}"></i>{e(label)} <b class="num">{pc(share)}</b></span>'
+        for cls, label, share in parts
+    )
+    return (
+        f'<div class="bar" role="img" aria-label="{e(basis)}">{bar}</div>'
+        f'<div class="legend">{legend}</div><p class="basis">{e(basis)}</p>'
+    )
+
+
+def detector_line(inp: Inputs, rows: list[dict]) -> str:
+    """What the detectors say, in one sentence and one bar: never louder than the tier."""
     heat = inp.heat
-    tw = sum(x["n_words"] for x in heat)
+    words_ = sum(x["n_words"] for x in heat)
     scanned = [r for r in rows if r["sc"]]
-    if tw:
-        ai = sum(x["n_words"] for x in heat if x["evidence"] >= LN3) / tw
-        hu = sum(x["n_words"] for x in heat if x["evidence"] <= -LN3) / tw
-        note = "of the checked prose is at least 3× more likely AI-written than human, combining the calibrated detectors"
+    if words_:
+
+        def share(lo: float, hi: float) -> float:
+            return sum(x["n_words"] for x in heat if lo <= x["evidence"] < hi) / words_
+
+        strong, some, human = (
+            share(LN10, math.inf),
+            share(LN3, LN10),
+            share(-math.inf, -LN3 + 1e-12),
+        )
+        bar = share_bar(
+            [
+                ("b-ai", "10× or more AI", strong),
+                ("b-some", "3× to 10× AI", some),
+                ("b-un", "no clear signal", max(0.0, 1 - strong - some - human)),
+                ("b-hu", "3× or more human", human),
+            ],
+            "Share of the checked prose, by words, at each level of the combined detectors.",
+        )
     elif scanned:
         pw = sum(r["n_words"] for r in scanned)
         ai = sum(r["n_words"] for r in scanned if r["n_ai"] / len(r["sc"]) > 0.5) / pw
         hu = sum(r["n_words"] for r in scanned if r["n_ai"] == 0) / pw
-        note = (
-            "of the checked prose is called AI by most detectors (not yet calibrated)"
+        bar = share_bar(
+            [
+                ("b-some", "most detectors say AI", ai),
+                ("b-un", "detectors disagree", max(0.0, 1 - ai - hu)),
+                ("b-hu", "no detector says AI", hu),
+            ],
+            "Share of the scanned prose, by words. These detectors are not yet tested on known texts.",
         )
     else:
-        ai = hu = None
-        note = "no detector was run (confidential text, or not run this time)"
-    if ai is None:
-        ring = '<div class="ring" style="background: var(--un)"><div><div class="big">—</div></div></div>'
-        bar = ""
-    else:
-        un = max(0.0, 1 - ai - hu)
-        col = (
-            "var(--ai)"
-            if ai >= 0.5
-            else ("var(--amber)" if ai >= 0.15 else "var(--hu)")
+        return '<p class="where">Detectors: no detector was run (confidential text, or not run this time).</p>'
+    doc_ev = (inp.evd.get("document") or {}).get("evidence")
+    whole = ""
+    if doc_ev is not None:
+        times = math.exp(
+            doc_ev
+        )  # not the rounded "times" in evidence.json (can be 0.0)
+        bar_at = inp.rules.get("combined", {}).get("moderate_times")
+        n = plural(len(inp.evd.get("used", [])), "detector")
+        if abs(doc_ev) < EVEN:
+            said = "the whole text is about as likely AI-written as human"
+        elif times >= 1:
+            said = f"the whole text is about <b>{times:.1f}×</b> as likely AI-written as human"
+        else:
+            said = f"the whole text is about <b>{1 / times:.1f}×</b> as likely human-written as AI"
+        needs = (
+            f" Moderate evidence needs {bar_at}×." if bar_at and times < bar_at else ""
         )
-        ring = (
-            f'<div class="ring" style="background: conic-gradient({col} {round(360 * ai)}deg, var(--un) 0)">'
-            f'<div><div class="big">{round(100 * ai)}<small>%</small></div></div></div>'
-        )
-        bar = (
-            f'<div class="bar"><span class="b-ai" style="width:{100 * ai:.1f}%"></span>'
-            f'<span class="b-un" style="width:{100 * un:.1f}%"></span><span class="b-hu" style="width:{100 * hu:.1f}%"></span></div>'
-            f'<div class="legend"><span><i class="dot b-ai"></i>Likely AI {pc(ai)}</span>'
-            f'<span><i class="dot b-un"></i>Unclear {pc(un)}</span><span><i class="dot b-hu"></i>Likely human {pc(hu)}</span></div>'
-        )
+        whole = f'<p class="where">Detectors: combining {n} tested on known texts, {said}.{needs}</p>'
+    label = {r["id"]: (r["n"], r["label"]) for r in rows}
     hot = sorted(
-        ((pid, ev) for pid, ev in inp.combined.items() if ev >= LN3),
+        ((pid, ev) for pid, ev in inp.combined.items() if ev >= LN3 and pid in label),
         key=lambda x: -x[1],
     )
-    label = {r["id"]: r["label"] for r in rows}
     where = (
-        '<p class="where">Most AI-like: '
+        '<p class="where">Most AI-like passages: '
         + ", ".join(
-            f'<a href="#p{pid[1:]}">{e(label.get(pid, pid))}</a> ({math.exp(ev):.0f}×)'
+            f'<a href="#p{label[pid][0]}">{e(label[pid][1])}</a> ({math.exp(ev):.0f}×)'
             for pid, ev in hot[:3]
         )
-        + "</p>"
+        + ".</p>"
         if hot
         else ""
     )
-    doc_ev = (inp.evd.get("document") or {}).get("evidence")
-    dt = (
-        None if doc_ev is None else math.exp(doc_ev)
-    )  # not the rounded "times" (can be 0.0)
-    whole = (
-        ""
-        if dt is None
-        else f'<p class="where">Whole text: about <b>{dt:.1f}×</b> as likely AI-written as human '
-        f"({len(inp.evd.get('used', []))} calibrated detectors).</p>"
-        if dt >= 1
-        else f'<p class="where">Whole text: about <b>{1 / dt:.1f}×</b> as likely human-written.</p>'
-    )
+    return whole + bar + where
+
+
+def headline(inp: Inputs, rows: list[dict]) -> str:
+    """The verdict first: tier and headline, then the detectors' line, then the checks."""
     tier = inp.grade.get("tier", "none")
     return (
-        '<section class="card hero" id="verdict">'
-        f'<div class="gauge">{ring}<div class="cap">{e(note)}</div></div>'
-        f'<div><span class="pill t-{e(tier)}">{e(TIER_WORD.get(tier, tier))}</span>'
-        f'<p class="headline">{e(inp.grade.get("headline", ""))}</p>{bar}{where}{whole}</div>'
+        '<section class="card hero" id="verdict"><div>'
+        f'<span class="pill t-{e(tier)}">{e(TIER_WORD.get(tier, tier))}</span>'
+        f'<p class="headline">{e(inp.grade.get("headline", ""))}</p>'
+        f"{detector_line(inp, rows)}</div>"
         f'<ul class="checks">{checks(inp, rows)}</ul></section>'
+    )
+
+
+NOT_RUN = "Web detector "
+
+
+def findings(inp: Inputs, placed: set[int]) -> str:
+    """What the user can say, each statement with how to re-check it, next to what the
+    evidence does not show. A close-reading statement links to its place in the text."""
+    items = []
+    for st in inp.grade.get("statements", []):
+        ev = st.get("evidence") or [""]
+        note = int(ev[0][4:]) - 1 if ev[0].startswith("read") else None
+        link = (
+            f' <a href="#note{note}">Show in the text</a>'
+            if note is not None and note in placed
+            else ""
+        )
+        check = (
+            f'<span class="check">To re-check: {e(st["check"])}</span>'
+            if st.get("check")
+            else ""
+        )
+        items.append(
+            f'<li><span class="tag t-{e(st["tier"])}">{e(st["tier"])}</span>'
+            f"<div>{e(st['text'])}{link}{check}</div></li>"
+        )
+    caveats = inp.grade.get("caveats", [])
+    not_run = [c for c in caveats if c.startswith(NOT_RUN)]
+    limits = "".join(f"<li>{e(c)}</li>" for c in caveats if c not in not_run)
+    if not_run:
+        limits += (
+            f"<li><details><summary>{plural(len(not_run), 'detector')} could not be run</summary><ul>"
+            + "".join(f"<li>{e(c.removeprefix(NOT_RUN))}</li>" for c in not_run)
+            + "</ul></details></li>"
+        )
+    if not items and not limits:
+        return ""
+    said = (
+        f'<ul class="said">{"".join(items)}</ul>'
+        if items
+        else '<p class="skip">Nothing was found that supports a statement.</p>'
+    )
+    return (
+        '<!-- section: findings --><section class="card findings">'
+        f"<div><h2>What you can say</h2>{said}</div>"
+        f'<div><h2>What this does not show</h2><ul class="limits">{limits}</ul></div></section>'
     )
 
 
@@ -640,7 +726,9 @@ def checks(inp: Inputs, rows: list[dict]) -> str:
     n_style = sum(1 for r in rows if r["style_flag"])
     n_read = len(inp.jud.get("reading", []))
     hidden_line = (
-        li("bad", f"Hidden text: <b>{n_hidden} passage(s)</b>") if n_hidden else ""
+        li("bad", f"Hidden text: <b>{plural(n_hidden, 'passage')}</b>")
+        if n_hidden
+        else ""
     )
     return "".join(
         [
@@ -652,7 +740,7 @@ def checks(inp: Inputs, rows: list[dict]) -> str:
             li("meh", f"Style: AI-like in {n_style} of {len(rows)} passages")
             if n_style
             else li("ok", "Style within the human range"),
-            li("meh", f"Close reading: {n_read} note(s)")
+            li("meh", f"Close reading: {plural(n_read, 'note')}")
             if n_read
             else li("ok", "Close reading: nothing to note"),
         ]
@@ -662,14 +750,14 @@ def checks(inp: Inputs, rows: list[dict]) -> str:
 def side_panel(inp: Inputs, rows: list[dict]) -> str:
     """Passages with their combined value; detectors with their per-passage scores."""
     comb = inp.combined
-    colour = {"c-strong": "var(--ai)", "c-ai": "var(--amber)", "c-human": "var(--hu)"}
+    colour = {"c-strong": "var(--ai)", "c-ai": "var(--some)", "c-human": "var(--hu)"}
     prow = []
     for r in rows:
         if comb:
             ev = comb.get(r["id"])
             cls = times_class(ev)
             width = 0 if ev is None else max(0, min(100, 50 + 50 * ev / math.log(30)))
-            lab = times_text(ev).replace(" AI", "")
+            lab = times_text(ev)
         else:
             n = len(r["sc"])
             cls = "c-ai" if n and r["n_ai"] / n > 0.5 else "c-mid"
@@ -681,37 +769,43 @@ def side_panel(inp: Inputs, rows: list[dict]) -> str:
             f'<div class="mini"><span style="width:{width:.0f}%;background:{colour.get(cls, "var(--muted)")}"></span></div></span>'
             f'<span class="tag {cls}">{e(lab)}</span></a>'
         )
+    head = "".join(f"<th>{r['id']}</th>" for r in rows)
     drows = []
     for t in inp.tools:
         w = inp.evd.get("tools", {}).get(t) or {}
         c = w.get("cal") or {}
-        chips = "".join(
-            f'<span class="chip {"na" if r["sc"].get(t) is None else ("ai" if r["sc"][t] >= 0.5 else "hu")}" '
-            f'title="passage {r["n"]}">{"–" if r["sc"].get(t) is None else pc(r["sc"][t])}</span>'
+        cells = "".join(
+            f'<td class="na" title="{e(inp.name(t))}, passage {r["n"]}: not scanned">–</td>'
+            if r["sc"].get(t) is None
+            else f'<td class="{"ai" if r["sc"][t] >= 0.5 else "hu"}" '
+            f'title="{e(inp.name(t))}, passage {r["n"]}: {pc(r["sc"][t])} AI">{round(100 * r["sc"][t])}</td>'
             for r in rows
         )
         record = (
-            f"on known texts: {round((c.get('fpr') or 0) * c.get('n_human', 0))}/{c.get('n_human')} false alarms, "
-            f"caught {round((c.get('tpr') or 0) * c.get('n_ai', 0))}/{c.get('n_ai')} AI"
+            f"Known texts: {round((c.get('fpr') or 0) * c.get('n_human', 0))}/{c.get('n_human')} human flagged, "
+            f"{round((c.get('tpr') or 0) * c.get('n_ai', 0))}/{c.get('n_ai')} AI caught"
             if c
-            else "not yet tested on known texts"
+            else "Not yet tested on known texts"
         )
+        badge = (
+            ' <span class="sub">independently validated</span>'
+            if inp.reg.get(t, {}).get("weight") == "validated"
+            else ""
+        ) + ("" if w.get("used") else ' <span class="sub">shown, not counted</span>')
         drows.append(
-            f'<div class="drow"><b>{e(inp.name(t))}</b>'
-            f"{' ✓' if inp.reg.get(t, {}).get('weight') == 'validated' else ''}"
-            f"{'' if w.get('used') else ' <span class=sub>(shown, not counted)</span>'}"
-            f'<div class="sub">{e(record)}</div><div class="chips">{chips}</div></div>'
+            f'<tr class="who"><th colspan="{len(rows)}">{e(inp.name(t))}{badge}'
+            f'<div class="sub">{e(record)}</div></th></tr><tr class="scores">{cells}</tr>'
         )
     if not inp.tools and not comb:
         return ""
-    title = (
-        "Passages · combined, calibrated" if comb else "Passages · detectors saying AI"
-    )
+    title = "Passages, detectors combined" if comb else "Passages, detectors saying AI"
     return (
         '<aside class="side"><!-- section: glance -->'
         f'<div class="card"><h3>{title}</h3>{"".join(prow)}</div>'
         + (
-            f'<div class="card"><h3>Detectors · score per passage</h3>{"".join(drows)}</div>'
+            '<div class="card"><h3>Each detector, AI score per passage (%)</h3>'
+            f'<div class="scroll"><table class="dgrid"><thead><tr>{head}</tr></thead>'
+            f"<tbody>{''.join(drows)}</tbody></table></div></div>"
             if drows
             else ""
         )
@@ -751,7 +845,7 @@ def other_evidence(inp: Inputs, placed: set[int]) -> str:
         for s in inp.grade.get("separate", [])
     ]
     return (
-        f'<h2>Other evidence</h2><div class="card"><ul>{"".join(items)}</ul></div>'
+        f'<section class="card"><h2>Evidence items</h2><ul class="limits">{"".join(items)}</ul></section>'
         if items
         else ""
     )
@@ -776,11 +870,11 @@ def render(work: Path, case: str, kind: str, context: str) -> str:
         f'<title>{e(case[:60])}</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n'
         f'<link rel="stylesheet" href="{FONTS}">\n'
         f"<style>{CSS_FILE.read_text(encoding='utf-8')}</style>\n"
-        '<div class="wrap">'
+        '<div class="wrap"><header>'
         f'<h1>{e(case)}</h1><p class="meta">{e(kind.replace("-", " ").capitalize())} · '
         f"{e(CONTEXT.get(context, context))} · {e(inp.doc.get('n_words'))} words · tested {e(tested)} · "
-        f"{len(rows)} passage{'s' if len(rows) != 1 else ''}</p>"
-        f"<!-- section: answer -->{headline(inp, rows)}"
+        f"{plural(len(rows), 'passage')}</p></header>"
+        f"<!-- section: answer -->{headline(inp, rows)}{findings(inp, tr.notes_placed)}"
         f'<div class="cols{"" if side else " single"}"><article class="card doc" id="text">'
         f"<!-- section: text -->{text_html}</article>{side}</div>"
         f"{other_evidence(inp, tr.notes_placed)}</div>"

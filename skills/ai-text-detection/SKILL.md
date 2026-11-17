@@ -137,7 +137,7 @@ Then `python grade.py`.
 
 ### 6. The report
 
-`python build_report.py --case "<label>" --kind <kind> --context <context>` writes `report.html`. Publish it as a private Artifact (icon `search`). The page shows, top to bottom: the share of the checked prose that reads as AI-written, the tier and the non-statistical checks; the text with AI-like sentences highlighted and close-reading notes tagged where they occur, beside each passage's combined score and each detector's scores; and the findings to quote from. For a file: `conda run -n ai-text-detection python report_pdf.py report.html <out.pdf>`.
+`python build_report.py --case "<label>" --kind <kind> --context <context>` writes `report.html`. Publish it as a private Artifact (icon `search`). The page shows, top to bottom: the tier and headline, one sentence and one bar on what the combined detectors say, and the non-statistical checks; what the user can say (each statement with how to re-check it) next to what the evidence does not show; the text with AI-like sentences highlighted and close-reading notes tagged where they occur, beside each passage's combined value and a grid of each detector's scores; and every item to quote from. For a file: `conda run -n ai-text-detection python report_pdf.py report.html <out.pdf>`.
 
 Then tell the user, in a few lines: the tier and what it means; the two or three statements they can most safely make (from grade.json's statements); what the evidence does **not** show; and, if they want to raise it, to lead with the verifiable problems (fabricated references, false claims, leftover chatbot text) rather than "AI wrote this", addressed to the editor or programme officer for reviews and grants (COPE). Don't draft a message unless asked.
 
