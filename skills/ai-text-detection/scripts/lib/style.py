@@ -1,6 +1,6 @@
 """The style score: features of a text window and the calibrated model over them.
 
-Features per ~300-word window (lib.text.chunks): excess vocabulary after ChatGPT (Kobak et
+Features per ~300-word window (lib.text.style_windows): excess vocabulary after ChatGPT (Kobak et
 al. 2025), marked peer-review adjectives (Liang et al. 2024), stock phrasing ("tells"), em
 dashes, sentence-length variation and vocabulary diversity. ``style_score`` applies the
 logistic model fitted by calibrate.py (references/calibration.json), whose weights are
@@ -15,6 +15,7 @@ import re
 import statistics
 
 from lib.common import REFS, read_json
+from lib.stats import missing
 from lib.text import sentences, words
 
 FEATURES = [
@@ -139,11 +140,7 @@ def phrase_spans(text: str) -> list[dict]:
 
 def percentile(value: float, quantiles: list[float]) -> float | None:
     """Percentile of ``value`` given human quantiles at 1, 2, ..., 99 %."""
-    if (
-        value is None
-        or (isinstance(value, float) and math.isnan(value))
-        or not quantiles
-    ):
+    if missing(value) or not quantiles:
         return None
     if value <= quantiles[0]:
         return 1.0
@@ -166,7 +163,7 @@ def style_score(f: dict, model: dict | None) -> float | None:
         model["features"], model["weights"], model["mean"], model["sd"]
     ):
         v = f.get(name)
-        if v is None or (isinstance(v, float) and math.isnan(v)):
+        if missing(v):
             v = mu
         z += w * (v - mu) / (sd or 1)
     return 1 / (1 + math.exp(-z))

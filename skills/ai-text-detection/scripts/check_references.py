@@ -374,119 +374,98 @@ def compare(rec: dict, raw: str, given: dict) -> list[str]:
     return issues
 
 
-def check_one(ref: dict, own_doi: str | None = None) -> dict:
-    """Status of one reference. ``own_doi`` (the document's own DOI, e.g. from a page
-    footer that leaked into the list) is never taken as the reference's DOI."""
-    raw = ref["raw"]
-    if own_doi:
-        raw = re.sub(
-            r"(?:https?://doi\.org/)?" + re.escape(own_doi),
-            " ",
-            raw,
-            flags=re.IGNORECASE,
-        )
-    out = {
-        "raw": ref["raw"],
-        "status": None,
-        "found": None,
-        "issues": [],
-        "queried": [],
-    }
-    doi = ref.get("doi")
-    if not doi:
-        # A DOI broken by a stray space after a dot ("10.1128/aac. 02490-20") is rejoined.
-        raw_fixed = re.sub(
-            r"(\b10\.\d{4,9}/[^\s\"<>]*\.)\s+(\d[\w.\-\u2013]+)", r"\1\2", raw
-        )
-        m = DOI_RE.search(raw_fixed)
-        doi = m.group(1).rstrip(".,;)]}").replace("\u2013", "-") if m else None
-        if doi and len(doi.split("/", 1)[1]) < 5:
-            out["issues"].append(
-                f"DOI '{doi}' is incomplete; searched by title instead"
+def find_doi(ref: dict, raw: str, out: dict) -> str | None:
+    """The reference's DOI: the one given, else one found in the text. A DOI broken by a
+    stray space after a dot ("10.1128/aac. 02490-20") is rejoined; an incomplete one is
+    noted and dropped."""
+    if ref.get("doi"):
+        return ref["doi"]
+    raw_fixed = re.sub(
+        r"(\b10\.\d{4,9}/[^\s\"<>]*\.)\s+(\d[\w.\-\u2013]+)", r"\1\2", raw
+    )
+    m = DOI_RE.search(raw_fixed)
+    doi = m.group(1).rstrip(".,;)]}").replace("\u2013", "-") if m else None
+    if doi and len(doi.split("/", 1)[1]) < 5:
+        out["issues"].append(f"DOI '{doi}' is incomplete; searched by title instead")
+        return None
+    return doi
+
+
+def check_doi(doi: str, ref: dict, raw: str, out: dict) -> dict:
+    """A reference with a DOI: is it registered, and does it belong to this work?"""
+    out["doi"] = doi
+    out["queried"].append(f"https://api.crossref.org/works/{doi}")
+    rec = crossref_doi(doi)
+    if rec is None:
+        out["queried"].append(f"https://api.datacite.org/dois/{doi}")
+        rec = datacite_doi(doi)
+    if rec is None:
+        out["queried"].append(f"https://doi.org/api/handles/{doi}")
+        if doi_exists(doi):
+            out.update(
+                status="ok", found={"doi": doi, "registry": "doi.org (no metadata)"}
             )
-            doi = None
-    if doi:
-        out["doi"] = doi
-        out["queried"].append(f"https://api.crossref.org/works/{doi}")
-        rec = crossref_doi(doi)
-        if rec is None:
-            out["queried"].append(f"https://api.datacite.org/dois/{doi}")
-            rec = datacite_doi(doi)
-        if rec is None:
-            out["queried"].append(f"https://doi.org/api/handles/{doi}")
-            if doi_exists(doi):
-                out.update(
-                    status="ok", found={"doi": doi, "registry": "doi.org (no metadata)"}
-                )
-                out["issues"].append(
-                    "DOI resolves but its registry gives no metadata to compare"
-                )
-                return out
-            out["status"] = "doi-not-registered"
-            return out
-        rec["doi"] = doi
-        out["found"] = rec
-        rest = DOI_RE.sub("", raw)
-        score = containment(rec["title"], rest) if rec.get("title") else 1.0
-        out["title_match"] = round(score, 2)
-        if len(tokens(rest)) >= 6 and score < 0.5 and rec.get("registry") == "DataCite":
-            # Dataset and software DOIs often carry a different title than the citation.
-            out["status"] = "metadata-mismatch"
             out["issues"].append(
-                f'the DOI is a dataset or software record titled "{rec["title"]}"'
+                "DOI resolves but its registry gives no metadata to compare"
             )
             return out
-        if len(tokens(rest)) >= 6 and score < 0.5:
-            out["status"] = "doi-points-elsewhere"
-            out["issues"].append(f'the DOI belongs to: "{rec["title"]}"')
-            return out
-        out["issues"] += compare(rec, raw, ref)
-        out["status"] = "metadata-mismatch" if out["issues"] else "ok"
+        out["status"] = "doi-not-registered"
         return out
-    m = ARXIV_RE.search(raw)
-    if m:
-        url = f"https://export.arxiv.org/api/query?id_list={m.group(1)}"
-        out["queried"].append(url)
-        st, body = get(url)
-        if (
-            st == 200
-            and isinstance(body, str)
-            and "<entry>" in body
-            and "Error" not in body.split("<entry>")[1][:200]
-        ):
-            title = re.sub(
-                r"\s+",
-                " ",
-                re.search(r"<entry>.*?<title>(.*?)</title>", body, re.DOTALL).group(1),
-            )
-            score = containment(title, raw)
-            out["found"] = {"title": title, "registry": "arXiv", "arxiv": m.group(1)}
-            out["title_match"] = round(score, 2)
-            out["status"] = (
-                "ok"
-                if score >= 0.5 or len(tokens(ARXIV_RE.sub("", raw))) < 6
-                else "doi-points-elsewhere"
-            )
-            if out["status"] != "ok":
-                out["issues"].append(f'the arXiv id belongs to: "{title}"')
-            return out
+    rec["doi"] = doi
+    out["found"] = rec
+    rest = DOI_RE.sub("", raw)
+    score = containment(rec["title"], rest) if rec.get("title") else 1.0
+    out["title_match"] = round(score, 2)
+    if len(tokens(rest)) >= 6 and score < 0.5 and rec.get("registry") == "DataCite":
+        # Dataset and software DOIs often carry a different title than the citation.
+        out["status"] = "metadata-mismatch"
+        out["issues"].append(
+            f'the DOI is a dataset or software record titled "{rec["title"]}"'
+        )
+        return out
+    if len(tokens(rest)) >= 6 and score < 0.5:
+        out["status"] = "doi-points-elsewhere"
+        out["issues"].append(f'the DOI belongs to: "{rec["title"]}"')
+        return out
+    out["issues"] += compare(rec, raw, ref)
+    out["status"] = "metadata-mismatch" if out["issues"] else "ok"
+    return out
+
+
+def check_arxiv(arxiv_id: str, raw: str, out: dict) -> dict:
+    """A reference with an arXiv id: does the id exist, and is it this work?"""
+    url = f"https://export.arxiv.org/api/query?id_list={arxiv_id}"
+    out["queried"].append(url)
+    st, body = get(url)
+    if not (
+        st == 200
+        and isinstance(body, str)
+        and "<entry>" in body
+        and "Error" not in body.split("<entry>")[1][:200]
+    ):
         out["status"] = "doi-not-registered"
         out["issues"].append("arXiv id not found")
         return out
-    m = ISBN_RE.search(raw)
-    if m and not isbn_valid(m.group(1)):
-        out["issues"].append(f"ISBN {m.group(1)} fails its checksum")
-    if len(tokens(raw)) < 5 or re.search(
-        r"personal communication|unpublished|in preparation|submitted",
-        raw,
-        re.IGNORECASE,
-    ):
-        out["status"] = "unverifiable"
-        return out
-    if re.match(r"^\s*https?://\S+\s*$", raw):
-        out["status"] = "unverifiable"
-        out["issues"].append("bare URL; open it to check")
-        return out
+    title = re.sub(
+        r"\s+",
+        " ",
+        re.search(r"<entry>.*?<title>(.*?)</title>", body, re.DOTALL).group(1),
+    )
+    score = containment(title, raw)
+    out["found"] = {"title": title, "registry": "arXiv", "arxiv": arxiv_id}
+    out["title_match"] = round(score, 2)
+    out["status"] = (
+        "ok"
+        if score >= 0.5 or len(tokens(ARXIV_RE.sub("", raw))) < 6
+        else "doi-points-elsewhere"
+    )
+    if out["status"] != "ok":
+        out["issues"].append(f'the arXiv id belongs to: "{title}"')
+    return out
+
+
+def check_by_search(ref: dict, raw: str, out: dict) -> dict:
+    """A reference without an identifier: search for its title."""
     rec, score, urls, failed = search(raw)
     out["queried"] += urls
     out["title_match"] = round(score, 2)
@@ -520,6 +499,58 @@ def check_one(ref: dict, own_doi: str | None = None) -> dict:
     return out
 
 
+def check_one(ref: dict, own_doi: str | None = None) -> dict:
+    """Status of one reference. ``own_doi`` (the document's own DOI, e.g. from a page
+    footer that leaked into the list) is never taken as the reference's DOI."""
+    raw = ref["raw"]
+    if own_doi:
+        raw = re.sub(
+            r"(?:https?://doi\.org/)?" + re.escape(own_doi),
+            " ",
+            raw,
+            flags=re.IGNORECASE,
+        )
+    out = {
+        "raw": ref["raw"],
+        "status": None,
+        "found": None,
+        "issues": [],
+        "queried": [],
+    }
+    doi = find_doi(ref, raw, out)
+    if doi:
+        return check_doi(doi, ref, raw, out)
+    m = ARXIV_RE.search(raw)
+    if m:
+        return check_arxiv(m.group(1), raw, out)
+    m = ISBN_RE.search(raw)
+    if m and not isbn_valid(m.group(1)):
+        out["issues"].append(f"ISBN {m.group(1)} fails its checksum")
+    if len(tokens(raw)) < 5 or re.search(
+        r"personal communication|unpublished|in preparation|submitted",
+        raw,
+        re.IGNORECASE,
+    ):
+        out["status"] = "unverifiable"
+        return out
+    if re.match(r"^\s*https?://\S+\s*$", raw):
+        out["status"] = "unverifiable"
+        out["issues"].append("bare URL; open it to check")
+        return out
+    return check_by_search(ref, raw, out)
+
+
+def own_doi_of(doc: dict) -> str | None:
+    """The document's own DOI: in its metadata, or repeated on its pages (a footer)."""
+    meta_text = " ".join(str(v) for v in (doc.get("metadata") or {}).values())
+    found = DOI_RE.findall(meta_text)
+    body_dois = DOI_RE.findall(doc.get("text", ""))
+    if not found and body_dois:
+        common = max(set(body_dois), key=body_dois.count)
+        found = [common] if body_dois.count(common) >= 3 else []
+    return found[0].rstrip(".,;)]}") if found else None
+
+
 def main(argv: list[str] | None = None) -> int:
     """Check every reference and write references.json."""
     p = argparse.ArgumentParser(
@@ -533,16 +564,7 @@ def main(argv: list[str] | None = None) -> int:
     cache_file = work / "refcache.json"
     CACHE.update({k: tuple(v) for k, v in (read_json(cache_file) or {}).items()})
 
-    own_doi = None
-    doc = read_json(work / "text.json") or {}
-    meta_text = " ".join(str(v) for v in (doc.get("metadata") or {}).values())
-    found = DOI_RE.findall(meta_text) or []
-    body_dois = DOI_RE.findall(doc.get("text", ""))
-    if not found and body_dois:
-        common = max(set(body_dois), key=body_dois.count)
-        found = [common] if body_dois.count(common) >= 3 else []
-    if found:
-        own_doi = found[0].rstrip(".,;)]}")
+    own_doi = own_doi_of(read_json(work / "text.json") or {})
     if args.refs:
         refs = read_json(args.refs) or []
     else:

@@ -26,20 +26,24 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import random
 import re
 import sys
 import time
-import urllib.parse
-import urllib.request
-import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from lib.common import REFS, USER_AGENT, warn
-from lib.text import chunks, words
+from lib.common import REFS, warn, write_jsonl
+from lib.europepmc import (
+    OPEN_BEFORE_CHATGPT,
+    base_meta,
+    fulltext_windows,
+    search,
+    windows,
+)
+from lib.http import post_json
+from lib.text import words
 
-EPMC = "https://www.ebi.ac.uk/europepmc/webservices/rest"
 TOPICS = [
     "antimicrobial resistance",
     "malaria drug discovery",
@@ -54,121 +58,6 @@ TOPICS = [
     "deep learning molecules",
     "antiviral compounds",
 ]
-NATIVE = re.compile(
-    r"\b(USA|U\.S\.A|United States|UK|U\.K\.|United Kingdom|England|Scotland|Wales|Australia|Canada|New Zealand|Ireland)\b"
-)
-COUNTRY = re.compile(r",\s*([A-Z][A-Za-z .'-]{2,40})\.?\s*(?:[;.]|$)")
-
-
-def get_json(url: str) -> dict | None:
-    """GET JSON with retries."""
-    req = urllib.request.Request(
-        url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}
-    )
-    for attempt in range(3):
-        try:
-            with urllib.request.urlopen(req, timeout=60) as r:
-                return json.loads(r.read().decode("utf-8"))
-        except Exception as e:  # noqa: BLE001 - network: retry then give up
-            if attempt == 2:
-                warn(f"{url[:100]}: {e}")
-                return None
-            time.sleep(3)
-    return None
-
-
-def get_text(url: str) -> str | None:
-    """GET text with retries."""
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    for attempt in range(3):
-        try:
-            with urllib.request.urlopen(req, timeout=60) as r:
-                return r.read().decode("utf-8", "replace")
-        except Exception as e:  # noqa: BLE001
-            if attempt == 2:
-                warn(f"{url[:100]}: {e}")
-                return None
-            time.sleep(3)
-    return None
-
-
-def para_text(el: ET.Element) -> str:
-    """Plain text of an XML element, citations and formulas dropped."""
-    for tag in ("xref", "inline-formula", "disp-formula", "table-wrap", "fig"):
-        for x in el.iter(tag):
-            x.clear()
-    t = "".join(el.itertext())
-    t = re.sub(r"\[\s*[,–\-\s]*\]|\(\s*[,;–\-\s]*\)", "", t)
-    return re.sub(r"\s+", " ", t).strip()
-
-
-def windows(doc_id: str, paras: list[str], meta: dict) -> list[dict]:
-    """Cut paragraphs into ~300-word windows with the shared chunker."""
-    text = "\n\n".join(p for p in paras if len(words(p)) >= 25)
-    if len(words(text)) < 120:
-        return []
-    doc = {
-        "text": text,
-        "sections": [{"title": meta["kind"], "start": 0, "end": len(text)}],
-    }
-    return [
-        {
-            "id": f"{doc_id}:{c['id']}",
-            "doc_id": doc_id,
-            **meta,
-            "n_words": c["n_words"],
-            "text": c["text"],
-        }
-        for c in chunks(doc)
-    ]
-
-
-def country_of(affiliation: str | None) -> tuple[str | None, bool | None]:
-    """(country guess, native-English country?) from an affiliation string."""
-    if not affiliation:
-        return None, None
-    # Drop e-mail addresses and anything after them ("... Pretoria. joanne@x.ac.za").
-    affiliation = re.split(r"\S+@\S+|Electronic address", affiliation)[0].strip(" .;,")
-    if NATIVE.search(affiliation):
-        return NATIVE.search(affiliation).group(1), True
-    m = COUNTRY.findall(affiliation)
-    return (m[-1].strip() if m else None), (False if m else None)
-
-
-def search(query: str, pages: int) -> list[dict]:
-    """Europe PMC 'core' search results (with abstracts), cursor-paginated."""
-    out, cursor = [], "*"
-    for _ in range(pages):
-        url = (
-            f"{EPMC}/search?query={urllib.parse.quote(query)}&resultType=core&format=json"
-            f"&pageSize=100&cursorMark={urllib.parse.quote(cursor)}"
-        )
-        data = get_json(url)
-        if not data:
-            break
-        out += data.get("resultList", {}).get("result", [])
-        nxt = data.get("nextCursorMark")
-        if not nxt or nxt == cursor:
-            break
-        cursor = nxt
-    return out
-
-
-def base_meta(r: dict) -> dict:
-    """Year, first-author country and source of a Europe PMC record."""
-    aff = None
-    for a in r.get("authorList", {}).get("author", [])[:1]:
-        det = a.get("authorAffiliationDetailsList", {}).get("authorAffiliation", [])
-        aff = det[0].get("affiliation") if det else None
-    country, native = country_of(aff or r.get("affiliation"))
-    ident = r.get("pmcid") or r.get("pmid")
-    return {
-        "year": int(r.get("pubYear", 0)),
-        "country": country,
-        "native_english": native,
-        "source_url": f"https://europepmc.org/article/{'PMC' if r.get('pmcid') else 'MED'}/{ident}",
-        "license": "CC BY",
-    }
 
 
 def abstracts(n: int, rng: random.Random) -> list[dict]:
@@ -176,7 +65,7 @@ def abstracts(n: int, rng: random.Random) -> list[dict]:
     out: list[dict] = []
     per = max(1, n // len(TOPICS))
     for topic in TOPICS:
-        q = f'"{topic}" AND OPEN_ACCESS:y AND LICENSE:"cc by" AND PUB_YEAR:[2015 TO 2021] AND HAS_ABSTRACT:y'
+        q = f'"{topic}" AND {OPEN_BEFORE_CHATGPT} AND HAS_ABSTRACT:y'
         res = [
             r for r in search(q, 1) if len(words(r.get("abstractText") or "")) >= 150
         ]
@@ -194,44 +83,13 @@ def abstracts(n: int, rng: random.Random) -> list[dict]:
     return out
 
 
-def fulltext_windows(r: dict, kind: str) -> list[dict]:
-    """Intro/discussion windows (kind 'article') or the decision letter (kind 'review')."""
-    xml = get_text(f"{EPMC}/{r['pmcid']}/fullTextXML")
-    if not xml:
-        return []
-    try:
-        root = ET.fromstring(xml)
-    except ET.ParseError:
-        return []
-    meta = {**base_meta(r), "kind": kind}
-    if kind == "article":
-        paras = []
-        body = root.find("body")
-        for sec in body.findall("sec") if body is not None else []:
-            title = (sec.findtext("title") or "").lower()
-            if any(
-                k in title
-                for k in ("introduction", "background", "discussion", "conclusion")
-            ):
-                paras += [para_text(p) for p in sec.iter("p")]
-        return windows(f"{r['pmcid']}-a", paras, meta)
-    for sub in root.iter("sub-article"):
-        if sub.get("article-type") in ("decision-letter", "referee-report"):
-            paras = [para_text(p) for p in sub.iter("p")]
-            paras = [p for p in paras if not p.startswith("Thank you for submitting")]
-            return windows(f"{r['pmcid']}-r", paras, meta)
-    return []
-
-
 def articles_and_reviews(
     n_articles: int, n_reviews: int, rng: random.Random
 ) -> list[dict]:
     """Full-text windows of CC-BY papers and of eLife decision letters, fetched in parallel."""
-    from concurrent.futures import ThreadPoolExecutor
-
     cands: list[tuple[dict, str]] = []
     for topic in TOPICS:
-        q = f'"{topic}" AND OPEN_ACCESS:y AND LICENSE:"cc by" AND PUB_YEAR:[2015 TO 2021] AND HAS_FT:y AND NOT JOURNAL:"eLife"'
+        q = f'"{topic}" AND {OPEN_BEFORE_CHATGPT} AND HAS_FT:y AND NOT JOURNAL:"eLife"'
         res = [r for r in search(q, 1) if r.get("pmcid")]
         rng.shuffle(res)
         cands += [(r, "article") for r in res[: -(-n_articles // len(TOPICS))]]
@@ -250,61 +108,58 @@ def articles_and_reviews(
     return out
 
 
+GRANT_TERMS = [
+    "antimicrobial resistance",
+    "malaria",
+    "tuberculosis drug",
+    "drug discovery machine learning",
+    "neglected tropical disease",
+    "antibiotic",
+    "global health",
+    "cheminformatics",
+]
+GRANT_HEADING = re.compile(
+    r"^\s*(PROJECT SUMMARY(?:/ABSTRACT)?|SUMMARY|ABSTRACT|Project Summary/Abstract|DESCRIPTION \(provided by applicant\))[:\s]*",
+    re.IGNORECASE,
+)
+ENGLISH_SPEAKING = ("UNITED STATES", "USA", "UNITED KINGDOM", "CANADA", "AUSTRALIA")
+
+
+def reporter_projects(term: str, limit: int) -> list[dict]:
+    """NIH RePORTER projects (fiscal years 2015-2021) whose abstract matches ``term``."""
+    query = {
+        "criteria": {
+            "advanced_text_search": {
+                "operator": "and",
+                "search_field": "abstracttext",
+                "search_text": term,
+            },
+            "fiscal_years": [2015, 2016, 2017, 2018, 2019, 2020, 2021],
+        },
+        "include_fields": [
+            "ApplId",
+            "AbstractText",
+            "FiscalYear",
+            "Organization",
+            "ProjectTitle",
+        ],
+        "offset": 0,
+        "limit": limit,
+    }
+    try:
+        data = post_json("https://api.reporter.nih.gov/v2/projects/search", query)
+    except Exception as e:  # noqa: BLE001 - network: skip this term
+        warn(f"RePORTER {term}: {e}")
+        return []
+    return data.get("results", [])
+
+
 def grants(n: int) -> list[dict]:
     """Windows from NIH RePORTER abstracts, fiscal years 2015-2021."""
     out: list[dict] = []
-    terms = [
-        "antimicrobial resistance",
-        "malaria",
-        "tuberculosis drug",
-        "drug discovery machine learning",
-        "neglected tropical disease",
-        "antibiotic",
-        "global health",
-        "cheminformatics",
-    ]
-    per = max(1, n // len(terms))
-    for t in terms:
-        body = json.dumps(
-            {
-                "criteria": {
-                    "advanced_text_search": {
-                        "operator": "and",
-                        "search_field": "abstracttext",
-                        "search_text": t,
-                    },
-                    "fiscal_years": [2015, 2016, 2017, 2018, 2019, 2020, 2021],
-                },
-                "include_fields": [
-                    "ApplId",
-                    "AbstractText",
-                    "FiscalYear",
-                    "Organization",
-                    "ProjectTitle",
-                ],
-                "offset": 0,
-                "limit": per,
-            }
-        ).encode()
-        req = urllib.request.Request(
-            "https://api.reporter.nih.gov/v2/projects/search",
-            data=body,
-            headers={"User-Agent": USER_AGENT, "Content-Type": "application/json"},
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=60) as r:
-                data = json.loads(r.read())
-        except Exception as e:  # noqa: BLE001
-            warn(f"RePORTER {t}: {e}")
-            continue
-        for p in data.get("results", []):
-            text = (p.get("abstract_text") or "").strip()
-            text = re.sub(
-                r"^\s*(PROJECT SUMMARY(?:/ABSTRACT)?|SUMMARY|ABSTRACT|Project Summary/Abstract|DESCRIPTION \(provided by applicant\))[:\s]*",
-                "",
-                text,
-                flags=re.IGNORECASE,
-            )
+    for term in GRANT_TERMS:
+        for p in reporter_projects(term, max(1, n // len(GRANT_TERMS))):
+            text = GRANT_HEADING.sub("", (p.get("abstract_text") or "").strip())
             org = p.get("organization") or {}
             paras = [
                 x for x in re.split(r"\n\s*\n|\r\n\s*\r\n", text) if x.strip()
@@ -317,13 +172,7 @@ def grants(n: int) -> list[dict]:
                     "year": p.get("fiscal_year"),
                     "country": org.get("org_country"),
                     "native_english": (org.get("org_country") or "").upper()
-                    in (
-                        "UNITED STATES",
-                        "USA",
-                        "UNITED KINGDOM",
-                        "CANADA",
-                        "AUSTRALIA",
-                    ),
+                    in ENGLISH_SPEAKING,
                     "source_url": f"https://reporter.nih.gov/project-details/{p['appl_id']}",
                     "license": "public domain (US government)",
                 },
@@ -351,10 +200,7 @@ def main(argv: list[str] | None = None) -> int:
         + grants(args.grants)
     )
     out = Path(args.out)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with out.open("w", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    write_jsonl(out, rows)
     kinds: dict[str, int] = {}
     for r in rows:
         kinds[r["kind"]] = kinds.get(r["kind"], 0) + 1

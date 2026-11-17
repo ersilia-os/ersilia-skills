@@ -28,7 +28,7 @@ def main(argv: list[str] | None = None) -> int:
     work = Path(p.parse_args(argv).work)
     out = combine(work)
     if out is None:
-        print("no multi-split plan (run segments.py); nothing to combine")
+        print("no plan (run segments.py); nothing to combine")
         return 0
     write_json(work / "evidence.json", out)
     print(

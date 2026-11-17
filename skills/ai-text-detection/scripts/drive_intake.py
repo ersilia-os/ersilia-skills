@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -56,8 +57,6 @@ def find_local(name: str) -> list[Path]:
     because Drive for desktop streams folders on demand. Falls back to a shallow walk
     when Spotlight finds nothing.
     """
-    import subprocess
-
     hits: list[Path] = []
     if not MOUNTS.exists():
         return hits

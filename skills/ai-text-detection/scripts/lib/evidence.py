@@ -1,6 +1,6 @@
 """Combine every detector, every split and the known-text tests into one picture.
 
-For each sentence of the prose, every unit of the plan that contains it (section S,
+For each sentence of the prose, every unit of the plan (segments.py) that contains it (section S,
 passage P, window W) and every tool that scored that unit gives a vote: AI (score >= 0.5)
 or human. A tool's votes on a sentence are averaged across splits (v = share of its units
 that say AI) and turned into evidence with the tool's likelihood ratios measured on known
@@ -33,25 +33,14 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
-from lib.common import REFS, read_json, read_jsonl
+from lib.common import REFS, read_json
+from lib.detectors import Detections
 
 
 def thresholds() -> tuple[int, float]:
     """(min known texts of each kind, min AUROC) for a tool to count."""
     c = (read_json(REFS / "grading.json") or {}).get("combined", {})
     return c.get("min_known_texts", 5), c.get("min_auroc", 0.6)
-
-
-def load_results(work: Path) -> dict[tuple[str, str], float]:
-    """Latest score per (tool, unit id): passages from web_detectors.json (chunk k is
-    unit Pk), the other units from multi/plan.results.jsonl."""
-    out: dict[tuple[str, str], float] = {}
-    for r in (read_json(work / "web_detectors.json") or {}).get("results", []):
-        out[(r["tool"], f"P{r['chunk']}")] = float(r["score"])
-    for r in read_jsonl(work / "multi" / "plan.results.jsonl"):
-        if r.get("score") is not None:
-            out[(r["tool"], str(r["chunk"]))] = float(r["score"])
-    return out
 
 
 def tool_weights(cal: dict, tools: set[str]) -> dict[str, dict]:
@@ -158,11 +147,12 @@ def _wmean(rows: list[dict]) -> float | None:
 
 def combine(work: Path) -> dict | None:
     """The contents of evidence.json, or None when there is no plan (segments.py)."""
-    plan = read_json(work / "multi" / "plan.json")
-    if not plan:
+    found = Detections.load(work)
+    plan = found.plan
+    if not plan["units"]:
         return None
     units = {u["chunk"]: u for u in plan["units"]}
-    res = {k: v for k, v in load_results(work).items() if k[1] in units}
+    res = {k: v for k, v in found.scores.items() if k[1] in units}
     tools = sorted({t for t, _ in res})
     cal = read_json(REFS / "web_calibration.json") or {}
     weights = tool_weights(cal, set(tools))

@@ -1,8 +1,10 @@
 """Paths, constants, messages and JSON files shared by every step.
 
-Three places hold state:
+Four places hold state:
 
 * ``WORK_DIR`` (/tmp/ai_text_detection): one analysis at a time, reset per run.
+* ``CONTROLS_DIR`` (/tmp/ai_text_detection_controls): the public texts of known origin
+  the web detectors are tested on, and their results. Kept between runs.
 * ``REFS`` (references/ in the repo): markers, grading rules, calibration. Shared and
   versioned; improved through feedback and pull requests. Never holds anyone's text.
 * ``LOCAL`` (~/.ai-text-detection): the user's private case ledger (numbers only),
@@ -13,6 +15,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -21,11 +24,25 @@ REFS = SKILL_DIR / "references"
 ASSETS = SKILL_DIR / "assets"
 EXAMPLES = SKILL_DIR / "examples"
 WORK_DIR = Path("/tmp/ai_text_detection")
+CONTROLS_DIR = Path("/tmp/ai_text_detection_controls")
 LOCAL = Path.home() / ".ai-text-detection"
 ENV_NAME = "ai-text-detection"
 USER_AGENT = "ai-text-detection/1.0 (reference checker; https://github.com/ersilia-os/ersilia-skills)"
 
 TIERS = ["conclusive", "strong", "moderate", "weak", "none"]
+KINDS = ["article", "grant", "review", "response-letter", "email", "other"]
+CONTEXTS = [
+    "collaborator-draft",
+    "reviewer-of-my-paper",
+    "manuscript-i-review",
+    "grant-i-review",
+    "other",
+]
+
+
+def today() -> str:
+    """Today's date as YYYY-MM-DD."""
+    return date.today().isoformat()
 
 
 def warn(message: str) -> None:
@@ -66,6 +83,16 @@ def read_jsonl(path: str | Path) -> list[dict]:
         for line in p.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+
+
+def write_jsonl(path: str | Path, rows: list[dict]) -> None:
+    """Write rows as a JSON-lines file, creating parent folders."""
+    p = Path(path).expanduser()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(
+        "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows),
+        encoding="utf-8",
+    )
 
 
 def append_jsonl(path: str | Path, row: dict) -> None:

@@ -19,17 +19,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from lib.common import WORK_DIR, die
+from lib.common import CONTEXTS, KINDS, WORK_DIR, die
 from lib.report import render
-
-KINDS = ["article", "grant", "review", "response-letter", "email", "other"]
-CONTEXTS = [
-    "collaborator-draft",
-    "reviewer-of-my-paper",
-    "manuscript-i-review",
-    "grant-i-review",
-    "other",
-]
 
 
 def main(argv: list[str] | None = None) -> int:

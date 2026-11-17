@@ -28,16 +28,18 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import statistics
 import sys
 import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from lib.common import USER_AGENT, WORK_DIR, die, read_json, warn, write_json
+from lib.common import WORK_DIR, die, read_json, write_json
+from lib.extract import extract
+from lib.http import get_json
+from lib.stats import missing
 from lib.style import FEATURES, features
-from lib.text import chunks, words
+from lib.text import style_windows, words
 
 
 def openalex_texts(author: str, first_only: bool, n: int) -> list[dict]:
@@ -49,9 +51,7 @@ def openalex_texts(author: str, first_only: bool, n: int) -> list[dict]:
         )
         + "&per-page=100&sort=publication_year:desc&select=id,title,publication_year,abstract_inverted_index,authorships"
     )
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        data = json.loads(r.read())
+    data = get_json(url) or die("the OpenAlex lookup failed; try again later")
     out = []
     for w in data.get("results", []):
         auths = w.get("authorships") or []
@@ -77,32 +77,50 @@ def openalex_texts(author: str, first_only: bool, n: int) -> list[dict]:
 
 
 def file_texts(paths: list[str]) -> list[dict]:
-    """Plain text of user-supplied files (PDF/DOCX via extract_text in the env)."""
-    import subprocess
-    import tempfile
+    """The text of user-supplied files (PDF and DOCX need the conda env)."""
+    return [
+        {"source": p, "year": None, "title": Path(p).name, "text": extract(p)["text"]}
+        for p in paths
+    ]
 
+
+def baseline_windows(texts: list[dict]) -> list[dict]:
+    """The style features of every ~300-word window of the earlier texts."""
     out = []
-    for p in paths:
-        with tempfile.TemporaryDirectory() as tmp:
-            proc = subprocess.run(
-                [
-                    sys.executable,
-                    str(Path(__file__).with_name("extract_text.py")),
-                    p,
-                    "--work",
-                    tmp,
-                ],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            doc = read_json(Path(tmp) / "text.json")
-            if proc.returncode != 0 or not doc:
-                warn(f"could not read {p}: {proc.stderr.strip()[:200]}")
-                continue
+    for t in texts:
+        doc = {
+            "text": t["text"],
+            "sections": [{"title": "baseline", "start": 0, "end": len(t["text"])}],
+        }
+        for c in style_windows(doc):
+            f = features(c["text"])
             out.append(
-                {"source": p, "year": None, "title": Path(p).name, "text": doc["text"]}
+                {
+                    "source": t["source"],
+                    "year": t["year"],
+                    **{k: f[k] for k in FEATURES},
+                }
             )
+    return out
+
+
+def compare(doc_windows: list[dict], base_windows: list[dict]) -> dict:
+    """Per feature: the document's median next to the range of the earlier writing."""
+    out = {}
+    for k in FEATURES:
+        doc_vals = [w[k] for w in doc_windows if not missing(w.get(k))]
+        base = sorted(w[k] for w in base_windows if not missing(w.get(k)))
+        if not doc_vals or len(base) < 3:
+            continue
+        v = statistics.median(doc_vals)
+        out[k] = {
+            "document_median": v,
+            "baseline_median": statistics.median(base),
+            "baseline_min": base[0],
+            "baseline_max": base[-1],
+            "share_of_baseline_below": sum(1 for b in base if b < v) / len(base),
+            "outside_range": v < base[0] or v > base[-1],
+        }
     return out
 
 
@@ -127,51 +145,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     if len(texts) < 3:
         die(f"only {len(texts)} usable earlier text(s); a baseline needs at least 3")
-    windows = []
-    for t in texts:
-        doc = {
-            "text": t["text"],
-            "sections": [{"title": "baseline", "start": 0, "end": len(t["text"])}],
-        }
-        for c in chunks(doc):
-            f = features(c["text"])
-            windows.append(
-                {
-                    "source": t["source"],
-                    "year": t["year"],
-                    "text": c["text"],
-                    **{k: f[k] for k in FEATURES},
-                }
-            )
+    windows = baseline_windows(texts)
     sty = read_json(work / "stylometry.json") or {}
-    doc_vals: dict[str, float] = {}
-    for k in FEATURES:
-        vals = [
-            w[k]
-            for w in sty.get("windows", [])
-            if w.get(k) == w.get(k) and w.get(k) is not None
-        ]
-        if vals:
-            doc_vals[k] = statistics.median(vals)
-
-    comparison = {}
-    for k, v in doc_vals.items():
-        base = sorted(
-            w[k] for w in windows if w.get(k) is not None and w.get(k) == w.get(k)
-        )
-        if len(base) < 3:
-            continue
-        below = sum(1 for b in base if b < v) / len(base)
-        comparison[k] = {
-            "document_median": v,
-            "baseline_median": statistics.median(base),
-            "baseline_min": base[0],
-            "baseline_max": base[-1],
-            "share_of_baseline_below": below,
-            "outside_range": v < base[0] or v > base[-1],
-        }
-    for w in windows:
-        w.pop("text", None)
+    comparison = compare(sty.get("windows", []), windows)
     write_json(
         work / "baseline.json",
         {

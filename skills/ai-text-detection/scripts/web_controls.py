@@ -31,12 +31,15 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import random
 import sys
-from datetime import date
 from pathlib import Path
 
-from lib.common import REFS, read_json, read_jsonl, write_json
-from lib.evidence import thresholds
+from lib.common import CONTROLS_DIR, REFS, read_json, read_jsonl, today, write_json
+from lib.europepmc import OPEN_BEFORE_CHATGPT, fulltext_windows, search
+from lib.evidence import thresholds, tool_weights, validate
+from lib.stats import auroc, pearson, rate
+from lib.text import sentences, words
 
 CAL = REFS / "calibration"
 OUT = REFS / "web_calibration.json"
@@ -60,8 +63,6 @@ def pick(rows: list[dict], n: int, key) -> list[dict]:
 
 def build(d: Path, n: int) -> dict:
     """Write the control plan."""
-    from lib.text import words
-
     human = [
         r
         for r in read_jsonl(CAL / "human.jsonl")
@@ -101,7 +102,7 @@ def build(d: Path, n: int) -> dict:
                 "n_words": len(words(r["text"])),
             }
         )
-    plan = {"built": date.today().isoformat(), "units": units}
+    plan = {"built": today(), "units": units}
     write_json(d / "controls.json", plan)
     return plan
 
@@ -114,10 +115,6 @@ def shuffle(d: Path) -> dict:
     order keeps the vocabulary and style but breaks any memorised sequence. If a tool also
     calls the shuffled texts human, its low false-positive rate is not just memory.
     """
-    import random
-
-    from lib.text import sentences
-
     plan = read_json(d / "controls.json")
     units = []
     for u in plan["units"]:
@@ -132,7 +129,7 @@ def shuffle(d: Path) -> dict:
         f = d / f"{cid}.txt"
         f.write_text(" ".join(sents[i] for i in order), encoding="utf-8")
         units.append({**u, "chunk": cid, "file": str(f), "label": "human_shuffled"})
-    out = {"built": date.today().isoformat(), "units": units}
+    out = {"built": today(), "units": units}
     write_json(d / "shuffled.json", out)
     return out
 
@@ -144,13 +141,9 @@ def domain(d: Path, queries: list[str], n: int) -> dict:
     like. These controls test that on the document's own kind of text. Each query is a
     Europe PMC query; one Introduction or Discussion window per matching paper is used.
     """
-    import random
-
-    from build_corpus import fulltext_windows, search
-
     units, seen = [], set()
     for q in queries:
-        full = f'({q}) AND OPEN_ACCESS:y AND LICENSE:"cc by" AND PUB_YEAR:[2015 TO 2021] AND HAS_FT:y'
+        full = f"({q}) AND {OPEN_BEFORE_CHATGPT} AND HAS_FT:y"
         res = [r for r in search(full, 1) if r.get("pmcid") and r["pmcid"] not in seen]
         random.Random(q).shuffle(res)
         for r in res:
@@ -181,10 +174,10 @@ def domain(d: Path, queries: list[str], n: int) -> dict:
                     "n_words": w["n_words"],
                 }
             )
-    out = {"built": date.today().isoformat(), "queries": queries, "units": units}
+    out = {"built": today(), "queries": queries, "units": units}
     old = d / "domain.results.jsonl"
     if old.exists():  # ids d01.. are reused: never pool old scores with new texts
-        kept = old.with_name(f"domain.results.{date.today().isoformat()}.jsonl.bak")
+        kept = old.with_name(f"domain.results.{today()}.jsonl.bak")
         old.rename(kept)
         print(
             f"earlier domain results set aside in {kept.name}; re-run the tools on the new set"
@@ -193,101 +186,90 @@ def domain(d: Path, queries: list[str], n: int) -> dict:
     return out
 
 
-def auroc(pos: list[float], neg: list[float]) -> float | None:
-    """P(random AI text scores above random human text); ties count half."""
-    if not pos or not neg:
-        return None
-    wins = sum((p > q) + 0.5 * (p == q) for p in pos for q in neg)
-    return wins / (len(pos) * len(neg))
+ABOUT = (
+    "Measured on known texts by web_controls.py: human = published scientific prose from 2015-2021 "
+    "(CC BY / public domain), ai = written by Claude or GPT models, polished = human text rewritten by an AI. "
+    "human_domain = human prose from the document's own field. fpr, lr_* and auroc pool all human texts (general and "
+    "domain); fpr_generic and fpr_domain show them apart. fpr = share of human texts scored >= 0.5; tpr = share of "
+    "AI texts scored >= 0.5. Small samples: "
+    "the intervals in 'n' matter. Re-run monthly (watch.py) and after any site change."
+)
+PLANS = ("controls", "shuffled", "domain")
+
+
+def flag_rate(scores: list[float]) -> float | None:
+    """Share of texts a tool scores 0.5 or more."""
+    return rate([v >= 0.5 for v in scores])
+
+
+def mean(scores: list[float]) -> float | None:
+    """Rounded mean; None for an empty list."""
+    return round(sum(scores) / len(scores), 3) if scores else None
+
+
+def known_scores(d: Path) -> tuple[dict[tuple[str, str], float], dict[str, str]]:
+    """({(tool, text id): latest score}, {text id: label}) over every control plan."""
+    label_of, latest = {}, {}
+    for name in PLANS:
+        plan = read_json(d / f"{name}.json") or {"units": []}
+        label_of.update({u["chunk"]: u["label"] for u in plan["units"]})
+        for r in read_jsonl(d / f"{name}.results.jsonl"):
+            if r.get("score") is not None:
+                latest[(r["tool"], str(r["chunk"]))] = float(r["score"])
+    return latest, label_of
+
+
+def tool_rates(by_label: dict[str, list[float]]) -> dict:
+    """One tool's record on the known texts, from its scores per label."""
+    generic, domain_ = by_label["human"], by_label["human_domain"]
+    # Rates and likelihood ratios use every independent human text.
+    h, a = generic + domain_, by_label["ai"]
+    p, hs = by_label["polished"], by_label["human_shuffled"]
+    fp, tp = sum(v >= 0.5 for v in h), sum(v >= 0.5 for v in a)
+    both = bool(a and h)
+    return {
+        "date": today(),
+        "n_human": len(h),
+        "n_ai": len(a),
+        "n_polished": len(p),
+        "fpr": flag_rate(h),
+        "tpr": flag_rate(a),
+        "polished_flagged": flag_rate(p),
+        "auroc": round(auroc(a, h), 3) if both else None,
+        # Likelihood ratios with add-one smoothing, so a small sample never gives infinity.
+        "lr_flag": round(((tp + 1) / (len(a) + 2)) / ((fp + 1) / (len(h) + 2)), 2)
+        if both
+        else None,
+        "lr_clear": round(
+            ((len(a) - tp + 1) / (len(a) + 2)) / ((len(h) - fp + 1) / (len(h) + 2)), 2
+        )
+        if both
+        else None,
+        "mean_human": mean(h),
+        "mean_ai": mean(a),
+        "n_shuffled": len(hs),
+        "fpr_shuffled": flag_rate(hs),
+        "fpr_generic": flag_rate(generic),
+        "n_domain": len(domain_),
+        "fpr_domain": flag_rate(domain_),
+        "domain_scores": sorted(round(v, 2) for v in domain_),
+    }
 
 
 def analyze(d: Path) -> dict:
     """Per-tool rates on the controls, merged into references/web_calibration.json."""
-    plan = read_json(d / "controls.json")
-    label_of = {u["chunk"]: u["label"] for u in plan["units"]}
-    label_of.update(
-        {
-            u["chunk"]: u["label"]
-            for extra in ("shuffled", "domain")
-            for u in (read_json(d / f"{extra}.json") or {"units": []})["units"]
-        }
-    )
-    res = [
-        r
-        for r in read_jsonl(d / "controls.results.jsonl")
-        + read_jsonl(d / "shuffled.results.jsonl")
-        + read_jsonl(d / "domain.results.jsonl")
-        if r.get("score") is not None
-    ]
-    latest: dict[tuple[str, str], float] = {}
-    for r in res:
-        latest[(r["tool"], str(r["chunk"]))] = float(r["score"])
+    latest, label_of = known_scores(d)
     cal = read_json(OUT) or {"_about": "", "tools": {}}
-    cal["_about"] = (
-        "Measured on known texts by web_controls.py: human = published scientific prose from 2015-2021 "
-        "(CC BY / public domain), ai = written by Claude or GPT models, polished = human text rewritten by an AI. "
-        "human_domain = human prose from the document's own field. fpr, lr_* and auroc pool all human texts (general and "
-        "domain); fpr_generic and fpr_domain show them apart. fpr = share of human texts scored >= 0.5; tpr = share of "
-        "AI texts scored >= 0.5. Small samples: "
-        "the intervals in 'n' matter. Re-run monthly (watch.py) and after any site change."
-    )
+    cal["_about"] = ABOUT
     for tool in sorted({t for t, _ in latest}):
-        h = [
-            v
-            for (t, c), v in latest.items()
-            if t == tool and label_of.get(c) == "human"
-        ]
-        a = [v for (t, c), v in latest.items() if t == tool and label_of.get(c) == "ai"]
-        p = [
-            v
-            for (t, c), v in latest.items()
-            if t == tool and label_of.get(c) == "polished"
-        ]
-        hs = [
-            v
-            for (t, c), v in latest.items()
-            if t == tool and label_of.get(c) == "human_shuffled"
-        ]
-        hd = [
-            v
-            for (t, c), v in latest.items()
-            if t == tool and label_of.get(c) == "human_domain"
-        ]
-        fpr_generic = round(sum(v >= 0.5 for v in h) / len(h), 3) if h else None
-        h = h + hd  # rates and likelihood ratios use every independent human text
-        fp, tp = sum(v >= 0.5 for v in h), sum(v >= 0.5 for v in a)
-        cal["tools"][tool] = {
-            "date": date.today().isoformat(),
-            "n_human": len(h),
-            "n_ai": len(a),
-            "n_polished": len(p),
-            "fpr": round(fp / len(h), 3) if h else None,
-            "tpr": round(tp / len(a), 3) if a else None,
-            "polished_flagged": round(sum(v >= 0.5 for v in p) / len(p), 3)
-            if p
-            else None,
-            "auroc": round(auroc(a, h), 3) if a and h else None,
-            # Likelihood ratios with add-one smoothing, so a small sample never gives infinity.
-            "lr_flag": round(((tp + 1) / (len(a) + 2)) / ((fp + 1) / (len(h) + 2)), 2)
-            if a and h
-            else None,
-            "lr_clear": round(
-                ((len(a) - tp + 1) / (len(a) + 2)) / ((len(h) - fp + 1) / (len(h) + 2)),
-                2,
-            )
-            if a and h
-            else None,
-            "mean_human": round(sum(h) / len(h), 3) if h else None,
-            "mean_ai": round(sum(a) / len(a), 3) if a else None,
-            "n_shuffled": len(hs),
-            "fpr_shuffled": round(sum(v >= 0.5 for v in hs) / len(hs), 3)
-            if hs
-            else None,
-            "fpr_generic": fpr_generic,
-            "n_domain": len(hd),
-            "fpr_domain": round(sum(v >= 0.5 for v in hd) / len(hd), 3) if hd else None,
-            "domain_scores": sorted(round(v, 2) for v in hd),
+        by_label: dict[str, list[float]] = {
+            label: []
+            for label in ("human", "human_domain", "ai", "polished", "human_shuffled")
         }
+        for (t, c), v in latest.items():
+            if t == tool and label_of.get(c) in by_label:
+                by_label[label_of[c]].append(v)
+        cal["tools"][tool] = tool_rates(by_label)
     # Every tool's score on every known text (public control texts only), and how much
     # each pair of tools moves together within a class: the overlap evidence.py discounts.
     cal["known_scores"] = {}
@@ -303,19 +285,6 @@ def analyze(d: Path) -> dict:
 
 
 MIN_SHARED = 8  # texts of one class both tools scored, for a correlation to be used
-
-
-def pearson(x: list[float], y: list[float]) -> float | None:
-    """Pearson correlation; None when either side does not vary."""
-    n = len(x)
-    mx, my = sum(x) / n, sum(y) / n
-    sx = sum((a - mx) ** 2 for a in x)
-    sy = sum((b - my) ** 2 for b in y)
-    if sx == 0 or sy == 0:
-        return None
-    return (
-        sum((a - mx) * (b - my) for a, b in zip(x, y, strict=True)) / (sx * sy) ** 0.5
-    )
 
 
 def pair_overlaps(known: dict) -> dict:
@@ -349,8 +318,6 @@ def pair_overlaps(known: dict) -> dict:
 
 def combination_section(cal: dict) -> str:
     """The combination rule run on the known texts, and the measured overlaps."""
-    from lib.evidence import tool_weights, validate
-
     used = {t for t, w in tool_weights(cal, set(cal["tools"])).items() if w["used"]}
     v = validate(cal)
     rows = "".join(
@@ -435,7 +402,7 @@ def main(argv: list[str] | None = None) -> int:
         action="append",
         help="Europe PMC query for domain controls (repeatable)",
     )
-    p.add_argument("--dir", default="/tmp/ai_text_detection_controls")
+    p.add_argument("--dir", default=str(CONTROLS_DIR))
     p.add_argument("--n", type=int, default=8)
     args = p.parse_args(argv)
     d = Path(args.dir)

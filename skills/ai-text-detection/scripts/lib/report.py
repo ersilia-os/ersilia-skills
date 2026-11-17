@@ -15,8 +15,8 @@ The layout follows the web detectors people already know:
     Other        the findings to quote from: leftover chatbot text, hidden text,
                  references not found, notes whose quote could not be placed
 
-A passage is whole prose paragraphs from one section, ~250-500 words
-(web_detectors.build_passages): the unit the reader sees. The scores themselves come from
+A passage is whole prose paragraphs from one section, 250-600 words
+(lib.splits.build_passages): the unit the reader sees. The scores themselves come from
 every split (segments.py) through evidence.py.
 
 Styles live in ``assets/report.css``.
@@ -30,13 +30,13 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from lib.common import REFS, SKILL_DIR, read_json
-from lib.detectors import marks_ai
-from lib.splits import build_passages
+from lib.common import ASSETS, REFS, read_json
+from lib.detectors import Detections
+from lib.splits import build_plan
 from lib.style import features, style_score
-from lib.text import is_prose, words
+from lib.text import is_prose, paragraph_spans, words
 
-CSS_FILE = SKILL_DIR / "assets" / "report.css"
+CSS_FILE = ASSETS / "report.css"
 FONTS = (
     "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800"
     "&family=Source+Serif+4:wght@400;600&display=swap"
@@ -184,7 +184,7 @@ class Inputs:
     arts: dict
     refs: list[dict]
     jud: dict
-    web: dict
+    web: Detections
     evd: dict
     reg: dict[str, dict]
     style_model: dict | None
@@ -259,7 +259,7 @@ def load(work: Path) -> Inputs:
         arts=read_json(work / "artifacts.json") or {"hits": [], "hidden": []},
         refs=(read_json(work / "references.json") or {}).get("references", []),
         jud=read_json(work / "judgements.json") or {},
-        web=read_json(work / "web_detectors.json") or {},
+        web=Detections.load(work),
         evd=read_json(work / "evidence.json") or {},
         reg={t["id"]: t for t in wreg.get("tools", [])},
         style_model=cal.get("model"),
@@ -267,41 +267,36 @@ def load(work: Path) -> Inputs:
         rules=read_json(REFS / "grading.json") or {},
     )
     order = wreg.get("default_order", [])
-    ran = (
-        {r["tool"] for r in inp.web.get("results", [])}
-        | set(inp.web.get("summary") or {})
-        | set(inp.evd.get("used") or [])
-    )
+    ran = set(inp.web.summary()) | set(inp.evd.get("used") or [])
     inp.tools = sorted(
         ran,
         key=lambda t: (
             inp.reg.get(t, {}).get("weight") != "validated",
-            order.index(t) if t in order else 99,
+            order.index(t) if t in order else len(order),
+            t,
         ),
     )
     return inp
 
 
 def passage_rows(inp: Inputs) -> list[dict]:
-    """The passages in reading order, with each detector's score and the style score."""
-    passages = inp.web.get("chunks") or [
-        {"chunk": k, **p} for k, p in enumerate(build_passages(inp.doc), 1)
+    """The passages in reading order, with each detector's score and the style score.
+    Without a plan (no detector was run) the passages are cut from the document here."""
+    passages = inp.web.passages or [
+        u for u in build_plan(inp.doc)["units"] if u["scale"] == "P"
     ]
-    scores: dict[int, dict[str, float]] = {}
-    for r in inp.web.get("results", []):  # the latest result per tool and passage wins
-        scores.setdefault(r["chunk"], {})[r["tool"]] = r["score"]
+    scores = inp.web.passage_scores()
     rows = []
     for p in passages:
-        body = "\n\n".join(
-            inp.text[a:b] for a, b in p.get("paras", [[p["start"], p["end"]]])
-        )
+        body = "\n\n".join(inp.text[a:b] for a, b in p["spans"])
         st = style_score(features(body), inp.style_model) if inp.style_model else None
         flagged = bool(st is not None and inp.style_thr and st >= inp.style_thr["5%"])
         sc = scores.get(p["chunk"], {})
         rows.append(
             {
                 **p,
-                "id": f"P{p['chunk']}",
+                "id": p["chunk"],
+                "n": int(p["chunk"][1:]),
                 "label": " + ".join(p["sections"]),
                 "style_flag": flagged,
                 "sc": sc,
@@ -317,9 +312,9 @@ def passage_rows(inp: Inputs) -> list[dict]:
 class TextRenderer:
     """The document with sentence heat, site marks (hover), artefacts and notes."""
 
-    def __init__(self, inp: Inputs, rows: list[dict]) -> None:
+    def __init__(self, inp: Inputs) -> None:
         self.inp, self.text, self.heat = inp, inp.text, inp.heat
-        self.events = self._site_marks(rows) + self._artefacts() + self._notes()
+        self.events = self._site_marks() + self._artefacts() + self._notes()
         self.notes_placed: set[int] = set()
 
     def _locate(self, chunk_text: str, a0: int, b0: int) -> tuple[int, int] | None:
@@ -327,29 +322,16 @@ class TextRenderer:
         m = re.search(pat, self.text[a0:b0]) if pat else None
         return (a0 + m.start(), a0 + m.end()) if m else None
 
-    def _site_marks(self, rows: list[dict]) -> list[tuple]:
+    def _site_marks(self) -> list[tuple]:
         """Sentences the sites highlighted as AI, from every split, merged across tools."""
-        span_of = {r["chunk"]: (r["start"], r["end"]) for r in rows}
-        found: list[tuple[str, tuple[int, int], str]] = [
-            (h["tool"], span_of.get(h["chunk"], (0, len(self.text))), h["text"])
-            for h in self.inp.web.get("highlights", [])
+        span_of = {
+            u["chunk"]: (u["start"], u["end"]) for u in self.inp.web.plan["units"]
+        }
+        found = [
+            (h["tool"], span_of[h["chunk"]], h["text"])
+            for h in self.inp.web.site_marks()
+            if h["chunk"] in span_of
         ]
-        plan = read_json(self.inp.work / "multi" / "plan.json") or {"units": []}
-        for u in plan["units"]:
-            if u["scale"] == "P":
-                continue
-            for f in (self.inp.work / "plan").glob(
-                f"*_chunk{u['chunk']}_highlights.json"
-            ):
-                for h in read_json(f) or []:
-                    if marks_ai(f.name.split("_chunk")[0], h.get("bg", "")):
-                        found.append(
-                            (
-                                f.name.split("_chunk")[0],
-                                (u["start"], u["end"]),
-                                h["text"],
-                            )
-                        )
         marked: dict[tuple[int, int], set[str]] = {}
         for tool, (a0, b0), t in found:
             loc = self._locate(t, a0, b0)
@@ -473,24 +455,21 @@ class TextRenderer:
     def passage(self, r: dict) -> str:
         """A passage: header with its combined value, then its paragraphs; unchecked text
         inside it (headings, captions, tables) rendered as such."""
-        text, starts = (
-            self.text,
-            {a for a, _ in r.get("paras", [[r["start"], r["end"]]])},
-        )
-        parts, pos, held = [], r["start"], None
-        for m in [*re.finditer(r"\n\s*\n", text[r["start"] : r["end"]]), None]:
-            end = r["start"] + m.start() if m else r["end"]
+        text = self.text
+        starts = {a for a, _ in r["spans"]}
+        parts, held = [], None
+        for pos, end in paragraph_spans(text, r["start"], r["end"]):
             raw = text[pos:end]
             a0 = pos + (len(raw) - len(raw.lstrip()))
-            if raw.strip():
-                if a0 in starts:
-                    if held is not None:
-                        parts.append(unchecked_html(text, held, a0))
-                        held = None
-                    parts.append(f"<p>{self.paragraph(a0, end)}</p>")
-                elif held is None:
-                    held = a0
-            pos = r["start"] + m.end() if m else r["end"]
+            if not raw.strip():
+                continue
+            if a0 in starts:
+                if held is not None:
+                    parts.append(unchecked_html(text, held, a0))
+                    held = None
+                parts.append(f"<p>{self.paragraph(a0, end)}</p>")
+            elif held is None:
+                held = a0
         if held is not None:
             parts.append(unchecked_html(text, held, r["end"]))
         ev = self.inp.combined.get(r["id"])
@@ -508,9 +487,9 @@ class TextRenderer:
         )
         info = f'<span title="{e(scores)}">ⓘ</span>' if scores else ""
         return (
-            f'<section class="psg" id="p{r["chunk"]}"><div class="phead">'
+            f'<section class="psg" id="p{r["n"]}"><div class="phead">'
             f'<span class="tag {times_class(ev)}">{e(tag)}</span>'
-            f"<span>Passage {r['chunk']} · {e(r['label'])} · {r['n_words']} words</span>{info}</div>"
+            f"<span>Passage {r['n']} · {e(r['label'])} · {r['n_words']} words</span>{info}</div>"
             f"{''.join(parts)}</section>"
         )
 
@@ -697,7 +676,7 @@ def side_panel(inp: Inputs, rows: list[dict]) -> str:
             width = 100 * r["n_ai"] / n if n else 0
             lab = f"{r['n_ai']}/{n}" if n else "—"
         prow.append(
-            f'<a class="prow" href="#p{r["chunk"]}"><span class="tag {cls}">{r["id"]}</span>'
+            f'<a class="prow" href="#p{r["n"]}"><span class="tag {cls}">{r["id"]}</span>'
             f'<span class="nm">{e(r["label"])} <small>{r["n_words"]}w</small>'
             f'<div class="mini"><span style="width:{width:.0f}%;background:{colour.get(cls, "var(--muted)")}"></span></div></span>'
             f'<span class="tag {cls}">{e(lab)}</span></a>'
@@ -708,7 +687,7 @@ def side_panel(inp: Inputs, rows: list[dict]) -> str:
         c = w.get("cal") or {}
         chips = "".join(
             f'<span class="chip {"na" if r["sc"].get(t) is None else ("ai" if r["sc"][t] >= 0.5 else "hu")}" '
-            f'title="passage {r["chunk"]}">{"–" if r["sc"].get(t) is None else pc(r["sc"][t])}</span>'
+            f'title="passage {r["n"]}">{"–" if r["sc"].get(t) is None else pc(r["sc"][t])}</span>'
             for r in rows
         )
         record = (
@@ -785,7 +764,7 @@ def render(work: Path, case: str, kind: str, context: str) -> str:
     """The report fragment: <title>, fonts, <style>, then the page."""
     inp = load(work)
     rows = passage_rows(inp)
-    tr = TextRenderer(inp, rows)
+    tr = TextRenderer(inp)
     text_html = tr.document(rows)  # first: it records which notes found their place
     side = side_panel(inp, rows)
     tested = (

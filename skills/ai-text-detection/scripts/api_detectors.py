@@ -1,7 +1,7 @@
 """Run detectors that have an API, so no browser and no CAPTCHA are involved.
 
-Results go into the same <work>/web_detectors.json as the browser route, under the same tool
-ids, so grading and the report treat them alike. Each provider needs the user's own key in
+Results go into the same plan results as the browser route (lib/detectors.py), under the
+same tool ids, so grading and the report treat them alike. Each provider needs the user's own key in
 an environment variable. The skill never creates accounts or keys.
 
     pangram       PANGRAM_API_KEY   validated. Free research credits on application
@@ -12,11 +12,11 @@ an environment variable. The skill never creates accounts or keys.
                   (tomg-group-umd/Binoculars); nothing is downloaded; free GPU quota.
 
 Sending text to any of these uploads it. The same rules as the browser route apply
-(SKILL.md, step 2b): never for a manuscript or grant the user is reviewing, and only after the
+(references/web_detectors_guide.md, section 1): never for a manuscript or grant the user is reviewing, and only after the
 user has approved that service at least once (``--approved`` records it in the ledger dir).
 
 Usage:
-    python api_detectors.py --tools pangram,sapling [--chunks 1,2]
+    python api_detectors.py --tools pangram,sapling [--chunks P1,P2 | S,W]
     python api_detectors.py --status          # which keys are set; sends nothing
 """
 
@@ -28,12 +28,11 @@ import os
 import re
 import sys
 import time
-import urllib.error
-import urllib.request
-from datetime import date
 from pathlib import Path
 
-from lib.common import LOCAL, USER_AGENT, WORK_DIR, die, read_json, write_json
+from lib.common import LOCAL, WORK_DIR, die, read_json, today, write_json
+from lib.detectors import Scan, report_left_out, tool
+from lib.http import post_json, request
 
 APPROVALS = LOCAL / "approved_services.json"
 KEYS = {
@@ -44,29 +43,9 @@ KEYS = {
 }
 
 
-def post(url: str, body: dict, headers: dict, timeout: int = 120) -> dict:
-    """POST JSON, return JSON (raises on HTTP errors with the body's message)."""
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(body).encode(),
-        headers={
-            "Content-Type": "application/json",
-            "User-Agent": USER_AGENT,
-            **headers,
-        },
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            return json.loads(r.read().decode() or "{}")
-    except urllib.error.HTTPError as e:
-        raise RuntimeError(
-            f"HTTP {e.code}: {e.read().decode(errors='replace')[:200]}"
-        ) from e
-
-
 def pangram(text: str, key: str) -> tuple[float, str]:
     """AI fraction of the text (0-1) and a label."""
-    d = post("https://text.api.pangram.com/v3", {"text": text}, {"x-api-key": key})
+    d = post_json("https://text.api.pangram.com/v3", {"text": text}, {"x-api-key": key})
     frac = d.get("fraction_ai")
     if frac is None:
         raise RuntimeError(f"unexpected response: {str(d)[:200]}")
@@ -76,7 +55,7 @@ def pangram(text: str, key: str) -> tuple[float, str]:
 
 def gptzero(text: str, key: str) -> tuple[float, str]:
     """Probability the document is AI-generated (AI + mixed) and the classification."""
-    d = post(
+    d = post_json(
         "https://api.gptzero.me/v2/predict/text", {"document": text}, {"x-api-key": key}
     )
     doc = (d.get("documents") or [{}])[0]
@@ -92,7 +71,7 @@ def gptzero(text: str, key: str) -> tuple[float, str]:
 
 def sapling(text: str, key: str) -> tuple[float, str]:
     """Sapling's document score (0-1, higher is more AI) and verdict."""
-    d = post(
+    d = post_json(
         "https://api.sapling.ai/api/v1/aidetect",
         {"key": key, "text": text, "zero_retention": True},
         {},
@@ -105,12 +84,8 @@ def binoculars(text: str, token: str | None) -> tuple[float, str]:
     with the demo's own label, since the demo reports a decision rather than a probability."""
     base = "https://tomg-group-umd-binoculars.hf.space/call/run_detector"
     headers = {"Authorization": f"Bearer {token}"} if token else {}
-    ev = post(base, {"data": [text]}, headers)
-    req = urllib.request.Request(
-        f"{base}/{ev['event_id']}", headers={"User-Agent": USER_AGENT, **headers}
-    )
-    with urllib.request.urlopen(req, timeout=180) as r:
-        stream = r.read().decode()
+    ev = post_json(base, {"data": [text]}, headers)
+    stream = request(f"{base}/{ev['event_id']}", headers=headers, timeout=180)
     data = [ln[5:].strip() for ln in stream.splitlines() if ln.startswith("data:")]
     label = json.loads(data[-1])[0] if data else ""
     ai = bool(
@@ -127,17 +102,61 @@ PROVIDERS = {
 }
 
 
+def status(approvals: dict) -> None:
+    """Print which keys are set and which services the user approved; sends nothing."""
+    for t, env in KEYS.items():
+        print(
+            f"{t:<11} key {'set' if os.environ.get(env) else 'missing'} ({env}); "
+            f"approved by the user: {approvals.get(t, 'no')}"
+        )
+
+
+def say(**row: object) -> None:
+    """Print one JSON status line."""
+    print(json.dumps(row), flush=True)
+
+
+def run_tool(tool_id: str, scan: Scan, units: list[dict]) -> None:
+    """Send each unit to one service; stop using it when its quota is reached."""
+    key = os.environ.get(KEYS[tool_id])
+    if not key and tool_id != "binoculars":
+        say(tool=tool_id, status="no-key", why=f"set {KEYS[tool_id]}")
+        return
+    for u in units:
+        text = Path(u["file"]).read_text(encoding="utf-8")
+        try:
+            score, label = PROVIDERS[tool_id](text, key)
+        except Exception as ex:  # noqa: BLE001 - report and continue
+            say(tool=tool_id, chunk=u["chunk"], status="error", why=str(ex)[:200])
+            if "402" in str(ex) or "429" in str(ex):
+                return  # quota reached
+            continue
+        row = {
+            "tool": tool_id,
+            "chunk": u["chunk"],
+            "status": "done",
+            "score": round(score, 4),
+            "label": label,
+        }
+        scan.save({**row, "note": "api"})
+        say(**row)
+        time.sleep(1)
+
+
 def main(argv: list[str] | None = None) -> int:
-    """Run the requested API detectors over the prepared chunks."""
+    """Run the requested API detectors over the prepared units."""
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     p.add_argument("--work", default=str(WORK_DIR))
     p.add_argument("--tools", default="pangram,gptzero,sapling,binoculars")
-    p.add_argument("--chunks")
+    p.add_argument(
+        "--chunks",
+        help="comma-separated unit ids or scales (P, S, W); default: the passages",
+    )
     p.add_argument(
         "--plan",
-        help="JSON {units: [{chunk, file}]} to scan instead of the draft's passages",
+        help="JSON {units: [{chunk, file}]} to scan instead of the document's plan",
     )
     p.add_argument(
         "--log", help="JSONL to append results to (default: <plan>.results.jsonl)"
@@ -151,107 +170,24 @@ def main(argv: list[str] | None = None) -> int:
     approvals = read_json(APPROVALS) or {}
     if args.approved:
         for t in args.approved.split(","):
-            approvals[t] = date.today().isoformat()
+            approvals[t] = today()
         write_json(APPROVALS, approvals)
     if args.status:
-        for t, env in KEYS.items():
-            print(
-                f"{t:<11} key {'set' if os.environ.get(env) else 'missing'} ({env}); "
-                f"approved by the user: {approvals.get(t, 'no')}"
-            )
+        status(approvals)
         return 0
-    work = Path(args.work)
-    if args.plan:
-        units = (read_json(args.plan) or die(f"cannot read {args.plan}"))["units"]
-        log_path = Path(args.log or str(args.plan).replace(".json", ".results.jsonl"))
-        st = None
-    else:
-        st = read_json(work / "web_detectors.json") or die(
-            "run `web_detectors.py prepare` first"
-        )
-        units = st["chunks"]
-        log_path = Path(args.log) if args.log else None
-    wanted = set(args.chunks.split(",")) if args.chunks else None
+    scan = Scan.load(Path(args.work), args.plan, args.log)
     for t in args.tools.split(","):
         if t not in PROVIDERS:
             die(f"unknown API tool {t}")
         if t not in approvals:
-            print(
-                json.dumps(
-                    {
-                        "tool": t,
-                        "status": "not-approved",
-                        "why": "ask the user before sending text to this service",
-                    }
-                )
+            say(
+                tool=t,
+                status="not-approved",
+                why="ask the user before sending text to this service",
             )
             continue
-        key = os.environ.get(KEYS[t])
-        if not key and t != "binoculars":
-            print(json.dumps({"tool": t, "status": "no-key", "why": f"set {KEYS[t]}"}))
-            continue
-        for c in units:
-            if wanted and str(c["chunk"]) not in wanted:
-                continue
-            text = Path(c["file"]).read_text(encoding="utf-8")
-            try:
-                score, label = PROVIDERS[t](text, key)
-            except Exception as ex:  # noqa: BLE001 - report and continue
-                print(
-                    json.dumps(
-                        {
-                            "tool": t,
-                            "chunk": c["chunk"],
-                            "status": "error",
-                            "why": str(ex)[:200],
-                        }
-                    ),
-                    flush=True,
-                )
-                if "402" in str(ex) or "429" in str(ex):
-                    break  # quota reached: stop using this service
-                continue
-            if st is not None:
-                st["results"].append(
-                    {
-                        "tool": t,
-                        "chunk": c["chunk"],
-                        "score": round(score, 4),
-                        "label": label,
-                        "note": "api",
-                        "date": date.today().isoformat(),
-                    }
-                )
-                write_json(work / "web_detectors.json", st)
-            if log_path:
-                with log_path.open("a", encoding="utf-8") as f:
-                    f.write(
-                        json.dumps(
-                            {
-                                "tool": t,
-                                "chunk": c["chunk"],
-                                "status": "done",
-                                "score": round(score, 4),
-                                "label": label,
-                                "parsed": True,
-                                "date": time.strftime("%Y-%m-%d %H:%M"),
-                            }
-                        )
-                        + "\n"
-                    )
-            print(
-                json.dumps(
-                    {
-                        "tool": t,
-                        "chunk": c["chunk"],
-                        "status": "done",
-                        "score": round(score, 4),
-                        "label": label,
-                    }
-                ),
-                flush=True,
-            )
-            time.sleep(1)
+        report_left_out(scan, args.chunks, t)
+        run_tool(t, scan, scan.select(args.chunks, tool(t)))
     return 0
 
 

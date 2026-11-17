@@ -23,13 +23,12 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import date
 
-from lib.common import SKILL_DIR, die, read_json, write_json
+from lib.common import EXAMPLES, REFS, die, read_json, today, write_json
 
-LOG = SKILL_DIR / "references" / "feedback-log.json"
-CASES = SKILL_DIR / "examples" / "cases"
-KINDS = ("marker", "grading", "calibration", "code", "process")
+LOG = REFS / "feedback_log.json"
+CASES = EXAMPLES / "cases"
+LESSON_KINDS = ("marker", "grading", "calibration", "code", "process")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -40,7 +39,7 @@ def main(argv: list[str] | None = None) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
     a = sub.add_parser("add")
     a.add_argument("--text", required=True)
-    a.add_argument("--kind", required=True, choices=KINDS)
+    a.add_argument("--kind", required=True, choices=LESSON_KINDS)
     a.add_argument("--change", required=True)
     a.add_argument("--fixture")
     sub.add_parser("list")
@@ -59,7 +58,7 @@ def main(argv: list[str] | None = None) -> int:
             die(f"no such selftest case in examples/cases/: {', '.join(missing)}")
         entry = {
             "n": len(log["entries"]) + 1,
-            "date": date.today().isoformat(),
+            "date": today(),
             "feedback": args.text,
             "kind": args.kind,
             "change": args.change,

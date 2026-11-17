@@ -2,19 +2,20 @@
 
 Drives the user's installed Google Chrome (Playwright, ``channel="chrome"``) with a
 dedicated profile in ~/.ai-text-detection/chrome-profile, so a site the user signs in to
-once stays signed in. For each tool and chunk it:
+once stays signed in. For each tool and unit of the plan (segments.py) it:
 
 1. opens the site, declines non-essential cookies (accepts only where the user approved it
    for that site: ``"cookies": "accept"`` in references/web_detectors.json);
 2. finds the main text box, also inside embedded frames, clicking ``input_click`` first
    for editors that only appear on click;
-3. pastes the chunk, presses the nearest scan / check / detect button, and waits up to
+3. pastes the text, presses the nearest scan / check / detect button, and waits up to
    ~90 s for a verdict;
 4. saves the page text, the new result text, the sentences the site highlighted and a
-   screenshot under <work>/web/ (or <work>/plan/ with --plan), and prints one JSON line.
+   screenshot under <work>/plan/ (<work>/<plan name>/ with --plan), appends a row to
+   the plan's results (lib/detectors.py) and prints it as one JSON line.
 
-Scores are read with the site's parser in web_detectors.json when it has one and recorded
-automatically; check a sample of pages by eye after every run. Without a parser the
+Scores are read with the site's parser in web_detectors.json when it has one; check a
+sample of pages by eye after every run. Without a parser the
 printed ``guess`` is only a hint: read the page and use ``web_detectors.py record``.
 
 It stops on a site as soon as it sees a CAPTCHA a person would have to answer, a login
@@ -22,8 +23,9 @@ wall or a free-use limit, and reports it; it never works around them. Sites whos
 forbid automation (``"terms": "no-automation"``) are skipped.
 
 Usage (inside the conda env, which has Playwright):
-    python browser_detect.py --tools zerogpt,undetectable [--chunks 1,2]
-    python browser_detect.py --plan <work>/multi/plan.json --tools zerogpt --chunks S1,W3
+    python browser_detect.py                              # unattended tools, the passages
+    python browser_detect.py --tools zerogpt --chunks S,W # the other splits (or ids: S1,W3)
+    python browser_detect.py --plan <controls>/controls.json --tools zerogpt
     python browser_detect.py --login --tools gptzero      # let the user sign in once
 """
 
@@ -37,8 +39,15 @@ import sys
 import time
 from pathlib import Path
 
-from lib.common import LOCAL, REFS, WORK_DIR, die, read_json
-from lib.detectors import is_ai_colour, parse_score, record_result
+from lib.common import ENV_NAME, LOCAL, WORK_DIR, die
+from lib.detectors import (
+    Scan,
+    is_ai_colour,
+    parse_score,
+    report_left_out,
+    tool,
+    unattended,
+)
 
 PROFILE = LOCAL / "chrome-profile"
 BUTTON_RE = re.compile(
@@ -313,6 +322,81 @@ def highlights(page, chunk_text: str) -> list[dict]:
     return out
 
 
+CAPTCHA_LEFT = "CAPTCHA (left for the user; never solved automatically)"
+WORKING_RE = re.compile(
+    r"\b(checking|analy[sz]ing|processing|scanning|loading)\b", re.IGNORECASE
+)
+VERDICT_WORD_RE = re.compile(r"\b(AI|human|generated|written)\b", re.IGNORECASE)
+
+
+def open_input(page, tool: dict):
+    """The site's text box, or None. Editors that appear only on a click
+    (``input_click``) or once the page has finished loading are waited for."""
+    accept = tool.get("cookies") == "accept"
+    box = find_input(page)
+    if not box and tool.get("input_click"):
+        try:
+            page.click(tool["input_click"], timeout=8000)
+            page.wait_for_timeout(1000)
+        except Exception:  # noqa: BLE001, S110 - fall through to the retry below
+            pass
+        box = find_input(page)
+    if not box:
+        page.wait_for_timeout(5000)
+        dismiss_cookies(page, accept)
+        box = find_input(page)
+    return box
+
+
+def has_verdict(tool: dict, fresh: str) -> bool:
+    """Whether the new text on the page holds the site's verdict. With a parser, only
+    the verdict it knows counts: marketing text such as "99% accurate" on a freshly
+    opened result tab must not end the wait."""
+    if tool.get("parse"):
+        return parse_score(tool["id"], fresh)[0] is not None
+    return bool(PCT_ANY.search(fresh) and VERDICT_WORD_RE.search(fresh))
+
+
+def wait_for_verdict(page, tool: dict, pasted: str, human_wait: int) -> str | None:
+    """The page text once the verdict shows (or after ~90 s); None when a CAPTCHA
+    appears that the user does not answer."""
+    after = pasted
+    for _ in range(45):
+        page.wait_for_timeout(2000)
+        after = all_text(page)
+        if captcha_shown(page) and not (
+            human_wait and wait_for_human(page, human_wait)
+        ):
+            return None
+        fresh = new_lines(pasted, after)
+        if WORKING_RE.search(fresh[:300]):
+            continue
+        if has_verdict(tool, fresh):
+            page.wait_for_timeout(2000)  # let the numbers settle
+            return all_text(page)
+    return after
+
+
+def save_pages(page, stem: Path, after: str, fresh: str, text: str) -> dict:
+    """Write the page text, the result text, the highlighted sentences and a screenshot
+    next to ``stem``; return where they are."""
+    stem.with_suffix(".txt").write_text(after, encoding="utf-8")
+    result = stem.with_name(stem.name + "_result.txt")
+    result.write_text(fresh, encoding="utf-8")
+    marks = highlights(page, text)
+    stem.with_name(stem.name + "_highlights.json").write_text(
+        json.dumps(marks, ensure_ascii=False), encoding="utf-8"
+    )
+    # The visible viewport, where results show.
+    page.screenshot(path=str(stem.with_suffix(".png")))
+    return {
+        "result_text": str(result),
+        "highlighted_sentences": len(marks),
+        "page_text": str(stem.with_suffix(".txt")),
+        "screenshot": str(stem.with_suffix(".png")),
+    }
+
+
 def run_one(
     page, tool: dict, k: int, text: str, out: Path, human_wait: int = 0
 ) -> dict:
@@ -324,21 +408,10 @@ def run_one(
     dismiss_cookies(page, accept)
     if captcha_shown(page) and human_wait:
         wait_for_human(page, human_wait)
-    before = all_text(page)
-    if BLOCK_RE.search(before):
-        return {**row, "status": "blocked", "why": BLOCK_RE.search(before).group(0)}
-    box = find_input(page)
-    if not box and tool.get("input_click"):  # editors created on first click
-        try:
-            page.click(tool["input_click"], timeout=8000)
-            page.wait_for_timeout(1000)
-        except Exception:  # noqa: BLE001, S110 - fall through to the retry below
-            pass
-        box = find_input(page)
-    if not box:  # some editors appear only once the page has finished loading
-        page.wait_for_timeout(5000)
-        dismiss_cookies(page, accept)
-        box = find_input(page)
+    wall = BLOCK_RE.search(all_text(page))
+    if wall:
+        return {**row, "status": "blocked", "why": wall.group(0)}
+    box = open_input(page, tool)
     if not box:
         return {
             **row,
@@ -364,64 +437,54 @@ def run_one(
         page.wait_for_timeout(2000)
         pasted = ""
     if captcha_shown(page) and not (human_wait and wait_for_human(page, human_wait)):
-        return {
-            **row,
-            "status": "blocked",
-            "why": "CAPTCHA (left for the user; never solved automatically)",
-        }
-    after, fresh = pasted, ""
-    for _ in range(45):  # up to ~90 s for the verdict to appear
-        page.wait_for_timeout(2000)
-        after = all_text(page)
-        if captcha_shown(page) and not (
-            human_wait and wait_for_human(page, human_wait)
-        ):
-            return {
-                **row,
-                "status": "blocked",
-                "why": "CAPTCHA (left for the user; never solved automatically)",
-            }
-        fresh = new_lines(pasted, after)
-        if re.search(
-            r"\b(checking|analy[sz]ing|processing|scanning|loading)\b",
-            fresh[:300],
-            re.IGNORECASE,
-        ):
-            continue  # still working
-        if (
-            # With a parser, wait for the verdict it knows; marketing text such as
-            # "99% accurate" on a freshly opened result tab must not end the wait.
-            parse_score(tool["id"], fresh)[0] is not None
-            if tool.get("parse")
-            else PCT_ANY.search(fresh)
-            and re.search(r"\b(AI|human|generated|written)\b", fresh, re.IGNORECASE)
-        ):
-            page.wait_for_timeout(2000)  # let the numbers settle
-            after = all_text(page)
-            fresh = new_lines(pasted, after)
-            break
-    else:
-        fresh = new_lines(pasted, after)
-    stem = out / f"{tool['id']}_chunk{k}"
-    stem.with_suffix(".txt").write_text(after, encoding="utf-8")
-    result = stem.with_name(stem.name + "_result.txt")
-    result.write_text(fresh, encoding="utf-8")
-    marks = highlights(page, text)
-    stem.with_name(stem.name + "_highlights.json").write_text(
-        json.dumps(marks, ensure_ascii=False), encoding="utf-8"
-    )
-    page.screenshot(
-        path=str(stem.with_suffix(".png"))
-    )  # the visible viewport, where results show
+        return {**row, "status": "blocked", "why": CAPTCHA_LEFT}
+    after = wait_for_verdict(page, tool, pasted, human_wait)
+    if after is None:
+        return {**row, "status": "blocked", "why": CAPTCHA_LEFT}
+    fresh = new_lines(pasted, after)
+    saved = save_pages(page, out / f"{tool['id']}_chunk{k}", after, fresh, text)
     return {
         **row,
         "status": "done" if fresh else "no-result",
         "guess": guess(fresh),
-        "result_text": str(result),
-        "highlighted_sentences": len(marks),
-        "page_text": str(stem.with_suffix(".txt")),
-        "screenshot": str(stem.with_suffix(".png")),
+        **saved,
     }
+
+
+def scan_unit(ctx, tool: dict, unit: dict, out: Path, human_wait: int) -> dict:
+    """Run one tool on one unit and read its score; errors become a status row."""
+    text = Path(unit["file"]).read_text(encoding="utf-8")
+    try:
+        row = run_one(ctx.pages[0], tool, unit["chunk"], text, out, human_wait)
+        for extra in ctx.pages[1:]:  # close result tabs between submissions
+            extra.close()
+    except Exception as ex:  # noqa: BLE001 - network or page errors: report, move on
+        return {
+            "tool": tool["id"],
+            "chunk": unit["chunk"],
+            "status": "error",
+            "why": str(ex)[:200],
+        }
+    if row.get("result_text"):
+        score, label = parse_score(
+            tool["id"], Path(row["result_text"]).read_text(encoding="utf-8")
+        )
+        row.update({"score": score, "label": label, "parsed": score is not None})
+    return row
+
+
+def login(ctx, urls: list[str]) -> None:
+    """Open the sites and wait until the user closes the window."""
+    for url in urls:
+        ctx.new_page().goto(url)
+    print(
+        "signed-in state is kept in the dedicated profile; close the browser window when done",
+        flush=True,
+    )
+    try:
+        ctx.wait_for_event("close", timeout=0)
+    except Exception:  # noqa: BLE001, S110 - user closed the window
+        pass
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -432,12 +495,15 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--work", default=str(WORK_DIR))
     p.add_argument(
         "--tools",
-        help="comma-separated tool ids (default: the registry's default order)",
+        help="comma-separated tool ids (default: the tools that run unattended)",
     )
-    p.add_argument("--chunks", help="comma-separated chunk ids (default: all)")
+    p.add_argument(
+        "--chunks",
+        help="comma-separated unit ids or scales (P, S, W); default: the passages",
+    )
     p.add_argument(
         "--plan",
-        help="JSON {units: [{chunk, file}]} to scan instead of the draft's passages",
+        help="JSON {units: [{chunk, file}]} to scan instead of the document's plan",
     )
     p.add_argument(
         "--log",
@@ -466,37 +532,20 @@ def main(argv: list[str] | None = None) -> int:
         from playwright.sync_api import sync_playwright
     except ImportError:
         die(
-            "needs Playwright in the env: ask the user, then `conda run -n ai-text-detection pip install playwright`"
+            f"needs Playwright in the env: ask the user, then `conda run -n {ENV_NAME} pip install playwright`"
         )
-    reg = read_json(REFS / "web_detectors.json")
-    tools = {t["id"]: t for t in reg["tools"]}
+    # By default, the unattended tools that run in a browser (not through an API).
     order = (
         args.tools.split(",")
         if args.tools
-        else [
-            t
-            for t in reg["default_order"]
-            if t not in {x["id"] for x in reg["tools"] if x.get("route") == "api"}
-        ]
+        else [t for t in unattended() if tool(t).get("route") != "api"]
     )
-    unknown = [t for t in order if t not in tools]
+    unknown = [t for t in order if not tool(t)]
     if unknown:
         die(f"unknown tool(s): {', '.join(unknown)}")
     work = Path(args.work)
-    if args.plan:
-        units = (read_json(args.plan) or die(f"cannot read {args.plan}"))["units"]
-        log_path = Path(args.log or str(args.plan).replace(".json", ".results.jsonl"))
-        out_dir_name = Path(args.plan).stem
-    else:
-        state = read_json(work / "web_detectors.json")
-        if not args.login and not state:
-            die("run `web_detectors.py prepare` first")
-        units = (state or {}).get("chunks", [])
-        log_path = Path(args.log) if args.log else None
-        out_dir_name = "web"
+    scan = None if args.login else Scan.load(work, args.plan, args.log)
     PROFILE.mkdir(parents=True, exist_ok=True)
-    out = work / out_dir_name
-    out.mkdir(parents=True, exist_ok=True)
 
     with sync_playwright() as pw:
         ctx = pw.chromium.launch_persistent_context(
@@ -505,23 +554,14 @@ def main(argv: list[str] | None = None) -> int:
             headless=False,
             viewport={"width": 1280, "height": 900},
         )
-        page = ctx.pages[0] if ctx.pages else ctx.new_page()
-        if args.login:
-            for tid in order:
-                pg = ctx.new_page()
-                pg.goto(tools[tid]["url"])
-            print(
-                "signed-in state is kept in the dedicated profile; close the browser window when done",
-                flush=True,
-            )
-            try:
-                ctx.wait_for_event("close", timeout=0)
-            except Exception:  # noqa: BLE001, S110 - user closed the window
-                pass
+        if not ctx.pages:
+            ctx.new_page()
+        if scan is None:
+            login(ctx, [tool(t)["url"] for t in order])
             return 0
-        wanted = set(args.chunks.split(",")) if args.chunks else None
+        scan.pages.mkdir(parents=True, exist_ok=True)
         for tid in order:
-            if tools[tid].get("terms") == "no-automation":
+            if tool(tid).get("terms") == "no-automation":
                 print(
                     json.dumps(
                         {
@@ -533,39 +573,10 @@ def main(argv: list[str] | None = None) -> int:
                     flush=True,
                 )
                 continue
-            for c in units:
-                if wanted and str(c["chunk"]) not in wanted:
-                    continue
-                text = Path(c["file"]).read_text(encoding="utf-8")
-                try:
-                    row = run_one(
-                        page, tools[tid], c["chunk"], text, out, args.human_wait
-                    )
-                    for extra in ctx.pages[1:]:  # close result tabs between submissions
-                        extra.close()
-                    page = ctx.pages[0]
-                except Exception as ex:  # noqa: BLE001 - network or page errors: report, move on
-                    row = {
-                        "tool": tid,
-                        "chunk": c["chunk"],
-                        "status": "error",
-                        "why": str(ex)[:200],
-                    }
-                if row.get("result_text"):
-                    score, label = parse_score(
-                        tid, Path(row["result_text"]).read_text(encoding="utf-8")
-                    )
-                    row.update(
-                        {"score": score, "label": label, "parsed": score is not None}
-                    )
-                    if score is not None and not args.plan:
-                        record_result(work, tid, c["chunk"], score, label)
-                if log_path:
-                    with log_path.open("a", encoding="utf-8") as f:
-                        f.write(
-                            json.dumps({**row, "date": time.strftime("%Y-%m-%d %H:%M")})
-                            + "\n"
-                        )
+            report_left_out(scan, args.chunks, tid)
+            for unit in scan.select(args.chunks, tool(tid)):
+                row = scan_unit(ctx, tool(tid), unit, scan.pages, args.human_wait)
+                scan.save(row)
                 print(json.dumps(row), flush=True)
                 if row["status"] in ("blocked", "no-input"):
                     break  # stop using this site; never work around a wall

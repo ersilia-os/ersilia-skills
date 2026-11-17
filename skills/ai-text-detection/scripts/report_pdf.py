@@ -14,9 +14,9 @@ import argparse
 import sys
 from pathlib import Path
 
-from lib.common import SKILL_DIR
+from lib.common import ASSETS, ENV_NAME, die
 
-PRINT_CSS = SKILL_DIR / "assets" / "report-print.css"
+PRINT_CSS = ASSETS / "report-print.css"
 MARGIN = {"top": "12mm", "bottom": "12mm", "left": "10mm", "right": "10mm"}
 
 
@@ -28,7 +28,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("report", type=Path)
     p.add_argument("out", type=Path)
     args = p.parse_args(argv)
-    from playwright.sync_api import sync_playwright
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        die(f"needs Playwright: run with `conda run -n {ENV_NAME} python ...`")
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(channel="chrome")

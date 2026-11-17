@@ -2,45 +2,34 @@
   "about": "Validated web detectors score it human; only an unvalidated one flags it: weak at most.",
   "text": "Introduction\n\nTuberculosis killed an estimated 1.5 million people in 2020, and drug-resistant strains now account for a growing share of new cases in several high-burden countries. Current regimens last at least six months, and adherence drops sharply after the intensive phase. We screened 1,200 compounds from an open-access library against Mycobacterium tuberculosis H37Rv in a resazurin microtitre assay, and followed up 38 hits with dose-response curves and cytotoxicity in HepG2 cells. Eleven compounds had MIC90 values below 5 uM and selectivity indices above 10. Two of them share a nitroimidazole scaffold that had not been reported against mycobacteria before; the others fall into known chemotypes. We discuss why the hit rate was lower than in earlier screens of the same library, which used a different medium, and we release all raw plate reads so that others can re-analyse them.\n\nMethods\n\nCompounds were dissolved in DMSO at 10 mM and stored at -20 C. Plates were read after seven days of incubation at 37 C.\n",
   "kind": "article",
-  "web_detectors": {
-    "chunks": [],
-    "results": [],
-    "skipped": [
-      {
-        "tool": "originality",
-        "why": "free limit reached"
-      }
-    ],
-    "summary": {
-      "pangram": {
-        "name": "Pangram",
-        "weight": "validated",
-        "chunks": 3,
-        "chunks_flagged": 0,
-        "share_words_flagged": 0.0,
-        "mean_score": 0.03,
-        "by_chunk": {}
-      },
-      "gptzero": {
-        "name": "GPTZero",
-        "weight": "validated",
-        "chunks": 3,
-        "chunks_flagged": 0,
-        "share_words_flagged": 0.0,
-        "mean_score": 0.05,
-        "by_chunk": {}
-      },
-      "zerogpt": {
-        "name": "ZeroGPT",
-        "weight": "context",
-        "chunks": 3,
-        "chunks_flagged": 3,
-        "share_words_flagged": 1.0,
-        "mean_score": 0.9,
-        "by_chunk": {}
-      }
+  "detectors": [
+    {
+      "tool": "pangram",
+      "chunk": "P1",
+      "status": "done",
+      "score": 0.03,
+      "label": ""
+    },
+    {
+      "tool": "gptzero",
+      "chunk": "P1",
+      "status": "done",
+      "score": 0.05,
+      "label": ""
+    },
+    {
+      "tool": "zerogpt",
+      "chunk": "P1",
+      "status": "done",
+      "score": 0.9,
+      "label": ""
+    },
+    {
+      "tool": "originality",
+      "status": "skipped",
+      "why": "free limit reached"
     }
-  },
+  ],
   "expect": {
     "tier": "weak"
   }

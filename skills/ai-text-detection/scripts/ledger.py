@@ -30,22 +30,27 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import date
 
-from lib.common import LOCAL, WORK_DIR, die, read_json, read_jsonl, write_json
+from lib.common import (
+    CONTEXTS,
+    KINDS,
+    LOCAL,
+    WORK_DIR,
+    die,
+    read_json,
+    read_jsonl,
+    today,
+    write_json,
+    write_jsonl,
+)
+from lib.detectors import Detections
+from lib.style import FEATURES
 
-CASES = (
-    LOCAL / "cases.jsonl"
-)  # one row per window (features + scores), for calibrate.py
-INDEX = LOCAL / "index.json"  # one entry per case: metadata, hits, verdict, feedback
-FEATURE_KEYS = [
-    "excess_rate",
-    "marked_rate",
-    "tells_rate",
-    "em_dash_rate",
-    "sent_cv",
-    "mattr",
-]
+# One row per window (style features, and the label once the outcome is known), for
+# calibrate.py --with-local.
+CASES = LOCAL / "cases.jsonl"
+# One entry per case: metadata, hits, verdict, feedback.
+INDEX = LOCAL / "index.json"
 
 
 def load_index() -> dict:
@@ -63,10 +68,9 @@ def cmd_record(args: argparse.Namespace) -> None:
     arts = read_json(work / "artifacts.json") or {"hits": []}
     refs = read_json(work / "references.json") or {"counts": {}}
     sty = read_json(work / "stylometry.json") or {"windows": []}
-    web = read_json(work / "web_detectors.json") or {}
     text = read_json(work / "text.json") or {}
     idx["cases"][args.case] = {
-        "date": date.today().isoformat(),
+        "date": today(),
         "kind": args.kind,
         "context": args.context,
         "format": text.get("format"),
@@ -83,7 +87,7 @@ def cmd_record(args: argparse.Namespace) -> None:
                 kk: v.get(kk)
                 for kk in ("weight", "mean_score", "share_words_flagged", "coverage")
             }
-            for k, v in (web.get("summary") or {}).items()
+            for k, v in Detections.load(work).summary().items()
         },
         "findings": {},
         "verdict_feedback": None,
@@ -99,15 +103,10 @@ def cmd_record(args: argparse.Namespace) -> None:
                 "window": w["id"],
                 "kind": args.kind,
                 "label": None,
-                **{k: w.get(k) for k in FEATURE_KEYS},
+                **{k: w.get(k) for k in FEATURES},
             }
         )
-    LOCAL.mkdir(parents=True, exist_ok=True)
-    with CASES.open("w", encoding="utf-8") as f:
-        import json
-
-        for r in keep:
-            f.write(json.dumps(r) + "\n")
+    write_jsonl(CASES, keep)
     print(
         f"recorded case {args.case}: verdict {grade.get('tier')}, {len(arts['hits'])} marker hit(s), "
         f"{len(sty.get('windows', []))} window(s). Stored in {LOCAL} (numbers only, no text)."
@@ -130,7 +129,7 @@ def cmd_finding(args: argparse.Namespace) -> None:
     c["findings"][args.hit] = {
         "verdict": args.verdict,
         "note": args.note,
-        "date": date.today().isoformat(),
+        "date": today(),
     }
     write_json(INDEX, idx)
     print(f"{args.case} {args.hit}: {args.verdict}")
@@ -142,7 +141,7 @@ def cmd_verdict(args: argparse.Namespace) -> None:
     need(idx, args.case)["verdict_feedback"] = {
         "feel": args.feel,
         "note": args.note,
-        "date": date.today().isoformat(),
+        "date": today(),
     }
     write_json(INDEX, idx)
     print(f"{args.case}: verdict felt {args.feel}")
@@ -150,25 +149,20 @@ def cmd_verdict(args: argparse.Namespace) -> None:
 
 def cmd_outcome(args: argparse.Namespace) -> None:
     """Record the ground truth and label the case's windows."""
-    import json
-
     idx = load_index()
     need(idx, args.case)["outcome"] = {
         "label": args.label,
         "how": args.how,
-        "date": date.today().isoformat(),
+        "date": today(),
     }
     write_json(INDEX, idx)
-    label = {"ai": 1, "human": 0}.get(
-        args.label
-    )  # mixed stays unlabelled for calibration
+    # A mixed case stays unlabelled for calibration.
+    label = {"ai": 1, "human": 0}.get(args.label)
     rows = read_jsonl(CASES)
     for r in rows:
         if r["case"] == args.case:
             r["label"] = label
-    with CASES.open("w", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps(r) + "\n")
+    write_jsonl(CASES, rows)
     print(f"{args.case}: outcome {args.label} ({args.how})")
 
 
@@ -273,22 +267,8 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument(
         "--case", required=True, help="a neutral label, never a person's name"
     )
-    r.add_argument(
-        "--kind",
-        required=True,
-        choices=["article", "grant", "review", "response-letter", "email", "other"],
-    )
-    r.add_argument(
-        "--context",
-        default="other",
-        choices=[
-            "collaborator-draft",
-            "reviewer-of-my-paper",
-            "manuscript-i-review",
-            "grant-i-review",
-            "other",
-        ],
-    )
+    r.add_argument("--kind", required=True, choices=KINDS)
+    r.add_argument("--context", default="other", choices=CONTEXTS)
     r.add_argument("--force", action="store_true")
     f = sub.add_parser("finding")
     f.add_argument("--case", required=True)

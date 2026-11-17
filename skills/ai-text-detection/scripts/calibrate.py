@@ -8,9 +8,7 @@ ai.jsonl (AI-written windows on the same topics, several generators) and polishe
 ``--with-local``, the user's own labelled cases (features only, see ledger.py). That is how
 the skill keeps improving on the user's real documents.
 
-Web detectors are not calibrated here (free limits and terms of use rule out running a
-corpus through them); their weight comes from independent studies and, over time, from the
-ledger's record of how they did on the user's cases.
+Web detectors are not calibrated here: web_controls.py tests them on known texts.
 
 Method:
 * Split human and AI windows by source document (never by window) into a fit half and a
@@ -35,9 +33,9 @@ import hashlib
 import math
 import statistics
 import sys
-from datetime import date
 
-from lib.common import LOCAL, REFS, read_jsonl, write_json
+from lib.common import LOCAL, REFS, die, read_jsonl, today, write_json
+from lib.stats import auroc, missing, quantile
 from lib.style import DIRECTION, FEATURES, MODEL_FEATURES, features
 
 CAL = REFS / "calibration"
@@ -48,32 +46,6 @@ def half(doc_id: str) -> str:
     return (
         "fit" if int(hashlib.sha1(doc_id.encode()).hexdigest(), 16) % 2 == 0 else "test"
     )
-
-
-def quantile(vals: list[float], q: float) -> float:
-    """Linear-interpolated quantile, q in [0, 1]."""
-    s = sorted(vals)
-    if not s:
-        return float("nan")
-    pos = q * (len(s) - 1)
-    lo, hi = math.floor(pos), math.ceil(pos)
-    return s[lo] + (s[hi] - s[lo]) * (pos - lo)
-
-
-def auroc(pos: list[float], neg: list[float]) -> float | None:
-    """Probability that a positive scores above a negative (ties count half)."""
-    if not pos or not neg:
-        return None
-    allv = sorted([(v, 1) for v in pos] + [(v, 0) for v in neg])
-    rank_sum, i = 0.0, 0
-    while i < len(allv):
-        j = i
-        while j < len(allv) and allv[j][0] == allv[i][0]:
-            j += 1
-        avg = (i + j + 1) / 2
-        rank_sum += avg * sum(1 for k in range(i, j) if allv[k][1] == 1)
-        i = j
-    return (rank_sum - len(pos) * (len(pos) + 1) / 2) / (len(pos) * len(neg))
 
 
 def fit_logistic(
@@ -111,111 +83,70 @@ def fit_logistic(
     return w, b
 
 
-def clean(v: float | None) -> float | None:
-    """None for missing or NaN."""
-    return None if v is None or (isinstance(v, float) and math.isnan(v)) else v
-
-
 def pct(x: float | None) -> str:
     """Format a rate as a percentage."""
     return "n/a" if x is None else f"{100 * x:.1f}%"
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Calibrate and validate."""
-    p = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=__import__("argparse").RawDescriptionHelpFormatter,
-    )
-    p.add_argument(
-        "--with-local", action="store_true", help="add the user's labelled cases"
-    )
-    p.add_argument("--dry-run", action="store_true", help="print, don't write")
-    args = p.parse_args(argv)
+def present(rows: list[dict], key: str) -> list[float]:
+    """The values of one feature over the rows that have it."""
+    return [r[key] for r in rows if not missing(r.get(key))]
 
+
+def load_corpus(with_local: bool) -> dict[str, list[dict]]:
+    """The labelled windows, each with its style features and its half (fit or test).
+
+    ``human`` and ``ai`` include the datasets kept only on this machine
+    (~/.ai-text-detection/corpus/*.jsonl, each row with "label"; e.g. datasets whose
+    licence does not allow redistribution) and, with ``with_local``, the user's own
+    labelled cases from the ledger, which carry features and never text.
+    """
     human = read_jsonl(CAL / "human.jsonl")
     ai = read_jsonl(CAL / "ai.jsonl")
     polished = read_jsonl(CAL / "polished.jsonl")
-    local = read_jsonl(LOCAL / "cases.jsonl") if args.with_local else []
-    # Extra labelled text kept only on this machine (e.g. datasets whose licence does not
-    # allow redistribution): ~/.ai-text-detection/corpus/*.jsonl, each row with "label".
+    local = read_jsonl(LOCAL / "cases.jsonl") if with_local else []
     extra = [
         r for f in sorted((LOCAL / "corpus").glob("*.jsonl")) for r in read_jsonl(f)
     ]
     ai += [r for r in extra if r.get("label") == 1]
     human += [r for r in extra if r.get("label") == 0]
-    if not human or not ai:
-        print(
-            "ERROR: need references/calibration/human*.jsonl and ai*.jsonl",
-            file=sys.stderr,
-        )
-        return 1
     for r in human:
         r["label"] = 0
     for r in ai:
         r["label"] = 1
     for r in local:
-        # Ledger rows carry stylometric features, never text.
         r["doc_id"] = f"local-{r['case']}"
         r["kind"] = r.get("kind") or "local"
-    rows = human + ai + polished
-    for r in rows:
+    for r in human + ai + polished:
         if "text" in r and "excess_rate" not in r:
             r.update(
                 {k: v for k, v in features(r["text"]).items() if not k.startswith("_")}
             )
-    rows_all = rows + [r for r in local if r.get("label") in (0, 1)]
-    for r in rows_all:
+    labelled_local = [r for r in local if r.get("label") in (0, 1)]
+    for r in human + ai + polished + labelled_local:
         r["half"] = half(r["doc_id"])
-    labelled = [r for r in rows_all if r.get("label") in (0, 1)]
-    H = [r for r in labelled if r["label"] == 0]
-    A = [r for r in labelled if r["label"] == 1]
-    Hfit, Htest = (
-        [r for r in H if r["half"] == "fit"],
-        [r for r in H if r["half"] == "test"],
-    )
-    Afit, Atest = (
-        [r for r in A if r["half"] == "fit"],
-        [r for r in A if r["half"] == "test"],
-    )
-
-    cal: dict = {
-        "version": date.today().isoformat(),
-        "stylometry": {},
-        "corpus": {},
+    return {
+        "human": human + [r for r in labelled_local if r["label"] == 0],
+        "ai": ai + [r for r in labelled_local if r["label"] == 1],
+        "polished": polished,
+        "local": local,
+        "extra": extra,
     }
-    val: dict = {"style": {}}
 
-    # Stylometry: human quantiles and a logistic style score.
-    cal["stylometry"]["human_quantiles"] = {
-        k: [
-            quantile([r[k] for r in Hfit if clean(r.get(k)) is not None], i / 100)
-            for i in range(1, 100)
-        ]
-        for k in FEATURES
-    }
-    fit_rows = [r for r in Hfit + Afit]
-    mean = [
-        statistics.mean([r[k] for r in fit_rows if clean(r.get(k)) is not None])
-        for k in MODEL_FEATURES
-    ]
-    sd = [
-        statistics.pstdev([r[k] for r in fit_rows if clean(r.get(k)) is not None]) or 1
-        for k in MODEL_FEATURES
-    ]
 
-    def z(r: dict) -> list[float]:
-        return [
-            ((clean(r.get(k)) if clean(r.get(k)) is not None else m) - m) / s
-            for k, m, s in zip(MODEL_FEATURES, mean, sd)
-        ]
-
+def fit_style(h_fit: list[dict], a_fit: list[dict]) -> dict:
+    """The style model: a logistic regression on standardised features, human vs AI,
+    each weight constrained to its published direction."""
+    fit_rows = h_fit + a_fit
+    mean = [statistics.mean(present(fit_rows, k)) for k in MODEL_FEATURES]
+    sd = [statistics.pstdev(present(fit_rows, k)) or 1 for k in MODEL_FEATURES]
+    model = {"features": MODEL_FEATURES, "mean": mean, "sd": sd}
     w, b = fit_logistic(
-        [z(r) for r in fit_rows],
+        [standardise(r, model) for r in fit_rows],
         [r["label"] for r in fit_rows],
         signs=[DIRECTION[k] for k in MODEL_FEATURES],
     )
-    model = {
+    return {
         "features": MODEL_FEATURES,
         "weights": w,
         "intercept": b,
@@ -223,71 +154,136 @@ def main(argv: list[str] | None = None) -> int:
         "sd": sd,
     }
 
-    def prob(r: dict) -> float:
-        zz = b + sum(wi * xi for wi, xi in zip(w, z(r)))
-        return 1 / (1 + math.exp(-zz))
 
-    hs = [prob(r) for r in Hfit]
-    sthr = {"1%": quantile(hs, 0.99), "5%": quantile(hs, 0.95)}
-    cal["stylometry"].update({"model": model, "thresholds": sthr})
-    sv = {}
-    for name, subset in (
-        ("human (held out)", Htest),
+def standardise(r: dict, model: dict) -> list[float]:
+    """A row's model features as z-scores; a missing feature counts as the mean."""
+    return [
+        ((m if missing(r.get(k)) else r[k]) - m) / s
+        for k, m, s in zip(model["features"], model["mean"], model["sd"])
+    ]
+
+
+def score(r: dict, model: dict) -> float:
+    """The style score of a row under the model."""
+    z = model["intercept"] + sum(
+        wi * xi for wi, xi in zip(model["weights"], standardise(r, model))
+    )
+    return 1 / (1 + math.exp(-z))
+
+
+def heldout_rates(
+    model: dict, thresholds: dict, h_test: list, a_test: list, polished: list
+) -> dict:
+    """Share of held-out windows past each threshold: overall, by kind, by generator."""
+    subsets = [
+        ("human (held out)", h_test),
         (
             "human, non-English-speaking country",
-            [r for r in Htest if r.get("native_english") is False],
+            [r for r in h_test if r.get("native_english") is False],
         ),
         *[
-            (f"human, {k}", [r for r in Htest if r.get("kind") == k])
-            for k in sorted({r.get("kind") for r in Htest})
+            (f"human, {k}", [r for r in h_test if r.get("kind") == k])
+            for k in sorted({r.get("kind") for r in h_test})
         ],
-        ("AI (held out)", Atest),
+        ("AI (held out)", a_test),
         *[
-            (f"AI, {g}", [r for r in Atest if r.get("generator") == g])
-            for g in sorted({r.get("generator") for r in Atest if r.get("generator")})
+            (f"AI, {g}", [r for r in a_test if r.get("generator") == g])
+            for g in sorted({r.get("generator") for r in a_test if r.get("generator")})
         ],
         ("AI-polished human text", polished),
-    ):
-        ps = [prob(r) for r in subset]
+    ]
+    out = {}
+    for name, subset in subsets:
+        ps = [score(r, model) for r in subset]
         if ps:
-            sv[name] = {
+            out[name] = {
                 "n": len(ps),
-                "past_1pct": sum(x >= sthr["1%"] for x in ps) / len(ps),
-                "past_5pct": sum(x >= sthr["5%"] for x in ps) / len(ps),
+                "past_1pct": sum(x >= thresholds["1%"] for x in ps) / len(ps),
+                "past_5pct": sum(x >= thresholds["5%"] for x in ps) / len(ps),
             }
-    sv["auroc"] = auroc([prob(r) for r in Atest], [prob(r) for r in Htest])
-    sv["weights"] = {k: round(x, 3) for k, x in zip(MODEL_FEATURES, w)}
-    cal["stylometry"]["auroc"] = sv["auroc"]
-    cal["stylometry"]["heldout"] = {
-        k: v for k, v in sv.items() if isinstance(v, dict) and "n" in v
-    }
-    val["style"] = sv
-    # Feature-by-feature separation, so the report can say which tells actually help.
-    val["features_auroc"] = {
-        k: auroc(
-            [DIRECTION[k] * r[k] for r in Atest if clean(r.get(k)) is not None],
-            [DIRECTION[k] * r[k] for r in Htest if clean(r.get(k)) is not None],
-        )
-        for k in FEATURES
-    }
-    cal["corpus"] = {
-        "human_windows": len(H),
-        "ai_windows": len(A),
-        "polished_windows": len(polished),
-        "human_docs": len({r["doc_id"] for r in H}),
-        "ai_docs": len({r["doc_id"] for r in A}),
-        "kinds": sorted({r.get("kind") for r in H if r.get("kind")}),
-        "generators": sorted({r.get("generator") for r in A if r.get("generator")}),
-        "local_cases": len({r["doc_id"] for r in local}),
-        "local_corpus_windows": len(extra),
-    }
+    return out
 
+
+def calibrate(corpus: dict[str, list[dict]]) -> tuple[dict, dict]:
+    """(calibration.json contents, the validation figures for validation.md)."""
+    human, ai, polished = corpus["human"], corpus["ai"], corpus["polished"]
+    h_fit = [r for r in human if r["half"] == "fit"]
+    h_test = [r for r in human if r["half"] == "test"]
+    a_fit = [r for r in ai if r["half"] == "fit"]
+    a_test = [r for r in ai if r["half"] == "test"]
+
+    model = fit_style(h_fit, a_fit)
+    human_scores = [score(r, model) for r in h_fit]
+    thresholds = {
+        "1%": quantile(human_scores, 0.99),
+        "5%": quantile(human_scores, 0.95),
+    }
+    heldout = heldout_rates(model, thresholds, h_test, a_test, polished)
+    area = auroc([score(r, model) for r in a_test], [score(r, model) for r in h_test])
+    cal = {
+        "version": today(),
+        "stylometry": {
+            "human_quantiles": {
+                k: [quantile(present(h_fit, k), i / 100) for i in range(1, 100)]
+                for k in FEATURES
+            },
+            "model": model,
+            "thresholds": thresholds,
+            "auroc": area,
+            "heldout": heldout,
+        },
+        "corpus": {
+            "human_windows": len(human),
+            "ai_windows": len(ai),
+            "polished_windows": len(polished),
+            "human_docs": len({r["doc_id"] for r in human}),
+            "ai_docs": len({r["doc_id"] for r in ai}),
+            "kinds": sorted({r.get("kind") for r in human if r.get("kind")}),
+            "generators": sorted(
+                {r.get("generator") for r in ai if r.get("generator")}
+            ),
+            "local_cases": len({r["doc_id"] for r in corpus["local"]}),
+            "local_corpus_windows": len(corpus["extra"]),
+        },
+    }
+    val = {
+        "style": {
+            **heldout,
+            "auroc": area,
+            "weights": {
+                k: round(x, 3) for k, x in zip(MODEL_FEATURES, model["weights"])
+            },
+        },
+        # Feature-by-feature separation, so the report can say which tells actually help.
+        "features_auroc": {
+            k: auroc(
+                [DIRECTION[k] * x for x in present(a_test, k)],
+                [DIRECTION[k] * x for x in present(h_test, k)],
+            )
+            for k in FEATURES
+        },
+    }
+    return cal, val
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Calibrate and validate."""
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    p.add_argument(
+        "--with-local", action="store_true", help="add the user's labelled cases"
+    )
+    p.add_argument("--dry-run", action="store_true", help="print, don't write")
+    args = p.parse_args(argv)
+    corpus = load_corpus(args.with_local)
+    if not corpus["human"] or not corpus["ai"]:
+        die("need references/calibration/human.jsonl and ai.jsonl")
+    cal, val = calibrate(corpus)
     md = render_validation(cal, val)
-    if args.dry_run:
-        print(md)
-        return 0
-    write_json(REFS / "calibration.json", cal)
-    (REFS / "validation.md").write_text(md, encoding="utf-8")
+    if not args.dry_run:
+        write_json(REFS / "calibration.json", cal)
+        (REFS / "validation.md").write_text(md, encoding="utf-8")
     print(md)
     return 0
 

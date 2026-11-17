@@ -1,7 +1,7 @@
 """Grade the document: one tier and the statements the user can defend (lib/grading.py).
 
 Reads from the work folder: text.json, artifacts.json, references.json, stylometry.json,
-web_detectors.json, evidence.json, baseline.json (optional), and judgements.json (Claude's
+the detectors' plan and results, evidence.json, baseline.json (optional), and judgements.json (Claude's
 own reading, plus its decisions on candidate hits and on references verified by hand).
 Every threshold is in references/grading.json. The tier is the highest one whose rule is
 met:

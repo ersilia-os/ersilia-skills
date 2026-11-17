@@ -28,7 +28,7 @@ You help the user decide, with evidence they can defend, whether a document was 
 1. **Evidence, not a score.** Nothing proves authorship from style alone. What holds up, in order: (a) artefacts no human types (`oaicite`, `[cite_start]`, "Certainly, here is"), (b) verifiable problems such as references that don't exist or false claims, (c) calibrated statistics with their measured error rates. Never let (c) speak louder than it is.
 2. **Every finding is quoted, located and re-checkable** by a third party: an editor, a programme officer, the author.
 3. **Fair to the author.** Detectors and style scores are biased against non-native English and shifted by language editing. Disclosed AI polishing is allowed by most journals and funders. The report says what the evidence does not show.
-4. **Confidential text stays here.** Reading the user's own Google Drive through the connectors is fine. Text goes to web detectors only under the rules in `references/web-detectors.md`, and never for a manuscript or grant the user is reviewing. Otherwise only reference strings leave the machine (Crossref, DataCite, doi.org, OpenAlex, arXiv). Never paste the document into a web search.
+4. **Confidential text stays here.** Reading the user's own Google Drive through the connectors is fine. Text goes to web detectors only under the rules in `references/web_detectors_guide.md`, and never for a manuscript or grant the user is reviewing. Otherwise only reference strings leave the machine (Crossref, DataCite, doi.org, OpenAlex, arXiv). Never paste the document into a web search.
 5. **Keep improving.** Ask for feedback at the two checkpoints, every run, briefly. Turn it into changes to the data in `references/` first, code second. Keep looking for new tools (`watch.py`).
 
 ## Layout
@@ -36,7 +36,7 @@ You help the user decide, with evidence they can defend, whether a document was 
 ```
 SKILL.md            this file
 scripts/            the steps, one command each (Python 3; PDF/DOCX and Chrome need the conda env)
-scripts/lib/        what the steps share: text, splits, detectors, evidence, grading, report
+scripts/lib/        what the steps share (text, extraction, splits, detectors, evidence, grading, report); see its __init__.py
 references/         data and documents; see references/README.md
 assets/             report styles
 examples/cases/     regression cases for selftest.py
@@ -56,9 +56,9 @@ Work folder: `/tmp/ai_text_detection/`, reset each run. Private case ledger: `~/
 | | `check_references.py` | Every reference looked up: `ok`, `metadata-mismatch`, `doi-points-elsewhere`, `doi-not-registered`, `not-found`, `unverifiable` |
 | | `stylometry.py` | Excess vocabulary, stock phrasing, sentence rhythm; calibrated style score |
 | | `baseline.py` | Optional: the author's own pre-2023 writing, scored the same way |
-| Web detectors | `web_detectors.py` | Registry, passages, results (`prepare`, `record`, `skip`, `summary`) |
-| | `segments.py` | Sections, passages and overlapping windows, within each tool's limits |
-| | `browser_detect.py` | Drives Chrome through the sites, records parsed scores |
+| Web detectors | `segments.py` | Splits the prose into sections, passages and overlapping windows (`plan.json`) |
+| | `web_detectors.py` | Records a result read by eye or a site that could not be used (`record`, `skip`); prints the `summary` |
+| | `browser_detect.py` | Drives Chrome through the sites; every scan is a row in `plan.results.jsonl` |
 | | `api_detectors.py` | Detectors with an API (Binoculars demo; Pangram, GPTZero, Sapling with the user's key) |
 | | `web_controls.py` | Tests each detector on known texts; writes `web_calibration.json` |
 | | `evidence.py` | Combines tools and splits into calibrated evidence per sentence, passage, document |
@@ -111,7 +111,7 @@ python scan_artifacts.py & python check_references.py & python stylometry.py & w
 
 ### 3. Web detectors (only if the text may leave the machine)
 
-Follow `references/web-detectors.md`: the confidentiality rule, then the passages and the other splits through the tested tools (unattended: ZeroGPT, Undetectable, AIDetector.review, Scribbr, Plagiarism Checker X, the Binoculars demo; validated tools only with the user present to tick the CAPTCHA), a check of the parsed scores against the saved pages, and `python evidence.py`. Never work around a CAPTCHA, a login wall or a free limit.
+Follow `references/web_detectors_guide.md`: the confidentiality rule, then the passages and the other splits through the tested tools (unattended: ZeroGPT, Undetectable, AIDetector.review, Scribbr, Plagiarism Checker X, the Binoculars demo; validated tools only with the user present to tick the CAPTCHA), a check of the parsed scores against the saved pages, and `python evidence.py`. Never work around a CAPTCHA, a login wall or a free limit.
 
 ### 4. Your part: confirm, verify, read
 
@@ -161,7 +161,7 @@ Then `python selftest.py` must pass, and `python record_feedback.py add --text "
 ## Maintenance (rarely)
 
 - **Style score:** `build_corpus.py` builds the human windows (2015–2021 CC-BY Europe PMC abstracts and full texts, eLife decision letters, NIH RePORTER abstracts); `calibration/ai.jsonl` and `polished.jsonl` hold AI-written and AI-polished windows on the same topics. `python calibrate.py` fits the thresholds on human text only and writes `validation.md` (false-positive rates overall, by kind and for authors in non-English-speaking countries; detection rates by generator). Quote those numbers, not the papers'.
-- **Web detectors:** monthly, and after any site change, re-run the known-text tests (`references/web-detectors.md`, section 2).
+- **Web detectors:** monthly, and after any site change, re-run the known-text tests (`references/web_detectors_guide.md`, section 2).
 
 ## What this skill does not do
 

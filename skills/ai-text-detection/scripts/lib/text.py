@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import itertools
 import re
+from collections.abc import Iterator
 from pathlib import Path
 
 from lib.common import WORK_DIR, die, read_json
@@ -85,28 +86,54 @@ SKIP_SECTIONS = {
 }
 
 
-def chunks(doc: dict, target: int = 300, minimum: int = 80) -> list[dict]:
+def checked_sections(doc: dict) -> list[dict]:
+    """The sections whose text is examined, in reading order: all but boilerplate
+    (SKIP_SECTIONS). A document without sections is one section, "(whole text)"."""
+    secs = doc.get("sections") or [
+        {"title": "(whole text)", "start": 0, "end": len(doc["text"])}
+    ]
+    return [s for s in secs if s["title"].lower() not in SKIP_SECTIONS]
+
+
+def paragraph_spans(text: str, start: int, end: int) -> Iterator[tuple[int, int]]:
+    """(start, end) of each block between blank lines in text[start:end]. A span keeps
+    the block's own leading and trailing whitespace."""
+    pos = start
+    for m in re.finditer(r"\n\s*\n", text[start:end]):
+        yield pos, start + m.start()
+        pos = start + m.end()
+    yield pos, end
+
+
+def style_windows(doc: dict, target: int = 300, minimum: int = 80) -> list[dict]:
     """Windows of about ``target`` words, built from whole paragraphs within a section.
 
-    Every per-window measure (stylometry, web-detector chunks, calibration) uses this same
-    chunking, so a document is compared with human text of the same size. Sections that
-    are boilerplate (references, funding, ...) are skipped. A window shorter than
-    ``minimum`` words is merged into the previous one of the same section.
+    Every per-window measure (stylometry, calibration, the author baseline) uses this
+    same chunking, so a document is compared with human text of the same size. Sections
+    that are boilerplate (references, funding, ...) are skipped. A window shorter than
+    ``minimum`` words is merged into the previous one of the same section, and a single
+    paragraph longer than two windows is split at sentence ends.
     """
     text = doc["text"]
     out: list[dict] = []
-    for sec in doc.get("sections") or [
-        {"title": "(whole text)", "start": 0, "end": len(text)}
-    ]:
-        if sec["title"].lower() in SKIP_SECTIONS:
-            continue
+    for c in _paragraph_windows(doc, target, minimum):
+        if c["n_words"] <= 2 * target:
+            out.append({**c, "text": text[c["start"] : c["end"]].strip()})
+        else:
+            _split_long(text, c, target, minimum, out)
+    for i, c in enumerate(out, 1):
+        c["id"] = f"c{i}"
+    return out
+
+
+def _paragraph_windows(doc: dict, target: int, minimum: int) -> list[dict]:
+    """Runs of whole paragraphs reaching ``target`` words, section by section."""
+    text = doc["text"]
+    out: list[dict] = []
+    for sec in checked_sections(doc):
         cur_start, cur_words = None, 0
-        pos = sec["start"]
-        for para in re.split(r"\n\s*\n", text[sec["start"] : sec["end"]]):
-            p_start = text.find(para, pos) if para else pos
-            p_end = p_start + len(para)
-            pos = p_end
-            n = len(words(para))
+        for p_start, p_end in paragraph_spans(text, sec["start"], sec["end"]):
+            n = len(words(text[p_start:p_end]))
             if n == 0:
                 continue
             if cur_start is None:
@@ -122,60 +149,47 @@ def chunks(doc: dict, target: int = 300, minimum: int = 80) -> list[dict]:
                     }
                 )
                 cur_start, cur_words = None, 0
-        if cur_start is not None:
-            last = out[-1] if out and out[-1]["section"] == sec["title"] else None
-            if cur_words < minimum and last:
-                last["end"], last["n_words"] = sec["end"], last["n_words"] + cur_words
-            else:
-                out.append(
-                    {
-                        "section": sec["title"],
-                        "start": cur_start,
-                        "end": sec["end"],
-                        "n_words": cur_words,
-                    }
-                )
-    for i, c in enumerate(out, 1):
-        c["id"] = f"c{i}"
-        c["text"] = text[c["start"] : c["end"]].strip()
-    # Long single paragraphs: split at sentence ends, keeping exact character offsets.
-    final: list[dict] = []
-    for c in out:
-        if c["n_words"] <= 2 * target:
-            final.append(c)
+        if cur_start is None:
             continue
-        cuts, _start, n = [], c["start"], 0
-        seg = text[c["start"] : c["end"]]
-        prev = 0
-        for m in SENT_RE.finditer(seg):
-            n += len(words(seg[prev : m.start()]))
-            prev = m.start()
-            if n >= target:
-                cuts.append(c["start"] + m.start())
-                n = 0
-        bounds = [c["start"], *cuts, c["end"]]
-        for a, b in itertools.pairwise(bounds):
-            piece = text[a:b].strip()
-            if not piece:
-                continue
-            if len(words(piece)) < minimum and final and final[-1]["end"] == a:
-                last = final[-1]
-                last["end"] = b
-                last["text"] = text[last["start"] : b].strip()
-                last["n_words"] = len(words(last["text"]))
-            else:
-                final.append(
-                    {
-                        **c,
-                        "start": a,
-                        "end": b,
-                        "text": piece,
-                        "n_words": len(words(piece)),
-                    }
-                )
-    for i, c in enumerate(final, 1):
-        c["id"] = f"c{i}"
-    return final
+        last = out[-1] if out and out[-1]["section"] == sec["title"] else None
+        if cur_words < minimum and last:
+            last["end"], last["n_words"] = sec["end"], last["n_words"] + cur_words
+        else:
+            out.append(
+                {
+                    "section": sec["title"],
+                    "start": cur_start,
+                    "end": sec["end"],
+                    "n_words": cur_words,
+                }
+            )
+    return out
+
+
+def _split_long(text: str, c: dict, target: int, minimum: int, out: list[dict]) -> None:
+    """Append the window ``c`` to ``out`` cut at sentence ends every ``target`` words,
+    keeping exact character offsets; a short last piece joins the piece before it."""
+    cuts, n, prev = [], 0, 0
+    seg = text[c["start"] : c["end"]]
+    for m in SENT_RE.finditer(seg):
+        n += len(words(seg[prev : m.start()]))
+        prev = m.start()
+        if n >= target:
+            cuts.append(c["start"] + m.start())
+            n = 0
+    for a, b in itertools.pairwise([c["start"], *cuts, c["end"]]):
+        piece = text[a:b].strip()
+        if not piece:
+            continue
+        if len(words(piece)) < minimum and out and out[-1]["end"] == a:
+            last = out[-1]
+            last["end"] = b
+            last["text"] = text[last["start"] : b].strip()
+            last["n_words"] = len(words(last["text"]))
+        else:
+            out.append(
+                {**c, "start": a, "end": b, "text": piece, "n_words": len(words(piece))}
+            )
 
 
 NON_PROSE = re.compile(

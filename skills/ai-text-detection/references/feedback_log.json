@@ -52,6 +52,14 @@
       "feedback": "Wants a thorough search for more methods, and a legally backed assessment based on EU guidelines so anyone can see it was done correctly",
       "kind": "process",
       "change": "formal_report.py writes a nine-step formal assessment aligned with GDPR, AI Act, ERA living guidelines, ALLEA, COPE and ENFSI (frameworks.json, quotes verified); it states that no official EU detection guideline exists. New: watermarks.md, two detectors registered, methods.md updated"
+    },
+    {
+      "n": 8,
+      "date": "2026-11-17",
+      "feedback": "Wants the code and the overall structure of the skill well organised and clean, and the two stores of detector scores merged into one.",
+      "kind": "code",
+      "change": "One rule for where code lives (a script is one command; shared logic in scripts/lib). Detector scores: one plan (plan.json: sections, passages, windows) and one results file (plan.results.jsonl) for the document, the same model as the known-text controls; the per-tool summary is computed when read. web_detectors.py prepare is gone (segments.py); browser_detect.py and api_detectors.py scan the passages by default and take --chunks S,W for the other splits. Each detector has a 'use' field. Outputs checked identical on all cases and the real draft.",
+      "fixture": "web-only"
     }
   ]
 }

@@ -84,26 +84,19 @@ def scan(text: str, markers: list[dict], fmt: str, where: str) -> list[dict]:
     return hits
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Scan and write artifacts.json."""
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    p.add_argument("--work", default=str(WORK_DIR))
-    args = p.parse_args(argv)
-    work = Path(args.work)
-    doc = load_text(work)
-    markers = load_markers()
-
-    hits = scan(doc["text"], markers, doc["format"], "body")
+def scan_document(doc: dict) -> dict:
+    """The contents of artifacts.json: every hit in the body, the reference list, the
+    link addresses and the hidden text, each located and numbered."""
+    markers, fmt = load_markers(), doc["format"]
+    hits = scan(doc["text"], markers, fmt, "body")
     for h in hits:
         h.update(locate(doc, h["offset"]))
-    hits += scan(doc.get("references_text", ""), markers, doc["format"], "references")
+    hits += scan(doc.get("references_text", ""), markers, fmt, "references")
     # Link addresses (PDF and Word): utm_source=chatgpt.com usually sits in the address.
-    hits += scan("\n".join(doc.get("links", [])), markers, doc["format"], "links")
+    hits += scan("\n".join(doc.get("links", [])), markers, fmt, "links")
     hidden = []
     for i, h in enumerate(doc.get("hidden", [])):
-        inner = scan(h["text"], markers, doc["format"], "hidden")
+        inner = scan(h["text"], markers, fmt, "hidden")
         hidden.append(
             {**h, "id": f"hidden-{i + 1}", "matches": [x["marker"] for x in inner]}
         )
@@ -111,24 +104,31 @@ def main(argv: list[str] | None = None) -> int:
             x["page"] = h["page"]
             x["hidden_why"] = h["why"]
         hits += inner
+    counts: dict[str, int] = {}
     for i, h in enumerate(hits, 1):
         h["id"] = f"a{i}"
-
-    counts: dict[str, int] = {}
-    for h in hits:
         counts[h["marker"]] = counts.get(h["marker"], 0) + 1
-    write_json(
-        work / "artifacts.json", {"hits": hits, "hidden": hidden, "counts": counts}
+    return {"hits": hits, "hidden": hidden, "counts": counts}
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Scan and write artifacts.json."""
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    if not hits and not hidden:
+    p.add_argument("--work", default=str(WORK_DIR))
+    work = Path(p.parse_args(argv).work)
+    found = scan_document(load_text(work))
+    write_json(work / "artifacts.json", found)
+    if not found["hits"] and not found["hidden"]:
         print("artifacts: none found")
-    for h in hits:
+    for h in found["hits"]:
         loc = h.get("section") or h["in"]
         page = f", p.{h['page']}" if h.get("page") else ""
         print(
             f"[{h['id']}] {h['tier'].upper():<10} {h['marker']:<20} ({loc}{page}): {h['quote'][:150]}"
         )
-    for h in hidden:
+    for h in found["hidden"]:
         print(f"[{h['id']}] HIDDEN ({h['why']}, p.{h['page']}): {h['text'][:150]}")
     return 0
 

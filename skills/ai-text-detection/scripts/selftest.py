@@ -9,7 +9,7 @@
 A case file (every key but "text" and "expect" optional):
     {"about": "what the case pins down", "text": "...", "kind": "article", "format": "txt",
      "references": {...references.json...}, "stylometry": {...}, "judgements": {...},
-     "web_detectors": {...}, "evidence": {...evidence.json...},
+     "detectors": [...rows of plan.results.jsonl...], "evidence": {...evidence.json...},
      "expect": {"tier": "moderate", "tier_not": ["strong"], "separate": ["manipulation"],
                 "markers": ["oaicite"], "markers_not": ["..."], "report": true}}
 
@@ -24,12 +24,21 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
+import math
 import subprocess
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
-from lib.common import EXAMPLES, REFS, read_json, write_json
+from drive_intake import file_id
+from lib.common import EXAMPLES, REFS, read_json, write_json, write_jsonl
+from lib.detectors import Detections, Scan, marks_ai, registry
+from lib.evidence import combine, combine_tools
+from lib.extract import assemble, docx_original, from_text, is_heading
+from lib.splits import build_plan
+from lib.stats import auroc, missing, quantile
+from lib.text import is_prose, paragraph_spans
 from scan_artifacts import compile_pattern
 
 HERE = Path(__file__).resolve().parent
@@ -55,9 +64,6 @@ def check_markers() -> list[str]:
 def check_units() -> list[str]:
     """Small checks of helpers that the case files don't reach."""
     errors = []
-    from drive_intake import file_id
-    from extract_text import is_heading
-
     for url, want in (
         (
             "https://docs.google.com/document/d/1uimSQfhV-QJ4FWz6a5pcxeiwoZWRo63r/edit",
@@ -83,15 +89,13 @@ def check_units() -> list[str]:
     ):
         if is_heading(line) != want:
             errors.append(
-                f"extract_text.is_heading({line!r}) = {is_heading(line)!r}, expected {want!r}"
+                f"extract.is_heading({line!r}) = {is_heading(line)!r}, expected {want!r}"
             )
     return errors
 
 
 def check_docx_original() -> list[str]:
     """A DOCX with tracked changes gives the author's original text with --original."""
-    import zipfile
-
     errors = []
     doc_xml = (
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -113,8 +117,6 @@ def check_docx_original() -> list[str]:
                 '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>',
             )
             z.writestr("word/document.xml", doc_xml)
-        from extract_text import docx_original
-
         out = Path(tmp) / "orig.docx"
         authors = docx_original(src, out)
         with zipfile.ZipFile(out) as z:
@@ -124,21 +126,55 @@ def check_docx_original() -> list[str]:
             or "original phrase" not in xml
             or authors != {"Reviewer": {"ins": 1, "del": 1}}
         ):
+            errors.append("extract.docx_original did not restore the author's text")
+    return errors
+
+
+USES = {"unattended", "captcha", "login", "key", "by-hand", "blocked", "unreliable"}
+
+
+def check_registry() -> list[str]:
+    """references/web_detectors.json is consistent with itself and with the known-text
+    results: every tool says whether it can be run, the run order names every tool once,
+    and a tool the skill runs by itself can be read and has been tested."""
+    errors = []
+    reg = registry()
+    ids = [t["id"] for t in reg["tools"]]
+    if sorted(reg["default_order"]) != sorted(ids):
+        errors.append("web_detectors.json: default_order and the tools differ")
+    tested = (read_json(REFS / "web_calibration.json") or {}).get("tools", {})
+    for t in reg["tools"]:
+        if t.get("use") not in USES:
+            errors.append(f"web_detectors.json: {t['id']} has no valid 'use'")
+        if t.get("use") != "unattended":
+            continue
+        if not t.get("parse") and t.get("route") != "api":
             errors.append(
-                "extract_text.docx_original did not restore the author's text"
+                f"web_detectors.json: {t['id']} runs unattended without a parser"
             )
+        if t["id"] not in tested:
+            errors.append(
+                f"web_detectors.json: {t['id']} runs unattended but is untested"
+            )
+    return errors
+
+
+def check_helpers() -> list[str]:
+    """Small shared helpers: statistics and paragraph spans."""
+    errors = []
+    if auroc([1, 1], [0, 0]) != 1 or auroc([1, 0], [1, 0]) != 0.5 or auroc([], [1]):
+        errors.append("stats.auroc is wrong on separable, tied or empty inputs")
+    if quantile([0, 10], 0.25) != 2.5 or not missing(float("nan")) or missing(0.0):
+        errors.append("stats.quantile or stats.missing is wrong")
+    text = "one\n\ntwo\n \n three"
+    got = [text[a:b] for a, b in paragraph_spans(text, 0, len(text))]
+    if got != ["one", "two", " three"]:
+        errors.append(f"text.paragraph_spans gives {got}")
     return errors
 
 
 def check_library() -> list[str]:
     """The shared library on small inputs: splits, detector rules, evidence arithmetic."""
-    import math
-
-    from extract_text import assemble, from_text
-    from lib.detectors import marks_ai
-    from lib.evidence import combine, combine_tools
-    from lib.splits import build_plan
-    from lib.text import is_prose
 
     errors = []
     para = (
@@ -168,6 +204,25 @@ def check_library() -> list[str]:
     ):
         if marks_ai(tool, css) != want:
             errors.append(f"detectors.marks_ai({tool!r}, {css!r}) is not {want}")
+    # What a runner scans: the passages by default, a scale or ids on request, and only
+    # units within the tool's size range.
+    units = [
+        {"chunk": "S1", "scale": "S", "n_words": 900},
+        {"chunk": "P1", "scale": "P", "n_words": 300},
+        {"chunk": "P2", "scale": "P", "n_words": 60},
+        {"chunk": "W1", "scale": "W", "n_words": 300},
+    ]
+    scan = Scan(Path(), Path("plan.json"), units, Path("plan.results.jsonl"))
+    limits = {"min_words": 100, "max_words": 500}
+    for chunks, lim, want in (
+        (None, None, ["P1", "P2"]),
+        (None, limits, ["P1"]),
+        ("S,W", limits, ["W1"]),
+        ("S1,P2", None, ["S1", "P2"]),
+    ):
+        got = [u["chunk"] for u in scan.select(chunks, lim)]
+        if got != want:
+            errors.append(f"detectors.Scan.select({chunks!r}) gives {got}, not {want}")
     # One-cell table rows never pass as prose.
     long_note = "Values are medians with interquartile ranges from the full virtual population of adults |"
     if is_prose("Physico-chemistry |") or is_prose(long_note):
@@ -214,14 +269,19 @@ def check_library() -> list[str]:
                 "end": 50,
                 "n_words": 9,
             }
-            unit = {"chunk": "P1", "scale": "P", "spans": [[0, 50]]}
-            write_json(
-                work / "multi" / "plan.json", {"units": [unit], "sentences": [sent]}
+            unit = {"chunk": "P1", "scale": "P", "spans": [[0, 50]], "n_words": 9}
+            write_json(work / "plan.json", {"units": [unit], "sentences": [sent]})
+            write_jsonl(
+                work / "plan.results.jsonl",
+                [
+                    {"tool": "zerogpt", "chunk": "P1", "score": 0.1},
+                    {"tool": "zerogpt", "chunk": "P1", "score": 0.9},  # the latest wins
+                    {"tool": "pangram", "status": "skipped", "why": "limit"},
+                ],
             )
-            write_json(
-                work / "web_detectors.json",
-                {"results": [{"tool": "zerogpt", "chunk": 1, "score": 0.9}]},
-            )
+            found = Detections.load(work)
+            if found.scores != {("zerogpt", "P1"): 0.9} or len(found.skipped) != 1:
+                errors.append("detectors.Detections: wrong scores or skipped tools")
             out = combine(work)
             want = round(math.log(cal["lr_flag"]), 3)
             if not out or out["sentences"][0]["evidence"] != want:
@@ -258,15 +318,12 @@ def check_case(path: Path) -> list[str]:
             doc["format"] = case["format"]
             write_json(work / "text.json", doc)
         run("scan_artifacts.py", "--work", tmp)
-        for name in (
-            "references",
-            "stylometry",
-            "judgements",
-            "web_detectors",
-            "evidence",
-        ):
+        for name in ("references", "stylometry", "judgements", "evidence"):
             if case.get(name) is not None:
                 write_json(work / f"{name}.json", case[name])
+        if case.get("detectors") is not None:
+            run("segments.py", "--work", tmp)
+            write_jsonl(work / "plan.results.jsonl", case["detectors"])
         run("grade.py", "--work", tmp)
         g = read_json(work / "grade.json")
         arts = read_json(work / "artifacts.json")
@@ -317,7 +374,7 @@ def check_case(path: Path) -> list[str]:
             ):
                 if needle not in page:
                     errors.append(f"{path.stem}: raw report lacks {needle}")
-            if not case.get("web_detectors") and not case.get("evidence"):
+            if not case.get("detectors") and not case.get("evidence"):
                 if "no detector was run" not in page:
                     errors.append(
                         f"{path.stem}: report does not say that no detector ran"
@@ -345,9 +402,9 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"{'ok  ' if not units else 'FAIL'} units (Drive links, headings, tracked-changes DOCX)"
     )
-    lib_errors = check_library()
+    lib_errors = check_library() + check_helpers() + check_registry()
     print(
-        f"{'ok  ' if not lib_errors else 'FAIL'} library (splits, detector rules, evidence)"
+        f"{'ok  ' if not lib_errors else 'FAIL'} library (splits, detector rules, evidence, helpers, registry)"
     )
     units += lib_errors
     errors += units
