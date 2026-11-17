@@ -28,8 +28,8 @@ Each set of skills is designed to help us achieve one of these three goals. Some
 
 Several of these skills are designed to be chained together as part of a larger workflow rather than run in isolation:
 
-- **Model incorporation pipeline** — `model-incorporation-request`, `model-incorporation-metadata`, `model-incorporation-code`, `model-incorporation-reproduce`, and `model-incorporation-release` cover the full lifecycle of bringing a new model into the Hub, from opening the initial request, through verifying it reproduces the original paper's results, to releasing it once the PR is merged. They are meant to be run in sequence, with `model-incorporation-digest` summarising the month's completed incorporations afterwards.
-- **Hub maintenance workflow** — `model-discovery`, `ersilia-model-test`, `model-monitoring`, `model-fixing`, and `github-digest` work together as a recurring maintenance loop: discovering new candidate models, testing them before incorporation, monitoring the state of models and stored data, fixing what fails, and digesting GitHub activity to keep track of it all. We recommend running these as a bundled workflow rather than as standalone skills.
+- **Model incorporation pipeline** — `model-incorporation-request`, `model-incorporation-metadata`, `model-incorporation-code`, `model-incorporation-reproduce`, `model-incorporation-pr`, and `model-incorporation-release` cover the full lifecycle of bringing a new model into the Hub, from opening the initial request, through verifying it reproduces the original paper's results and submitting the pull request, to releasing it once the PR is merged. They are meant to be run in sequence, with `model-incorporation-digest` summarising the month's completed incorporations afterwards.
+- **Hub maintenance workflow** — `ersilia-model-test`, `model-monitoring`, `model-fixing`, and `github-digest` work together as a recurring maintenance loop: testing models before incorporation, monitoring the state of models and stored data, fixing what fails, and digesting GitHub activity to keep track of it all. We recommend running these as a bundled workflow rather than as standalone skills.
 
 | Name | Skill |
 |------|-------|
@@ -37,9 +37,9 @@ Several of these skills are designed to be chained together as part of a larger 
 | model-incorporation-metadata | Fills in `metadata.yml` from the paper and source repo. |
 | model-incorporation-code | Wires the model code into the Ersilia template. |
 | model-incorporation-reproduce | Verifies model outcomes/performance matches the original work. |
+| model-incorporation-pr | Commits a finished model incorporation and opens the pull request to `ersilia-os/<model_id>`. Asks for approval before pushing, reports the PR checks and merges once authorized. |
 | model-incorporation-release | Last step of the incorporation pipeline. It runs after the model's PR is merged into ersilia-os/eosXXXX. |
 | repository-auditing | Audits a repository to make sure it abides by Ersilia's standards. |
-| org-context | Keeps the org `CLAUDE.md` and the package and analysis template `CLAUDE.md` files short, true and consistent. Reports first; edits only what you approve. |
 | ersilia-model-test | Tests an Ersilia Model Hub model before hub incorporation. |
 | model-monitoring | Track pending models, stored data, etc |
 | model-fixing | When a model fails a test, reviews where it failed and fixes it automatically. |
@@ -56,7 +56,7 @@ Several of these skills are designed to be chained together as part of a larger 
 | literature-review | Given a topic, offers a structured review of the literature, surfacing relevant research/review papers alongside potential ML models and datasets that could be included in Ersilia. |
 | literature-digest | Produces a weekly literature digest for Ersilia. |
 | molecule-auditing | Audits small molecules suggested in Ersilia's screening and scores them according to parameters of interest. |
-| paper-to-model-assesment | Summarize a given paper and put it in context of Ersilia’s interests. |
+| paper-to-model-assessment | Summarize a given paper and put it in context of Ersilia’s interests. |
 | peer-reviewing | Emulate a peer review and suggest how to address changes. |
 
 ---
@@ -80,7 +80,7 @@ allowed-tools: [Read, Write, WebFetch, Bash, ...]
 
 **Body** — the workflow Claude follows: argument parsing, step-by-step instructions, output format, and any important rules or constraints.
 
-The `references/` folder holds supporting files that the skill reads using the `Read` tool at runtime — for example, a brand guidelines document for the `branding` skill, or a metadata vocabulary for `model-incorporation`.
+The `references/` folder holds supporting files that the skill reads using the `Read` tool at runtime — for example, brand guidelines or a metadata vocabulary.
 
 ---
 
@@ -113,9 +113,9 @@ If you only need to use the skills without a local clone, add this to your Claud
 Once installed, skills are available as slash commands in any Claude Code session. For example:
 
 ```
-/model-incorporation https://github.com/org/model-repo --paper https://doi.org/...
+/model-incorporation-request https://github.com/org/model-repo --paper https://doi.org/...
 /literature-review "graph neural networks for antimicrobial resistance" --since 2022
-/email-drafting "pitch to a potential funder" --to "Gates Foundation"
+/event-discovery
 ```
 
 ---
