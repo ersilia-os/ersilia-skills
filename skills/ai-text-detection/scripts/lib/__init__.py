@@ -3,6 +3,7 @@
     common      paths, constants, messages, JSON files
     text        text primitives: words, sentences, prose detection, section lookup,
                 fixed-size windows for stylometry
+    style       the style score: window features and the calibrated model
     splits      the units detectors see: passages (the reader's unit) and the
                 section / passage / overlapping-window plan
     detectors   the web-detector registry, result parsers, highlight colours, and the
@@ -12,4 +13,5 @@
     report      the HTML report
 
 Scripts import it as ``from lib.<module> import ...``; it needs only the standard library.
+The library never imports a script: dependencies point from the steps to the library.
 """

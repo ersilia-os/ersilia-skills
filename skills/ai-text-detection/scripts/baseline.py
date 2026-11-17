@@ -36,8 +36,8 @@ import urllib.request
 from pathlib import Path
 
 from lib.common import USER_AGENT, WORK_DIR, die, read_json, warn, write_json
+from lib.style import FEATURES, features
 from lib.text import chunks, words
-from stylometry import FEATURES, features
 
 
 def openalex_texts(author: str, first_only: bool, n: int) -> list[dict]:

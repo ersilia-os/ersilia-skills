@@ -130,6 +130,80 @@ def check_docx_original() -> list[str]:
     return errors
 
 
+def check_library() -> list[str]:
+    """The shared library on small inputs: splits, detector rules, evidence arithmetic."""
+    import math
+
+    from extract_text import assemble, from_text
+    from lib.detectors import marks_ai
+    from lib.evidence import combine
+    from lib.splits import build_plan
+    from lib.text import is_prose
+
+    errors = []
+    para = (
+        "We measured the effect of the intervention in three cohorts recruited from "
+        "rural clinics. Adherence was lower in the second cohort, which travelled further "
+        "to reach the clinic. The difference persisted after adjusting for age and sex. "
+    )
+    # Prose before the first heading (a review's opening summary) is scored, not taken
+    # for a title page.
+    doc = assemble(from_text((para * 3 + "\n\n") * 4 + "Major comments\n\n" + para * 3))
+    first = doc["sections"][0]
+    plan = build_plan(doc)
+    if first["title"] != "(start)" or not any(
+        x["section"] == "(start)" for x in plan["sentences"]
+    ):
+        errors.append("splits: prose before the first heading is not scored")
+    # A section that is a single passage is not also a section unit (no double counting).
+    doc = assemble(from_text("Introduction\n\n" + (para * 2 + "\n\n") * 3))
+    spans = [(u["scale"], u["spans"]) for u in build_plan(doc)["units"]]
+    if any(sc == "S" and ("P", sp) in spans for sc, sp in spans):
+        errors.append("splits: a section identical to a passage is counted twice")
+    # Highlight rules: a site whose shading carries no verdict, a human green, an AI yellow.
+    for tool, css, want in (
+        ("aidetector_review", "rgba(249, 112, 21, 0.22)", False),
+        ("zerogpt", "rgb(255, 255, 0)", True),
+        ("zerogpt", "rgb(120, 200, 120)", False),
+    ):
+        if marks_ai(tool, css) != want:
+            errors.append(f"detectors.marks_ai({tool!r}, {css!r}) is not {want}")
+    # One-cell table rows never pass as prose.
+    long_note = "Values are medians with interquartile ranges from the full virtual population of adults |"
+    if is_prose("Physico-chemistry |") or is_prose(long_note):
+        errors.append("text.is_prose accepts a one-cell table row")
+    # Evidence: one sentence, one unit, one tool scoring it AI -> log of its LR if flagged.
+    cal = (
+        (read_json(REFS / "web_calibration.json") or {}).get("tools", {}).get("zerogpt")
+    )
+    if cal:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            sent = {
+                "id": "s1",
+                "section": "x",
+                "para": 0,
+                "start": 0,
+                "end": 50,
+                "n_words": 9,
+            }
+            unit = {"chunk": "P1", "scale": "P", "spans": [[0, 50]]}
+            write_json(
+                work / "multi" / "plan.json", {"units": [unit], "sentences": [sent]}
+            )
+            write_json(
+                work / "web_detectors.json",
+                {"results": [{"tool": "zerogpt", "chunk": 1, "score": 0.9}]},
+            )
+            out = combine(work)
+            want = round(math.log(cal["lr_flag"]), 3)
+            if not out or out["sentences"][0]["evidence"] != want:
+                errors.append(
+                    f"evidence.combine: expected {want} for one flagging tool"
+                )
+    return errors
+
+
 def run(script: str, *args: str) -> str:
     """Run a sibling script; return its stdout (raise on failure)."""
     p = subprocess.run(
@@ -244,6 +318,11 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"{'ok  ' if not units else 'FAIL'} units (Drive links, headings, tracked-changes DOCX)"
     )
+    lib_errors = check_library()
+    print(
+        f"{'ok  ' if not lib_errors else 'FAIL'} library (splits, detector rules, evidence)"
+    )
+    units += lib_errors
     errors += units
     print(
         f"{'ok  ' if not errors else 'FAIL'} markers ({len(read_json(REFS / 'markers.json')['patterns'])} patterns)"

@@ -33,8 +33,8 @@ from pathlib import Path
 from lib.common import REFS, SKILL_DIR, read_json
 from lib.detectors import marks_ai
 from lib.splits import build_passages
+from lib.style import features, style_score
 from lib.text import is_prose, words
-from stylometry import features, style_score
 
 CSS_FILE = SKILL_DIR / "assets" / "report.css"
 FONTS = (

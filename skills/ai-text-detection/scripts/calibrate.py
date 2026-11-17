@@ -38,7 +38,7 @@ import sys
 from datetime import date
 
 from lib.common import LOCAL, REFS, read_jsonl, write_json
-from stylometry import DIRECTION, FEATURES, MODEL_FEATURES, features
+from lib.style import DIRECTION, FEATURES, MODEL_FEATURES, features
 
 CAL = REFS / "calibration"
 
