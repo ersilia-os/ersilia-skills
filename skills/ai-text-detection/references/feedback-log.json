@@ -45,6 +45,13 @@
       "feedback": "Replace the rule that combines detectors (mean x sqrt(k) lowered the result whenever a detector was added)",
       "kind": "grading",
       "change": "evidence.py adds each detector's evidence divided by the overlap the others carry (score correlation within class on known texts, weighted by informativeness; full overlap assumed where unmeasurable). Specified and its validation fixed before applying it to the case; grading bars unchanged. On known texts no human text reaches 3x; 7/10 AI reach 10x."
+    },
+    {
+      "n": 7,
+      "date": "2026-11-17",
+      "feedback": "Wants a thorough search for more methods, and a legally backed assessment based on EU guidelines so anyone can see it was done correctly",
+      "kind": "process",
+      "change": "formal_report.py writes a nine-step formal assessment aligned with GDPR, AI Act, ERA living guidelines, ALLEA, COPE and ENFSI (frameworks.json, quotes verified); it states that no official EU detection guideline exists. New: watermarks.md, two detectors registered, methods.md updated"
     }
   ]
 }

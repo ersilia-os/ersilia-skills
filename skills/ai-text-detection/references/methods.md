@@ -51,6 +51,17 @@ Only for text that may leave the machine: never a manuscript or grant the user i
 - A verified false claim about a manuscript, a requested analysis the paper already contains, or an invented fact is evidence anyone can check.
 - Generic praise, no line or figure references, and a summary that restates the abstract are typical of LLM-written reviews ([Liang et al. 2024](https://arxiv.org/abs/2403.07183); [Pangram's ICLR 2026 analysis](https://pangram.com/blog/pangram-predicts-21-of-iclr-reviews-are-ai-generated)), but each is weak on its own.
 
+## 6. Provider watermarks: strong where available, silent otherwise
+
+Since August 2026 Claude and, in the EU, ChatGPT embed a statistical watermark in generated text (AI Act Art. 50(2)); verification is restricted to approved organisations and researchers. A detected mark shows the text passed through that model, including for translation or proofreading; a missing mark shows nothing. See `watermarks.md`.
+
+## 7. What independent evaluations say (2025-2026)
+
+- **Detectors with low false positives still miss imitated style.** Epoch AI (July 2026) scored 495 pre-ChatGPT passages and AI text: Pangram and GPTZero flagged no human passage, Originality.ai 3.8%; plain AI text was almost always caught, but AI text imitating an author's style was missed 24-29% of the time in scientific writing ([Epoch AI](https://epoch.ai/data-insights/ai-detectors-false-negatives)). A clean detector result is weak evidence of human authorship.
+- **AI-polished text is often flagged.** Karr et al. report "refine only" edits flagged 38-80% of the time and humanised text evading detection more than 96% of the time ([arXiv:2608.11256](https://arxiv.org/abs/2608.11256)). A flag does not separate generation from polishing, which is allowed.
+- **Reviews:** comparing a review with an LLM-written "anchor" review of the same manuscript detects AI reviews far better than general detectors at very low false-positive rates (Yu et al., ICLR 2026, [arXiv:2502.19614](https://arxiv.org/abs/2502.19614)). The skill uses the idea qualitatively in close reading (SKILL.md, step 4); it has not calibrated it.
+- **Fabricated references are now common enough to need care.** A 2026 analysis reported about 1 in 277 PubMed papers with a fabricated reference, most with only one or two (Topaz et al., reported by Retraction Watch). One unfindable reference is therefore moderate evidence at most, and only after a manual search.
+
 ## How to raise a concern fairly
 
 - Lead with what anyone can verify: fabricated references, leftover chatbot text, false claims about the manuscript.

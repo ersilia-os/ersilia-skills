@@ -1,6 +1,6 @@
 {
   "_about": "The skill's statistical layer: web AI-text detectors it runs through Claude in Chrome, in the user's own browser session, chunk by chunk. 'weight' says how grade.py treats a tool: 'validated' tools have independent evidence of a low false-positive rate and can count as a line of evidence; 'context' tools are reported but never raise the verdict above weak. Free-tier limits change: read them on the page, never work around them. Pasting text into these sites uploads it: only for text the user owns or co-authors, or public text (SKILL.md, step 2b).",
-  "version": 5,
+  "version": 6,
   "tools": [
     {
       "id": "pangram",
@@ -363,6 +363,34 @@
         "label": "AI detection report\\s*\\n\\s*\\d+(?:\\.\\d+)?%\\s*\\n([^\\n]+)"
       },
       "min_words": 100
+    },
+    {
+      "id": "fastdetect",
+      "name": "Fast-DetectGPT (authors' demo)",
+      "url": "https://fastdetect.net/",
+      "weight": "context",
+      "evidence": "Peer-reviewed zero-shot method (Bao et al., ICLR 2024); a baseline in the 2026 peer-review detection benchmarks. The authors host the demo and an API (README, checked 2026-11-17). No independent false-positive rate for the hosted version.",
+      "read": "Record the reported machine-generated probability (0-1).",
+      "min_words": 100,
+      "max_words": 1500,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "the page is a JavaScript app with no text box found by the probe; the authors document an API (https://fastdetect.net/#/apidoc): read it and add it to api_detectors.py, then test on known texts"
+      }
+    },
+    {
+      "id": "desklib",
+      "name": "Desklib AI detector",
+      "url": "https://desklib.com/ai-content-detector/",
+      "weight": "context",
+      "evidence": "Open model (desklib/ai-text-detector-v1.01, MIT); its model card claims a top RAID position at submission (self-reported). No independent evaluation found.",
+      "read": "Record the AI probability (0-1).",
+      "min_words": 100,
+      "max_words": 1500,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "accepts text without login (7,000 characters); the probe did not press its Submit button, so no result yet: fix the click, add a parser, then test on known texts before it counts"
+      }
     }
   ],
   "default_order": [
@@ -370,6 +398,8 @@
     "undetectable",
     "aidetector_review",
     "scribbr",
+    "fastdetect",
+    "desklib",
     "pangram",
     "gptzero",
     "originality",

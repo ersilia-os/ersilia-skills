@@ -1,0 +1,31 @@
+/* The formal assessment (scripts/lib/formal.py): a sober document made to be printed. */
+:root { --bg: #ffffff; --ink: #16181d; --muted: #555b66; --line: #c9ccd3; --soft: #f3f4f7; --accent: #1f3a8a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #14161b; --ink: #e9ebf0; --muted: #a4a9b5; --line: #3a3e49; --soft: #1d2027; --accent: #9db4ff; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #14161b; --ink: #e9ebf0; --muted: #a4a9b5; --line: #3a3e49; --soft: #1d2027; --accent: #9db4ff; color-scheme: dark; }
+body { background: var(--bg); color: var(--ink); font: 15.5px/1.6 Georgia, "Times New Roman", serif; }
+main { max-width: 50em; margin: 0 auto; padding-block: 28px 56px;
+       padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.kicker { font: 600 .78rem/1.3 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0; }
+h1 { font-size: 1.7rem; margin: .2rem 0 .1rem; text-wrap: balance; }
+h2 { font: 700 1.05rem/1.3 system-ui, sans-serif; margin: 2rem 0 .5rem; padding-top: .7rem; border-top: 1px solid var(--line); }
+h2.annex { border-top: 2px solid var(--ink); margin-top: 2.6rem; }
+h4 { font: 700 .95rem/1.3 system-ui, sans-serif; margin: 1.1rem 0 .1rem; }
+p { margin: .5rem 0; }
+.meta, .note, .basis, .use { color: var(--muted); font: .82rem/1.5 system-ui, sans-serif; }
+.basis { border-left: 3px solid var(--accent); padding-left: .7rem; margin-top: .8rem; }
+.use { display: block; }
+.box { background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: .6rem 1rem; margin: 1rem 0; }
+.props li { margin: .4rem 0; font-weight: 600; }
+.verdict { font-size: 1.1rem; }
+.sign { margin-top: 1.2rem; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font: .82rem/1.45 system-ui, sans-serif; }
+th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+thead th { background: var(--soft); }
+table.findings tbody th { width: 15%; font-weight: 650; }
+table.record th { width: 28%; background: var(--soft); font-weight: 600; }
+.src ul { margin: .3rem 0 .4rem; padding-left: 1.2rem; }
+.src li { margin: .35rem 0; }
+a { color: var(--accent); }
+@media print { main { max-width: none; padding: 0; } h2 { break-after: avoid; } tr, .src li, .box { break-inside: avoid; } }

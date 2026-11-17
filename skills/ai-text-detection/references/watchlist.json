@@ -122,6 +122,18 @@
       "topic": "web-detectors",
       "found": "User decided against local models: the statistical layer is now web detectors run in Chrome (Pangram, GPTZero, Originality validated; Copyleaks, Sapling, Scribbr, QuillBot, Winston, Writer, ZeroGPT, Undetectable as context).",
       "change": "detect_models.py removed; web_detectors.json v2"
+    },
+    {
+      "date": "2026-11-17",
+      "topic": "web-detectors",
+      "found": "Fast-DetectGPT authors' hosted demo and API (fastdetect.net); Desklib open detector; provider watermarks: Claude (since Aug 2026) and ChatGPT in the EU (textGrain, Oct 2026), verification restricted to approved organisations and researchers; anchor-review method for AI reviews (Yu et al., ICLR 2026); Epoch AI and Karr et al. evaluations; publisher tools (Geppetto, Papermill Alarm) not open to researchers",
+      "change": "web_detectors.json v7 (fastdetect, desklib: registered, not yet calibrated); watermarks.md; methods.md sections 6-7; anchor-review cross-check in SKILL.md close reading"
+    },
+    {
+      "date": "2026-11-17",
+      "topic": "policies",
+      "found": "No official EU guideline on detecting AI-written text. Sources read on the primary documents: ERA living guidelines v4 (Oct 2026), ALLEA code 2023, Horizon Europe evaluator briefing v13 and application form, ERC evaluation guidelines (Mar 2026), AI Act Art. 50 with Omnibus 2026/1744, GDPR Art. 22, COPE case 26-11 and Forum, ICMJE, ENFSI evaluative reporting, OIA casework",
+      "change": "frameworks.json v1 (14 sources, 38 quoted provisions, 21 checked twice); formal_report.py and formal-assessment.md"
     }
   ]
 }

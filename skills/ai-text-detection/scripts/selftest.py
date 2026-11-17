@@ -199,6 +199,28 @@ def check_library() -> list[str]:
             errors.append(
                 f"evidence.combine_tools: {label} (got {got}, expected {want})"
             )
+    # Formal wording: a likelihood ratio becomes support for a proposition, capped for
+    # the detectors' line; every source has a status, a URL and at least one quote.
+    from lib.formal import verbal
+
+    for lr, want in (
+        (1.5, "no support for either proposition over the other"),
+        (7.7, "weak support for proposition 1"),
+        (0.05, "moderate support for proposition 2"),
+        (5000.0, "moderate support for proposition 1"),
+    ):
+        if verbal(lr) != want:
+            errors.append(f"formal.verbal({lr}) = {verbal(lr)!r}, expected {want!r}")
+    for src in read_json(REFS / "frameworks.json")["sources"]:
+        if not (
+            src.get("status")
+            and src.get("url")
+            and src.get("checked")
+            and src["provisions"]
+        ):
+            errors.append(
+                f"frameworks.json: {src['id']} lacks status, url, checked or provisions"
+            )
     # Evidence: one sentence, one unit, one tool scoring it AI -> log of its LR if flagged.
     cal = (
         (read_json(REFS / "web_calibration.json") or {}).get("tools", {}).get("zerogpt")
@@ -317,6 +339,34 @@ def check_case(path: Path) -> list[str]:
             ):
                 if needle not in page:
                     errors.append(f"{path.stem}: raw report lacks {needle}")
+            # The formal assessment builds from the same folder and keeps its guarantees.
+            with contextlib.redirect_stdout(io.StringIO()):
+                run(
+                    "formal_report.py",
+                    "--work",
+                    tmp,
+                    "--case",
+                    path.stem,
+                    "--context",
+                    "manuscript-i-review",
+                    "--date",
+                    "2026-01-01",
+                )
+            formal = (
+                (work / "formal.html").read_text()
+                if (work / "formal.html").exists()
+                else ""
+            )
+            for needle in (
+                "not proof of authorship",
+                "No official EU guideline exists",
+                "was not sent to any AI detector",
+                "Reviewed by:",
+                "Annex A.",
+                "presumed innocent",
+            ):
+                if needle not in formal:
+                    errors.append(f"{path.stem}: formal assessment lacks {needle!r}")
             if not case.get("web_detectors") and not case.get("evidence"):
                 if "no detector was run" not in page:
                     errors.append(
