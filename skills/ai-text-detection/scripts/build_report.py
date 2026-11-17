@@ -1,7 +1,7 @@
 """Write the evidence report: one self-contained HTML page, ready to publish as a private
 Artifact (the page is a fragment, as the Artifact tool expects: <title>, <style>, content).
 
-The layout follows the web detectors people already know (report_html.py): the share of
+The layout follows the web detectors people already know (lib/report.py): the share of
 the prose that reads as AI-written, the verdict tier and the non-statistical checks at the
 top; the text with AI-like sentences highlighted and close-reading notes as tags; a side
 panel with each passage's combined score and each detector's scores and track record.

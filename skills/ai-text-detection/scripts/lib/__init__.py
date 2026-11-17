@@ -8,6 +8,7 @@
     detectors   the web-detector registry, result parsers, highlight colours, and the
                 per-document results state
     evidence    the calibrated combination of detectors across splits
+    grading     every line of evidence into one tier and defensible statements
     report      the HTML report
 
 Scripts import it as ``from lib.<module> import ...``; it needs only the standard library.

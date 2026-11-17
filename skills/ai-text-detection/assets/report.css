@@ -1,4 +1,4 @@
-/* The evidence report (scripts/report_html.py). Colours are tokens; dark mode redefines them. */
+/* The evidence report (scripts/lib/report.py). Colours are tokens; dark mode redefines them. */
 :root { --bg: #f6f7fb; --card: #ffffff; --ink: #14161f; --muted: #5d6275; --line: #e3e5ee;
         --ai: #ff5a36; --ai-soft: #ffe1d8; --amber: #ffb000; --amber-soft: #fff0c2; --hu: #12b76a; --hu-soft: #d9f7e8;
         --un: #c9ccd8; --accent: #5b4bdb;

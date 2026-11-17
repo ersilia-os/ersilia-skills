@@ -1,6 +1,6 @@
 """Stylistic measures of the document, compared with human scientific text.
 
-Per window (see _common.chunks) it measures:
+Per window (see lib.text.chunks) it measures:
 
     excess_rate     words from the Kobak et al. excess-vocabulary list, per 1,000 words
     marked_rate     the most LLM-typical of those words (delve, underscore, pivotal, ...)

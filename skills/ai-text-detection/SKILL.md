@@ -35,7 +35,8 @@ You help the user decide, with evidence they can defend, whether a document was 
 
 ```
 SKILL.md            this file
-scripts/            the pipeline (Python 3; PDF/DOCX and Chrome need the small conda env)
+scripts/            the steps, one command each (Python 3; PDF/DOCX and Chrome need the conda env)
+scripts/lib/        what the steps share: text, splits, detectors, evidence, grading, report
 references/         data and documents; see references/README.md
 assets/             report styles
 examples/cases/     regression cases for selftest.py
@@ -62,7 +63,7 @@ Work folder: `/tmp/ai_text_detection/`, reset each run. Private case ledger: `~/
 | | `web_controls.py` | Tests each detector on known texts; writes `web_calibration.json` |
 | | `evidence.py` | Combines tools and splits into calibrated evidence per sentence, passage, document |
 | Verdict | `grade.py` | Rules in `grading.json` give the tier and the defensible statements |
-| Report | `build_report.py` | The HTML report (`report_html.py`), published as a private Artifact |
+| Report | `build_report.py` | The HTML report (`lib/report.py`), published as a private Artifact |
 | | `report_pdf.py` | The report as an A4 PDF, when the user asks for a file |
 | Maintenance | `build_corpus.py`, `calibrate.py` | Human calibration corpus; style-score thresholds; `validation.md` |
 | | `selftest.py` | Offline regression test over `examples/cases/` and every marker's examples |
