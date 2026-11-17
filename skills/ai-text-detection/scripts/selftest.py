@@ -136,7 +136,7 @@ def check_library() -> list[str]:
 
     from extract_text import assemble, from_text
     from lib.detectors import marks_ai
-    from lib.evidence import combine
+    from lib.evidence import combine, combine_tools
     from lib.splits import build_plan
     from lib.text import is_prose
 
@@ -172,6 +172,33 @@ def check_library() -> list[str]:
     long_note = "Values are medians with interquartile ranges from the full virtual population of adults |"
     if is_prose("Physico-chemistry |") or is_prose(long_note):
         errors.append("text.is_prose accepts a one-cell table row")
+    # The combination rule: independent tools add up; copies of one tool count once; a
+    # tool that carries no information changes nothing.
+    w = {"log_flag": 2.0, "log_clear": -1.0}
+    weights = {"a": w, "b": dict(w), "u": {"log_flag": 0.0, "log_clear": 0.0}}
+    independent = {"a|b": {"rho": 0.0}, "a|u": {"rho": 0.0}, "b|u": {"rho": 0.0}}
+    copies = {"a|b": {"rho": 1.0}, "a|u": {"rho": 1.0}, "b|u": {"rho": 1.0}}
+    for label, got, want in (
+        (
+            "independent tools add up",
+            combine_tools({"a": 2.0, "b": 2.0}, weights, independent),
+            4.0,
+        ),
+        (
+            "copies count once",
+            combine_tools({"a": 2.0, "b": 2.0}, weights, copies),
+            2.0,
+        ),
+        (
+            "an uninformative tool changes nothing",
+            combine_tools({"a": 2.0, "u": 0.0}, weights, copies),
+            2.0,
+        ),
+    ):
+        if abs(got - want) > 1e-9:
+            errors.append(
+                f"evidence.combine_tools: {label} (got {got}, expected {want})"
+            )
     # Evidence: one sentence, one unit, one tool scoring it AI -> log of its LR if flagged.
     cal = (
         (read_json(REFS / "web_calibration.json") or {}).get("tools", {}).get("zerogpt")

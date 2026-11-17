@@ -1,6 +1,6 @@
 {
   "_about": "How grade.py turns findings into the overall tier. Data, not code: change these values through the Learn step (record_feedback.py logs why). The tier is the highest level whose rule is met. Manipulation (hidden prompts) and paraphraser evidence are reported separately: they are serious, but they are not evidence that an AI wrote the text.",
-  "version": 5,
+  "version": 6,
   "conclusive": {
     "_note": "A confirmed artefact (scan_artifacts.py, then confirmed in context in judgements.json) from one of these categories.",
     "categories": [
@@ -52,7 +52,7 @@
     "min_coverage": 0.5
   },
   "combined": {
-    "_note": "Calibrated combination of web detectors across splits (evidence.py). Moderate needs the document to be at least moderate_times more likely under AI, with at least min_good_tools tools that reached good_auroc on known texts among those counted. At most counter_times is reported as counter-evidence. Never strong on its own. passage_times: a single passage at or above this (stricter than the document bar, since several passages are tested) also gives moderate, worded as localised evidence. A tool is counted at all only with at least min_known_texts human and min_known_texts AI known texts and an AUROC of at least min_auroc (evidence.py, web_controls.py).",
+    "_note": "Calibrated combination of web detectors across splits (evidence.py: evidence added, each tool's divided by the overlap the others carry, measured on known texts). Moderate needs the document to be at least moderate_times more likely under AI, with at least min_good_tools tools that reached good_auroc on known texts among those counted. At most counter_times is reported as counter-evidence. Never strong on its own. passage_times: a single passage at or above this (stricter than the document bar, since several passages are tested) also gives moderate, worded as localised evidence. A tool is counted at all only with at least min_known_texts human and min_known_texts AI known texts and an AUROC of at least min_auroc (evidence.py, web_controls.py).",
     "min_known_texts": 5,
     "min_auroc": 0.6,
     "moderate_times": 10,

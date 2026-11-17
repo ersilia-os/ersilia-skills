@@ -2,7 +2,7 @@
   "_about": "Measured on known texts by web_controls.py: human = published scientific prose from 2015-2021 (CC BY / public domain), ai = written by Claude or GPT models, polished = human text rewritten by an AI. human_domain = human prose from the document's own field. fpr, lr_* and auroc pool all human texts (general and domain); fpr_generic and fpr_domain show them apart. fpr = share of human texts scored >= 0.5; tpr = share of AI texts scored >= 0.5. Small samples: the intervals in 'n' matter. Re-run monthly (watch.py) and after any site change.",
   "tools": {
     "aidetector_review": {
-      "date": "2026-11-16",
+      "date": "2026-11-17",
       "n_human": 28,
       "n_ai": 10,
       "n_polished": 3,
@@ -41,7 +41,7 @@
       ]
     },
     "binoculars": {
-      "date": "2026-11-16",
+      "date": "2026-11-17",
       "n_human": 28,
       "n_ai": 10,
       "n_polished": 3,
@@ -80,7 +80,7 @@
       ]
     },
     "undetectable": {
-      "date": "2026-11-16",
+      "date": "2026-11-17",
       "n_human": 28,
       "n_ai": 10,
       "n_polished": 3,
@@ -119,7 +119,7 @@
       ]
     },
     "zerogpt": {
-      "date": "2026-11-16",
+      "date": "2026-11-17",
       "n_human": 28,
       "n_ai": 10,
       "n_polished": 3,
@@ -158,7 +158,7 @@
       ]
     },
     "decopy": {
-      "date": "2026-11-16",
+      "date": "2026-11-17",
       "n_human": 4,
       "n_ai": 0,
       "n_polished": 0,
@@ -178,7 +178,7 @@
       "domain_scores": []
     },
     "scribbr": {
-      "date": "2026-11-16",
+      "date": "2026-11-17",
       "n_human": 28,
       "n_ai": 10,
       "n_polished": 3,
@@ -215,6 +215,454 @@
         0.0,
         0.0
       ]
+    }
+  },
+  "known_scores": {
+    "a11": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.98,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.33,
+        "zerogpt": 1.0
+      }
+    },
+    "a12": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.43,
+        "binoculars": 0.0,
+        "scribbr": 0.23,
+        "undetectable": 0.79,
+        "zerogpt": 1.0
+      }
+    },
+    "a13": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.98,
+        "binoculars": 0.0,
+        "scribbr": 0.09,
+        "undetectable": 0.89,
+        "zerogpt": 1.0
+      }
+    },
+    "a14": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.99,
+        "binoculars": 1.0,
+        "scribbr": 1.0,
+        "undetectable": 0.82,
+        "zerogpt": 1.0
+      }
+    },
+    "a15": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.98,
+        "binoculars": 0.0,
+        "scribbr": 0.25,
+        "undetectable": 0.5,
+        "zerogpt": 1.0
+      }
+    },
+    "a16": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.94,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.8,
+        "zerogpt": 1.0
+      }
+    },
+    "a17": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.98,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.68,
+        "zerogpt": 1.0
+      }
+    },
+    "a18": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.02,
+        "binoculars": 1.0,
+        "scribbr": 0.0,
+        "undetectable": 0.83,
+        "zerogpt": 1.0
+      }
+    },
+    "a19": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.99,
+        "binoculars": 1.0,
+        "scribbr": 1.0,
+        "undetectable": 0.99,
+        "zerogpt": 1.0
+      }
+    },
+    "a20": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.99,
+        "binoculars": 1.0,
+        "scribbr": 1.0,
+        "undetectable": 0.99,
+        "zerogpt": 1.0
+      }
+    },
+    "d01": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.13,
+        "zerogpt": 0.0
+      }
+    },
+    "d02": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.18,
+        "zerogpt": 0.0
+      }
+    },
+    "d03": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.21,
+        "zerogpt": 0.0
+      }
+    },
+    "d04": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.12,
+        "zerogpt": 0.0
+      }
+    },
+    "d05": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.02,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "d06": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "d07": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.05,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.31,
+        "zerogpt": 0.0
+      }
+    },
+    "d08": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.02,
+        "zerogpt": 0.0
+      }
+    },
+    "d09": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.03,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.08,
+        "zerogpt": 0.0
+      }
+    },
+    "d10": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "d11": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.19,
+        "zerogpt": 0.0
+      }
+    },
+    "d12": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.2,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.44,
+        "zerogpt": 0.0
+      }
+    },
+    "d13": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.25,
+        "zerogpt": 0.0
+      }
+    },
+    "d14": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "d15": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "d16": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.97,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.27,
+        "zerogpt": 0.0
+      }
+    },
+    "d17": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.04,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.28,
+        "zerogpt": 0.0
+      }
+    },
+    "d18": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.97,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.18,
+        "zerogpt": 0.0
+      }
+    },
+    "h01": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "decopy": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.09,
+        "zerogpt": 0.0
+      }
+    },
+    "h02": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "decopy": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.37,
+        "zerogpt": 0.0
+      }
+    },
+    "h03": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.02,
+        "binoculars": 0.0,
+        "decopy": 0.51,
+        "scribbr": 0.0,
+        "undetectable": 0.26,
+        "zerogpt": 0.0
+      }
+    },
+    "h04": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.03,
+        "binoculars": 0.0,
+        "decopy": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "h05": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.02,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.44,
+        "zerogpt": 0.0
+      }
+    },
+    "h06": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.6,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "h07": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.03,
+        "zerogpt": 0.0
+      }
+    },
+    "h08": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "h09": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.1,
+        "zerogpt": 0.0
+      }
+    },
+    "h10": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "scribbr": 0.0,
+        "undetectable": 0.78,
+        "zerogpt": 0.0
+      }
+    }
+  },
+  "pairs": {
+    "aidetector_review|binoculars": {
+      "rho": 0.0,
+      "n": 10
+    },
+    "aidetector_review|decopy": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "aidetector_review|scribbr": {
+      "rho": 0.329,
+      "n": 10
+    },
+    "aidetector_review|undetectable": {
+      "rho": 0.003,
+      "n": 38
+    },
+    "aidetector_review|zerogpt": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "binoculars|decopy": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "binoculars|scribbr": {
+      "rho": 0.746,
+      "n": 10
+    },
+    "binoculars|undetectable": {
+      "rho": 0.6,
+      "n": 10
+    },
+    "binoculars|zerogpt": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "decopy|scribbr": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "decopy|undetectable": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "decopy|zerogpt": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "scribbr|undetectable": {
+      "rho": 0.548,
+      "n": 10
+    },
+    "scribbr|zerogpt": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "undetectable|zerogpt": {
+      "rho": 1.0,
+      "n": 0
     }
   }
 }

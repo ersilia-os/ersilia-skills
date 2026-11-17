@@ -288,9 +288,92 @@ def analyze(d: Path) -> dict:
             "fpr_domain": round(sum(v >= 0.5 for v in hd) / len(hd), 3) if hd else None,
             "domain_scores": sorted(round(v, 2) for v in hd),
         }
+    # Every tool's score on every known text (public control texts only), and how much
+    # each pair of tools moves together within a class: the overlap evidence.py discounts.
+    cal["known_scores"] = {}
+    for (t, c), v in sorted(latest.items()):
+        lab = label_of.get(c)
+        if lab in ("human", "human_domain", "ai"):
+            row = cal["known_scores"].setdefault(c, {"label": lab, "scores": {}})
+            row["scores"][t] = round(v, 4)
+    cal["pairs"] = pair_overlaps(cal["known_scores"])
     write_json(OUT, cal)
     write_readable(cal)
     return cal
+
+
+MIN_SHARED = 8  # texts of one class both tools scored, for a correlation to be used
+
+
+def pearson(x: list[float], y: list[float]) -> float | None:
+    """Pearson correlation; None when either side does not vary."""
+    n = len(x)
+    mx, my = sum(x) / n, sum(y) / n
+    sx = sum((a - mx) ** 2 for a in x)
+    sy = sum((b - my) ** 2 for b in y)
+    if sx == 0 or sy == 0:
+        return None
+    return (
+        sum((a - mx) * (b - my) for a, b in zip(x, y, strict=True)) / (sx * sy) ** 0.5
+    )
+
+
+def pair_overlaps(known: dict) -> dict:
+    """Per pair of tools: correlation of their scores within the human texts and within
+    the AI texts (where shared mistakes show), pooled by size and clipped to 0-1. A pair
+    with too few shared texts, or none that vary, gets 1: assume full overlap."""
+    tools = sorted({t for r in known.values() for t in r["scores"]})
+    classes = {"human": ("human", "human_domain"), "ai": ("ai",)}
+    out = {}
+    for i, a in enumerate(tools):
+        for b in tools[i + 1 :]:
+            acc = []
+            for labels in classes.values():
+                rows = [
+                    r["scores"]
+                    for r in known.values()
+                    if r["label"] in labels and a in r["scores"] and b in r["scores"]
+                ]
+                if len(rows) >= MIN_SHARED:
+                    rho = pearson([r[a] for r in rows], [r[b] for r in rows])
+                    if rho is not None:
+                        acc.append((rho, len(rows)))
+            rho = (
+                max(0.0, min(1.0, sum(r * n for r, n in acc) / sum(n for _, n in acc)))
+                if acc
+                else 1.0
+            )
+            out[f"{a}|{b}"] = {"rho": round(rho, 3), "n": sum(n for _, n in acc)}
+    return out
+
+
+def combination_section(cal: dict) -> str:
+    """The combination rule run on the known texts, and the measured overlaps."""
+    from lib.evidence import tool_weights, validate
+
+    used = {t for t, w in tool_weights(cal, set(cal["tools"])).items() if w["used"]}
+    v = validate(cal)
+    rows = "".join(
+        f"| {cls} | {r['n']} | {r['>=3x']} | {r['>=10x']} | {r['>=20x']} | {r['max']}x |\n"
+        for cls, r in v.items()
+    )
+    pairs = "".join(
+        f"| {k.replace('|', ' / ')} | {p['rho']:.2f} | {p['n'] or 'not measurable: assumed 1'} |\n"
+        for k, p in sorted((cal.get("pairs") or {}).items())
+        if set(k.split("|")) <= used
+    )
+    return (
+        "\n## The combination on known texts\n\n"
+        "evidence.py's combination of the counted tools, run on each known text scored whole. "
+        "In-sample (the likelihood ratios come from these texts), so it flatters the rule: it "
+        "checks the rule's behaviour, not a new error rate.\n\n"
+        "| Texts | n | 3x or more | 10x or more | 20x or more | Highest |\n|---|---|---|---|---|---|\n"
+        + rows
+        + "\nHow much each pair of counted tools moves together within the human texts and within "
+        "the AI texts (0 = independent, 1 = the same tool). Where it cannot be measured, full "
+        "overlap is assumed.\n\n| Pair | Overlap | Known texts used |\n|---|---|---|\n"
+        + pairs
+    )
 
 
 def write_readable(cal: dict) -> None:
@@ -331,6 +414,7 @@ def write_readable(cal: dict) -> None:
         "more likely the tool's verdict is if the text is AI-written than if it is human. evidence.py "
         f"counts a tool only with at least {min_n} human and {min_n} AI texts and an AUROC of {min_auroc} or more.\n"
         + (f"\nNot enough known texts yet: {', '.join(thin)}.\n" if thin else "")
+        + combination_section(cal)
         + "\n## Limits\n\n"
         "- The samples are small: one more miss among 10 AI texts moves a detection rate by 10 points.\n"
         "- The AI texts come from a few models prompted to write like scientists. Other models, careful "

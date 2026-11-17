@@ -38,6 +38,13 @@
       "feedback": "Report not clear whether it is AI slop; wants brighter colours and a cleaner layout, like the web detectors",
       "kind": "process",
       "change": "report_raw.py follows web-detector layout: headline share of AI-like prose (ring + breakdown bar), verdict pill, checks, highlighted text with human text plain, side panel of per-passage and per-detector scores"
+    },
+    {
+      "n": 6,
+      "date": "2026-11-17",
+      "feedback": "Replace the rule that combines detectors (mean x sqrt(k) lowered the result whenever a detector was added)",
+      "kind": "grading",
+      "change": "evidence.py adds each detector's evidence divided by the overlap the others carry (score correlation within class on known texts, weighted by informativeness; full overlap assumed where unmeasurable). Specified and its validation fixed before applying it to the case; grading bars unchanged. On known texts no human text reaches 3x; 7/10 AI reach 10x."
     }
   ]
 }
