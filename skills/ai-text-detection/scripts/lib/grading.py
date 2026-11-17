@@ -30,6 +30,7 @@ from pathlib import Path
 
 from lib.common import REFS, TIERS, read_json
 from lib.detectors import Detections, tool
+from lib.text import first_sentence
 
 # Rule labels that come from detectors or style statistics. They never count as the
 # independent, non-statistical support that lifts two validated detectors to strong.
@@ -113,10 +114,19 @@ class Verdict:
     separate: list[dict] = field(default_factory=list)
     caveats_pre: list[str] = field(default_factory=list)
 
-    def state(self, tier: str, text: str, evidence: list[str], check: str = "") -> None:
-        """Add a statement the user can make: what was found and how to re-check it."""
+    def state(
+        self, tier: str, title: str, text: str, evidence: list[str], check: str = ""
+    ) -> None:
+        """Add a statement the user can make: a one-line title, what was found in full,
+        and how to re-check it."""
         self.statements.append(
-            {"tier": tier, "text": text, "evidence": evidence, "check": check}
+            {
+                "tier": tier,
+                "title": title,
+                "text": text,
+                "evidence": evidence,
+                "check": check,
+            }
         )
 
 
@@ -135,11 +145,22 @@ def _artefacts(inp: Inputs, out: Verdict) -> list:
         by_cat.setdefault(h["category"], []).append(h)
     for cat, hits in by_cat.items():
         if cat in inp.rules["separate"]:
+            n_sep = len({(h["in"], h["quote"]) for h in hits})
             out.separate.append(
                 {
                     "kind": inp.rules["separate"][cat],
+                    "title": (
+                        f"{plural(n_sep, 'instruction')} aimed at AI reviewing tools"
+                        + (
+                            ", hidden from readers"
+                            if any(h["in"] == "hidden" for h in hits)
+                            else ""
+                        )
+                        if cat == "prompt-injection"
+                        else f"{plural(len(hits), 'tortured phrase')}"
+                    ),
                     "text": (
-                        f"The document contains {plural(len(hits), 'instruction')} aimed at AI reviewing tools"
+                        f"The document contains {plural(n_sep, 'instruction')} aimed at AI reviewing tools"
                         + (
                             ", hidden from human readers"
                             if any(h["in"] == "hidden" for h in hits)
@@ -183,6 +204,8 @@ def _artefacts(inp: Inputs, out: Verdict) -> list:
         )
         out.state(
             tier=tier,
+            title=f"“{ex['match'][:48]}” in the {(ex.get('section') or 'text') if ex['in'] == 'body' else ex['in']}"
+            + (f" ({len(hits)} times)" if len(hits) > 1 else ""),
             text=f"{ex['shows']} Found {plural(len(hits), 'time')}; first instance ({loc or 'body'}): “{ex['match']}”.",
             evidence=[h["id"] for h in hits],
             check="Search the document for the quoted text.",
@@ -192,6 +215,7 @@ def _artefacts(inp: Inputs, out: Verdict) -> list:
         out.separate.append(
             {
                 "kind": "hidden-text",
+                "title": f"{plural(len(hidden_plain), 'passage')} of hidden text",
                 "text": f"The PDF/DOCX contains {plural(len(hidden_plain), 'passage')} of text invisible to a reader "
                 "(white, tiny or off-page). It matched no known injection phrase; read it in the evidence table.",
                 "evidence": [h["id"] for h in hidden_plain],
@@ -226,6 +250,7 @@ def _references(inp: Inputs, out: Verdict) -> list:
             tier="strong"
             if len(fabricated) >= inp.rules["strong"]["min_fabricated_refs"]
             else "moderate",
+            title=f"{len(fabricated)} of {len(rlist)} references do not exist as cited",
             text=f"{len(fabricated)} of {len(rlist)} references appear not to exist as cited: "
             + "; ".join(f"{v} {desc[k]}" for k, v in kinds.items())
             + (
@@ -242,6 +267,7 @@ def _references(inp: Inputs, out: Verdict) -> list:
     if len(mism) >= 3:
         out.state(
             tier="weak",
+            title=f"{len(mism)} references cited with wrong details",
             text=f"{len(mism)} references exist but with a different year, first author or title than cited. Humans make such errors too.",
             evidence=[f"ref{r['n']}" for r in mism],
             check="Each reference's lookup is in references.json.",
@@ -274,6 +300,7 @@ def _style(inp: Inputs, out: Verdict) -> None:
         if tier:
             out.state(
                 tier=tier,
+                title=f"AI-typical vocabulary in {wo['1%']['count']} of {nw} windows",
                 text=f"The vocabulary and phrasing match the profile of post-ChatGPT scientific text in {wo['1%']['count']} of "
                 f"{nw} windows at a 1% false-positive threshold"
                 + (f" (characteristic words used: {words_})" if words_ else "")
@@ -314,6 +341,7 @@ def _web(inp: Inputs, out: Verdict) -> tuple:
         out.met["moderate"].append("web")
         out.state(
             tier="moderate",
+            title="Independently validated detectors flag the text",
             text="Commercial AI detectors with independent evidence of few false positives flag this text: "
             + "; ".join(
                 f"{x['name']} flags {x['passages_flagged']} of {x['passages']} passages ({x['share_words_flagged']:.0%} of the words), mean AI score {x['mean_score']}"
@@ -327,6 +355,7 @@ def _web(inp: Inputs, out: Verdict) -> tuple:
         out.met["weak"].append("web-context")
         out.state(
             tier="weak",
+            title="Other detectors flag the text",
             text="Detectors without published independent validation flag it ("
             + ", ".join(x["name"] for x in flagged_ctx)
             + "). Their weight comes from the skill's own tests on known texts (see the calibrated combination), "
@@ -345,6 +374,7 @@ def _hotspots(inp: Inputs, out: Verdict) -> None:
         n_flag = sum(v >= 0.5 for v in scores.values())
         if len(scores) >= 3 and n_flag >= 3 and n_flag / len(scores) > 0.5:
             hot.append((int(uid[1:]), sections[uid], n_flag, len(scores)))
+    where = ", ".join(f"{secs} (passage {k})" for k, secs, _, _ in sorted(hot))
     hot = [
         f"passage {k} ({secs}): {n_flag} of {n} tools"
         for k, secs, n_flag, n in sorted(hot)
@@ -353,6 +383,7 @@ def _hotspots(inp: Inputs, out: Verdict) -> None:
         out.met["weak"].append("web-hotspots")
         out.state(
             tier="weak",
+            title=f"Most detectors say AI in: {where}",
             text="Passages where most of the detectors that scored them say AI: "
             + "; ".join(hot)
             + ". These are the places to read most closely; the weighted combination above says how much the agreement is worth.",
@@ -379,6 +410,7 @@ def _combined(inp: Inputs, out: Verdict) -> None:
             out.met["moderate"].append("combined")
             out.state(
                 tier="moderate",
+                title=f"Detectors combined: {times:.1f}× as likely AI as human",
                 text=f"Combining {len(inp.evd.get('used', []))} detectors ({names}), each weighted by how it did on known human and "
                 f"AI scientific texts, and every way of splitting the text, the document is about {times:.1f} times as likely "
                 "under AI-written text as under human text. The detectors' own error rates are built in; they may still share mistakes.",
@@ -393,17 +425,27 @@ def _combined(inp: Inputs, out: Verdict) -> None:
                 and math.exp(pa["evidence"]) >= cr["passage_times"]
             ]
             if strong_p and len(good) >= cr["min_good_tools"]:
+                whole = (
+                    f"For the whole document the figure is about {times:.1f}."
+                    if times >= 1
+                    else f"The whole document leans human (about {1 / times:.1f} times as likely under human text)."
+                )
                 out.met["moderate"].append("combined-passage")
                 secs = {u["chunk"]: " + ".join(u["sections"]) for u in inp.web.passages}
                 out.state(
                     tier="moderate",
+                    title="Detectors combined: "
+                    + ", ".join(
+                        f"{secs.get(pa['chunk'], '')} (passage {pa['chunk'][1:]}) {math.exp(pa['evidence']):.0f}× as likely AI"
+                        for pa in strong_p
+                    ),
                     text="Localised: "
                     + "; ".join(
                         f"passage {pa['chunk'][1:]} ({secs.get(pa['chunk'], '')}) is about {math.exp(pa['evidence']):.0f} times as likely under AI-written text"
                         for pa in strong_p
                     )
                     + f", combining {len(inp.evd.get('used', []))} detectors weighted by their results on known texts and every way of "
-                    f"splitting the text. For the whole document the figure is about {times:.1f}. "
+                    f"splitting the text. {whole} "
                     "This points to AI involvement in part of the text, not in all of it.",
                     evidence=["combined"],
                     check="The side panel shows each detector's record on known texts.",
@@ -416,6 +458,7 @@ def _combined(inp: Inputs, out: Verdict) -> None:
         elif not fired:
             out.state(
                 tier="weak" if times > 1 else "none",
+                title="Detectors combined: no clear answer",
                 text=f"Combining the calibrated detectors ({names}) across all splits gives no clear answer "
                 f"(about {times:.1f} times as likely under AI as under human text).",
                 evidence=["combined"],
@@ -441,6 +484,7 @@ def _baseline(inp: Inputs, out: Verdict) -> None:
         out.met["moderate"].append("baseline")
         out.state(
             tier="moderate",
+            title="A shift from the author's own earlier writing",
             text=f"Compared with {inp.base['n_texts']} texts the same author wrote before ChatGPT "
             f"({', '.join(str(y) for y in inp.base.get('years', [])[:1] + inp.base.get('years', [])[-1:])}), this document is "
             f"outside their own range, on the machine-like side, for {', '.join(x.replace('_', '-') for x in shifted)}. "
@@ -457,6 +501,7 @@ def _revisions(inp: Inputs, out: Verdict) -> None:
         big = inp.revs["largest_addition"]
         out.state(
             tier="weak",
+            title="Most of the text arrived in a single edit",
             text=f"The Google Doc's revision history shows {big['added']} of its {inp.revs['final_words']} words arriving in "
             f"a single edit ({big.get('time')}). The text was written elsewhere and pasted in; that is also how people "
             "move their own drafts, so this is context only.",
@@ -474,6 +519,7 @@ def _reading(inp: Inputs, out: Verdict) -> None:
             tier = "moderate"
         out.state(
             tier=tier,
+            title=r.get("title") or first_sentence(r["claim"]),
             text=r["claim"]
             + (f" (“{r['quote']}”, {r.get('where', '')})" if r.get("quote") else ""),
             evidence=[f"read{i}"],

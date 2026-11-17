@@ -231,3 +231,9 @@ def is_prose(par: str) -> bool:
     return (
         alpha / max(len(tokens), 1) >= 0.6 and t[-1:] in '.?!)\u201d"' or len(w) >= 40
     )
+
+
+def first_sentence(text: str, limit: int = 110) -> str:
+    """The first sentence of ``text`` without its full stop, cut at a word if too long."""
+    s = re.split(r"(?<=[a-z0-9)])[.:;] ", text.strip(), maxsplit=1)[0].rstrip(".")
+    return s if len(s) <= limit else s[:limit].rsplit(" ", 1)[0] + "…"

@@ -87,7 +87,12 @@ def binoculars(text: str, token: str | None) -> tuple[float, str]:
     ev = post_json(base, {"data": [text]}, headers)
     stream = request(f"{base}/{ev['event_id']}", headers=headers, timeout=180)
     data = [ln[5:].strip() for ln in stream.splitlines() if ln.startswith("data:")]
-    label = json.loads(data[-1])[0] if data else ""
+    result = json.loads(data[-1]) if data else None
+    if not result:
+        raise RuntimeError(
+            "the demo returned no result (busy, or its free GPU quota is used up)"
+        )
+    label = result[0]
     ai = bool(
         re.search(r"\b(AI|machine)\b", str(label), re.IGNORECASE)
     ) and not re.search(r"human", str(label), re.IGNORECASE)

@@ -50,7 +50,6 @@ a:focus-visible, summary:focus-visible, .note:focus-visible { outline: 2px solid
 .b-ai { background: var(--ai); } .b-some { background: var(--some); } .b-un { background: var(--un); } .b-hu { background: var(--hu); }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: .82rem; color: var(--muted); margin-top: .45rem; }
 .legend b { color: var(--ink); font-weight: 600; }
-.basis { color: var(--muted); font-size: .78rem; margin: .25rem 0 0; }
 .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
 .checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: .88rem; }
 .checks li { display: flex; gap: 8px; align-items: flex-start; }
@@ -59,8 +58,21 @@ a:focus-visible, summary:focus-visible, .note:focus-visible { outline: 2px solid
 .meh { background: var(--some-soft); color: var(--ink); }
 /* what you can say / what this does not show */
 .findings { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 28px; }
-.said, .limits { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; font-size: .9rem; }
-.said li { display: grid; grid-template-columns: 5.2rem minmax(0, 1fr); gap: 10px; align-items: start; }
+.said, .limits { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; font-size: .9rem; }
+.said li { display: grid; grid-template-columns: 5.6rem minmax(0, 1fr); gap: 10px; align-items: start; }
+.said li.more { grid-template-columns: minmax(0, 1fr); }
+.said li.more > details > summary { color: var(--muted); }
+.said li.more .said { margin-top: 10px; }
+.said details { margin: 0; color: var(--muted); font-size: .85rem; }
+.said summary { color: var(--ink); font-size: .9rem; }
+.said details[open] > summary { margin-bottom: 4px; }
+.t-sep { background: var(--card-2); color: var(--muted); }
+summary.h2 { font: 600 1rem var(--sans); }
+details.psg > summary { cursor: pointer; margin-bottom: 0; }
+details.psg[open] > summary { margin-bottom: .4rem; }
+.fold { margin-left: auto; font-weight: 400; }
+.fold::after { content: " · show"; color: var(--accent); }
+details[open] > summary .fold::after { content: " · hide"; }
 .said .tag { margin-top: 1px; font-weight: 600; }
 .check { display: block; color: var(--muted); font-size: .82rem; margin-top: 2px; }
 .limits { color: var(--muted); font-size: .85rem; gap: 8px; }
@@ -72,7 +84,7 @@ a:focus-visible, summary:focus-visible, .note:focus-visible { outline: 2px solid
 .cols.single { grid-template-columns: minmax(0, 1fr); }
 .side { position: sticky; top: env(safe-area-inset-top, 0px); display: grid; gap: 14px; max-height: 100vh; overflow-y: auto; }
 .side h3 { font-size: .82rem; font-weight: 600; color: var(--muted); margin: 0 0 .6rem; }
-.prow { display: grid; grid-template-columns: 2.2rem minmax(0, 1fr) 5.6rem; gap: 8px; align-items: center; font-size: .85rem;
+.prow { display: grid; grid-template-columns: 2.4rem minmax(0, 1fr) 6.6rem; gap: 8px; align-items: center; font-size: .85rem;
         padding: 5px 0; text-decoration: none; color: var(--ink); }
 .prow .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .prow .nm small { color: var(--muted); }
@@ -87,6 +99,7 @@ table.dgrid { width: 100%; border-collapse: separate; border-spacing: 2px; font-
 .dgrid th, .dgrid td { border: 0; padding: 0; }
 .dgrid thead th { color: var(--muted); font-weight: 500; text-align: center; min-width: 1.9rem; }
 .dgrid .who th { text-align: left; font-size: .85rem; font-weight: 600; color: var(--ink); padding-top: 10px; }
+.dgrid .who .sub { max-width: 17.5rem; white-space: normal; }
 .dgrid td { text-align: center; padding: 3px 0; border-radius: 4px; font-weight: 600; }
 .dgrid td.ai { background: var(--ai); color: var(--on-ai); } .dgrid td.hu { background: var(--hu-soft); }
 .dgrid td.na { background: var(--card-2); color: var(--muted); }

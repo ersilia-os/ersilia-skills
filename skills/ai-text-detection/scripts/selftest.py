@@ -31,6 +31,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
+from check_references import containment
 from drive_intake import file_id
 from lib.common import EXAMPLES, REFS, read_json, write_json, write_jsonl
 from lib.detectors import Detections, Scan, marks_ai, registry
@@ -91,6 +92,19 @@ def check_units() -> list[str]:
             errors.append(
                 f"extract.is_heading({line!r}) = {is_heading(line)!r}, expected {want!r}"
             )
+    # A short title must match its own reference, and must not match another paper's.
+    short = "Nordling, L. Made in Africa. Nat. Med. 19, 803-806 (2013)."
+    if containment("Made in Africa", short) < 0.85:
+        errors.append(
+            "check_references.containment misses a short title in its reference"
+        )
+    if (
+        containment(
+            "Highly accurate protein structure prediction with AlphaFold", short
+        )
+        >= 0.5
+    ):
+        errors.append("check_references.containment matches an unrelated title")
     return errors
 
 

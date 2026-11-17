@@ -29,7 +29,7 @@ judgements.json (written by Claude, all keys optional):
 
     {"artifacts": {"a3": {"confirmed": false, "why": "quoted as an example in a paper on LLMs"}},
      "references": {"7": {"fabricated": true, "why": "searched Google Scholar and PubMed by title"}},
-     "reading": [{"tier": "moderate", "claim": "...", "quote": "...", "where": "Review, point 3",
+     "reading": [{"tier": "moderate", "title": "one line", "claim": "...", "quote": "...", "where": "Review, point 3",
                   "check": "how to verify"}],
      "excluded_sections": ["Methods"]}
 

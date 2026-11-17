@@ -40,6 +40,7 @@ scripts/lib/        what the steps share (text, extraction, splits, detectors, e
 references/         data and documents; see references/README.md
 assets/             report styles
 examples/cases/     regression cases for selftest.py
+examples/demo/      a public demonstration: a published paper with known contamination, and its report
 ```
 
 Work folder: `/tmp/ai_text_detection/`, reset each run. Private case ledger: `~/.ai-text-detection/` (numbers only, never text or names, never committed). The conda env `ai-text-detection` (pymupdf, python-docx, Playwright; no models) is needed for PDF/DOCX extraction, `browser_detect.py` and `report_pdf.py`: `conda run -n ai-text-detection python <script>`.
@@ -67,6 +68,7 @@ Work folder: `/tmp/ai_text_detection/`, reset each run. Private case ledger: `~/
 | | `report_pdf.py` | The report as an A4 PDF, when the user asks for a file |
 | Maintenance | `build_corpus.py`, `calibrate.py` | Human calibration corpus; style-score thresholds; `validation.md` |
 | | `selftest.py` | Offline regression test over `examples/cases/` and every marker's examples |
+| | `build_demo.py` | Rebuilds the demonstration case in `examples/demo/` from the published paper |
 
 ## Workflow
 
@@ -119,7 +121,7 @@ Write to `/tmp/ai_text_detection/judgements.json` (format in `grade.py`'s docstr
 
 - **Confirm every conclusive or strong hit in context.** A paper about LLMs may quote "As an AI language model"; a methods section may show a template. Set those aside with `"confirmed": false` and a reason.
 - **Verify suspect references by hand.** For each `not-found`, `doi-not-registered` or `doi-points-elsewhere`, search the title (title only) with WebSearch, Google Scholar and PubMed style queries, and record `"fabricated": true/false` with what you searched. One real-but-obscure reference wrongly called fake would undermine the whole report.
-- **Close reading.** Each finding needs a quote (exact words from the document: the report places the note beside them), a location and a way to check it. "Sounds like AI" is never a finding. Look for:
+- **Close reading.** Each finding needs a title (one line, under ten words: the report shows it and folds the rest), a quote (exact words from the document: the report places the note beside them), a location and a way to check it. "Sounds like AI" is never a finding. Look for:
   - **Any kind:** specific claims that are wrong; numbers that contradict each other or the tables; invented facts (a dataset, guideline or trial that doesn't exist; search the name only); paragraphs that answer a prompt rather than build an argument; a sudden change of voice.
   - **Review of the user's manuscript:** criticism of what the manuscript doesn't contain, or requests for analyses it already has (quote both sides); as a cross-check, list for yourself the points a generic LLM review of this manuscript would make, and note how many of the review's points are those and how few are specific to the manuscript (the "anchor review" idea, Yu et al. 2026: a lead for where to look, not a finding by itself); no line, section or figure anchors; a summary that paraphrases the abstract; generic praise; requests that fit any paper.
   - **Grant:** aims that don't follow from the preliminary data; significance prose without numbers; "previous work" missing from the references; budget or timeline at odds with the aims.
@@ -137,7 +139,7 @@ Then `python grade.py`.
 
 ### 6. The report
 
-`python build_report.py --case "<label>" --kind <kind> --context <context>` writes `report.html`. Publish it as a private Artifact (icon `search`). The page shows, top to bottom: the tier and headline, one sentence and one bar on what the combined detectors say, and the non-statistical checks; what the user can say (each statement with how to re-check it) next to what the evidence does not show; the text with AI-like sentences highlighted and close-reading notes tagged where they occur, beside each passage's combined value and a grid of each detector's scores; and every item to quote from. For a file: `conda run -n ai-text-detection python report_pdf.py report.html <out.pdf>`.
+`python build_report.py --case "<label>" --kind <kind> --context <context>` writes `report.html`. Publish it as a private Artifact (icon `search`). The page shows, top to bottom: the tier and headline, one sentence and one bar on what the combined detectors say, and the non-statistical checks; what the user can say, one line per finding (the full statement and how to re-check it unfold; weak findings sit under one fold) next to what the evidence does not show; the text with AI-like sentences highlighted and close-reading notes tagged where they occur (passages with nothing flagged are folded), beside each passage's combined value and a grid of each detector's scores; and every item to quote from. For a file: `conda run -n ai-text-detection python report_pdf.py report.html <out.pdf>`.
 
 Then tell the user, in a few lines: the tier and what it means; the two or three statements they can most safely make (from grade.json's statements); what the evidence does **not** show; and, if they want to raise it, to lead with the verifiable problems (fabricated references, false claims, leftover chatbot text) rather than "AI wrote this", addressed to the editor or programme officer for reviews and grants (COPE). Don't draft a message unless asked.
 

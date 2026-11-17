@@ -104,11 +104,16 @@ def containment(title: str, raw: str) -> float:
     title cannot match a long specific one), and character similarity of the two with
     spaces and punctuation removed (so typos, lost dashes and ligatures don't break a
     match). Without a guessable title segment, the share of the record title found
-    anywhere in the reference.
+    anywhere in the reference. A title of two or more content words that appears whole
+    in the reference always matches.
     """
     tt = tokens(title)
     if not tt:
         return 0.0
+    # A short title ("Made in Africa") loses the guess below to the journal name; when
+    # the whole title stands in the reference word for word, that is a match.
+    if len(tt) >= 2 and f" {norm(title)} " in f" {norm(raw)} ":
+        return 1.0
     guess = guess_title(raw)
     if not guess:
         rt = set(tokens(raw))

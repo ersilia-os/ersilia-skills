@@ -36,7 +36,7 @@ from lib.common import ASSETS, REFS, read_json
 from lib.detectors import Detections
 from lib.splits import build_plan
 from lib.style import features, style_score
-from lib.text import is_prose, paragraph_spans, words
+from lib.text import first_sentence, is_prose, paragraph_spans, words
 
 CSS_FILE = ASSETS / "report.css"
 FONTS = (
@@ -496,12 +496,40 @@ class TextRenderer:
             if t in r["sc"]
         )
         info = f'<span title="{e(scores)}">ⓘ</span>' if scores else ""
-        return (
-            f'<section class="psg" id="p{r["n"]}"><div class="phead">'
+        head = (
             f'<span class="tag {times_class(ev)}">{e(tag)}</span>'
-            f"<span>Passage {r['n']} · {e(r['label'])} · {r['n_words']} words</span>{info}</div>"
+            f"<span>Passage {r['n']} · {e(r['label'])} · {r['n_words']} words</span>{info}"
+        )
+        if self.quiet(r):
+            return (
+                f'<details class="psg" id="p{r["n"]}"><summary class="phead">{head}'
+                f'<span class="fold">nothing flagged</span></summary>{"".join(parts)}</details>'
+            )
+        return (
+            f'<section class="psg" id="p{r["n"]}"><div class="phead">{head}</div>'
             f"{''.join(parts)}</section>"
         )
+
+    def quiet(self, r: dict) -> bool:
+        """True when the detectors scored the passage and nothing in it is flagged: no
+        AI-like sentence, no leftover text, no note, style in range. Such a passage folds."""
+        a, b = r["start"], r["end"]
+        if r["style_flag"] or not r["sc"]:
+            return False
+        if any(x[0] < b and x[1] > a for x in self.events):
+            return False
+        if self.inp.combined:
+            ev = self.inp.combined.get(r["id"])
+            return (
+                ev is not None
+                and ev <= -LN3 + 1e-12
+                and not any(
+                    heat_class(x["evidence"])
+                    for x in self.heat
+                    if x["start"] >= a and x["end"] <= b
+                )
+            )
+        return r["n_ai"] == 0
 
     def document(self, rows: list[dict]) -> str:
         """The whole text in reading order, with the legend on top."""
@@ -541,6 +569,9 @@ class TextRenderer:
                 else ""
             )
         )
+        n_quiet = sum(1 for r in rows if self.quiet(r))
+        if n_quiet:
+            legend += f"<span>{plural(n_quiet, 'passage')} with nothing flagged folded.</span>"
         return f'<div class="doclegend">{legend}</div>' + "".join(blocks)
 
 
@@ -560,7 +591,7 @@ def share_bar(parts: list[tuple[str, str, float]], basis: str) -> str:
     )
     return (
         f'<div class="bar" role="img" aria-label="{e(basis)}">{bar}</div>'
-        f'<div class="legend">{legend}</div><p class="basis">{e(basis)}</p>'
+        f'<div class="legend" title="{e(basis)}">{legend}</div>'
     )
 
 
@@ -608,7 +639,6 @@ def detector_line(inp: Inputs, rows: list[dict]) -> str:
         times = math.exp(
             doc_ev
         )  # not the rounded "times" in evidence.json (can be 0.0)
-        bar_at = inp.rules.get("combined", {}).get("moderate_times")
         n = plural(len(inp.evd.get("used", [])), "detector")
         if abs(doc_ev) < EVEN:
             said = "the whole text is about as likely AI-written as human"
@@ -616,10 +646,7 @@ def detector_line(inp: Inputs, rows: list[dict]) -> str:
             said = f"the whole text is about <b>{times:.1f}×</b> as likely AI-written as human"
         else:
             said = f"the whole text is about <b>{1 / times:.1f}×</b> as likely human-written as AI"
-        needs = (
-            f" Moderate evidence needs {bar_at}×." if bar_at and times < bar_at else ""
-        )
-        whole = f'<p class="where">Detectors: combining {n} tested on known texts, {said}.{needs}</p>'
+        whole = f'<p class="where">{n} combined: {said}.</p>'
     label = {r["id"]: (r["n"], r["label"]) for r in rows}
     hot = sorted(
         ((pid, ev) for pid, ev in inp.combined.items() if ev >= LN3 and pid in label),
@@ -656,12 +683,12 @@ NOT_RUN = "Web detector "
 def findings(inp: Inputs, placed: set[int]) -> str:
     """What the user can say, each statement with how to re-check it, next to what the
     evidence does not show. A close-reading statement links to its place in the text."""
-    items = []
+    items, weak = [], []
     for st in inp.grade.get("statements", []):
         ev = st.get("evidence") or [""]
         note = int(ev[0][4:]) - 1 if ev[0].startswith("read") else None
         link = (
-            f' <a href="#note{note}">Show in the text</a>'
+            f' <a href="#note{note}">in the text</a>'
             if note is not None and note in placed
             else ""
         )
@@ -670,9 +697,21 @@ def findings(inp: Inputs, placed: set[int]) -> str:
             if st.get("check")
             else ""
         )
-        items.append(
+        title = st.get("title") or first_sentence(st["text"])
+        (weak if st["tier"] in ("weak", "none") else items).append(
             f'<li><span class="tag t-{e(st["tier"])}">{e(st["tier"])}</span>'
-            f"<div>{e(st['text'])}{link}{check}</div></li>"
+            f"<details><summary>{e(title)}{link}</summary>{e(st['text'])}{check}</details></li>"
+        )
+    items += [
+        f'<li><span class="tag t-sep">{e(s["kind"])}</span>'
+        f"<details><summary>{e(s.get('title') or first_sentence(s['text']))}</summary>"
+        f"{e(s['text'])}</details></li>"
+        for s in inp.grade.get("separate", [])
+    ]
+    if weak:
+        items.append(
+            f'<li class="more"><details><summary>{plural(len(weak), "weaker observation")}'
+            f'</summary><ul class="said">{"".join(weak)}</ul></details></li>'
         )
     caveats = inp.grade.get("caveats", [])
     not_run = [c for c in caveats if c.startswith(NOT_RUN)]
@@ -840,12 +879,9 @@ def other_evidence(inp: Inputs, placed: set[int]) -> str:
         for i, x in enumerate(inp.jud.get("reading", []))
         if i not in placed
     ]
-    items += [
-        f"<li><b>{e(s['kind'])}</b>: {e(s['text'])}</li>"
-        for s in inp.grade.get("separate", [])
-    ]
     return (
-        f'<section class="card"><h2>Evidence items</h2><ul class="limits">{"".join(items)}</ul></section>'
+        f'<section class="card"><details><summary class="h2">Evidence items ({len(items)})</summary>'
+        f'<ul class="limits">{"".join(items)}</ul></details></section>'
         if items
         else ""
     )
@@ -861,19 +897,18 @@ def render(work: Path, case: str, kind: str, context: str) -> str:
     tr = TextRenderer(inp)
     text_html = tr.document(rows)  # first: it records which notes found their place
     side = side_panel(inp, rows)
-    tested = (
-        "the author's original text (tracked changes set aside)"
-        if (inp.doc.get("metadata") or {}).get("tracked_changes_removed")
-        else "the text as it stands"
-    )
+    meta = [kind.replace("-", " ").capitalize()]
+    if context != "other":
+        meta.append(CONTEXT.get(context, context))
+    meta += [f"{inp.doc.get('n_words')} words", plural(len(rows), "passage")]
+    if (inp.doc.get("metadata") or {}).get("tracked_changes_removed"):
+        meta.append("tested the author's original text (tracked changes set aside)")
     return (
         f'<title>{e(case[:60])}</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n'
         f'<link rel="stylesheet" href="{FONTS}">\n'
         f"<style>{CSS_FILE.read_text(encoding='utf-8')}</style>\n"
         '<div class="wrap"><header>'
-        f'<h1>{e(case)}</h1><p class="meta">{e(kind.replace("-", " ").capitalize())} · '
-        f"{e(CONTEXT.get(context, context))} · {e(inp.doc.get('n_words'))} words · tested {e(tested)} · "
-        f"{plural(len(rows), 'passage')}</p></header>"
+        f'<h1>{e(case)}</h1><p class="meta">{e(" · ".join(meta))}</p></header>'
         f"<!-- section: answer -->{headline(inp, rows)}{findings(inp, tr.notes_placed)}"
         f'<div class="cols{"" if side else " single"}"><article class="card doc" id="text">'
         f"<!-- section: text -->{text_html}</article>{side}</div>"
