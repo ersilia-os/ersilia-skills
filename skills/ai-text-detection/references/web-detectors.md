@@ -59,7 +59,7 @@ python api_detectors.py --tools binoculars --plan /tmp/ai_text_detection/multi/p
 **Then the browser,** for the passages and then for the other splits:
 
 ```
-conda run -n ai-text-detection python browser_detect.py --tools zerogpt,undetectable,aidetector_review,scribbr
+conda run -n ai-text-detection python browser_detect.py --tools zerogpt,undetectable,aidetector_review,scribbr,plagiarismcheckerx
 conda run -n ai-text-detection python browser_detect.py --plan /tmp/ai_text_detection/multi/plan.json --tools <id> --chunks <ids from segments.py --for-tool>
 ```
 

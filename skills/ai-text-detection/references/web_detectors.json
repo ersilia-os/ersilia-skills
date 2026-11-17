@@ -460,7 +460,7 @@
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "runs without login or CAPTCHA; scored both a human and an AI control 0% AI: being tested on known texts"
+        "status": "runs without login or CAPTCHA. Passed the known-text test (2026-11-17): 0 of 56 human texts flagged (general, same field, shuffled), 7 of 10 AI texts caught, AUROC 0.89; it misses AI-polished text (0 of 3). Counted by evidence.py"
       },
       "parse": {
         "score": "Human Written:\\s*([\\d.]+)\\s*%",
@@ -550,7 +550,7 @@
       "max_words": 1200,
       "automation": {
         "checked": "2026-11-17",
-        "status": "runs without login or CAPTCHA; scored an AI control 1% AI: being tested on known texts"
+        "status": "unreliable: failed the known-text test (2026-11-17): caught 0 of 10 AI texts and scored 3 of 28 human texts above 50% AI (two at 100%), AUROC 0.40. Do not use"
       },
       "parse": {
         "score": "Probability for AI is\\s*([\\d.]+)\\s*%",
@@ -690,6 +690,7 @@
     "undetectable",
     "aidetector_review",
     "scribbr",
+    "plagiarismcheckerx",
     "fastdetect",
     "desklib",
     "pangram",
@@ -715,7 +716,6 @@
     "wordvice",
     "writefull",
     "quetext",
-    "plagiarismcheckerx",
     "dechecker",
     "smodin",
     "hive",
@@ -740,7 +740,7 @@
   "_terms_note": "'terms': 'no-automation' marks sites whose terms forbid scripted access. browser_detect.py never runs them; the skill may open the page for the user to paste a chunk by hand.",
   "_parse_note": "'parse': how to read a site's result page. 'score' is a regex whose first group is the AI likelihood; 'scale' divides it to 0-1 (and 'invert': true means the site reports a human score). 'label' captures the site's own verdict line. Add a parser only after checking it against real result pages (store the check in 'automation').",
   "_size_note": "min_words / max_words: the range of text sizes a tool handles well (Binoculars reads only the first 512 tokens). segments.py --for-tool <id> lists the splits that fit.",
-  "_order_note": "default_order: the tools that run unattended and are calibrated first (ZeroGPT, Undetectable, AIDetector.review, Scribbr); then the validated tools, which need the user to tick a CAPTCHA (run with --human-wait); then the rest. Tools with route 'api' run through api_detectors.py, not the browser.",
+  "_order_note": "default_order: the tools that run unattended and are calibrated first (ZeroGPT, Undetectable, AIDetector.review, Scribbr, Plagiarism Checker X); then the validated tools, which need the user to tick a CAPTCHA (run with --human-wait); then the rest. Tools with route 'api' run through api_detectors.py, not the browser.",
   "_rejected": {
     "_note": "Sites tried and dropped, so the monthly search does not retry them: the address is gone or redirects elsewhere (checked 2026-11-17).",
     "ids": [

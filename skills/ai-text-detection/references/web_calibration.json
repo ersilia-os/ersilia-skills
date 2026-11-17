@@ -215,6 +215,84 @@
         0.0,
         0.0
       ]
+    },
+    "plagiarismcheckerx": {
+      "date": "2026-11-17",
+      "n_human": 28,
+      "n_ai": 10,
+      "n_polished": 3,
+      "fpr": 0.0,
+      "tpr": 0.7,
+      "polished_flagged": 0.0,
+      "auroc": 0.893,
+      "lr_flag": 20.0,
+      "lr_clear": 0.34,
+      "mean_human": 0.017,
+      "mean_ai": 0.68,
+      "n_shuffled": 10,
+      "fpr_shuffled": 0.0,
+      "fpr_generic": 0.0,
+      "n_domain": 18,
+      "fpr_domain": 0.0,
+      "domain_scores": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "seoai": {
+      "date": "2026-11-17",
+      "n_human": 28,
+      "n_ai": 10,
+      "n_polished": 3,
+      "fpr": 0.107,
+      "tpr": 0.0,
+      "polished_flagged": 0.0,
+      "auroc": 0.404,
+      "lr_flag": 0.62,
+      "lr_clear": 1.06,
+      "mean_human": 0.158,
+      "mean_ai": 0.064,
+      "n_shuffled": 10,
+      "fpr_shuffled": 0.0,
+      "fpr_generic": 0.2,
+      "n_domain": 18,
+      "fpr_domain": 0.056,
+      "domain_scores": [
+        0.01,
+        0.01,
+        0.01,
+        0.01,
+        0.02,
+        0.02,
+        0.02,
+        0.03,
+        0.06,
+        0.06,
+        0.06,
+        0.07,
+        0.13,
+        0.15,
+        0.15,
+        0.16,
+        0.29,
+        0.63
+      ]
     }
   },
   "known_scores": {
@@ -223,7 +301,9 @@
       "scores": {
         "aidetector_review": 0.98,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.79,
         "scribbr": 0.0,
+        "seoai": 0.26,
         "undetectable": 0.33,
         "zerogpt": 1.0
       }
@@ -233,7 +313,9 @@
       "scores": {
         "aidetector_review": 0.43,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 1.0,
         "scribbr": 0.23,
+        "seoai": 0.04,
         "undetectable": 0.79,
         "zerogpt": 1.0
       }
@@ -243,7 +325,9 @@
       "scores": {
         "aidetector_review": 0.98,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.59,
         "scribbr": 0.09,
+        "seoai": 0.06,
         "undetectable": 0.89,
         "zerogpt": 1.0
       }
@@ -253,7 +337,9 @@
       "scores": {
         "aidetector_review": 0.99,
         "binoculars": 1.0,
+        "plagiarismcheckerx": 1.0,
         "scribbr": 1.0,
+        "seoai": 0.04,
         "undetectable": 0.82,
         "zerogpt": 1.0
       }
@@ -263,7 +349,9 @@
       "scores": {
         "aidetector_review": 0.98,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 1.0,
         "scribbr": 0.25,
+        "seoai": 0.01,
         "undetectable": 0.5,
         "zerogpt": 1.0
       }
@@ -273,7 +361,9 @@
       "scores": {
         "aidetector_review": 0.94,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.01,
         "undetectable": 0.8,
         "zerogpt": 1.0
       }
@@ -283,7 +373,9 @@
       "scores": {
         "aidetector_review": 0.98,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.02,
         "undetectable": 0.68,
         "zerogpt": 1.0
       }
@@ -293,7 +385,9 @@
       "scores": {
         "aidetector_review": 0.02,
         "binoculars": 1.0,
+        "plagiarismcheckerx": 0.42,
         "scribbr": 0.0,
+        "seoai": 0.17,
         "undetectable": 0.83,
         "zerogpt": 1.0
       }
@@ -303,7 +397,9 @@
       "scores": {
         "aidetector_review": 0.99,
         "binoculars": 1.0,
+        "plagiarismcheckerx": 1.0,
         "scribbr": 1.0,
+        "seoai": 0.03,
         "undetectable": 0.99,
         "zerogpt": 1.0
       }
@@ -313,7 +409,9 @@
       "scores": {
         "aidetector_review": 0.99,
         "binoculars": 1.0,
+        "plagiarismcheckerx": 1.0,
         "scribbr": 1.0,
+        "seoai": 0.0,
         "undetectable": 0.99,
         "zerogpt": 1.0
       }
@@ -323,7 +421,9 @@
       "scores": {
         "aidetector_review": 0.01,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.06,
         "undetectable": 0.13,
         "zerogpt": 0.0
       }
@@ -333,7 +433,9 @@
       "scores": {
         "aidetector_review": 0.01,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.16,
         "undetectable": 0.18,
         "zerogpt": 0.0
       }
@@ -343,7 +445,9 @@
       "scores": {
         "aidetector_review": 0.01,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.06,
         "undetectable": 0.21,
         "zerogpt": 0.0
       }
@@ -353,7 +457,9 @@
       "scores": {
         "aidetector_review": 0.01,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.02,
         "undetectable": 0.12,
         "zerogpt": 0.0
       }
@@ -363,7 +469,9 @@
       "scores": {
         "aidetector_review": 0.02,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.63,
         "undetectable": 0.01,
         "zerogpt": 0.0
       }
@@ -373,7 +481,9 @@
       "scores": {
         "aidetector_review": 0.01,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.29,
         "undetectable": 0.01,
         "zerogpt": 0.0
       }
@@ -383,7 +493,9 @@
       "scores": {
         "aidetector_review": 0.05,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.02,
         "undetectable": 0.31,
         "zerogpt": 0.0
       }
@@ -393,7 +505,9 @@
       "scores": {
         "aidetector_review": 0.01,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.06,
         "undetectable": 0.02,
         "zerogpt": 0.0
       }
@@ -403,7 +517,9 @@
       "scores": {
         "aidetector_review": 0.03,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.02,
         "undetectable": 0.08,
         "zerogpt": 0.0
       }
@@ -413,7 +529,9 @@
       "scores": {
         "aidetector_review": 0.01,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.01,
         "undetectable": 0.01,
         "zerogpt": 0.0
       }
@@ -423,7 +541,9 @@
       "scores": {
         "aidetector_review": 0.01,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.15,
         "undetectable": 0.19,
         "zerogpt": 0.0
       }
@@ -433,7 +553,9 @@
       "scores": {
         "aidetector_review": 0.2,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.07,
         "undetectable": 0.44,
         "zerogpt": 0.0
       }
@@ -443,7 +565,9 @@
       "scores": {
         "aidetector_review": 0.01,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.15,
         "undetectable": 0.25,
         "zerogpt": 0.0
       }
@@ -453,7 +577,9 @@
       "scores": {
         "aidetector_review": 0.01,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.03,
         "undetectable": 0.01,
         "zerogpt": 0.0
       }
@@ -463,7 +589,9 @@
       "scores": {
         "aidetector_review": 0.01,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.01,
         "undetectable": 0.01,
         "zerogpt": 0.0
       }
@@ -473,7 +601,9 @@
       "scores": {
         "aidetector_review": 0.97,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.01,
         "undetectable": 0.27,
         "zerogpt": 0.0
       }
@@ -483,7 +613,9 @@
       "scores": {
         "aidetector_review": 0.04,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.01,
         "undetectable": 0.28,
         "zerogpt": 0.0
       }
@@ -493,7 +625,9 @@
       "scores": {
         "aidetector_review": 0.97,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.13,
         "undetectable": 0.18,
         "zerogpt": 0.0
       }
@@ -504,7 +638,9 @@
         "aidetector_review": 0.01,
         "binoculars": 0.0,
         "decopy": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.03,
         "undetectable": 0.09,
         "zerogpt": 0.0
       }
@@ -515,7 +651,9 @@
         "aidetector_review": 0.01,
         "binoculars": 0.0,
         "decopy": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.03,
         "undetectable": 0.37,
         "zerogpt": 0.0
       }
@@ -526,7 +664,9 @@
         "aidetector_review": 0.02,
         "binoculars": 0.0,
         "decopy": 0.51,
+        "plagiarismcheckerx": 0.47,
         "scribbr": 0.0,
+        "seoai": 0.02,
         "undetectable": 0.26,
         "zerogpt": 0.0
       }
@@ -537,7 +677,9 @@
         "aidetector_review": 0.03,
         "binoculars": 0.0,
         "decopy": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.26,
         "undetectable": 0.01,
         "zerogpt": 0.0
       }
@@ -547,7 +689,9 @@
       "scores": {
         "aidetector_review": 0.02,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.01,
         "undetectable": 0.44,
         "zerogpt": 0.0
       }
@@ -557,7 +701,9 @@
       "scores": {
         "aidetector_review": 0.6,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.11,
         "undetectable": 0.01,
         "zerogpt": 0.0
       }
@@ -567,7 +713,9 @@
       "scores": {
         "aidetector_review": 0.01,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 1.0,
         "undetectable": 0.03,
         "zerogpt": 0.0
       }
@@ -577,7 +725,9 @@
       "scores": {
         "aidetector_review": 0.01,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 1.0,
         "undetectable": 0.01,
         "zerogpt": 0.0
       }
@@ -587,7 +737,9 @@
       "scores": {
         "aidetector_review": 0.01,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.01,
         "undetectable": 0.1,
         "zerogpt": 0.0
       }
@@ -597,7 +749,9 @@
       "scores": {
         "aidetector_review": 0.01,
         "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
         "scribbr": 0.0,
+        "seoai": 0.06,
         "undetectable": 0.78,
         "zerogpt": 0.0
       }
@@ -612,9 +766,17 @@
       "rho": 1.0,
       "n": 0
     },
+    "aidetector_review|plagiarismcheckerx": {
+      "rho": 0.0,
+      "n": 38
+    },
     "aidetector_review|scribbr": {
       "rho": 0.329,
       "n": 10
+    },
+    "aidetector_review|seoai": {
+      "rho": 0.0,
+      "n": 38
     },
     "aidetector_review|undetectable": {
       "rho": 0.003,
@@ -628,8 +790,16 @@
       "rho": 1.0,
       "n": 0
     },
+    "binoculars|plagiarismcheckerx": {
+      "rho": 0.366,
+      "n": 10
+    },
     "binoculars|scribbr": {
       "rho": 0.746,
+      "n": 10
+    },
+    "binoculars|seoai": {
+      "rho": 0.0,
       "n": 10
     },
     "binoculars|undetectable": {
@@ -640,7 +810,15 @@
       "rho": 1.0,
       "n": 0
     },
+    "decopy|plagiarismcheckerx": {
+      "rho": 1.0,
+      "n": 0
+    },
     "decopy|scribbr": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "decopy|seoai": {
       "rho": 1.0,
       "n": 0
     },
@@ -652,11 +830,39 @@
       "rho": 1.0,
       "n": 0
     },
+    "plagiarismcheckerx|scribbr": {
+      "rho": 0.658,
+      "n": 10
+    },
+    "plagiarismcheckerx|seoai": {
+      "rho": 0.0,
+      "n": 38
+    },
+    "plagiarismcheckerx|undetectable": {
+      "rho": 0.085,
+      "n": 38
+    },
+    "plagiarismcheckerx|zerogpt": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "scribbr|seoai": {
+      "rho": 0.0,
+      "n": 10
+    },
     "scribbr|undetectable": {
       "rho": 0.548,
       "n": 10
     },
     "scribbr|zerogpt": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "seoai|undetectable": {
+      "rho": 0.0,
+      "n": 38
+    },
+    "seoai|zerogpt": {
       "rho": 1.0,
       "n": 0
     },

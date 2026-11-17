@@ -111,7 +111,7 @@ python scan_artifacts.py & python check_references.py & python stylometry.py & w
 
 ### 3. Web detectors (only if the text may leave the machine)
 
-Follow `references/web-detectors.md`: the confidentiality rule, then the passages and the other splits through the tested tools (unattended: ZeroGPT, Undetectable, AIDetector.review, Scribbr, the Binoculars demo; validated tools only with the user present to tick the CAPTCHA), a check of the parsed scores against the saved pages, and `python evidence.py`. Never work around a CAPTCHA, a login wall or a free limit.
+Follow `references/web-detectors.md`: the confidentiality rule, then the passages and the other splits through the tested tools (unattended: ZeroGPT, Undetectable, AIDetector.review, Scribbr, Plagiarism Checker X, the Binoculars demo; validated tools only with the user present to tick the CAPTCHA), a check of the parsed scores against the saved pages, and `python evidence.py`. Never work around a CAPTCHA, a login wall or a free limit.
 
 ### 4. Your part: confirm, verify, read
 

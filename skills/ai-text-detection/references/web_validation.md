@@ -9,8 +9,10 @@ Each detector was run on published human scientific prose from before ChatGPT (s
 | zerogpt | 0/28 | 0/18 | 0/10 | 10/10 | 0% | 1.00 | 27.5 | 0.09 | 2026-11-17 |
 | undetectable | 1/28 | 0/18 | 1/10 | 9/10 | 0% | 0.98 | 12.5 | 0.18 | 2026-11-17 |
 | aidetector_review | 3/28 | 2/18 | 2/10 | 8/10 | 33% | 0.95 | 5.62 | 0.29 | 2026-11-17 |
+| plagiarismcheckerx | 0/28 | 0/18 | 0/10 | 7/10 | 0% | 0.89 | 20.0 | 0.34 | 2026-11-17 |
 | scribbr | 0/28 | 0/18 | 0/10 | 3/10 | 0% | 0.80 | 10.0 | 0.69 | 2026-11-17 |
 | binoculars | 0/28 | 0/18 | 0/10 | 4/10 | 0% | 0.70 | 12.5 | 0.6 | 2026-11-17 |
+| seoai | 3/28 | 1/18 | 0/10 | 0/10 | 0% | 0.40 | 0.62 | 1.06 | 2026-11-17 |
 
 LR = likelihood ratio, with add-one smoothing so a small sample never gives infinity: how much more likely the tool's verdict is if the text is AI-written than if it is human. evidence.py counts a tool only with at least 5 human and 5 AI texts and an AUROC of 0.6 or more.
 
@@ -22,20 +24,25 @@ evidence.py's combination of the counted tools, run on each known text scored wh
 
 | Texts | n | 3x or more | 10x or more | 20x or more | Highest |
 |---|---|---|---|---|---|
-| human | 28 | 0 | 0 | 0 | 0.5x |
-| ai | 10 | 9 | 7 | 3 | 59.7x |
+| human | 28 | 0 | 0 | 0 | 0.4x |
+| ai | 10 | 10 | 5 | 5 | 118.9x |
 
 How much each pair of counted tools moves together within the human texts and within the AI texts (0 = independent, 1 = the same tool). Where it cannot be measured, full overlap is assumed.
 
 | Pair | Overlap | Known texts used |
 |---|---|---|
 | aidetector_review / binoculars | 0.00 | 10 |
+| aidetector_review / plagiarismcheckerx | 0.00 | 38 |
 | aidetector_review / scribbr | 0.33 | 10 |
 | aidetector_review / undetectable | 0.00 | 38 |
 | aidetector_review / zerogpt | 1.00 | not measurable: assumed 1 |
+| binoculars / plagiarismcheckerx | 0.37 | 10 |
 | binoculars / scribbr | 0.75 | 10 |
 | binoculars / undetectable | 0.60 | 10 |
 | binoculars / zerogpt | 1.00 | not measurable: assumed 1 |
+| plagiarismcheckerx / scribbr | 0.66 | 10 |
+| plagiarismcheckerx / undetectable | 0.09 | 38 |
+| plagiarismcheckerx / zerogpt | 1.00 | not measurable: assumed 1 |
 | scribbr / undetectable | 0.55 | 10 |
 | scribbr / zerogpt | 1.00 | not measurable: assumed 1 |
 | undetectable / zerogpt | 1.00 | not measurable: assumed 1 |
