@@ -536,7 +536,7 @@ def _reading(inp: Inputs, out: Verdict) -> None:
 def _caveats(
     inp: Inputs, out: Verdict, dismissed: list, rlist: list, web: tuple
 ) -> list[str]:
-    """What the evidence does not show, and what could not be checked."""
+    """What limits this case's evidence: counter-evidence, and what could not be checked."""
     _flagged_valid, clean_valid, wsum = web
     caveats = list(out.caveats_pre)
     nwords = inp.doc.get("n_words", 0)
@@ -578,17 +578,7 @@ def _caveats(
             f"{plural(len(dismissed), 'candidate artefact')} were set aside after reading them in context: "
             + "; ".join(inp.ja[h["id"]].get("why", "") for h in dismissed)
         )
-    return [
-        *caveats,
-        (
-            "Detector and style scores are lower for some human writing and higher for other human writing: non-native "
-            "English, professional language editing, grammar tools, and formulaic sections all shift them (Liang et al. 2023)."
-        ),
-        (
-            "Using an AI tool for language polishing is allowed by most journals and funders when disclosed; check the "
-            "policy of the journal or funder concerned."
-        ),
-    ]
+    return caveats
 
 
 def grade(work: Path) -> dict:

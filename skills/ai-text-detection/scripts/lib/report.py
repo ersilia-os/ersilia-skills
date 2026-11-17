@@ -5,17 +5,18 @@ The verdict comes first and the detector statistics never speak louder than it:
     Verdict      the tier and headline from grade.json; one sentence and one bar on
                  what the combined detectors say; the non-statistical checks (leftover
                  chatbot text, references, style, close reading)
-    Findings     what the user can say (grade.json's statements, each with how to
-                 re-check it; close-reading ones link to their place in the text), next
-                 to what the evidence does not show (its caveats)
     Text         the document, passage by passage; sentences shaded by the combined,
                  calibrated evidence (evidence.py), human-leaning text left plain;
                  leftover chatbot text boxed; close-reading notes as tags beside the
                  words they quote; title page, captions and tables folded or greyed
     Side panel   each passage's combined value, then a grid of each detector's score per
                  passage with its record on known texts
-    Items        every item to quote from: leftover chatbot text, hidden text,
-                 references not found, notes whose quote could not be placed
+    Findings     what the user can say, one line each (grade.json's statements; how to
+                 re-check it; close-reading ones link to their place in the text), next
+                 to this case's limits when there are any (grade.json's caveats).
+                 Folded in the same card, every item to quote from: leftover chatbot
+                 text, hidden text, references not found, notes whose quote could not
+                 be placed
 
 A passage is whole prose paragraphs from one section, 250-600 words
 (lib.splits.build_passages): the unit the reader sees. The scores themselves come from
@@ -174,7 +175,7 @@ def unchecked_html(text: str, a: int, b: int) -> str:
         if is_heading_like(t):
             out.append(f'<div class="sec">{e(t)}</div>')
         else:
-            short = t[:300] + ("…" if len(t) > 300 else "")
+            short = t[:120] + ("…" if len(t) > 120 else "")
             why = "not checked" if is_prose(t) else "not prose; not checked"
             out.append(f'<p class="skip">{e(short)} <i>({why})</i></p>')
         i += 1
@@ -503,7 +504,7 @@ class TextRenderer:
         if self.quiet(r):
             return (
                 f'<details class="psg" id="p{r["n"]}"><summary class="phead">{head}'
-                f'<span class="fold">nothing flagged</span></summary>{"".join(parts)}</details>'
+                f'<span class="fold">{"style AI-like, " if r["style_flag"] else ""}no sentence flagged</span></summary>{"".join(parts)}</details>'
             )
         return (
             f'<section class="psg" id="p{r["n"]}"><div class="phead">{head}</div>'
@@ -511,18 +512,23 @@ class TextRenderer:
         )
 
     def quiet(self, r: dict) -> bool:
-        """True when the detectors scored the passage and nothing in it is flagged: no
-        AI-like sentence, no leftover text, no note, style in range. Such a passage folds."""
+        """True when the detectors scored the passage and there is nothing to look at in
+        it: no AI-like sentence, no leftover text, no note, and it does not lean AI as a
+        whole. Such a passage folds."""
         a, b = r["start"], r["end"]
-        if r["style_flag"] or not r["sc"]:
+        if not r["sc"]:
             return False
-        if any(x[0] < b and x[1] > a for x in self.events):
+        if any(
+            x[0] < b and x[1] > a
+            for x in self.events
+            if not self.heat or x[2] == "art" or x[2].startswith("note")
+        ):
             return False
         if self.inp.combined:
             ev = self.inp.combined.get(r["id"])
             return (
                 ev is not None
-                and ev <= -LN3 + 1e-12
+                and ev < LN3
                 and not any(
                     heat_class(x["evidence"])
                     for x in self.heat
@@ -571,7 +577,7 @@ class TextRenderer:
         )
         n_quiet = sum(1 for r in rows if self.quiet(r))
         if n_quiet:
-            legend += f"<span>{plural(n_quiet, 'passage')} with nothing flagged folded.</span>"
+            legend += f"<span>{plural(n_quiet, 'passage')} with no sentence flagged are folded.</span>"
         return f'<div class="doclegend">{legend}</div>' + "".join(blocks)
 
 
@@ -682,7 +688,7 @@ NOT_RUN = "Web detector "
 
 def findings(inp: Inputs, placed: set[int]) -> str:
     """What the user can say, each statement with how to re-check it, next to what the
-    evidence does not show. A close-reading statement links to its place in the text."""
+    case's evidence is limited by, when anything is. A close-reading statement links to its place in the text."""
     items, weak = [], []
     for st in inp.grade.get("statements", []):
         ev = st.get("evidence") or [""]
@@ -722,6 +728,9 @@ def findings(inp: Inputs, placed: set[int]) -> str:
             + "".join(f"<li>{e(c.removeprefix(NOT_RUN))}</li>" for c in not_run)
             + "</ul></details></li>"
         )
+    quotes = other_evidence(inp, placed)
+    if quotes:
+        items.append(quotes)
     if not items and not limits:
         return ""
     said = (
@@ -729,10 +738,14 @@ def findings(inp: Inputs, placed: set[int]) -> str:
         if items
         else '<p class="skip">Nothing was found that supports a statement.</p>'
     )
+    side = (
+        f'<div><h2>Limits of this check</h2><ul class="limits">{limits}</ul></div>'
+        if limits
+        else ""
+    )
     return (
-        '<!-- section: findings --><section class="card findings">'
-        f"<div><h2>What you can say</h2>{said}</div>"
-        f'<div><h2>What this does not show</h2><ul class="limits">{limits}</ul></div></section>'
+        f'<!-- section: findings --><section class="card findings{"" if side else " single"}">'
+        f"<div><h2>What you can say</h2>{said}</div>{side}</section>"
     )
 
 
@@ -853,7 +866,7 @@ def side_panel(inp: Inputs, rows: list[dict]) -> str:
 
 
 def other_evidence(inp: Inputs, placed: set[int]) -> str:
-    """The list of findings to quote from: leftover chatbot text (also boxed in the text),
+    """A fold, for the findings card, with the items to quote from: leftover chatbot text (also boxed in the text),
     hidden text, references not found, notes whose quote was not located, grade's extras."""
     items = [
         f"<li><b>{'Leftover chatbot text' if inp.is_leftover(h) else 'Marker'} ({e(h['tier'])}, "
@@ -880,8 +893,8 @@ def other_evidence(inp: Inputs, placed: set[int]) -> str:
         if i not in placed
     ]
     return (
-        f'<section class="card"><details><summary class="h2">Evidence items ({len(items)})</summary>'
-        f'<ul class="limits">{"".join(items)}</ul></details></section>'
+        f'<li class="more"><details><summary>Evidence items ({len(items)})</summary>'
+        f'<ul class="limits">{"".join(items)}</ul></details></li>'
         if items
         else ""
     )
@@ -909,8 +922,8 @@ def render(work: Path, case: str, kind: str, context: str) -> str:
         f"<style>{CSS_FILE.read_text(encoding='utf-8')}</style>\n"
         '<div class="wrap"><header>'
         f'<h1>{e(case)}</h1><p class="meta">{e(" · ".join(meta))}</p></header>'
-        f"<!-- section: answer -->{headline(inp, rows)}{findings(inp, tr.notes_placed)}"
+        f"<!-- section: answer -->{headline(inp, rows)}"
         f'<div class="cols{"" if side else " single"}"><article class="card doc" id="text">'
         f"<!-- section: text -->{text_html}</article>{side}</div>"
-        f"{other_evidence(inp, tr.notes_placed)}</div>"
+        f"{findings(inp, tr.notes_placed)}</div>"
     )

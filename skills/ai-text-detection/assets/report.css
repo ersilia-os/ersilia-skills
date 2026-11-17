@@ -56,18 +56,20 @@ a:focus-visible, summary:focus-visible, .note:focus-visible { outline: 2px solid
 .ok, .bad, .meh { flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
 .ok { background: var(--hu-soft); color: var(--hu); } .bad { background: var(--ai); color: var(--on-ai); }
 .meh { background: var(--some-soft); color: var(--ink); }
-/* what you can say / what this does not show */
+/* what you can say / limits of this check */
 .findings { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 28px; }
+.findings.single { grid-template-columns: minmax(0, 1fr); }
 .said, .limits { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; font-size: .9rem; }
 .said li { display: grid; grid-template-columns: 5.6rem minmax(0, 1fr); gap: 10px; align-items: start; }
 .said li.more { grid-template-columns: minmax(0, 1fr); }
 .said li.more > details > summary { color: var(--muted); }
 .said li.more .said { margin-top: 10px; }
+.said li.more .limits { margin-top: 10px; }
+.said .limits li { display: block; }
 .said details { margin: 0; color: var(--muted); font-size: .85rem; }
 .said summary { color: var(--ink); font-size: .9rem; }
 .said details[open] > summary { margin-bottom: 4px; }
 .t-sep { background: var(--card-2); color: var(--muted); }
-summary.h2 { font: 600 1rem var(--sans); }
 details.psg > summary { cursor: pointer; margin-bottom: 0; }
 details.psg[open] > summary { margin-bottom: .4rem; }
 .fold { margin-left: auto; font-weight: 400; }
