@@ -99,10 +99,13 @@ find model/checkpoints -type f -size +104857599c
 find model/framework/fit -type f ! -name .gitkeep ! -path model/framework/fit/README.md
 cat access.json 2>/dev/null       # names only the folders on eosvc; absent when nothing is on eosvc
 git ls-files ':(attr:filter=lfs)'   # must print nothing: no Git LFS
-grep -n -E 'from_pretrained|hf_hub_download|snapshot_download|gdown|wget|urlretrieve|requests\.get|torch\.hub|load_state_dict_from_url' model/framework/code -r   # each hit: is it a run-time weight download?
+grep -n -E 'from_pretrained|hf_hub_download|snapshot_download|gdown|wget|curl|urlretrieve|urlopen|requests\.get|torch\.hub|load_state_dict_from_url|pooch|get_file' model/framework/code -r   # each hit: is it a run-time weight download?
 # for each folder on eosvc (skip if none), S3 must match local:
 conda run -n eosvc eosvc view --path model/checkpoints    # and/or --path model/framework/fit
 # the last line must read "0 modified · 0 local-only · 0 remote-only"
+# if access.json exists, a folder kept in git must have NOTHING on S3 (CI's
+# `eosvc download --path .` would overwrite it): `eosvc view` on that folder must list no
+# remote files
 
 # 5. strays. Any eosvc command recreates .eosvc/, so delete it after step 4, not before
 rm -rf .eosvc
@@ -139,7 +142,9 @@ name. Never `git add -A` or `git add .`. A `mock.txt` or `.gitattributes` from a
 template is staged as a deletion only if git tracks it, so a missing file never breaks the
 `git add`:
 ```bash
-for f in mock.txt .gitattributes; do git ls-files --error-unmatch -- "$f" >/dev/null 2>&1 && git add -- "$f"; done
+for f in mock.txt .gitattributes; do
+  if git ls-files --error-unmatch -- "$f" >/dev/null 2>&1; then git add -- "$f"; fi
+done
 ```
 
 ```bash

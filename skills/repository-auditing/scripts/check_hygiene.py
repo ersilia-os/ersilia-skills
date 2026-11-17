@@ -325,10 +325,20 @@ def check_git_lfs(repo: Path, findings: list) -> None:
     Ersilia does not use Git LFS in any repository (org rule, ersilia-os/ersilia#1967):
     small files belong in git and large ones in eosvc. Files tracked through an LFS filter
     are a Blocker; LFS rules in `.gitattributes` that match no tracked file are a
-    Should-fix, because the next matching file would silently go to LFS. The pathspec
-    query honours every `.gitattributes` in the tree, not only the root one.
+    Should-fix, because the next matching file would silently go to LFS. Every tracked
+    `.gitattributes` is read, not only the root one.
     """
-    rules = sorted(lfs_paths(repo))
+    attr_files = run(["git", "-C", str(repo), "ls-files"]).stdout.splitlines()
+    attr_files = [p for p in attr_files if Path(p).name == ".gitattributes"]
+    rules: list[str] = []
+    rule_files: list[str] = []
+    for af in attr_files:
+        for line in read_text(repo / af).splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "filter=lfs" in line:
+                rules.append(f"{af}: {line.split()[0]}")
+                if af not in rule_files:
+                    rule_files.append(af)
     proc = run(["git", "-C", str(repo), "ls-files", ":(attr:filter=lfs)"])
     lfs_files = (
         [p for p in proc.stdout.splitlines() if p] if proc.returncode == 0 else []
@@ -340,10 +350,10 @@ def check_git_lfs(repo: Path, findings: list) -> None:
                 "T0",
                 "Blocker",
                 f"git tracks {plural(len(lfs_files), 'file')} through Git LFS.",
-                "Ersilia does not use Git LFS. Move each file to plain git if it is under "
-                "100 MiB, otherwise to eosvc/S3, then remove the LFS rules from "
-                "`.gitattributes`.",
-                file=".gitattributes",
+                "Move each file to plain git if it is under 100 MiB, otherwise to "
+                "eosvc/S3, then remove the LFS rules from `.gitattributes`. Ersilia does "
+                "not use Git LFS.",
+                file=rule_files[0] if rule_files else ".gitattributes",
                 detail=rollup(lfs_files),
             )
         )
@@ -357,7 +367,7 @@ def check_git_lfs(repo: Path, findings: list) -> None:
                 "file uses LFS.",
                 "Remove the `filter=lfs` lines (and `.gitattributes` if nothing else is "
                 "left). Ersilia does not use Git LFS.",
-                file=".gitattributes",
+                file=rule_files[0],
                 detail=rollup(rules),
             )
         )

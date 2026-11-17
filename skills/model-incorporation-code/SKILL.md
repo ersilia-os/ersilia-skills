@@ -6,7 +6,7 @@ description: >
   original ML code, (2) an ersilia-model-template repository (already forked/cloned),
   and (3) optionally a PDF of the scientific article — and needs to wire up the
   actual model code. The skill handles all coding steps: copying checkpoints into
-  the repo (eosvc only for a folder with a file of 100 MiB or more; fit/ always eosvc), adapting main.py to
+  the repo (eosvc only for a folder with a file of 100 MiB or more; fit/ to eosvc once it holds training code or data), adapting main.py to
   replace the molecular-weight placeholder with real inference, creating run_columns.csv, updating install.yml with pinned versions,
   and producing run_input.csv and run_output.csv by actually running the model.
   Trigger on phrases like "incorporate model code", "fill in the template", "adapt
@@ -119,7 +119,10 @@ Google Drive, direct URL) in the README.
      Leaving a folder out of `access.json` does not protect it: eosvc treats a missing key as
      public, and CI runs `eosvc download --path .` whenever `access.json` exists.
    - If `.gitignore` or `access.json` list a folder that now goes to git (forks made before
-     the rule changed), remove it from both.
+     the rule changed), remove it from both, and delete `access.json` if no folder is left in
+     it. If that folder still has a copy on S3 (`conda run -n eosvc eosvc view --path
+     model/checkpoints`), tell the user it must be removed from S3: while `access.json`
+     exists, CI's `eosvc download --path .` would put the stale S3 copy over the git one.
 
 3. If no checkpoints are needed (pure algorithmic model), note this explicitly and
    leave the directory empty.

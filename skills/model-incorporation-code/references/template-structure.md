@@ -18,7 +18,7 @@
         ├── examples/
         │   ├── run_input.csv
         │   └── run_output.csv
-        └── fit/            # training code (always eosvc) — populated only when checkpoints are not
+        └── fit/            # training code (eosvc once populated) — populated only when checkpoints are not
             ├── README.md   #   publicly available and retraining is needed
             ├── data/       # training data or download scripts
             ├── results/    # output checkpoints from training (copy to model/checkpoints/)
