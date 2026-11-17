@@ -11,7 +11,6 @@
     evidence    the calibrated combination of detectors across splits
     grading     every line of evidence into one tier and defensible statements
     report      the HTML report
-    formal      the formal assessment: the evidence as a procedure aligned with official rules
 
 Scripts import it as ``from lib.<module> import ...``; it needs only the standard library.
 The library never imports a script: dependencies point from the steps to the library.

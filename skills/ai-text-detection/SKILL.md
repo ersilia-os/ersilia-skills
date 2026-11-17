@@ -11,15 +11,11 @@ description: >
   human and AI texts, then combined into calibrated per-sentence evidence) when the text may
   leave the machine, plus calibrated stylometry (excess vocabulary such as "delve",
   "underscore", "meticulous"), and adds a close reading. Confidential manuscripts and grants
-  under review are never sent to any website. On request it also writes a formal
-  assessment that follows the EU and professional rules on AI use and on handling suspected
-  breaches step by step (GDPR, AI Act, ERA living guidelines, ALLEA code, COPE, ENFSI), each
-  quoted and checked, for showing an editor or funder that it was done properly. Learns from
+  under review are never sent to any website. Learns from
   the user's feedback on every finding and every case. Triggers include: "is this AI-generated", "was this written by
   ChatGPT", "check this review for AI", "AI detection", "detect AI text", "/ai-text-detection",
   "this reviewer used ChatGPT", "my collaborator's draft reads like AI", "check the
-  references are real", "fabricated citations", "is this grant AI-written", "formal assessment", "legally
-  backed assessment", "official AI-use assessment". Always use this
+  references are real", "fabricated citations", "is this grant AI-written". Always use this
   skill for these requests, even if the ask seems simple.
 ---
 
@@ -69,7 +65,6 @@ Work folder: `/tmp/ai_text_detection/`, reset each run. Private case ledger: `~/
 | Verdict | `grade.py` | Rules in `grading.json` give the tier and the defensible statements |
 | Report | `build_report.py` | The HTML report (`lib/report.py`), published as a private Artifact |
 | | `report_pdf.py` | The report as an A4 PDF, when the user asks for a file |
-| | `formal_report.py` | The formal assessment: the evidence as a procedure that follows the official rules, for showing to others |
 | Maintenance | `build_corpus.py`, `calibrate.py` | Human calibration corpus; style-score thresholds; `validation.md` |
 | | `selftest.py` | Offline regression test over `examples/cases/` and every marker's examples |
 
@@ -145,14 +140,6 @@ Then `python grade.py`.
 `python build_report.py --case "<label>" --kind <kind> --context <context>` writes `report.html`. Publish it as a private Artifact (icon `search`). The page shows, top to bottom: the share of the checked prose that reads as AI-written, the tier and the non-statistical checks; the text with AI-like sentences highlighted and close-reading notes tagged where they occur, beside each passage's combined score and each detector's scores; and the findings to quote from. For a file: `conda run -n ai-text-detection python report_pdf.py report.html <out.pdf>`.
 
 Then tell the user, in a few lines: the tier and what it means; the two or three statements they can most safely make (from grade.json's statements); what the evidence does **not** show; and, if they want to raise it, to lead with the verifiable problems (fabricated references, false claims, leftover chatbot text) rather than "AI wrote this", addressed to the editor or programme officer for reviews and grants (COPE). Don't draft a message unless asked.
-
-### 6b. The formal assessment (when the user will raise it with someone)
-
-When the user means to show the result to an editor, a programme officer, an integrity committee or the author, or asks for an assessment that is "legally backed", "official" or "by the book", also write the formal assessment. Read `references/formal-assessment.md` first. In short:
-
-1. Ask, in one `AskUserQuestion`, for the **rule that applies** (the journal's instructions, the call text, the institution's policy; open it, never quote one from memory) and **who signs** as assessor.
-2. `python formal_report.py --case "<label>" --kind <kind> --context <context> --assessor "<name>" --policy "<rule>"`, then `report_pdf.py formal.html <out.pdf>`. Publish the HTML as a private Artifact (icon `document`) and give the PDF path.
-3. Say plainly what it is: aligned with the EU and professional sources it cites, step by step, with each quote checked; **not** certified by anyone, not proof of authorship, not a finding of misconduct and not legal advice. No official EU guideline for detecting AI-written text exists, and using AI is not in itself a breach: hiding substantial use is.
 
 ### 7. Checkpoint 2: how did the verdict land?
 

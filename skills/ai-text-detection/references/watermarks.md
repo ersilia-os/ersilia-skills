@@ -16,7 +16,7 @@ their models generate. Checked 17 November 2026.
   doing once: for recent Claude or ChatGPT text it is far stronger than any detector.
 - When the user has access and checks a text, record the result in `judgements.json`:
   `"watermark": [{"provider": "Anthropic", "result": "detected in 3 of 4 passages", "date": "2026-12-01"}]`.
-  The formal assessment prints it. Also enter a detection as a `reading` finding of tier
+  Also enter a detection as a `reading` finding of tier
   `moderate` (one independent line: the text passed through that model, which may have been
   for translation or proofreading), and say exactly that.
 - Confidentiality still applies: a manuscript or grant under review is not sent to a
