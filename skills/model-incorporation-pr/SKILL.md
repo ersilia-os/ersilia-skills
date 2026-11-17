@@ -94,12 +94,18 @@ conda run -n ersilia python <skill-dir>/scripts/check_metadata.py "$PWD"
 ```
 
 ```bash
-# 4. checkpoints and training data: in git unless a file is over 100 MB
-find model/checkpoints model/framework/fit -type f -size +100000000c
-cat access.json 2>/dev/null       # names only the folders on eosvc; absent when both are in git
+# 4. storage: checkpoints in git unless a file is 100 MiB or more; a populated fit/ always on eosvc
+find model/checkpoints -type f -size +104857599c
+find model/framework/fit -type f ! -name .gitkeep ! -path model/framework/fit/README.md
+cat access.json 2>/dev/null       # names only the folders on eosvc; absent when nothing is on eosvc
+git ls-files ':(attr:filter=lfs)'   # must print nothing: no Git LFS
+grep -n -E 'from_pretrained|hf_hub_download|snapshot_download|gdown|wget|curl|urlretrieve|urlopen|requests\.get|torch\.hub|load_state_dict_from_url|pooch|get_file' model/framework/code -r   # each hit: is it a run-time weight download?
 # for each folder on eosvc (skip if none), S3 must match local:
-conda run -n eosvc eosvc view --path model/checkpoints
+conda run -n eosvc eosvc view --path model/checkpoints    # and/or --path model/framework/fit
 # the last line must read "0 modified · 0 local-only · 0 remote-only"
+# if access.json exists, a folder kept in git must have NOTHING on S3 (CI's
+# `eosvc download --path .` would overwrite it): `eosvc view` on that folder must list no
+# remote files
 
 # 5. strays. Any eosvc command recreates .eosvc/, so delete it after step 4, not before
 rm -rf .eosvc
@@ -107,14 +113,17 @@ git status --porcelain
 git ls-files -o -m --exclude-standard | xargs -r -d '\n' du -k 2>/dev/null | sort -rn | head -3
 ```
 
-A folder with a file listed by `find` must be gitignored and on eosvc as a whole; a folder
-without one must be in git and must not be on S3, because CI downloads the S3 copy over the git
-one. If either is not the case, stop and say which.
+`model/checkpoints/` with a file listed by the first `find` must be gitignored and on eosvc as a
+whole; without one it must be in git and must not be on S3, because CI downloads the S3 copy
+over the git one. `model/framework/fit/` with anything listed by the second `find` must be on
+eosvc. No file may be tracked by Git LFS, and the model must not download weights at run time
+(`from_pretrained` on a local `model/checkpoints/` path is fine). If any of this is not the case,
+stop and say which. Rule: [Checkpoints and storage](https://ersilia.gitbook.io/ersilia-book/ersilia-model-hub/model-contribution/model-template#checkpoints-and-storage).
 
-The status must list only intended files. Stage `model/checkpoints/` and `model/framework/fit/`
-when they are in git. Never stage `.eosvc/`, `*-test.json`, `__pycache__/`, `.env`, `.config`,
-a gitignored folder, a file over 100 MB, or a file in the megabytes outside those two
-folders. `mock.txt` and `.gitattributes` must show as deleted.
+The status must list only intended files. Stage `model/checkpoints/` when it is in git, and
+`model/framework/fit/` only when it holds just the template skeleton. Never stage `.eosvc/`, `*-test.json`, `__pycache__/`, `.env`, `.config`,
+a gitignored folder, a file of 100 MiB or more, or a file in the megabytes outside those two
+folders. A `mock.txt` or `.gitattributes` left by an older template must show as deleted.
 
 ```bash
 # 6. earlier unpushed commits carry no skip token
@@ -129,8 +138,14 @@ why). If the files changed after the last test, say so and offer to re-test firs
 ## Step 1: Commit
 
 Build the file list from `git status --porcelain`, drop the strays, and add the paths by
-name. Never `git add -A` or `git add .`. Deleted template files are staged the same way
-(`git add -- mock.txt .gitattributes`).
+name. Never `git add -A` or `git add .`. A `mock.txt` or `.gitattributes` from an older
+template is staged as a deletion only if git tracks it, so a missing file never breaks the
+`git add`:
+```bash
+for f in mock.txt .gitattributes; do
+  if git ls-files --error-unmatch -- "$f" >/dev/null 2>&1; then git add -- "$f"; fi
+done
+```
 
 ```bash
 git add -- <path> <path> ...
@@ -151,7 +166,7 @@ Write the message to a file and commit with `-F`:
 Incorporate <Title> (<id>)
 
 <One sentence on what the model returns.>
-Checkpoints: <in git / on S3 via eosvc, a file is over 100 MB>. Shallow test: <result>.
+Checkpoints: <in git / on S3 via eosvc, a file is 100 MiB or more>; fit/: <template skeleton / on S3 via eosvc>. Shallow test: <result>.
 Reproduction: <ran / not run, and why>. Optimization: <ran / not run, and why>.
 
 Refs ersilia-os/ersilia#<n>
@@ -198,7 +213,7 @@ Refs ersilia-os/ersilia#<n>
 
 ### Checks run
 - `ersilia test --shallow`: <result>
-- Checkpoints and training data: <in git / on S3 via eosvc (a file is over 100 MB), S3 and local match>
+- Checkpoints and training data: <checkpoints in git / on S3 via eosvc (a file is 100 MiB or more); fit/ skeleton only / on S3 via eosvc; S3 and local match>
 - Reproduction: <ran, with the headline numbers / not run, and why>
 - Optimization: <ran, with the size change / not run, and why>
 

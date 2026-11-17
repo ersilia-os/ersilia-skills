@@ -82,8 +82,13 @@ for 100 inputs).
 
 **Fix.** Convert to a format that loads fast (numpy `.npz` arrays, safetensors), with
 a small `convert_checkpoint.py` kept in `code/` so the conversion is reproducible,
-and repeat the library's arithmetic on the arrays in the same order. Remember Git
-LFS for the new file, and remove the old one.
+and repeat the library's arithmetic on the arrays in the same order. Remove the old
+file. Store `model/checkpoints/` by the storage rule: git if every file is under 100 MiB,
+otherwise the whole folder on eosvc; never Git LFS. You do not upload: if the folder must
+go to eosvc, prepare `access.json` and `.gitignore` and tell the user to run `eosvc upload
+--path checkpoints`. If the conversion brings every file under 100 MiB, the folder moves
+back to git: remove it from `access.json` and `.gitignore` and tell the user the old S3
+copy must be removed.
 
 **Example.** eos7pw8: 792 MB pickled dict of 26M fragments (~50 s to load) → 159 MB
 `.npz` (0.1 s). 15x on 10,000 molecules, 190x on 100.

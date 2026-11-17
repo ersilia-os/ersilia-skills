@@ -31,6 +31,7 @@ from _common import (
     plural,
     read_text,
     rollup,
+    run,
     skipped,
     tracked_files,
     tracked_sizes,
@@ -310,10 +311,64 @@ def check_data_in_git(repo: Path, sizes: dict[str, int], findings: list) -> None
                 "T0-LARGE-FILE",
                 "T0",
                 "Blocker",
-                f"git tracks {plural(len(large), 'file')} over 5 MB without git-lfs.",
-                "Move them to eosvc/S3, or track them with git-lfs if they genuinely belong "
-                "in the repo (e.g. model checkpoints).",
+                f"git tracks {plural(len(large), 'file')} over 5 MB.",
+                "Move them to eosvc/S3. Do not move them to Git LFS: Ersilia does not use "
+                "Git LFS in any repository.",
                 detail=rollup(large),
+            )
+        )
+
+
+def check_git_lfs(repo: Path, findings: list) -> None:
+    """Git LFS anywhere in the repository.
+
+    Ersilia does not use Git LFS in any repository (org rule, ersilia-os/ersilia#1967):
+    small files belong in git and large ones in eosvc. Files tracked through an LFS filter
+    are a Blocker; LFS rules in `.gitattributes` that match no tracked file are a
+    Should-fix, because the next matching file would silently go to LFS. Every tracked
+    `.gitattributes` is read, not only the root one.
+    """
+    attr_files = run(["git", "-C", str(repo), "ls-files"]).stdout.splitlines()
+    attr_files = [p for p in attr_files if Path(p).name == ".gitattributes"]
+    rules: list[str] = []
+    rule_files: list[str] = []
+    for af in attr_files:
+        for line in read_text(repo / af).splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "filter=lfs" in line:
+                rules.append(f"{af}: {line.split()[0]}")
+                if af not in rule_files:
+                    rule_files.append(af)
+    proc = run(["git", "-C", str(repo), "ls-files", ":(attr:filter=lfs)"])
+    lfs_files = (
+        [p for p in proc.stdout.splitlines() if p] if proc.returncode == 0 else []
+    )
+    if lfs_files:
+        findings.append(
+            finding(
+                "T0-GIT-LFS",
+                "T0",
+                "Blocker",
+                f"git tracks {plural(len(lfs_files), 'file')} through Git LFS.",
+                "Move each file to plain git if it is under 100 MiB, otherwise to "
+                "eosvc/S3, then remove the LFS rules from `.gitattributes`. Ersilia does "
+                "not use Git LFS.",
+                file=rule_files[0] if rule_files else ".gitattributes",
+                detail=rollup(lfs_files),
+            )
+        )
+    elif rules:
+        findings.append(
+            finding(
+                "T0-GIT-LFS",
+                "T0",
+                "Should-fix",
+                f"`.gitattributes` has {plural(len(rules), 'Git LFS rule')} but no tracked "
+                "file uses LFS.",
+                "Remove the `filter=lfs` lines (and `.gitattributes` if nothing else is "
+                "left). Ersilia does not use Git LFS.",
+                file=rule_files[0],
+                detail=rollup(rules),
             )
         )
 
@@ -613,6 +668,7 @@ def main() -> int:
     check_gitignore(repo, findings)
     check_junk(repo, tracked, findings)
     check_data_in_git(repo, sizes, findings)
+    check_git_lfs(repo, findings)
     check_secrets(repo, tracked, sizes, findings)
     check_access_json(repo, rtype, findings, skips)
     check_stale_gitkeep(repo, tracked, findings)
