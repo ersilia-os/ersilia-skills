@@ -1,0 +1,803 @@
+{
+  "_about": "The skill's statistical layer: web AI-text detectors it runs through Claude in Chrome, in the user's own browser session, chunk by chunk. 'weight' says how grade.py treats a tool: 'validated' tools have independent evidence of a low false-positive rate and can count as a line of evidence; 'context' tools are reported but never raise the verdict above weak. Free-tier limits change: read them on the page, never work around them. Pasting text into these sites uploads it: only for text the user owns or co-authors, or public text (references/web_detectors_guide.md, section 1).",
+  "version": 9,
+  "tools": [
+    {
+      "id": "pangram",
+      "name": "Pangram",
+      "url": "https://www.pangram.com/",
+      "weight": "validated",
+      "use": "captcha",
+      "evidence": "Near-zero false positives and robust to humanizers in the University of Chicago study (Jabarian & Imas 2025, NBER w34223); the only tool meeting a 0.5% FPR cap there.",
+      "evidence_url": "https://www.nber.org/papers/w34223",
+      "read": "Record the AI likelihood as 0-1 and the label shown (e.g. 'AI', 'Mixed', 'Human'). If it reports AI share by segment, record the overall share.",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "CAPTCHA (Cloudflare) on automated use; needs the user to tick it"
+      },
+      "api": "api_detectors.py (PANGRAM_API_KEY; free research credits on application at https://pangram.com/solutions/api)"
+    },
+    {
+      "id": "gptzero",
+      "name": "GPTZero",
+      "url": "https://gptzero.me/",
+      "weight": "validated",
+      "use": "captcha",
+      "evidence": "False-positive rate under 1% in the University of Chicago study; 0% FPR at its default threshold on the RAID benchmark (Dugan et al. 2024).",
+      "evidence_url": "https://arxiv.org/abs/2405.07940",
+      "read": "Record the probability that the text is AI-generated (0-1) and the classification shown ('AI', 'Mixed', 'Human').",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "hCaptcha before results (opens a new tab at app.gptzero.me); needs the user"
+      },
+      "api": "api_detectors.py (GPTZERO_API_KEY; paid; ask for research credits)"
+    },
+    {
+      "id": "originality",
+      "name": "Originality.ai",
+      "url": "https://originality.ai/ai-checker",
+      "weight": "validated",
+      "use": "captcha",
+      "evidence": "False-positive rate under 1% in the University of Chicago study; 0.25% FPR at its default threshold on RAID. Mostly paid; use only if the free checker works.",
+      "evidence_url": "https://www.nber.org/papers/w34223",
+      "read": "Record the 'AI' confidence (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "CAPTCHA on automated use; needs the user"
+      }
+    },
+    {
+      "id": "copyleaks",
+      "name": "Copyleaks",
+      "url": "https://copyleaks.com/ai-content-detector",
+      "weight": "context",
+      "use": "by-hand",
+      "evidence": "No independent peer-reviewed false-positive rate found.",
+      "read": "Record the AI score (0-1) or 0/1 from the label.",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "Cloudflare Turnstile challenge after Scan: manual use only (the skill never solves CAPTCHAs)"
+      },
+      "cookies": "accept",
+      "cookies_note": "User approved accepting this site's cookies in the skill's own Chrome profile (2026-11-16); the site offers no decline option.",
+      "input_click": "text=Paste your content"
+    },
+    {
+      "id": "quillbot",
+      "name": "QuillBot AI Detector",
+      "url": "https://quillbot.com/ai-content-detector",
+      "weight": "context",
+      "use": "blocked",
+      "evidence": "No independent peer-reviewed false-positive rate found.",
+      "read": "Record the share reported as AI-generated (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "scan button covered by an overlay"
+      }
+    },
+    {
+      "id": "zerogpt",
+      "name": "ZeroGPT",
+      "url": "https://www.zerogpt.com/",
+      "weight": "context",
+      "use": "unattended",
+      "evidence": "Widely reported false positives on human text (it famously flags the US Constitution); no independent low-FPR evidence.",
+      "read": "Record the percentage reported as AI (0-1).",
+      "max_words": 1500,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "works without CAPTCHA or login"
+      },
+      "parse": {
+        "score": "(?m)^\\s*([\\d.]+)\\s*%\\s*$\\s*^\\s*AI GPT",
+        "scale": 100,
+        "label": "(?m)^(Your Text[^\\n]*|Most of Your Text[^\\n]*)"
+      },
+      "min_words": 100
+    },
+    {
+      "id": "sapling",
+      "name": "Sapling AI Detector",
+      "url": "https://sapling.ai/ai-content-detector",
+      "weight": "context",
+      "use": "key",
+      "evidence": "No peer-reviewed evaluation; non-peer-reviewed benchmarks report about 17-19% false positives.",
+      "read": "Record the 'fake' / AI probability (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "free web checker shows 'Unexpected error' to visitors; use the free API key instead"
+      },
+      "api": "api_detectors.py (SAPLING_API_KEY; free key: 50,000 characters a day, 250,000 a month)",
+      "route": "api"
+    },
+    {
+      "id": "scribbr",
+      "name": "Scribbr AI Detector",
+      "url": "https://www.scribbr.com/ai-detector/",
+      "weight": "context",
+      "use": "unattended",
+      "evidence": "No independent peer-reviewed low-FPR evidence found.",
+      "read": "Record the share reported as AI (0-1).",
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "cookie dialog has 'Only functional cookies' (declined); the detector is QuillBot's, embedded in a frame from quillbot.scribbr.com"
+      },
+      "parse": {
+        "score": "([\\d.]+)\\s*%\\s*of text is\\s*likely AI",
+        "scale": 100,
+        "label": "(of text is\\s*likely AI)"
+      },
+      "min_words": 40
+    },
+    {
+      "id": "winston",
+      "name": "Winston AI",
+      "url": "https://gowinston.ai/",
+      "weight": "context",
+      "use": "login",
+      "evidence": "No independent peer-reviewed low-FPR evidence found. Its score is a 'human score': record 1 minus it.",
+      "read": "Record 1 - (human score / 100).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "no result captured; login likely needed"
+      }
+    },
+    {
+      "id": "undetectable",
+      "name": "Undetectable",
+      "url": "https://undetectable.ai/",
+      "weight": "context",
+      "use": "unattended",
+      "evidence": "Sells a 'humanizer'; no independent low-FPR evidence. Lowest weight.",
+      "read": "Record the AI likelihood (0-1) if shown.",
+      "max_words": 800,
+      "automation": {
+        "checked": "2026-11-15",
+        "status": "works without CAPTCHA or login"
+      },
+      "parse": {
+        "score": "(?m)^\\s*(\\d+(?:\\.\\d+)?)\\s*%\\s*$\\s*^\\s*AI / GPT",
+        "scale": 100,
+        "label": "(?m)^(Your text is[^\\n]*)"
+      },
+      "min_words": 100
+    },
+    {
+      "id": "writer",
+      "name": "Writer AI Content Detector",
+      "url": "https://writer.com/ai-content-detector/",
+      "weight": "context",
+      "use": "blocked",
+      "evidence": "No independent peer-reviewed low-FPR evidence found.",
+      "read": "Record 1 - (human-generated share / 100).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "no text box found (page redirects to writer.com home)"
+      }
+    },
+    {
+      "id": "grammarly",
+      "name": "Grammarly AI Detector",
+      "url": "https://www.grammarly.com/ai-detector",
+      "weight": "context",
+      "use": "login",
+      "evidence": "Vendor-submitted RAID entry (2026-02): 0.995 detection at 5% FPR, 0.982 at 1% FPR; self-submitted and possibly tuned to RAID; no peer-reviewed evaluation.",
+      "read": "Record the share of text reported as AI-generated (0-1).",
+      "max_words": 1400,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "one anonymous scan works; then a sign-up wall (a free account removes it: sign in once with browser_detect.py --login)"
+      },
+      "parse": {
+        "score": "(\\d+(?:\\.\\d+)?)% of this text appears to be AI-generated",
+        "scale": 100,
+        "label": "(\\d+% of this text appears to be AI-generated)"
+      },
+      "min_words": 100
+    },
+    {
+      "id": "binoculars",
+      "name": "Binoculars (demo)",
+      "url": "https://huggingface.co/spaces/tomg-group-umd/Binoculars",
+      "weight": "context",
+      "use": "unattended",
+      "route": "api",
+      "evidence": "Published zero-shot method (Hans et al., ICML 2024); RAID 0.79 detection at 5% FPR, 0.695 at 1% FPR (no attacks). The demo returns a decision, not a probability.",
+      "read": "api_detectors.py records 1 for 'AI' and 0 for 'human'.",
+      "max_words": 380,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "works through the API without a key (Gradio 4 endpoint /call/run_detector)"
+      },
+      "min_words": 120
+    },
+    {
+      "id": "clever",
+      "name": "Clever AI Detector",
+      "url": "https://cleverhumanizer.ai/ai-detector",
+      "weight": "context",
+      "use": "by-hand",
+      "evidence": "Vendor claim 96.7% (GEDE); one non-peer-reviewed test caught 3/10 edited AI texts. No independent evidence.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "Terms §6.3 forbid robots/scripts: the skill never runs it automatically; the user may paste chunks by hand."
+      },
+      "terms": "no-automation"
+    },
+    {
+      "id": "trinka",
+      "name": "Trinka AI Detector",
+      "url": "https://www.trinka.ai/ai-detector",
+      "weight": "context",
+      "use": "login",
+      "evidence": "Vendor-submitted RAID entry 0.998 (abstracts 1.000) at 5% FPR; built for academic writing; no peer-reviewed evaluation.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "no text box for anonymous visitors (login likely needed)"
+      }
+    },
+    {
+      "id": "aidetector_review",
+      "name": "AIDetector.review",
+      "url": "https://aidetector.review",
+      "weight": "context",
+      "use": "unattended",
+      "evidence": "Vendor-submitted RAID entry 0.811 (abstracts 0.937); no peer-reviewed evaluation. Free API (1,000 requests/day) as well.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": 1400,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "works without CAPTCHA or login; sentence colours (green = human)"
+      },
+      "parse": {
+        "score": "(?m)^\\s*(\\d+(?:\\.\\d+)?)\\s*$\\s*^\\s*% AI PROBABILITY",
+        "scale": 100,
+        "label": "(?m)^(HUMAN WRITTEN|LIKELY AI|AI WRITTEN|MIXED[^\\n]*|LIKELY HUMAN)\\s*$"
+      },
+      "min_words": 50,
+      "marks_ai": false,
+      "marks_note": "Its sentence shading is the same faint orange at the same opacities on passages it scores 2% and 67% (GRADIENT run, 2026-11-16): the shading carries no AI verdict, so it is not used as one."
+    },
+    {
+      "id": "itsai",
+      "name": "It's AI",
+      "url": "https://its-ai.org",
+      "weight": "context",
+      "use": "login",
+      "evidence": "Vendor-submitted RAID entry 0.970 (abstracts 0.985); no peer-reviewed evaluation.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": 1500,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "works; 3 anonymous scans, then login (free account: 4,000 words); 'Run scan' button, sentence colours (green = human)"
+      },
+      "parse": {
+        "score": "(?m)^\\s*(\\d+(?:\\.\\d+)?)\\s*$\\s*^\\s*AI Score",
+        "scale": 100,
+        "label": "(?m)^(Likely [^\\n]*|Mostly [^\\n]*|Probably [^\\n]*)$"
+      },
+      "min_words": 100
+    },
+    {
+      "id": "veredict",
+      "name": "Veredict Labs",
+      "url": "https://veredictlabs.com",
+      "weight": "context",
+      "use": "login",
+      "evidence": "Vendor-submitted RAID entry 0.996; no peer-reviewed evaluation.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "free limit hit at once for automated use"
+      }
+    },
+    {
+      "id": "decopy",
+      "name": "Decopy AI Detector",
+      "url": "https://decopy.ai/ai-detector/",
+      "weight": "context",
+      "use": "login",
+      "evidence": "No independent evidence found.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": 1500,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "sign-in wall after 4 free scans in one session (calibration run 2026-11-16); not calibrated; do not work around"
+      },
+      "parse": {
+        "score": "(?m)^\\s*(\\d+(?:\\.\\d+)?)%\\s*$\\s*^\\s*AI Probability",
+        "scale": 100,
+        "label": "(?m)^Final Verdict\\s*$\\s*^([^\\n]+)$"
+      },
+      "min_words": 100
+    },
+    {
+      "id": "detecting_ai",
+      "name": "detecting-ai.com",
+      "url": "https://detecting-ai.com/",
+      "weight": "context",
+      "use": "captcha",
+      "evidence": "No independent evidence tied to this site.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "CAPTCHA on automated use"
+      }
+    },
+    {
+      "id": "isgen",
+      "name": "isgen.ai",
+      "url": "https://isgen.ai/",
+      "weight": "context",
+      "use": "captcha",
+      "evidence": "Vendor claim 96.4%; no independent evidence.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "CAPTCHA on automated use"
+      }
+    },
+    {
+      "id": "slopornot",
+      "name": "Slop Or Not",
+      "url": "https://slopornot.ai",
+      "weight": "context",
+      "use": "by-hand",
+      "evidence": "Vendor-submitted RAID entry 0.995 (abstracts 0.996); no peer-reviewed evaluation.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": null,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "a local app for Mac/iPhone (text never leaves the device); needs the user to install it"
+      }
+    },
+    {
+      "id": "scispace",
+      "name": "SciSpace AI Detector",
+      "url": "https://scispace.com/ai-detector",
+      "weight": "context",
+      "use": "blocked",
+      "evidence": "No independent evidence; aimed at academic text.",
+      "read": "Record the AI likelihood or AI share shown (0-1).",
+      "max_words": 1000,
+      "automation": {
+        "checked": "2026-11-16",
+        "status": "worked once in the probe; on 41 calibration texts the scan button no longer produced a result (page scrolled to FAQ); not calibrated; re-check the page before relying on it"
+      },
+      "parse": {
+        "score": "AI detection report\\s*\\n\\s*(\\d+(?:\\.\\d+)?)%",
+        "scale": 100,
+        "label": "AI detection report\\s*\\n\\s*\\d+(?:\\.\\d+)?%\\s*\\n([^\\n]+)"
+      },
+      "min_words": 100
+    },
+    {
+      "id": "fastdetect",
+      "name": "Fast-DetectGPT (authors' demo)",
+      "url": "https://fastdetect.net/",
+      "weight": "context",
+      "use": "key",
+      "evidence": "Peer-reviewed zero-shot method (Bao et al., ICLR 2024); a baseline in the 2026 peer-review detection benchmarks. The authors host the demo and an API (README, checked 2026-11-17). No independent false-positive rate for the hosted version.",
+      "read": "Record the reported machine-generated probability (0-1).",
+      "min_words": 100,
+      "max_words": 1500,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "the site has accounts, credits and pricing: the API key is obtained by registering an email ('Get API Key'), and the web demo has a usage quota. Needs the user's own key; the skill never registers. Not yet in api_detectors.py"
+      },
+      "route": "api"
+    },
+    {
+      "id": "desklib",
+      "name": "Desklib AI detector",
+      "url": "https://desklib.com/ai-content-detector/",
+      "weight": "context",
+      "use": "blocked",
+      "evidence": "Open model (desklib/ai-text-detector-v1.01, MIT); its model card claims a top RAID position at submission (self-reported). No independent evaluation found.",
+      "read": "Record the AI probability (0-1).",
+      "min_words": 100,
+      "max_words": 1500,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "accepts text without login, but the result stays at 00% after Submit for automated use"
+      }
+    },
+    {
+      "id": "paperguide",
+      "name": "Paperguide AI detector",
+      "url": "https://paperguide.ai/ai-detector/",
+      "weight": "context",
+      "use": "captcha",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "CAPTCHA after submitting (probe on control texts)"
+      }
+    },
+    {
+      "id": "wordvice",
+      "name": "Wordvice AI detector",
+      "url": "https://wordvice.ai/tools/ai-detector",
+      "weight": "context",
+      "use": "login",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "login wall"
+      }
+    },
+    {
+      "id": "writefull",
+      "name": "Writefull GPT detector",
+      "url": "https://x.writefull.com/gpt-detector",
+      "weight": "context",
+      "use": "login",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "login wall (Writefull X)"
+      }
+    },
+    {
+      "id": "quetext",
+      "name": "Quetext AI detector",
+      "url": "https://www.quetext.com/ai-detector",
+      "weight": "context",
+      "use": "captcha",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "one anonymous scan (it scored a human control 0%), then reCAPTCHA"
+      }
+    },
+    {
+      "id": "plagiarismcheckerx",
+      "name": "Plagiarism Checker X AI detector",
+      "url": "https://plagiarismcheckerx.com/ai-content-detector",
+      "weight": "context",
+      "use": "unattended",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "runs without login or CAPTCHA. Passed the known-text test (2026-11-17): 0 of 56 human texts flagged (general, same field, shuffled), 7 of 10 AI texts caught, AUROC 0.89; it misses AI-polished text (0 of 3). Counted by evidence.py"
+      },
+      "parse": {
+        "score": "Human Written:\\s*([\\d.]+)\\s*%",
+        "scale": 100,
+        "invert": true,
+        "label": "(Human Written:[^\\n]*)"
+      }
+    },
+    {
+      "id": "dechecker",
+      "name": "Dechecker",
+      "url": "https://dechecker.ai/",
+      "weight": "context",
+      "use": "blocked",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "the scan starts but no result is returned to anonymous automated use (stays at '--%'); promotional pop-ups"
+      }
+    },
+    {
+      "id": "smodin",
+      "name": "Smodin AI detector",
+      "url": "https://smodin.io/ai-content-detector",
+      "weight": "context",
+      "use": "unreliable",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "unreliable: scored a 2015 human paper higher (48) than an AI text (32) and claimed other detectors flag it; sells a humanizer. Do not use"
+      }
+    },
+    {
+      "id": "hive",
+      "name": "Hive Moderation AI text detection",
+      "url": "https://hivemoderation.com/ai-generated-content-detection",
+      "weight": "context",
+      "use": "blocked",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "sales demo only: no public text box"
+      }
+    },
+    {
+      "id": "phrasly",
+      "name": "Phrasly AI detector",
+      "url": "https://phrasly.ai/ai-detector",
+      "weight": "context",
+      "use": "captcha",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "Cloudflare challenge on load"
+      }
+    },
+    {
+      "id": "notegpt",
+      "name": "NoteGPT AI detector",
+      "url": "https://notegpt.io/ai-detector",
+      "weight": "context",
+      "use": "login",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "sign-in wall ('15 free quotas per month')"
+      }
+    },
+    {
+      "id": "seoai",
+      "name": "SEO.ai AI detector",
+      "url": "https://seo.ai/tools/ai-content-detector",
+      "weight": "context",
+      "use": "unreliable",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "unreliable: failed the known-text test (2026-11-17): caught 0 of 10 AI texts and scored 3 of 28 human texts above 50% AI (two at 100%), AUROC 0.40. Do not use"
+      },
+      "parse": {
+        "score": "Probability for AI is\\s*([\\d.]+)\\s*%",
+        "scale": 100,
+        "label": "(Human-made|AI-generated|[A-Za-z-]+made|Your text appears[^\\n]*)"
+      }
+    },
+    {
+      "id": "surfer",
+      "name": "Surfer AI detector",
+      "url": "https://surferseo.com/ai-content-detector/",
+      "weight": "context",
+      "use": "captcha",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "CAPTCHA after submitting"
+      }
+    },
+    {
+      "id": "codaone",
+      "name": "CodaOne AI detector",
+      "url": "https://www.codaone.ai/ai-detector",
+      "weight": "context",
+      "use": "captcha",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "CAPTCHA widget on the page"
+      }
+    },
+    {
+      "id": "justdone",
+      "name": "JustDone AI detector",
+      "url": "https://justdone.com/ai-detector",
+      "weight": "context",
+      "use": "unreliable",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "unreliable: called a 2015 human paper 93% AI and an AI text 89%; sells 'Remove AI'. Do not use"
+      }
+    },
+    {
+      "id": "neuralwriter",
+      "name": "NeuralWriter content detector",
+      "url": "https://neuralwriter.com/content-detector-tool/",
+      "weight": "context",
+      "use": "captcha",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "CAPTCHA widget on the page"
+      }
+    },
+    {
+      "id": "plagiarismdetector",
+      "name": "PlagiarismDetector.net AI detector",
+      "url": "https://plagiarismdetector.net/ai-content-detector",
+      "weight": "context",
+      "use": "captcha",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "CAPTCHA after submitting"
+      }
+    },
+    {
+      "id": "corrector",
+      "name": "Corrector.app AI detector",
+      "url": "https://corrector.app/ai-content-detector/",
+      "weight": "context",
+      "use": "blocked",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "cookie dialog offers only 'Agree' (not approved)"
+      }
+    },
+    {
+      "id": "isitai",
+      "name": "IsItAI text detector",
+      "url": "https://isitai.com/ai-text-detector/",
+      "weight": "context",
+      "use": "blocked",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "the 'Check Text' button stays disabled for automated input"
+      }
+    },
+    {
+      "id": "copychecker",
+      "name": "CopyChecker AI detector",
+      "url": "https://copychecker.com/ai-detector",
+      "weight": "context",
+      "use": "captcha",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "reCAPTCHA verification fails for automated use"
+      }
+    },
+    {
+      "id": "detecai",
+      "name": "DetecAI",
+      "url": "https://detecai.pages.dev/ai-detector",
+      "weight": "context",
+      "use": "blocked",
+      "evidence": "No independent evaluation found. Counts only if it passes the skill's own test on known texts.",
+      "read": "Record the AI likelihood (0-1).",
+      "min_words": 100,
+      "max_words": 1200,
+      "automation": {
+        "checked": "2026-11-17",
+        "status": "accepts text but shows no result"
+      }
+    }
+  ],
+  "default_order": [
+    "zerogpt",
+    "undetectable",
+    "aidetector_review",
+    "scribbr",
+    "plagiarismcheckerx",
+    "fastdetect",
+    "desklib",
+    "pangram",
+    "gptzero",
+    "originality",
+    "itsai",
+    "grammarly",
+    "decopy",
+    "scispace",
+    "copyleaks",
+    "quillbot",
+    "winston",
+    "writer",
+    "trinka",
+    "veredict",
+    "detecting_ai",
+    "isgen",
+    "slopornot",
+    "clever",
+    "binoculars",
+    "sapling",
+    "paperguide",
+    "wordvice",
+    "writefull",
+    "quetext",
+    "dechecker",
+    "smodin",
+    "hive",
+    "phrasly",
+    "notegpt",
+    "seoai",
+    "surfer",
+    "codaone",
+    "justdone",
+    "neuralwriter",
+    "plagiarismdetector",
+    "corrector",
+    "isitai",
+    "copychecker",
+    "detecai"
+  ],
+  "chunk_words": [
+    250,
+    600
+  ],
+  "_max_words_note": "max_words: the most text a site accepts per check on its free tier, when known. Unknown values are null: read the limit on the page; watch.py's monthly scan fills them in.",
+  "_terms_note": "'terms': 'no-automation' marks sites whose terms forbid scripted access. browser_detect.py never runs them; the skill may open the page for the user to paste a chunk by hand.",
+  "_parse_note": "'parse': how to read a site's result page. 'score' is a regex whose first group is the AI likelihood; 'scale' divides it to 0-1 (and 'invert': true means the site reports a human score). 'label' captures the site's own verdict line. Add a parser only after checking it against real result pages (store the check in 'automation').",
+  "_size_note": "min_words / max_words: the range of text sizes a tool handles well (Binoculars reads only the first 512 tokens). segments.py --for-tool <id> lists the splits that fit.",
+  "_use_note": "use: whether the skill can run a tool, as a word the scripts read (the detail is in automation.status). unattended = runs by script with no login, key or CAPTCHA: the only tools run by default and tested on known texts. captcha = shows a CAPTCHA to automated use: only with the user present to answer it (--human-wait), never solved by the skill. login = needs an account, or allows a few anonymous scans first. key = needs the user's own API key. by-hand = the user pastes the text themselves (terms forbid scripts, or a local app). blocked = the page gives a script nothing to work with (no text box, no result, a cookie wall). unreliable = failed on known texts: never use.",
+  "_order_note": "default_order: the order tools are run and shown in. browser_detect.py without --tools runs those marked use: unattended; the validated tools (Pangram, GPTZero, Originality) come next and need the user to tick a CAPTCHA (--human-wait). Tools with route 'api' run through api_detectors.py, not the browser.",
+  "_rejected": {
+    "_note": "Sites tried and dropped, so the monthly search does not retry them: the address is gone or redirects elsewhere (checked 2026-11-17).",
+    "ids": [
+      "brandwell",
+      "contentdetector",
+      "crossplag",
+      "duplichecker",
+      "editpad",
+      "hcodx",
+      "monica",
+      "smallseotools"
+    ]
+  }
+}

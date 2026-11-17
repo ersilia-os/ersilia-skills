@@ -1,0 +1,139 @@
+{
+  "_about": "What the skill keeps an eye on, so it improves even without feedback. watch.py says when a scan is due and which searches to run; Claude runs them (WebSearch), compares the results with what the skill already has, and proposes concrete additions through the Learn step. Nothing found is also a result: record it.",
+  "interval_days": 30,
+  "last_scan": "2026-11-15",
+  "topics": [
+    {
+      "id": "leak-tokens",
+      "goal": "New strings that AI tools leave in copied text (citation tokens, interface text, reasoning tags, URL parameters) for ChatGPT, Claude, Gemini, Copilot, Perplexity, Grok, DeepSeek, Mistral, Meta AI and new assistants.",
+      "queries": [
+        "new ChatGPT citation artifact copied text",
+        "Gemini cite_start artifact",
+        "AI chatbot copy paste artifact tokens paper retracted",
+        "Wikipedia Signs of AI writing new markers"
+      ],
+      "feeds": [
+        "https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing",
+        "https://retractionwatch.com/papers-and-peer-reviews-with-evidence-of-chatgpt-writing",
+        "https://academ-ai.info"
+      ],
+      "lands_in": "references/markers.json"
+    },
+    {
+      "id": "web-detectors",
+      "goal": "AI-text detectors with a free web checker and independent evidence of a low false-positive rate on scientific text (new tools, changed free limits, new independent evaluations). Update references/web_detectors.json: add tools, set max_words, and move a tool to 'validated' only with independent evidence.",
+      "queries": [
+        "independent evaluation AI text detector false positive rate 2026",
+        "GPTZero Pangram Originality accuracy study",
+        "free AI detector word limit"
+      ],
+      "feeds": [
+        "https://raid-bench.xyz/leaderboard",
+        "https://www.nber.org/papers/w34223"
+      ],
+      "lands_in": "references/web_detectors.json"
+    },
+    {
+      "id": "vocabulary",
+      "goal": "Updated excess-vocabulary or phrase lists for recent models (GPT-5, Claude 4/5, Gemini 3) in scientific writing.",
+      "queries": [
+        "excess vocabulary LLM scientific abstracts 2026",
+        "words overused by GPT-5 Claude Gemini study"
+      ],
+      "feeds": [
+        "https://github.com/berenslab/llm-excess-vocab"
+      ],
+      "lands_in": "references/excess_words.csv and markers.json style.tells"
+    },
+    {
+      "id": "datasets",
+      "goal": "Openly licensed AI-written scientific text (abstracts, reviews, grants) from recent models, to add generators to the calibration corpus.",
+      "queries": [
+        "dataset AI-generated scientific abstracts GPT-4o Claude",
+        "LLM generated peer reviews dataset"
+      ],
+      "feeds": [],
+      "lands_in": "references/calibration/ai.jsonl (then calibrate.py)"
+    },
+    {
+      "id": "policies",
+      "goal": "Changes in journal and funder policies on AI use, disclosure and AI detection (NIH, ERC, UKRI, Wellcome, EC, ICMJE, COPE, Springer Nature, Elsevier, Science).",
+      "queries": [
+        "funder policy generative AI grant applications 2026",
+        "journal policy AI disclosure peer review 2026"
+      ],
+      "feeds": [],
+      "lands_in": "references/policies.json"
+    },
+    {
+      "id": "skills",
+      "goal": "Other agent skills, linters or prompt libraries for AI-writing detection or 'slop' (humanizer, stop-slop, vale-ai-tells and new ones) whose patterns could be reused.",
+      "queries": [
+        "claude skill detect AI writing",
+        "github ai slop detector prose linter"
+      ],
+      "feeds": [
+        "https://github.com/blader/humanizer",
+        "https://github.com/hardikpandya/stop-slop",
+        "https://github.com/tbhb/vale-ai-tells"
+      ],
+      "lands_in": "references/markers.json"
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-11-15",
+      "topic": "leak-tokens",
+      "found": "oaicite/turn0search/【†】/private-use delimiters (ChatGPT), [cite_start]/[cite: N] (Gemini), grok:render (Grok), <think> and chat-template tokens, UI strings for ChatGPT/Gemini/Claude/Copilot, U+202F in o3/o4-mini output",
+      "change": "markers.json v2"
+    },
+    {
+      "date": "2026-11-15",
+      "topic": "web-detectors",
+      "found": "Binoculars, Fast-DetectGPT (with author-fitted params for 4 pairs), Glimpse (API-only), ImBD (machine-revised text, checkpoint public), AdaDetectGPT (NeurIPS 2025, code public), DetectAnyLLM (no code). Commercial: Pangram has the best independent FPR evidence but is paid.",
+      "change": "detect_models.py: Binoculars + Fast-DetectGPT on Qwen2.5-1.5B pair; ImBD and AdaDetectGPT are candidates for a later version"
+    },
+    {
+      "date": "2026-11-15",
+      "topic": "vocabulary",
+      "found": "Kobak 2025 900-word list (MIT); Liang 2024 review adjectives; Wikipedia per-era vocab lists (GPT-4, GPT-4o, GPT-5). Our calibration shows recent Claude models avoid this vocabulary (AUROC < 0.5).",
+      "change": "excess_words.csv; style score constrained to published directions and demoted when AUROC < 0.75"
+    },
+    {
+      "date": "2026-11-15",
+      "topic": "datasets",
+      "found": "M4, RAID abstracts, CHEAT (ChatGPT abstracts) are candidates; corpus currently Claude-only (Opus/Sonnet/Haiku)",
+      "change": "references/calibration/ai.jsonl (Claude); GPT sample pending"
+    },
+    {
+      "date": "2026-11-15",
+      "topic": "policies",
+      "found": "NIH NOT-OD-25-132 and NOT-OD-23-149, ERC 2026, UKRI, Wellcome, EC living guidelines 2026, ICMJE 2026, Springer Nature, Science, COPE, NeurIPS/ICLR",
+      "change": "policies.json"
+    },
+    {
+      "date": "2026-11-15",
+      "topic": "skills",
+      "found": "blader/humanizer, hardikpandya/stop-slop, tbhb/vale-ai-tells, sam-paech/slop-forensics (all MIT); none checks references or hidden prompts",
+      "change": "markers.json style.tells"
+    },
+    {
+      "date": "2026-11-15",
+      "topic": "web-detectors",
+      "found": "User decided against local models: the statistical layer is now web detectors run in Chrome (Pangram, GPTZero, Originality validated; Copyleaks, Sapling, Scribbr, QuillBot, Winston, Writer, ZeroGPT, Undetectable as context).",
+      "change": "detect_models.py removed; web_detectors.json v2"
+    },
+    {
+      "date": "2026-11-17",
+      "topic": "web-detectors",
+      "found": "Fast-DetectGPT authors' hosted demo and API (fastdetect.net); Desklib open detector; provider watermarks: Claude (since Aug 2026) and ChatGPT in the EU (textGrain, Oct 2026), verification restricted to approved organisations and researchers; anchor-review method for AI reviews (Yu et al., ICLR 2026); Epoch AI and Karr et al. evaluations; publisher tools (Geppetto, Papermill Alarm) not open to researchers",
+      "change": "web_detectors.json v7 (fastdetect, desklib: registered, not yet calibrated); watermarks.md; methods.md sections 6-7; anchor-review cross-check in SKILL.md close reading"
+    },
+    {
+      "date": "2026-11-17",
+      "topic": "policies",
+      "found": "No official EU guideline on detecting AI-written text. Sources read on the primary documents: ERA living guidelines v4 (Oct 2026), ALLEA code 2023, Horizon Europe evaluator briefing v13 and application form, ERC evaluation guidelines (Mar 2026), AI Act Art. 50 with Omnibus 2026/1744, GDPR Art. 22, COPE case 26-11 and Forum, ICMJE, ENFSI evaluative reporting, OIA casework",
+      "change": "frameworks.json v1 (14 sources, 38 quoted provisions, 21 checked twice); formal_report.py and formal-assessment.md"
+    }
+  ]
+}

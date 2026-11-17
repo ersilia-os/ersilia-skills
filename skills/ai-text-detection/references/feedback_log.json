@@ -1,0 +1,65 @@
+{
+  "entries": [
+    {
+      "n": 1,
+      "date": "2026-11-15",
+      "feedback": "First live run (collaborator Word draft with tracked changes, shared Drive link): the skill had to test the author's original text, find the file fast, and not mistake checker errors for fabricated references",
+      "kind": "code",
+      "change": "extract_text.py --original (tracked changes), DOCX tables kept in order and out of the reference list, 'Reference' heading; drive_intake.py Spotlight lookup; check_references.py rejoins DOIs split by a space and unescapes HTML in titles; grade.py weak headline no longer blames style",
+      "fixture": "human-clean"
+    },
+    {
+      "n": 2,
+      "date": "2026-11-15",
+      "feedback": "Not happy with the designed report: wants it very raw (plain HTML), the document's text with only AI-looking parts highlighted, and the scores as the most important part",
+      "kind": "code",
+      "change": "report_raw.py is the default report (scores table with thresholds and held-out error rates, per-window table, text with shaded windows and marked words/phrases/artefacts); stylometry.py records phrase spans and exact window offsets; calibrate.py stores held-out rates",
+      "fixture": "chatbot-artifacts"
+    },
+    {
+      "n": 3,
+      "date": "2026-11-15",
+      "feedback": "Don't use downloaded models; use a compendium of web detectors instead",
+      "kind": "code",
+      "change": "detect_models.py and local Binoculars/Fast-DetectGPT removed; setup_env.sh is a small env (pymupdf, python-docx, playwright); web_detectors.json v2 with 11 tools and a consensus row; grading, report, ledger, baseline and calibration updated",
+      "fixture": "web-only"
+    },
+    {
+      "n": 4,
+      "date": "2026-11-16",
+      "feedback": "Work on the artifact: chunks are fine but choose them wisely and make them clear; everything must be much more intuitive",
+      "kind": "code",
+      "change": "passages = whole prose paragraphs within one section (title page, affiliations, captions never sent); report organised by passage: answer + facts, coloured passages table with agreement, text passage by passage with headers, marked sentences shaded by number of tools",
+      "fixture": "chatbot-artifacts"
+    },
+    {
+      "n": 5,
+      "date": "2026-11-16",
+      "feedback": "Report not clear whether it is AI slop; wants brighter colours and a cleaner layout, like the web detectors",
+      "kind": "process",
+      "change": "report_raw.py follows web-detector layout: headline share of AI-like prose (ring + breakdown bar), verdict pill, checks, highlighted text with human text plain, side panel of per-passage and per-detector scores"
+    },
+    {
+      "n": 6,
+      "date": "2026-11-17",
+      "feedback": "Replace the rule that combines detectors (mean x sqrt(k) lowered the result whenever a detector was added)",
+      "kind": "grading",
+      "change": "evidence.py adds each detector's evidence divided by the overlap the others carry (score correlation within class on known texts, weighted by informativeness; full overlap assumed where unmeasurable). Specified and its validation fixed before applying it to the case; grading bars unchanged. On known texts no human text reaches 3x; 7/10 AI reach 10x."
+    },
+    {
+      "n": 7,
+      "date": "2026-11-17",
+      "feedback": "Wants a thorough search for more methods, and a legally backed assessment based on EU guidelines so anyone can see it was done correctly",
+      "kind": "process",
+      "change": "formal_report.py writes a nine-step formal assessment aligned with GDPR, AI Act, ERA living guidelines, ALLEA, COPE and ENFSI (frameworks.json, quotes verified); it states that no official EU detection guideline exists. New: watermarks.md, two detectors registered, methods.md updated"
+    },
+    {
+      "n": 8,
+      "date": "2026-11-17",
+      "feedback": "Wants the code and the overall structure of the skill well organised and clean, and the two stores of detector scores merged into one.",
+      "kind": "code",
+      "change": "One rule for where code lives (a script is one command; shared logic in scripts/lib). Detector scores: one plan (plan.json: sections, passages, windows) and one results file (plan.results.jsonl) for the document, the same model as the known-text controls; the per-tool summary is computed when read. web_detectors.py prepare is gone (segments.py); browser_detect.py and api_detectors.py scan the passages by default and take --chunks S,W for the other splits. Each detector has a 'use' field. Outputs checked identical on all cases and the real draft.",
+      "fixture": "web-only"
+    }
+  ]
+}
