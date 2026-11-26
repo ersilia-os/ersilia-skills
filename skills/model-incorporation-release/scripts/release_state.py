@@ -10,10 +10,13 @@ look at CI, and creating a release on a red or running pipeline is the eos8gop m
 
 Two kinds of release behave differently, which is why ``released_by`` matters:
 
-* **Bot release** (``github-actions[bot]``). post-upload creates ``v1.0.0`` itself when
-  the repo has no tags, at the upload run's commit, and retags the image in the same
-  job. Releases made with the workflow token trigger no other workflow, so "Retag image
-  on release" never runs and the tag sitting behind main's later bot commits is normal.
+* **Bot release** (``github-actions[bot]``). Since ersilia-model-workflows#22 (25 Nov
+  2026) the ``release`` job of "Test model image" creates it from the version label of
+  the merged PR (``v1.0.0`` when the repo has no tags), and the ``retag`` job that
+  follows tags the image. (Repos with the older wrappers: post-upload created ``v1.0.0``
+  and retagged in the same job.) Releases made with the workflow token trigger no other
+  workflow, so "Retag image on release" never runs, and the tag sitting behind main's
+  later bot commits is normal.
 * **Manual release** (a person). Publishing it triggers "Retag image on release", which
   checks out the tag, edits metadata.yml and **pushes to main**. That push is rejected
   unless the tag is main's HEAD, so a manual release must target main HEAD after the
@@ -83,6 +86,28 @@ def next_versions(tag):
     }
 
 
+NO_EFFECT_PREFIXES = (".github/",)
+NO_EFFECT_FILES = {".gitignore", ".gitattributes", "CLAUDE.md", "AGENTS.md"}
+
+
+def touches_only_no_effect_files(model_id, sha):
+    """Return True if commit ``sha`` changes only files that never reach the image."""
+    files = (gh_api(f"repos/{OWNER}/{model_id}/commits/{sha}") or {}).get("files") or []
+    return bool(files) and all(
+        f["filename"] in NO_EFFECT_FILES or f["filename"].startswith(NO_EFFECT_PREFIXES)
+        for f in files
+    )
+
+
+def merged_with_no_release(model_id, sha):
+    """Return True if ``sha`` belongs to a merged PR labelled ``no-release``."""
+    pulls = gh_api(f"repos/{OWNER}/{model_id}/commits/{sha}/pulls", allow_404=True) or []
+    merged = [p for p in pulls if p.get("merged_at")]
+    return bool(merged) and all(
+        any(label.get("name") == "no-release" for label in p.get("labels", [])) for p in merged
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("model_id")
@@ -122,14 +147,15 @@ def main():
             result["action"] = "wait_for_bot_commits"
             result["reasons"].append(
                 "No release yet, and main's HEAD is not the bot's final 'updating readme' "
-                "commit, so post-upload has not finished. Wait, then re-check."
+                "commit, so the release and retag jobs have not finished. Wait, then re-check."
             )
         else:
             result["action"] = "create_release"
             why = (
-                f"tags already exist ({', '.join(tags)}), so post-upload skipped its automatic v1.0.0"
+                f"tags already exist ({', '.join(tags)}), so no automatic v1.0.0 was made"
                 if tags
-                else "post-upload finished without creating v1.0.0"
+                else "the pipeline finished without creating v1.0.0; check the 'resolve' "
+                "job of the last runs (a run with no version label releases nothing)"
             )
             result["reasons"].append(f"No published release: {why}.")
             result["proposed"] = {
@@ -176,6 +202,23 @@ def main():
     # Commits after the tag that a person made mean the release no longer matches main.
     compare = gh_api(f"repos/{OWNER}/{model_id}/compare/{tag}...main", allow_404=True) or {}
     human_commits = [c for c in compare.get("commits", []) if not is_bot_commit(c)]
+    # Commits that touch only CI or editor files never reach the image (the same files
+    # the PR label check ignores), e.g. the wrapper updates pushed to every model repo.
+    no_effect = [c for c in human_commits if touches_only_no_effect_files(model_id, c["sha"])]
+    if no_effect:
+        result["warnings"].append(
+            f"{len(no_effect)} commit(s) after {tag} change only CI or editor files "
+            "(.github/, .gitignore, CLAUDE.md, ...); they need no release."
+        )
+        human_commits = [c for c in human_commits if c not in no_effect]
+    # Commits merged through a PR labelled no-release are meant to stay unreleased.
+    no_release = [c for c in human_commits if merged_with_no_release(model_id, c["sha"])]
+    if no_release:
+        result["warnings"].append(
+            f"{len(no_release)} commit(s) after {tag} came from PRs labelled no-release; "
+            "they are not meant to be released."
+        )
+        human_commits = [c for c in human_commits if c not in no_release]
     result["release"]["unreleased_commits"] = [
         {"sha": c["sha"][:7], "message": c["commit"]["message"].split("\n")[0]} for c in human_commits
     ]

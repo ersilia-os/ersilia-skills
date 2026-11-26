@@ -6,8 +6,9 @@ description: >
   where they apply, reproduced and optimized) and the user wants to submit it. It checks
   the repository, stages only the intended files, commits on the fork's main branch, asks
   for explicit approval, pushes to the fork, opens the PR from the fork's main into the
-  organisation's main with a body that says what was and was not run, reports the PR check
-  and, once the user has authorised it and every check is green, merges it. Trigger on
+  organisation's main with the `semver:major` version label and a body that says what was
+  and was not run, reports the PR checks and, once the user has authorised it and every
+  check is green, merges it. Trigger on
   phrases like "open the PR", "submit the model", "commit and push the incorporation",
   "push eosXXXX", or "/model-incorporation-pr".
 argument-hint: <model_id> <model_path>
@@ -30,15 +31,28 @@ If an argument is missing and cannot be found, ask before going on.
 
 ## Why the PR comes from the fork's `main`
 
-The check on an incorporation PR (`test-model-pr.yml` in `ersilia-model-workflows`) checks
-out the base repository, deletes that checkout, then clones **`<PR author>/<repo>` on its
-default branch** and tests that. It tests the fork's `main`, whatever the PR's head is. A PR
-from any other branch gets a check that runs against code it does not contain.
+Until 24 November 2026 the PR test (`test-model-pr.yml` in `ersilia-model-workflows`) cloned
+the fork's default branch, whatever the PR's head was, so a PR from any other branch was
+tested against code it did not contain (eos5j3l#1 and eos55vx#1 were closed and redone from
+`main`). Since ersilia-model-workflows#21 the test checks out the PR's head commit, so a
+branch would now work too. This skill still uses the fork's `main`: it is the shape every
+merged incorporation has, and the preflight and merge steps below rely on it.
 
-The merged incorporations show the working shape: eos5j3l#2, eos55vx#2, eos92m1#1 and
-eos9q2i#1 all came from `<fork>:main`. The feature-branch attempts eos5j3l#1 and eos55vx#1
-were closed and redone from `main`. So: commit on the fork's `main`, push to the fork, open
-the PR with head `<login>:main`.
+## The version label
+
+Every PR to a model's `main` needs exactly one version label: `semver:patch`,
+`semver:minor`, `semver:major` or `no-release` (ersilia-model-workflows#22). The required
+check `Check version label / check-version-label / verdict` fails when the label is missing
+or lower than the bump it detects from the diff. After the merge, the workflows release the
+model from that label, so no one creates the release by hand.
+
+For an incorporation the label is always **`semver:major`**. The template's
+`run_columns.csv` has no columns and its `run_output.csv` is empty, so any real model adds
+output columns, which the check classifies as MAJOR; a lower label fails. The version is
+still `v1.0.0`: a repository with no tags gets its first release whatever the label.
+
+Adding a label needs triage permission on `ersilia-os/<id>`. Ersilia team members have it;
+an external contributor does not, and a maintainer adds the label for them.
 
 ## Rules
 
@@ -57,7 +71,9 @@ the PR with head `<login>:main`.
    limited.
 6. Merge only through Step 5: every check green, head unchanged since it went green, no
    `--admin`, and never `--delete-branch` (the PR's head is the fork's `main`).
-7. Say in the PR what was not run. A skipped reproduction or optimization is stated, with the
+7. The PR carries exactly one version label, `semver:major`. Never `no-release`, and never
+   a second label: the check fails on either.
+8. Say in the PR what was not run. A skipped reproduction or optimization is stated, with the
    reason, never left for the reviewer to infer.
 
 ## Step 0: Preflight
@@ -177,7 +193,7 @@ Re-run the skip-token grep from preflight step 6 on `HEAD` before going on.
 ## Step 2: Ask, then push
 
 Show the user the commit(s) and the plan: push `origin main` (their fork `<login>/<id>`),
-then open a PR into `ersilia-os/<id>:main`.
+then open a PR into `ersilia-os/<id>:main` with the `semver:major` label.
 
 If `/model-optimization` is installed (`test -d ~/.claude/skills/model-optimization`), has not
 run on this model and the user has not ruled it out, ask with AskUserQuestion:
@@ -224,13 +240,30 @@ flag. Omit the heading if there is nothing.>
 
 ```bash
 gh pr create --repo ersilia-os/$ID --base main --head "$LOGIN:main" \
-  --title "Add <Title> (<slug>)" --body-file <body-file>
+  --title "Add <Title> (<slug>)" --body-file <body-file> --label semver:major
 ```
+
+If `gh pr create` fails because the label cannot be added (no triage permission on
+`ersilia-os/<id>`), open the PR without `--label`, and tell the user that an Ersilia
+maintainer must add `semver:major` before the label check can pass. Do not comment on the PR
+or the request issue to ask for it unless the user says so.
+
+On an update (Step 0 found an open PR from `<login>:main`), check its labels with
+`gh pr view <n> --repo ersilia-os/$ID --json labels` and, if `semver:major` is missing, add it
+after asking: `gh pr edit <n> --repo ersilia-os/$ID --add-label semver:major`. Remove any
+other version label in the same way (`--remove-label`).
 
 ## Step 4: Watch the check and hand over
 
 - Run `gh pr checks <n> --repo ersilia-os/$ID --watch --interval 60` in the background and
-  report when it finishes. If the run is waiting for approval, tell the user; do not approve it.
+  report when it finishes. Two workflows run: "Test model on PR" (the shallow test) and
+  "Check version label". Opening a PR with a label sends two events a second apart, so the
+  first "Check version label" run is usually cancelled by the second; that is expected. If a
+  run is waiting for approval, tell the user; do not approve it.
+- If `verdict` fails, read its summary (`gh run view <run-id> --repo ersilia-os/$ID --log-failed`):
+  it says which label it found and the minimum it detected. A missing label is fixed by
+  adding `semver:major` (Step 3); nothing needs re-running, because a label change starts the
+  check again.
 - Look at the fork too: `gh run list --repo $LOGIN/$ID --limit 5`. Actions are enabled on
   forks and `upload-model.yml` fires on every push to `main`, guarded only against the
   template repository, so the push may have started workflows there. Report what ran. Do not
@@ -248,9 +281,22 @@ ahead. Otherwise ask first, in one line, and merge only on a yes.
 gh pr view <n> --repo ersilia-os/$ID --json state,mergeable,mergeStateStatus,headRefOid,statusCheckRollup
 ```
 
-Green means `state` is `OPEN`, `mergeable` is `MERGEABLE`, `mergeStateStatus` is `CLEAN`, every
-entry of `statusCheckRollup` concluded `SUCCESS` (none pending, skipped or failed) and
-`headRefOid` is the commit you pushed. Then:
+The rollup keeps every run, including the cancelled duplicates of "Check version label", so
+judge each check by its latest run:
+
+```bash
+gh pr view <n> --repo ersilia-os/$ID --json statusCheckRollup --jq '
+  [.statusCheckRollup[] | select(.__typename == "CheckRun")]
+  | group_by(.workflowName + " / " + .name)
+  | map(max_by(.startedAt) | "\(.workflowName) / \(.name): \(.status) \(.conclusion)") | .[]'
+```
+
+Green means `state` is `OPEN`, `mergeable` is `MERGEABLE`, `mergeStateStatus` is `CLEAN`,
+`headRefOid` is the commit you pushed, and the latest run of every check is `COMPLETED`
+with `SUCCESS`, with one exception: `check-version-label / run-examples` may be `SKIPPED`
+(it runs only when the detector needs to compare outputs, never for an incorporation).
+`Test model on PR / test-model-pr / model-test` and
+`Check version label / check-version-label / verdict` must both be `SUCCESS`. Then:
 
 ```bash
 gh pr merge <n> --repo ersilia-os/$ID --merge --match-head-commit <headRefOid>
@@ -265,15 +311,18 @@ check are for the user to resolve. Do not use `--admin`, and do not wait in a lo
 that is not coming.
 
 The merge makes `upload-model.yml` run on the organisation repository's `main`: source test,
-S3 upload and image build. Do not wait for it and do not dispatch anything. Report the merge
-and point to `/model-incorporation-release`, which follows the build.
+S3 upload and image build. "Test model image" follows, and its `release` job creates
+`v1.0.0` from the label once the image tests pass; nobody creates the release by hand. Do not
+wait for it and do not dispatch anything. Report the merge and point to
+`/model-incorporation-release`, which checks the build and the release.
 
 Report the PR URL, the state of the checks, what was not run, and whether it was merged.
 Then stop.
 
 ## Never
 
-Force-push, push or merge without approval, merge with a pending, failed or skipped check,
+Force-push, push or merge without approval, merge with a pending or failed check (or a
+skipped one other than `run-examples`), open the PR with a label other than `semver:major`,
 use `--admin` or `--delete-branch`, close or edit the request issue, edit `README.md`,
 change repository settings or secrets, add a CI-skip token, or use `Fixes`.
 

@@ -4,9 +4,11 @@
     python ci_status.py eos88ir
 
 Reads the repo's Actions runs and prints one JSON verdict for the **real HEAD** of
-main: the newest commit that is not an ersilia-bot ``[skip ci]`` commit. Those bot
-commits (metadata and README refreshes) never trigger CI, so judging the literal HEAD
-would always report "missing".
+main: the newest commit without ``[skip ci]``. Such commits never trigger CI: the
+ersilia-bot metadata and README refreshes, and maintainers' Hub-wide CI updates (the
+wrapper and Slack-workflow changes pushed to every model repo in November 2026), so
+judging the literal HEAD would report "missing". Skipped commits not made by the bot
+are listed under ``warnings``.
 
 How runs are paired, and why:
 
@@ -87,7 +89,7 @@ def real_head(model_id):
     """Return ``(literal_head, real_head)`` commit dicts for main."""
     commits = gh_api(f"repos/{OWNER}/{model_id}/commits?sha=main&per_page=30") or []
     if not commits:
-        return None, None
+        return None, None, []
 
     def describe(commit):
         message = commit["commit"]["message"].split("\n")[0]
@@ -95,13 +97,16 @@ def real_head(model_id):
         return {"sha": commit["sha"], "message": message, "author": author}
 
     literal = describe(commits[0])
+    skipped_by_people = []
     for commit in commits:
         message = commit["commit"]["message"]
         author_name = commit["commit"]["author"]["name"]
-        if "[skip ci]" in message and author_name == BOT_COMMITTER:
+        if "[skip ci]" in message:
+            if author_name != BOT_COMMITTER:
+                skipped_by_people.append(describe(commit))
             continue
-        return literal, describe(commit)
-    return literal, literal
+        return literal, describe(commit), skipped_by_people
+    return literal, literal, skipped_by_people
 
 
 def run_summary(run, jobs=None):
@@ -199,7 +204,7 @@ def main():
     args = parser.parse_args()
     model_id = check_model_id(args.model_id)
 
-    literal, head = real_head(model_id)
+    literal, head, skipped_by_people = real_head(model_id)
     if head is None:
         emit({"model_id": model_id, "overall": "missing", "reason": "main has no commits"})
         return
@@ -231,6 +236,14 @@ def main():
         "warnings": [],
         "noise": noise,
     }
+    if skipped_by_people:
+        listed = "; ".join(
+            f"{c['sha'][:7]} by {c['author']} ('{c['message']}')" for c in skipped_by_people
+        )
+        result["warnings"].append(
+            f"Newer commit(s) with [skip ci] were not tested: {listed}. CI is judged on the "
+            "commit before them. Fine for CI-only changes; anything else is untested."
+        )
 
     pr_runs = [r for r in runs if r["name"] == WF_PR]
     if pr_runs:

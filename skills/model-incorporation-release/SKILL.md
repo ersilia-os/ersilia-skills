@@ -25,7 +25,10 @@ Your job is to take a model from **"PR merged"** to **"green, released, paper de
 request closed"**, and to say clearly which of those is not true yet.
 
 Everything after the merge is done by CI in `ersilia-os/<id>`: tests, S3 upload,
-DockerHub image, metadata, Airtable, catalogue and usually the `v1.0.0` release. This
+DockerHub image, metadata, Airtable, catalogue and the release. Since 25 Nov 2026
+(ersilia-model-workflows#22) the release comes from the version label of the merged PR:
+the `release` job of "Test model image" creates the tag (`v1.0.0` for a first
+incorporation, whatever the label) and the `retag` job tags the image. This
 skill mostly **checks** that CI did its job. It acts only where CI does not (a release
 the bot skipped, the paper, the issue) and it **asks before every outward action**.
 The model repo's own `CLAUDE.md` sets the rules you follow:
@@ -75,8 +78,12 @@ Show the user a status table built from the JSON:
 | Stage | Source |
 |---|---|
 | PR test | `pr_test` |
-| Source test, S3 upload, pack build (amd64, arm64, merge) | `upload.jobs` |
-| Image test amd64, arm64, retag-image, post-upload | `image.jobs` |
+| Resolve label, source test, S3 upload, pack build (amd64, arm64, merge) | `upload.jobs` |
+| Image test amd64, arm64, retag-image, post-upload, release, retag, build-sif | `image.jobs` |
+
+An arm64 build that fails inside a green upload run is allowed since
+ersilia-model-workflows#20: the image is then published for amd64 only, and its arm64
+test shows as skipped.
 
 Then act on `overall`:
 
@@ -117,11 +124,13 @@ python scripts/release_state.py <id>
 
 Act on `action`:
 
-- **`verified`**: the normal case. Usually the bot made `v1.0.0` and post-upload
-  retagged the image. A bot release's tag sitting behind main's later bot commits is
-  **expected**; do not "fix" it.
-- **`create_release`**: CI is green but no release exists. Usually a tag already
-  existed, so post-upload skipped its automatic release.
+- **`verified`**: the normal case. The bot made `v1.0.0` (the `release` job; on repos
+  with the older wrappers, post-upload) and the image was retagged. A bot release's tag
+  sitting behind main's later bot commits is **expected**; do not "fix" it.
+- **`create_release`**: CI is green but no release exists. Check the `resolve` job of
+  the last "Test and upload model" run first: a run with no version label (a manual
+  dispatch, or a PR merged without a label) releases nothing, with a warning. On repos
+  with the older wrappers, a tag that already existed made post-upload skip its release.
   1. Show the user the `reasons` and the exact `proposed.command`. It targets main HEAD,
      which the script only proposes once HEAD is the bot's final "updating readme"
      commit.
@@ -140,7 +149,11 @@ Act on `action`:
   ```
   Deleting a release is destructive: show both commands and get an explicit yes first.
 - **`unreleased_changes`**: people committed to main after the latest release, so the
-  published image no longer matches main. Ask which bump applies, offering
+  published image no longer matches main. Commits that change only CI or editor files
+  (`.github/`, `.gitignore`, `CLAUDE.md`) and commits from PRs labelled `no-release` are
+  already left out and listed in `warnings`. Normally a later change is released from
+  its own PR's label, so first check whether its PR is still running through CI. If the
+  commits reached main without a labelled PR, ask which bump applies, offering
   `release.next_versions` and the MAJOR/MINOR/PATCH rules in the model repo's
   `CLAUDE.md`. Never choose for the user. Then create the release at main HEAD as above.
 - **`investigate`**: the release exists but DockerHub, metadata.yml or the Hub
@@ -313,7 +326,8 @@ add an entry to `references/lessons-learned.md`, or tell the user it deserves on
 
 - **Ask before every outward action:** re-running CI, creating or deleting a release,
   copying or renaming in Drive, commenting on or closing the issue.
-- **Never pick a version number.** The user chooses the bump.
+- **Never pick a version number.** The PR's version label normally sets it; when a
+  release has to be made by hand, the user chooses the bump.
 - **Never hand-edit the fields CI owns** (Status, Release, DockerHub, Image Size,
   Computational Performance, Docker Architecture) in metadata.yml.
 - **Never upload a paper through `create_file`**, and never bring in other upload

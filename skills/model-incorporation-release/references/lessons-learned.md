@@ -12,17 +12,28 @@ Every eos repo carries thin wrappers around `ersilia-os/ersilia-model-workflows`
 | Workflow | Trigger | Jobs (in order) |
 |---|---|---|
 | Test model on PR | pull request to main | test the model on the PR branch |
-| Test and upload model | push to main, `workflow_dispatch` | `test-model-source` → `upload-model-to-s3` → `upload-ersilia-pack` (amd64, arm64, merge-multiarch) |
-| Test model image | `workflow_run` of the above | `test-image-amd64` → `test-image-arm64` → `retag-image` → `post-upload` |
+| Check version label | pull request to main | `detect` → `run-examples` (only when outputs must be compared) → `verdict` |
+| Test and upload model | push to main, `workflow_dispatch` | `resolve` (reads the merged PR's label) → `test-model-source` → `upload-model-to-s3` → `upload-ersilia-pack` (amd64, arm64, merge-multiarch); for `semver:patch`, `release-patch` → `retag-patch` → `build-sif-patch` instead of an image rebuild |
+| Test model image | `workflow_run` of the above | `resolve` → `test-image-amd64` → `test-image-arm64` → `retag-image` → `post-upload` → `release` → `retag` → `build-sif` |
 | Retag image on release | release published | retag `latest` → tag, write `Release` to metadata, **push to main**, Airtable, S3 |
 
 `post-upload` writes Status Ready, DockerHub, Image Size, the Computational Performance
 fields and Release into metadata.yml. It then updates Airtable, syncs the S3
 `models.json` catalogue and regenerates the README. These steps leave two or more
-`ersilia-bot` "updating … [skip ci]" commits on main. If the repo has **no tags**, it
-also creates release `v1.0.0` and retags the image itself.
+`ersilia-bot` "updating … [skip ci]" commits on main. Since ersilia-model-workflows#22
+(25 Nov 2026) post-upload no longer creates releases: the `release` job creates the next
+tag on main HEAD from the merged PR's label (`v1.0.0` when the repo has no tags), and the
+`retag` job tags the image and writes `Release`. Repos with the older wrappers still get
+`v1.0.0` from post-upload.
 
 ---
+
+## Releases come from the PR's version label (eos935d#16, 26 Nov 2026)
+
+- **What changed:** every PR to a model's `main` needs exactly one label, `semver:patch`, `semver:minor`, `semver:major` or `no-release`, checked by `Check version label / verdict`. After the merge the workflows release from it. eos935d#16 (`semver:major`) was the first: `v4.0.0` by `github-actions[bot]`, tag on a bot readme commit, then three more bot commits; no "Retag image on release" run.
+- **For an incorporation:** the label is `semver:major` (the template has no output columns, so anything lower fails the check), and the release is still `v1.0.0`.
+- **Merged without a label:** `resolve` warns and nothing is released. `release_state.py` then says `create_release`.
+- **Not unreleased changes:** Hub-wide CI updates pushed by maintainers with `[skip ci]` (the release wrappers and the Slack-workflow removal, 25–26 Nov 2026, on every repo) and PRs labelled `no-release`. `ci_status.py` judges CI on the commit before such commits, and `release_state.py` leaves them out of `unreleased_changes`; both list them under `warnings`.
 
 ## "Initial commit" failure on every new repo
 
