@@ -44,7 +44,7 @@ Several of these skills are designed to be chained together as part of a larger 
 | model-monitoring | Track pending models, stored data, etc |
 | model-fixing | When a model fails a test, reviews where it failed and fixes it automatically. |
 | model-gpu | Adapts a model to also run on GPU: template run.sh switching on `ERSILIA_DEVICE`, `main_gpu.py`, and a `gpu:` section in `install.yml`. |
-| github-digest | Tracks open issues and produces summaries for tech-tracking meetings. |
+| github-digest | Weekly digest of issues and PRs, Airtable registry drift, and housekeeping (stale branches, forks); opens housekeeping issues on approval. |
 | model-incorporation-digest | Monthly digest of the models incorporated into the Hub, crediting each model's original authors. |
 | model-optimization | Makes an Ersilia Model Hub model smaller without changing its outputs, verifies it with exact output gates, a served-model run and ersilia test --shallow, and opens a PR on the model repository with the size comparison. |
 | model-speedup | Makes an Ersilia Model Hub model faster, and stops its memory from growing with the input, without changing its outputs; checks outputs stay identical, verifies the served model and runs ersilia test --shallow. |

@@ -8,7 +8,7 @@ file is a staging area; `scripts/upload_digest.py` publishes it. Match this verb
 1. **Succinct, scannable, high-signal** — lead with takeaways, counts over prose, cap every
    list, a ~30-second read.
 2. **Action before history** — things that need a human come first (attention items, registry
-   drift), things already done come last (recent activity, the sync log). Order the chapters
+   drift, housekeeping), things already done come last (recent activity). Order the chapters
    exactly as below.
 
 Use **emojis to aid readability** — one on each chapter heading (from the set below) and the
@@ -49,6 +49,7 @@ Each line ends with **two trailing spaces** for a hard line break.
 ## ✨ Highlights
 ## ⚠️ Needs attention
 ## 🔧 Registry alignment
+## 🧹 Housekeeping
 ## 📊 Repository overview
 ## ✅ Recent activity
 ```
@@ -146,6 +147,35 @@ is zero: `Registry is in sync with GitHub — no action needed.`
   value like «Completed, Archived» against GitHub «Completed» is a genuine finding: report both.
 - Order `missing_from_airtable` with non-archived repos first, archived after.
 - `metric_drift` is vestigial (the metric columns are gone from the table) — never render it.
+
+---
+
+### `## 🧹 Housekeeping`  (ACTION)
+
+From `fetch_housekeeping.py` (`housekeeping.json`): stale branches, org-owned forks and idle
+personal forks of team members. Lead with one verdict line, then subsections (skip empty):
+
+```markdown
+{stale_branches} stale branches in {repos_with_stale_branches} repos ({merged} merged · {closed} closed · {idle} idle) · {org_forks} org forks · {personal_forks} idle personal forks.
+
+### Stale branches
+- `{repo}` — {n} branches ({merged} merged, {idle} idle){ · [issue #N]({url})}
+
+### Org-owned forks
+- [{repo}]({url}) — fork of {parent}, last push {YYYY-MM-DD}, {ahead} ahead · {behind} behind
+
+### Idle personal forks
+- `{owner}/{fork}` — fork of `{parent}`, last push {YYYY-MM-DD}
+```
+
+- Stale branches: one line **per repo**, most branches first, cap 10, then
+  `_…and {N} more repos._`. Model repos collapse into one line: `Model repos — {n} branches
+  across {m} repos`. Never list individual branch names here; they are in the issues.
+- Link the housekeeping issue for a repo when one was opened or updated in this run.
+- Personal forks name the GitHub handle only (public). Cap 10.
+- If every count is zero: `Nothing to tidy up this week.`
+- If `connector_status` is `partial`, add one italic line saying what was not checked (from
+  `errors`), e.g. *Personal forks not checked: org member list unavailable.*
 
 ---
 

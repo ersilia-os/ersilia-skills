@@ -72,6 +72,36 @@ A side with an *empty* value is not a mismatch — that is the existing `missing
   `days_since_update`, and a `stale` flag (default: no update in ≥ 30 days, `--stale-days`).
 - For the exact chapter order in the digest (action items first), see `output-template.md`.
 
+## Housekeeping (branches and forks)
+
+`fetch_housekeeping.py` sweeps every **non-archived** repo, model repos included. Archived
+repos are read-only on GitHub, so nothing in them can be tidied.
+
+**Stale branches.** Never flagged: the default branch, protected branches, and branches
+backing an open PR (those are covered by the stale-PR list). Flagged:
+
+| Reason | Rule | Meaning |
+|---|---|---|
+| `merged` | its PR was merged ≥ 14 days ago (`--merged-grace-days`) | safe to delete |
+| `closed` | its PR was closed unmerged ≥ 14 days ago | almost always safe to delete |
+| `idle` | no PR, no commit for ≥ 90 days (`--branch-idle-days`) | ask the author |
+
+Only the first 100 branches of a repo are read; a repo with more is listed in `errors` and
+the status becomes `partial`.
+
+**Forks.**
+- *Org-owned forks* (`isFork` under `ersilia-os`): parent, last push, ahead/behind the
+  parent's default branch. The decision (keep, archive, delete) is a human one.
+- *Personal forks*: forks of org repos owned by a current **org member**, with no push for
+  ≥ 180 days (`--fork-idle-days`). Forks by people outside the org are ignored — we can neither
+  delete nor reasonably chase them. Former team members drop out once they leave the org.
+
+**Where findings go.** One `housekeeping`-labelled issue per non-model repo with stale
+branches; one roll-up issue in `ersilia-os/ersilia-maintenance` for model repos; org forks
+only in the digest unless `--org-forks-repo` is given. Personal forks go to the person, not
+an issue. Issues carry a hidden marker so a later run updates the open issue instead of
+opening a duplicate. **Nothing is ever deleted or closed by the skill.**
+
 ## Label → work-type hints (for grouping recent activity)
 
 GitHub labels vary across ersilia-os repos, but these recurring ones help group activity by

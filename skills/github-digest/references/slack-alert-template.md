@@ -19,7 +19,7 @@ engineering team watches GitHub activity. (For reference, the literature digest 
 🛠️ *New GitHub digest — week of {YYYY-MM-DD}*
 
 Activity: {prs_merged} PRs merged · {prs_opened} opened · {issues_closed} issues closed · {issues_opened} opened (non-model repos).
-Attention: {n_stale_prs} stale PRs · {n_open_issues} open issues. Registry: {n_missing} missing · {n_status_mm}+{n_type_mm} misaligned · {n_curation} need curation.
+Attention: {n_stale_prs} stale PRs · {n_open_issues} open issues. Registry: {n_missing} missing · {n_status_mm}+{n_type_mm} misaligned · {n_curation} need curation. Housekeeping: {n_stale_branches} stale branches · {n_forks} forks to review.
 
 Read it: {pages_url}
 ```
@@ -34,7 +34,8 @@ Use it, not the github.com blob URL — it's the reader-friendly page.
 - Activity numbers come from `github.json` `counts`; attention/registry numbers from the
   open snapshot and `health.json` summary (`{n_status_mm}`/`{n_type_mm}` = `status_mismatch`/
   `type_mismatch`). Use the non-model figures (the model summary is in the digest itself, not
-  the alert).
+  the alert). Housekeeping numbers come from `housekeeping.json` `counts`
+  (`{n_forks}` = `org_forks` + `personal_forks`); drop that sentence if the step did not run.
 - Keep it to the three lines above — it is a pointer, not a summary. People click through.
 
 ## Worked example
@@ -43,7 +44,7 @@ Use it, not the github.com blob URL — it's the reader-friendly page.
 🛠️ *New GitHub digest — week of 2026-06-16*
 
 Activity: 0 PRs merged · 4 opened · 8 issues closed · 1 opened (non-model repos).
-Attention: 5 stale PRs · 349 open issues. Registry: 2 missing · 1+1 misaligned · 6 need curation.
+Attention: 5 stale PRs · 349 open issues. Registry: 2 missing · 1+1 misaligned · 6 need curation. Housekeeping: 169 stale branches · 5 forks to review.
 
 Read it: https://ersilia-os.github.io/digests/github/26-06-16-github-digest.html
 ```
