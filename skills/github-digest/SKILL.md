@@ -284,7 +284,8 @@ Opening issues is outward-facing, so it needs the user's approval **in this run*
    python scripts/open_housekeeping_issues.py --input /tmp/housekeeping.json --plan
    ```
 
-   Each line is `ID  repo  summary` (H1, H2, …). Add `--show-body` to print the bodies, and
+   Each line is `ID  repo  summary  assign: … (why)` (H1, H2, …). Assignees follow the
+   rules in `references/scope.md` (*Who is assigned*); assignment is what notifies people. Add `--show-body` to print the bodies, and
    `--org-forks-repo <owner/repo>` if the user wants a roll-up issue for the org forks.
 2. Show the list to the user and ask which IDs to act on. Point out the repos with the
    most merged branches: the lasting fix there is the repo setting *Automatically delete
@@ -298,7 +299,8 @@ Opening issues is outward-facing, so it needs the user's approval **in this run*
    An open issue with the same hidden marker is updated, not duplicated. The script creates
    the `housekeeping` label in a repo if missing. It never deletes branches or forks and
    never closes issues; neither do you.
-4. Report what was opened or updated, one line each with the URL.
+4. Report what was opened or updated, one line each with the URL and assignees. List the
+   unowned ones separately so the user can pick an owner.
 
 Model-repo roll-ups go to `ersilia-os/ersilia-maintenance`. Before the first one is opened,
 check with the user that this fits how that repo is used.

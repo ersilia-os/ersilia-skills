@@ -164,6 +164,9 @@ personal forks of team members. Lead with one verdict line, then subsections (sk
 ### Org-owned forks
 - [{repo}]({url}) — fork of {parent}, last push {YYYY-MM-DD}, {ahead} ahead · {behind} behind
 
+### Unowned
+- `{repo}` — {n} stale branches; no current member authored them or maintains the repo
+
 ### Idle personal forks
 - `{owner}/{fork}` — fork of `{parent}`, last push {YYYY-MM-DD}
 ```
@@ -171,7 +174,9 @@ personal forks of team members. Lead with one verdict line, then subsections (sk
 - Stale branches: one line **per repo**, most branches first, cap 10, then
   `_…and {N} more repos._`. Model repos collapse into one line: `Model repos — {n} branches
   across {m} repos`. Never list individual branch names here; they are in the issues.
-- Link the housekeeping issue for a repo when one was opened or updated in this run.
+- Link the housekeeping issue for a repo when one was opened or updated in this run, and
+  add `· assigned @{login}` (handles are public).
+- *Unowned* lists repos whose proposal has `assigned_by: unowned` (from `--plan`). Cap 10.
 - Personal forks name the GitHub handle only (public). Cap 10.
 - If every count is zero: `Nothing to tidy up this week.`
 - If `connector_status` is `partial`, add one italic line saying what was not checked (from

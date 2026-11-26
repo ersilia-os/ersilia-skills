@@ -100,7 +100,16 @@ the status becomes `partial`.
 branches; one roll-up issue in `ersilia-os/ersilia-maintenance` for model repos; org forks
 only in the digest unless `--org-forks-repo` is given. Personal forks go to the person, not
 an issue. Issues carry a hidden marker so a later run updates the open issue instead of
-opening a duplicate. **Nothing is ever deleted or closed by the skill.**
+opening a duplicate.
+
+**Who is assigned.** Assignment is how people find out: GitHub emails assignees, and the
+weekly Slack nudges follow assignees. The body lists authors in backticks, never @mentions.
+1. Branch authors who are current org members, most branches first, at most 3.
+2. Else the repo's `CODEOWNERS` (individuals who are members; teams are skipped).
+3. Else the member with most commits on the default branch in the last 12 months.
+4. Else unassigned, and the digest lists the repo under *Unowned* for a human to triage.
+Bot accounts (`ersilia-bot`, `*-bot`, `*[bot]`) are never assigned. Roll-up issues are not
+assigned. **Nothing is ever deleted or closed by the skill.**
 
 ## Label → work-type hints (for grouping recent activity)
 

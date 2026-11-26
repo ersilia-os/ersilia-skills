@@ -359,6 +359,7 @@ def main(argv: list[str] | None = None) -> int:
             "org_forks": len(org_forks),
             "personal_forks": len(personal_forks),
         },
+        "members": sorted(members),
         "stale_branches": stale_branches,
         "org_forks": org_forks,
         "personal_forks": personal_forks,
