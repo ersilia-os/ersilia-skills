@@ -184,32 +184,27 @@ def build_proposals(data: dict, model_repo: str, forks_repo: str | None) -> list
 
 
 def find_existing(repo: str, marker: str) -> tuple[int | None, str]:
-    """Number of an open housekeeping issue carrying `marker`, if any."""
+    """Number of an open housekeeping issue carrying `marker`, if any.
+
+    Uses the REST issues list, not `gh issue list --label`: the latter goes through GitHub
+    search, which lags by minutes, so an issue opened moments ago would be missed and
+    duplicated.
+    """
     data, err = run_gh_json(
         [
-            "issue",
-            "list",
-            "-R",
-            repo,
-            "--state",
-            "open",
-            "--label",
-            LABEL,
-            "--limit",
-            "100",
-            "--json",
-            "number,body",
+            "api",
+            "--paginate",
+            f"repos/{repo}/issues?state=open&labels={LABEL}&per_page=100",
         ]
     )
     if data is None:
-        # A missing label makes the filter fail on some gh versions; treat as none.
-        if "not found" in err.lower():
-            return None, ""
         return None, err
-    for issue in data:
-        if marker in (issue.get("body") or ""):
-            return issue["number"], ""
-    return None, ""
+    matches = sorted(
+        i["number"]
+        for i in data
+        if "pull_request" not in i and marker in (i.get("body") or "")
+    )
+    return (matches[0] if matches else None), ""
 
 
 def gh(args: list[str]) -> tuple[bool, str]:
