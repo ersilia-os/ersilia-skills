@@ -355,7 +355,7 @@ Hub-ready dataset, led by a Cameroonian lab, with code on GitHub, would carry
 ```markdown
 ## AI/ML methods for drug discovery
 
-- [Liu et al., *Nature Methods*, 2026-04-02](https://doi.org/example) ⭐💻 — **TargetDiff-2: pocket-conditioned diffusion for ligand design.** State-of-the-art structure-based generator producing competitive *in silico* hit rates against *Mtb* InhA; weights under Apache-2.0. (Input: pocket point-cloud — Hub-eligible once protein-input support lands.) · [code](https://github.com/example/targetdiff-2)
+- [Liu et al., *Nature Methods*, 2026-04-02](https://doi.org/example) ⭐💻 — **CoFold-2: protein–ligand cofolding for pose prediction.** State-of-the-art structure model predicting ligand poses against *Mtb* InhA; weights under Apache-2.0. (Input: protein sequence plus ligand — Hub-eligible once protein-input support lands.) · [code](https://github.com/example/cofold-2)
 ```
 
 ## Field rules

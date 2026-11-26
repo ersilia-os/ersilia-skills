@@ -421,6 +421,9 @@ Hub-compatible models.
 - No paper already in the Hub **or already in the incorporation pipeline** (both Step-2
   exclusions are mandatory; report the two drop counts separately).
 - No 🤖 on non-small-molecule inputs (protein/RNA/peptide/image/pocket) — surface as context instead.
+  Small-molecule generators follow the generator-input rule in
+  `references/hub-incorporation-criteria.md`: target- or pocket-conditioned generators are 🤖❓ (C8),
+  unconditional generators with no encoder and no way to start from a molecule are 🤖❓ (C9).
 - No 🤖 without **verified availability** — a resolvable code repo, downloadable weights, or a
   web server that responds *now*. "On request", a TBD/placeholder repo, a paywalled paper with no
   artifact, or a dead server (502/503, expired cert, 404) gets no 🤖 (e.g. MalariaFlow). If the

@@ -125,15 +125,15 @@ title, and their `Status`.
 
 Use the criteria in `references/hub-incorporation-criteria.md` to assess the paper.
 
-**Before the checklist — check for conditional incorporation routes (C1–C6).**
+**Before the checklist — check for conditional incorporation routes (C1–C8).**
 Even if a paper looks like it would fail questions 1–4 below — including question 2
-(no directly usable artifact) — scan the six trigger questions in
+(no directly usable artifact) — scan the eight trigger questions in
 `references/hub-incorporation-criteria.md` (section "Conditional incorporation routes").
 Several routes exist specifically for papers that fail question 2 in the standard sense
 (C3 needs only an API, C4 needs only a dataset, C6 needs only one open substitute
 component). If any trigger fires, the verdict is **Conditional candidate** — skip
 questions 1–6, write the five-line conditional body sentence using the template in that
-section, and note which route (C1–C6) matched in the reasoning.
+section, and note which route (C1–C8) matched in the reasoning.
 
 Work through these questions in order — stop as soon as you hit a hard exclusion:
 
@@ -160,7 +160,7 @@ Work through these questions in order — stop as soon as you hit a hard exclusi
    Eligible input: SMILES, InChI, molfile, or a compound–protein interaction model
    whose protein target is fixed at build time (the runtime call is still one compound in).
    Hard exclusions: protein sequence, RNA/peptide sequence, gene/genome, transcriptomics,
-   cell images, pocket tensors, AND any model requiring **two or more molecules in the
+   cell images, pocket tensors (except small-molecule generators — see below), AND any model requiring **two or more molecules in the
    same call** (fragment-pair linker generators, reaction-pair predictors, warhead+E3-ligand
    assemblers) — even though each individual input is itself a small molecule, the Hub
    interface has no slot for a second one. If excluded → verdict is **Out of scope**: input
@@ -170,6 +170,10 @@ Work through these questions in order — stop as soon as you hit a hard exclusi
    *P. falciparum* protein) is not excluded by this rule — it is a Data-to-model candidate
    (route C4), since the resulting Hub model would be an ordinary single-compound predictor
    for that one target. See `references/hub-incorporation-criteria.md`.
+   Generators: apply the generator-input rule in `references/hub-incorporation-criteria.md`.
+   One seed SMILES, property conditions, or unconditional with an encoder or a way to
+   start from a molecule → continue the checklist. Target- or pocket-conditioned →
+   **Conditional candidate** (C7). Unconditional with neither → **Conditional candidate** (C8).
 
 4. **Does it perform one of the six Hub subtasks?**
    Activity prediction · Featurization · Property prediction · Similarity search · Generation · Projection
@@ -277,7 +281,7 @@ No background context — jump straight to the contribution.]
 [4–5 bullets, each a short clause (not a full sentence). State the fact + implication only.
 When verdict is **Conditional candidate**: replace these bullets with the five-line
 conditional body sentence from `references/hub-incorporation-criteria.md`, and note which
-route (C1–C6) fired.]
+route (C1–C8) fired.]
 - Input: SMILES → within Hub surface.
 - Task: activity prediction → aligns with Hub's largest subtask bucket.
 - Endpoint: P. falciparum IC50 → high-priority (antimalarial focus).
@@ -325,7 +329,7 @@ Write for a computational biologist. Do not reproduce the abstract — synthesis
 rather than a bullet fragment. Cover input modality, task, endpoint priority, and availability.
 When verdict is **Conditional candidate**: replace this section with the five-line conditional
 body sentence from `references/hub-incorporation-criteria.md`, written as full sentences,
-and identify which route (C1–C6) fired and why.]
+and identify which route (C1–C8) fired and why.]
 
 **Added value over existing Hub models:**
 [This is the core of the extended mode. For each Hub model returned by `ersilia_search`
@@ -364,11 +368,11 @@ not eligible for incorporation."]
 | **Strong candidate** | Small-molecule input, Hub-relevant task + endpoint, open code, no identical model in the Hub (at any status) |
 | **Candidate** | Eligible but with one flag: low-priority endpoint, online-mode only, or a potential overlap with a `Ready` model via a *different* method |
 | **Candidate - Update** | Confirmed same underlying method/tool as an existing `Ready` (or `Archived`) Hub model — a new version, optimization, or re-implementation, verified via explicit evidence (paper text or repo), not inferred from topical overlap alone. Relevant as a potential upgrade to the existing entry, not as a fresh addition |
-| **Conditional candidate** | The paper enables Hub incorporation via an intermediate step (encoder extraction, fine-tuning, surrogate distillation, data-to-model, or replication with substitution) — route identified via C1–C6 trigger questions |
+| **Conditional candidate** | The paper enables Hub incorporation via an intermediate step (encoder extraction, fine-tuning, surrogate distillation, data-to-model, replication with substitution, one entry per target, or seed-anchored sampling) — route identified via C1–C8 trigger questions |
 | **Already in Hub pipeline** | A matching model already exists as `In progress` or `In maintenance` — the team is already on it; overrides whatever the base eligibility verdict would have been |
 | **Low fit** | Eligible input modality, but task or endpoint sits outside Ersilia priorities |
 | **Out of scope** | Hard exclusion on input modality (protein, RNA, image, etc.) or input shape (requires two or more molecules in the same call) |
-| **Not eligible** | Paper does not release a model or dataset, OR it releases one but no accessible artifact exists to build it from (no open code/weights, no queryable web server/API, no usable dataset — and no conditional route (C1–C6) applies) |
+| **Not eligible** | Paper does not release a model or dataset, OR it releases one but no accessible artifact exists to build it from (no open code/weights, no queryable web server/API, no usable dataset — and no conditional route (C1–C8) applies) |
 
 Note: a match against an `Archived` model does not, by itself, get its own verdict — it
 stays at whatever the base eligibility verdict is (Strong candidate/Candidate/etc.), with
