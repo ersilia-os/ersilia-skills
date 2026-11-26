@@ -227,7 +227,7 @@ REINVENT · REINVENT4 · CReM / oCReM · MolBO · ETFlow · SyntheMol · MolDQN 
 GraphDF · ScaffoldVAE · LIMO · DiffSBDD-unconditional · BindingVAE ·
 SBDD-Unconditional · MOSES · GuacaMol · MolGAN · ScaffoldGen.
 
-**Generators (protein/pocket-conditioned — gated-out for 🤖 but surface as context):**
+**Protein/pocket-conditioned generators and structure models (small-molecule generators here, e.g. TargetDiff, Pocket2Mol, PocketGen, ShEPhERD, are 🤖❓ via C8; docking, cofolding and protein-design models are gated out and surface as context):**
 DiffDock · DiffDock-Pocket · TargetDiff · Pocket2Mol · PocketGen · ShEPhERD ·
 RFdiffusion · RFdiffusion-AA · AlphaFlow · GenMol · LinkerNet · Chai-1 · Chai-2 ·
 Boltz-1 · Boltz-2.

@@ -399,6 +399,7 @@ in Step 6 must speak to these answers.
 | # | Question | Pass criterion | If fail |
 |---|---|---|---|
 | 1 | **Input modality** | Accepts SMILES / InChI / molfile / SDF as the primary input. CPI (compound–protein interaction) models pass — the molecule is the primary input. | No 🤖. Surface as context with `(input: {modality})` annotation, in chapter 3 (methods) or wherever topical. |
+| 1b | **Generator input** (Generation only) | Runs from one seed SMILES, from property conditions, or unconditionally with an encoder or a way to start from a given molecule. Apply the generator-input rule in `references/hub-incorporation-criteria.md`. | Target-conditioned → 🤖❓ C8. Unconditional with no encoder and no seed start → 🤖❓ C9. Sets, several molecules, closed loops or non-small-molecule inputs → no 🤖. |
 | 2 | **Output** | Produces a numeric score, vector, label, or molecule(s) — i.e. something the Hub `predict` / `featurize` / `generate` interface can return. | No 🤖. |
 | 3 | **Task fit** | Slots into one of: Property prediction, Activity prediction, Featurization, Projection, Similarity search, Generation. | No 🤖; mention task mismatch. |
 | 4 | **Code availability** | A public repo URL (GitHub / GitLab / Codeberg / HuggingFace Space) is named in the paper or in the model/dataset release page. | No 🤖. (Independent of 💻 — see below.) |
@@ -408,8 +409,8 @@ in Step 6 must speak to these answers.
 
 Decision:
 
-- **Before running the checklist:** ask the seven conditional-route trigger
-  questions (C1–C7) from `references/hub-incorporation-criteria.md` for any
+- **Before running the checklist:** ask the nine conditional-route trigger
+  questions (C1–C9) from `references/hub-incorporation-criteria.md` for any
   item that looks gated out by criteria 1–3. If a trigger fires, assign 🤖❓
   and write the conditional body sentence (template in that reference file)
   rather than the standard one below — then skip the checklist for that item.
@@ -417,7 +418,7 @@ Decision:
 - Items passing **1–4 + 6** but failing 5 or 7 still get 🤖 (still a candidate),
   and the body sentence must say so concretely
   (e.g. "weights not yet released" or "requires a 4×A100 inference budget").
-- Items failing any of 1–3 or 6 and not matching any C1–C7 trigger do **not**
+- Items failing any of 1–3 or 6 and not matching any C1–C9 trigger do **not**
   get 🤖 or 🤖❓. They may still appear as context in chapter 3 (methods) with
   the failing dimension named.
 - A paper carries **either** 🤖 or 🤖❓, never both. Within a chapter, 🤖
@@ -443,6 +444,15 @@ Worked example:
 > released with weights and inference code on GitHub under Apache-2.0.
 > Plausible Hub addition because it covers *M. tuberculosis* H37Rv whole-cell,
 > a Hub gap.
+
+Generator-input examples (from published digests, 2026):
+
+- **ChemBang** (SMILES → SMILES via matched molecular pairs) — one seed
+  SMILES → 🤖.
+- **M-GoRT** (property objectives such as DRD2, JNK3 → SMILES) — property
+  conditions → 🤖; the body sentence names how the seed sets the conditions.
+- **PyMolGen** (learns rules from a user-supplied database) — needs a set of
+  molecules → no 🤖; context in chapter 3.
 
 **Dataset-incorporability checklist (🗃️)**:
 
@@ -470,8 +480,10 @@ interesting to drop but fail the small-molecule input gate or the license gate.
 Surface them in **chapter 3** (AI/ML methods) without 🤖, with the gating
 dimension named:
 
-- Protein-conditioned / pocket-conditioned generators (DiffDock-Pocket,
-  Pocket2Mol, TargetDiff, RFdiffusion-AA, ShEPhERD-pocket).
+- Docking, cofolding and protein-design models (DiffDock-Pocket,
+  RFdiffusion-AA). Small-molecule generators conditioned on a protein or
+  pocket (Pocket2Mol, TargetDiff, ShEPhERD) are not gated out: they are 🤖❓
+  via C8.
 - Protein-sequence-only / structure-only models (Boltz-2, Chai-1, ESM-style).
 - Multi-omics or transcriptomics-input models.
 - Image-input phenotypic models.

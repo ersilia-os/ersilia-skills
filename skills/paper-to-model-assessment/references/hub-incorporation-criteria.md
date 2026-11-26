@@ -124,7 +124,8 @@ Apply 🤖 when **all of the following hold**:
    - gene / genome input (resistance-gene annotators)
    - bulk or single-cell transcriptomic input (signature-based prioritisers)
    - cell-image / phenotypic-image input
-   - pocket-tensor or protein-pocket conditioning
+   - pocket-tensor or protein-pocket conditioning (except small-molecule
+     generators, which follow the generator-input rule below)
    - multi-omics target-ID pipelines
    - **multi-molecule runtime input** — any model that needs two or more
      molecules supplied together in a single call (fragment-pair linker
@@ -151,11 +152,27 @@ Apply 🤖 when **all of the following hold**:
    a compound-protein-pair shape. Flag these as **Conditional candidate (C4)**,
    not **Out of scope**.
 
-   Generative models that emit small molecules are 🤖-eligible even when they
-   have no molecule input, *provided* the call takes at most one molecule
-   (or none) and does not require a second molecule, a non-molecule
-   conditioning input (e.g. a pocket tensor), or a paired reference structure
-   the Hub's generator interface cannot currently supply.
+   **Generator-input rule.** Every Hub generator takes **one compound** (a
+   single seed SMILES) and returns sampled molecules (Airtable: Input =
+   Compound, Input Dimension = 1; e.g. eos4q1a CReM, eos694w REINVENT4
+   Mol2Mol, eos2401 scaffold decoration). Classify a generator by what it
+   needs at inference:
+
+   | Generator needs | Verdict route | How it meets the one-SMILES interface |
+   |---|---|---|
+   | One seed SMILES (analogue, scaffold, fragment, molecule to optimise) | Direct (Strong candidate / Candidate) | Directly. |
+   | Property conditions (logP, QED, permeability, a property classifier, multi-objective property targets) | Direct | Compute the seed's properties and condition on them, or ship fixed presets. eos69e6 (pgmg-pharmacophore, in progress) already takes one compound and conditions on its pharmacophore. |
+   | Nothing (unconditional), **and** the released code has an encoder or can start generation from a given molecule (VAE / latent model, partial noising of a seed in a diffusion model) | Direct | Encode the seed and sample near it, or partially noise the seed and denoise it. |
+   | A target (identifier, protein sequence, pocket or 3D structure, target-specific reward or fine-tune) | Conditional candidate (C7) | One Hub entry per priority target, with the target or pocket fixed inside the entry and each run seeded by a SMILES. |
+   | Nothing (unconditional), and no encoder and no way to start from a molecule | Conditional candidate (C8) | Sample a large batch and return the molecules most similar to the seed. |
+   | Several molecules in one call (fragment pairs, warhead + ligase ligand), a set or database, a closed loop with wet-lab data, or a non-small-molecule input or output (peptide, antibody, cell image) | Out of scope | — |
+
+   Pocket- or 3D-structure-conditioned generators (Pocket2Mol, TargetDiff,
+   ShEPhERD) count as target-conditioned (C7). Docking, cofolding and protein
+   design models (DiffDock, Boltz, Chai, RFdiffusion) are not small-molecule
+   generators and stay out of scope. Judge from the paper and the released
+   code, not from the abstract's framing: a "target-aware" generator that only
+   needs a property classifier is property-conditioned.
 
    For models that are clearly important but fall outside this surface — surface
    them as context items without 🤖, with a one-liner stating "Out of the
@@ -208,7 +225,7 @@ In the paper-to-model-assessment skill, these papers receive the **Conditional c
 instead of a direct Strong candidate / Candidate verdict. A paper receives either
 Conditional candidate or a direct eligibility verdict — never both.
 
-### Six trigger questions (C1–C6)
+### Eight trigger questions (C1–C8)
 
 Ask these *before* running the standard eligibility checklist in Step 3. Fire
 **Conditional candidate** on the first trigger that matches.
@@ -221,6 +238,8 @@ Ask these *before* running the standard eligibility checklist in Step 3. Fire
 | C4 | The paper releases a **screening dataset without a model** on a Hub-priority endpoint — large enough that LazyQSAR or Chemprop could produce a useful predictor. This applies to both **experimental bioassay data** (MIC, IC50, phenotypic readouts) and **computational virtual-screening data** (docking scores, e.g. AutoDock Vina). For docking datasets, the route trains a QSAR surrogate to predict docking scores directly from SMILES, eliminating the need to run the docking pipeline per query. Scale threshold differs by data type: ~500+ compounds for bioassay endpoints; ~10 000+ per target for docking-surrogate routes (noisier labels require more data). | Data-to-model (LazyQSAR) | eos4rta, eos2l0q, eos9ivc, eos5bsw, eos7l5m (LazyQSAR models trained on published assay data) |
 | C5 | The model is a **multi-task predictor** whose output vector across tasks could serve as a molecular fingerprint, independent of its primary framing. | Multi-task featurizer | eos93h2 (10 GPCR scores as bioactivity embedding); eos1vms (616 ChEMBL target probabilities as fingerprint); eos4u6p (CC Signaturizer, 3200-dim bioactivity spaces) |
 | C6 | The model fails reproducibility because one component is **proprietary or unavailable**, but an open-source substitute benchmarked in the paper would yield comparable performance. | Replication with substitution | eos8d8a (MycPermCheck, replicated with LazyQSAR + Ersilia decoy sampler); eos9n1s (hemozoin inhibition, RDKit replacing proprietary ChemSpyder descriptors) |
+| C7 | The model is a small-molecule **generator conditioned on a target** (identifier, protein sequence, pocket or 3D structure, or a target-specific reward or fine-tune). | One entry per target | None yet |
+| C8 | The model is an **unconditional small-molecule generator** whose released code has no encoder and cannot start generation from a given molecule. | Seed-anchored sampling | None yet |
 
 ### Conditional body-sentence template
 
@@ -270,3 +289,19 @@ Released under {license}. Priority: {High / Medium / Low} because {specific Hub 
 > Hub would do: train a QSAR surrogate on SMILES → Vina score with LazyQSAR → Activity prediction entry (docking-score proxy), so users can screen libraries without running Vina.
 > Prerequisite: dataset confirmed downloadable under open licence; compound count ≥10 000 per target (check before proceeding — small docking runs are below the surrogate reliability threshold); target is Hub-priority (TB).
 > Released under CC-BY. Priority: High because a SMILES-native docking proxy for a TB target fills a Hub gap and is orders of magnitude cheaper to run than the docking pipeline itself.
+
+**C7 — One entry per target**
+
+> Conditional Hub candidate via One entry per target.
+> Paper contributes: MolGraphGAN, a graph-transformer GAN that generates molecules for a given target specification.
+> Hub would do: train or condition one generator per priority target, seeded by a SMILES → one Generation entry per target.
+> Prerequisite: code and weights released (not stated in the article); a target specification (sequence or pocket) prepared for each priority target.
+> Licence to be confirmed. Priority: Medium because the Hub has seed-based generators but none focused on a target.
+
+**C8 — Seed-anchored sampling**
+
+> Conditional Hub candidate via Seed-anchored sampling.
+> Paper contributes: DFDM, an unconditional diffusion model that generates 2D molecular graphs from noise.
+> Hub would do: sample a large batch and return the molecules most similar to the input SMILES → Generation entry.
+> Prerequisite: code and weights released; check that the code cannot start from a given molecule (if it can, this is a direct candidate).
+> Licence to be confirmed. Priority: Low because the Hub already covers analogue generation with seed-based models.
