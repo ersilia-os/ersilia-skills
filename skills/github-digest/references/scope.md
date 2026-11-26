@@ -111,6 +111,35 @@ weekly Slack nudges follow assignees. The body lists authors in backticks, never
 Bot accounts (`ersilia-bot`, `*-bot`, `*[bot]`) are never assigned. Roll-up issues are not
 assigned. **Nothing is ever deleted or closed by the skill.**
 
+## Nudges (who needs to act on an issue)
+
+`fetch_nudges.py` reads every open issue in non-archived repos, model repos included.
+Each issue gets at most one flag, checked in this order:
+
+| Flag | Rule |
+|---|---|
+| `housekeeping` | title starts with `Housekeeping:` and it has a member assignee |
+| `needs_reply` | the last word (latest comment, or the issue if none) is from a non-member, not a bot, 7+ days ago (`--reply-days`) |
+| `stale_assigned` | has a member assignee, no activity for 30+ days (`--stale-days`) |
+| `quiet_own` | no assignee, opened by a member, no activity for 90+ days (`--quiet-days`) |
+
+**Owner:** member assignees → else the author if a member → else the repo maintainer
+(`CODEOWNERS`, then the member with most commits in the last year) → else `UNOWNED`, shown
+to the user to triage. The same rules as housekeeping issues (`scripts/_owners.py`).
+
+Messages are sent from the user's own Slack account through the connector, and go only to
+Slack accounts with an `@ersilia.io` email (checked in the map and again on the live Slack
+profile). Other members, such as external collaborators, still own
+issues and appear in the digest, but get no DM.
+
+The GitHub → Slack map is `~/.config/ersilia/slack-people.json`, outside the public repo:
+`{"some-login": {"slack": "U0000000000", "email": "name@ersilia.io"}}`. `slack` is the Slack
+member ID (profile → ⋮ → *Copy member ID*), `email` the email on that Slack account. Add
+people when they join; members who leave the org drop out automatically.
+
+Each person's message also lists their stale branches (as last-commit author) and their
+idle personal forks. Messages are capped at 10 lines per section with the total stated.
+
 ## Label → work-type hints (for grouping recent activity)
 
 GitHub labels vary across ersilia-os repos, but these recurring ones help group activity by

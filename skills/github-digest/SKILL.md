@@ -46,8 +46,8 @@ The user will invoke this skill with:
   `ersilia-os/digests` at `github/YY-MM-DD-github-digest.md` (Step 7).
 - (optional) `--force` to override the recent-digest guards in Step 0.
 - (optional) `--dry-run` to fetch and reconcile but **not** write or upload the digest file.
-- (optional) `--act` to propose housekeeping issues after the upload and open or update the
-  ones the user approves (Step 10). Without it, housekeeping is report-only.
+- (optional) `--act` to propose housekeeping issues and Slack nudges after the upload, and
+  act on the ones the user approves (Steps 10–11). Without it, both are report-only.
 
 If anything is unclear, ask one focused question before proceeding. Never invent missing
 inputs.
@@ -137,6 +137,18 @@ under *Housekeeping*. It takes about a minute (batched GraphQL). A `partial` sta
 not stop the run: say in the Housekeeping chapter what was not checked. Exit 1 (the sweep
 itself failed) → write *Housekeeping could not run this week.* in that chapter and continue.
 
+### Step 2c — Fetch nudges
+
+```bash
+python scripts/fetch_nudges.py --housekeeping /tmp/housekeeping.json --out /tmp/nudges.json
+```
+
+Classifies every open issue in non-archived repos (model repos included) and finds its
+owner: `needs_reply` (last word from outside the team, 7+ days), `stale_assigned` (30+
+days idle), `quiet_own` (opened by a member, unassigned, 90+ days idle) and
+`housekeeping`. Rules are in `references/scope.md` (*Nudges*). It then bundles each
+person's issues, stale branches and idle forks. Needs Step 2b's output.
+
 ### Step 3 — Read the Airtable registry (you, via the MCP)
 
 The Airtable MCP cannot be called from a Python subprocess, so **you** read the table and
@@ -186,7 +198,8 @@ emoji section headers are used for readability. Order:
 - H1 + connector semaphore + marker legend.
 - **✨ Highlights** — 2–4 sentences from the `highlights` payload: busiest repos, the single
   most important change, and one registry-health clause.
-- **⚠️ Needs attention** (ACTION, first) — capped lists of stale PRs (most stale first),
+- **⚠️ Needs attention** (ACTION, first) — now also *Waiting for an answer*: the
+  `needs_reply` issues from `/tmp/nudges.json`, grouped by owner handle. — capped lists of stale PRs (most stale first),
   long-open issues (oldest first), and **💡 Easy wins**. For easy wins, judge the
   `easy_candidate` set: keep genuinely small work, drop false positives (model requests, vague
   discussions), cap at 5, with a short stand-behind reason each.
@@ -302,6 +315,28 @@ Opening issues is outward-facing, so it needs the user's approval **in this run*
 4. Report what was opened or updated, one line each with the URL and assignees. List the
    unowned ones separately so the user can pick an owner.
 
+### Step 11 — Slack nudges (only with `--act`, never unattended)
+
+Each person gets one direct message, sent **from the user's own Slack account** through the
+Slack connector, listing their issues, stale branches and idle forks. The GitHub → Slack map
+is `~/.config/ersilia/slack-people.json` (format in `references/scope.md`, *Nudges*); it
+lives outside the repo because the repo is public.
+
+1. Re-run `fetch_nudges.py` if Step 10 opened issues, so new assignees are included.
+2. Preview: `python scripts/send_nudges.py --input /tmp/nudges.json --plan --show`.
+   Show the user who gets what, any `NO SLACK ID` or `SKIP` line (not `@ersilia.io`; never
+   messaged) and the `UNOWNED` issues.
+3. Render only the people the user approves, named one by one:
+
+   ```bash
+   python scripts/send_nudges.py --input /tmp/nudges.json --render --to GemmaTuron,TiagoJanela --out /tmp/nudges_to_send.json
+   ```
+
+4. For each entry in that file: `slack_read_user_profile(user_id = <slack>)` and confirm the
+   email ends in `@ersilia.io` (skip and report otherwise), then
+   `slack_send_message(channel_id = <slack>, message = <text>)`. Send the text unchanged.
+   There is no send-to-all, and the user is not messaged on anyone else's behalf.
+
 Model-repo roll-ups go to `ersilia-os/ersilia-maintenance`. Before the first one is opened,
 check with the user that this fits how that repo is used.
 
@@ -354,8 +389,8 @@ Two rules for the unattended prompt:
   publish every other week.
 - **Stop at any gate that would ask a question** (stale references, a digest already exists,
   a missing tool) and log the reason. Never pass `--force` unattended.
-- **Never pass `--act` unattended.** Housekeeping stays report-only in the scheduled run; the
-  user runs `/github-digest --act` (or Step 10 alone) by hand to open issues.
+- **Never pass `--act` unattended.** Housekeeping and nudges stay report-only in the
+  scheduled run; the user runs `/github-digest --act` (or Steps 10–11 alone) by hand.
 
 Test with `github-digest.sh --dry-run` before activating. If the Mac is asleep at 07:00, the
 job runs when it wakes. If it is powered off, that week is skipped
