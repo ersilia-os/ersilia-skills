@@ -29,7 +29,7 @@ Each set of skills is designed to help us achieve one of these three goals. Some
 Several of these skills are designed to be chained together as part of a larger workflow rather than run in isolation:
 
 - **Model incorporation pipeline** — `model-incorporation-request`, `model-incorporation-metadata`, `model-incorporation-code`, `model-incorporation-reproduce`, `model-incorporation-pr`, and `model-incorporation-release` cover the full lifecycle of bringing a new model into the Hub, from opening the initial request, through verifying it reproduces the original paper's results and submitting the pull request, to releasing it once the PR is merged. They are meant to be run in sequence, with `model-incorporation-digest` summarising the month's completed incorporations afterwards.
-- **Hub maintenance workflow** — `ersilia-model-test`, `model-monitoring`, `model-fixing`, and `github-digest` work together as a recurring maintenance loop: testing models before incorporation, monitoring the state of models and stored data, fixing what fails, and digesting GitHub activity to keep track of it all. We recommend running these as a bundled workflow rather than as standalone skills.
+- **Hub maintenance workflow** — `ersilia-model-test`, `model-monitoring`, `model-precalculation`, `model-fixing`, and `github-digest` work together as a recurring maintenance loop: testing models before incorporation, monitoring the state of models and stored data, tracking the precalculations each new model version needs, fixing what fails, and digesting GitHub activity to keep track of it all. We recommend running these as a bundled workflow rather than as standalone skills.
 
 | Name | Skill |
 |------|-------|
@@ -42,6 +42,7 @@ Several of these skills are designed to be chained together as part of a larger 
 | repository-auditing | Audits a repository to make sure it abides by Ersilia's standards. |
 | ersilia-model-test | Tests an Ersilia Model Hub model before hub incorporation. |
 | model-monitoring | Track pending models, stored data, etc |
+| model-precalculation | Show which precalculations each model snapshot still needs (from the Airtable Precalculations table), check this computer, and update statuses after verifying the results in isaura. |
 | model-fixing | When a model fails a test, reviews where it failed and fixes it automatically. |
 | model-gpu | Adapts a model to also run on GPU: template run.sh switching on `ERSILIA_DEVICE`, `main_gpu.py`, and a `gpu:` section in `install.yml`. |
 | github-digest | Tracks open issues and produces summaries for tech-tracking meetings. |

@@ -45,6 +45,7 @@ Design notes, so future edits stay coherent rather than accreting:
 import argparse
 import html
 import json
+import sys
 
 # Coverage classes in triage order, each with its label and its design-system
 # token. Coverage is a genuine *state*, which is exactly what --good/--warn/--bad
@@ -454,9 +455,10 @@ def attention_block(cov, mnt):
     if gaps:
         rows = "".join(
             "<tr><td class='mono'><a href='https://github.com/ersilia-os/{m}'>{m}</a></td>"
-            "<td>{s}</td><td>{bdg}</td>"
+            "<td class='mono'>{v}</td><td>{s}</td><td>{bdg}</td>"
             "<td class='num'>{mol}</td><td>{task}</td><td>{area}</td></tr>".format(
-                m=esc(m["model_id"]), s=esc(m["slug"]),
+                m=esc(m["model_id"]), v=esc(m.get("current_version") or "—"),
+                s=esc(m["slug"]),
                 bdg=badge(CLASS_LABEL[m["coverage"]], CLASS_COLOR[m["coverage"]]),
                 mol=fmt(m["molecules"]), task=esc(m["subtask"] or m["task"]),
                 area=esc(m["biomedical_area"]),
@@ -466,7 +468,7 @@ def attention_block(cov, mnt):
         parts.append(
             f"<h3>No precalculations ({len(gaps)})</h3>"
             + data_table(
-                ["Model", "Slug", "Coverage", "Molecules", "Subtask",
+                ["Model", "Version", "Slug", "Coverage", "Molecules", "Subtask",
                  "Biomedical area"], rows)
         )
     else:
@@ -616,7 +618,8 @@ def plots_block(mnt):
     )
 
 
-def coverage_table(cov):
+def coverage_table(cov, precalc=None):
+    airtable = airtable_status(precalc)
     rows = []
     for m in cov["models"]:
         action = 1 if (m["status"] == "Ready" and m["coverage"] in ("missing", "partial")) else 0
@@ -625,7 +628,17 @@ def coverage_table(cov):
             [m["model_id"], m["slug"], m["title"], m["status"], m["task"],
              m["subtask"], m["tag"], m["biomedical_area"], CLASS_LABEL[m["coverage"]]]
         )
+        at_cell = ""
+        if airtable:
+            status, disagrees = airtable.get(m["model_id"], ("no row", True))
+            search += " " + status.lower()
+            at_cell = "<td data-v='{v}'>{h}</td>".format(
+                v=esc(status),
+                h=badge(status, "var(--warn)") if disagrees else esc(status),
+            )
         versions = ", ".join(v["version"] or "?" for v in m["versions"]) or "—"
+        if m.get("current_version"):
+            versions += f" (current {m['current_version']})"
         rows.append(
             "<tr data-c='{c}' data-action='{act}' data-search='{q}'>"
             "<td class='mono' data-v='{mid}'><a href='https://github.com/ersilia-os/{mid}'>{mid}</a></td>"
@@ -636,7 +649,8 @@ def coverage_table(cov):
             "<td data-v='{sub}'>{sub}</td>"
             "<td class='mono' data-v='{ver}'>{ver}</td>"
             "<td class='num' data-v='{gb_raw}'>{gb}</td>"
-            "</tr>".format(
+            "{at}</tr>".format(
+                at=at_cell,
                 c=m["coverage"], act=action, q=esc(search), mid=esc(m["model_id"]),
                 slug=esc(m["slug"] or "—"),
                 bdg=badge(CLASS_LABEL[m["coverage"]], CLASS_COLOR[m["coverage"]]),
@@ -661,9 +675,16 @@ def coverage_table(cov):
          f"Stored predictions, out of {fmt(cov['summary']['full_count'])}"),
         ("Of full set", True, "Share of the reference collection covered"),
         ("Subtask", False, "What the model does"),
-        ("Versions", False, "Model versions stored in isaura"),
+        ("Versions", False,
+         "Model versions stored in isaura; the current one is the one measured"),
         ("GB", True, "Storage used across all stored versions"),
     ]
+    if airtable:
+        headers.append(
+            ("Airtable", False,
+             ("reference_library_1M_v0 status of the latest version in the Airtable "
+              "Precalculations table; highlighted when it disagrees with isaura"))
+        )
     return filterable_block(
         headers, "".join(rows), chips, "Search model, slug, task, area…",
     )
@@ -806,9 +827,11 @@ def methods_block(cov, mnt, sif):
         f"<p><strong>Precalculation coverage.</strong> A model is complete when it has a "
         f"stored prediction for all {fmt(s['full_count'])} molecules in the isaura "
         f"reference collection — the size of that collection is the definition of "
-        f"&ldquo;full&rdquo;. Where a model is stored at several versions, the version "
-        f"with the most molecules is the one measured, since the question is whether the "
-        f"predictions exist at all.</p>"
+        f"&ldquo;full&rdquo;. Only the model's current major version is measured, "
+        f"because that is the one the Hub serves; predictions stored for an older "
+        f"version do not count ({fmt(s.get('old_version_only', 0))} Ready models have "
+        f"only old-version data). The current version comes from the Airtable "
+        f"Precalculations table.</p>"
         f"{sif_line}"
         "<p><strong>Maintenance.</strong> Read from the published reports in "
         f"<a href='{esc(mnt.get('repo_url', ''))}'>{esc(mnt.get('repo', ''))}</a>, not "
@@ -824,6 +847,74 @@ def methods_block(cov, mnt, sif):
     )
 
 
+# Airtable findings that mean the Precalculations table is wrong, with the next
+# step for each. "confirmed" is left out: agreement needs no attention.
+AIRTABLE_FINDINGS = [
+    ("untracked_complete", "Complete in isaura, Airtable not updated", "mark Isaura"),
+    ("isaura_incomplete", "Marked Isaura, incomplete in isaura", "recompute or re-push"),
+    ("isaura_missing", "Marked Isaura, nothing in isaura", "mark Deleted"),
+    ("partial_in_progress", "Partial in isaura, not marked Isaura", "run stopped halfway?"),
+    ("isaura_without_row", "In isaura, no Airtable row", "add a row or ignore"),
+]
+
+
+def airtable_status(precalc):
+    """Map model id -> (Airtable status of its Latest snapshot, disagrees with isaura).
+
+    Fed by the ``airtable`` block of coverage.json, which fetch_coverage.py
+    computes with model-precalculation's reconcile logic.
+    """
+    if not precalc:
+        return {}
+    flagged = {
+        i["snapshot"]
+        for key, _, _ in AIRTABLE_FINDINGS
+        for i in precalc["classes"].get(key, [])
+    }
+    out = {}
+    for r in precalc.get("rows", []):
+        if r.get("version") == "Latest":
+            model_id = r["snapshot"].split("_")[0]
+            out[model_id] = (r.get("airtable") or "—", r["snapshot"] in flagged)
+    return out
+
+
+def airtable_block(precalc):
+    """The Airtable check, closing the coverage section.
+
+    Lists only the disagreements between the Precalculations table and isaura,
+    including the ones the coverage table cannot show (superseded versions, data
+    with no Airtable row).
+    """
+    if not precalc:
+        return ""
+    c = precalc["classes"]
+    rows = "".join(
+        f"<tr><td class='mono'>{esc(i['snapshot'])}</td><td>{esc(label)}</td>"
+        f"<td>{esc(i.get('airtable') or '—')}</td>"
+        f"<td class='num'>{fmt(i['molecules'])}</td><td>{esc(step)}</td></tr>"
+        for key, label, step in AIRTABLE_FINDINGS
+        for i in c.get(key, [])
+    )
+    n = sum(len(c.get(key, [])) for key, _, _ in AIRTABLE_FINDINGS)
+    intro = (
+        "<p class='lede'>The <code>reference_library_1M_v0</code> column of the Airtable "
+        f"Precalculations table against isaura, all versions. "
+        f"{fmt(len(c.get('confirmed', [])))} snapshots are marked Isaura and hold the "
+        "full library. Fix disagreements with the <code>model-precalculation</code> "
+        "skill.</p>"
+    )
+    if not rows:
+        return (
+            "<h3>Airtable check</h3>" + intro
+            + "<div class='empty'>The Precalculations table matches isaura.</div>"
+        )
+    return (
+        f"<h3>Airtable check ({n})</h3>" + intro
+        + data_table(["Snapshot", "Finding", "Airtable", "Molecules", "Next step"], rows)
+    )
+
+
 def build(cov, mnt, title, sif=None, snapshot=""):
     """Assemble the report body.
 
@@ -833,6 +924,7 @@ def build(cov, mnt, title, sif=None, snapshot=""):
     font or an attribution block.
     """
     s = cov["summary"]
+    precalc = cov["airtable"]
     missing = mnt.get("missing_sources") or []
     miss_html = (
         "<div class='note'><strong>Some sources were unavailable</strong>"
@@ -874,7 +966,8 @@ def build(cov, mnt, title, sif=None, snapshot=""):
       {s['stored_gb']:,.0f} GB. One well per model below, problems first — hover for
       the model id and its molecule count.</p>
     {plate_block(cov)}
-    {coverage_table(cov)}
+    {coverage_table(cov, precalc)}
+    {airtable_block(precalc)}
   </section>
 
   {sif_section(sif)}
@@ -913,9 +1006,18 @@ def main():
                          "the same data produces the same bytes (repo convention).")
     args = ap.parse_args()
 
-    cov = json.load(open(args.coverage))
-    mnt = json.load(open(args.maintenance))
-    sif = json.load(open(args.sif)) if args.sif else None
+    def load(path):
+        with open(path) as fh:
+            return json.load(fh)
+
+    cov = load(args.coverage)
+    mnt = load(args.maintenance)
+    if "airtable" not in cov:
+        sys.exit(
+            f"ERROR: {args.coverage} has no Airtable check. It was written by an older "
+            "fetch_coverage.py; re-run it with --airtable."
+        )
+    sif = load(args.sif) if args.sif else None
     html_text = build(cov, mnt, args.title, sif, args.snapshot)
     with open(args.out, "w") as f:
         f.write(html_text)

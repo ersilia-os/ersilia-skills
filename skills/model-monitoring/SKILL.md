@@ -97,6 +97,14 @@ explicitly with `--isaura-bin` / `--ersilia-search-bin` (or the `ISAURA_BIN` /
 `ERSILIA_SEARCH_BIN` environment variables). Never pick an environment yourself: different
 installs may be different versions.
 
+To install `ersilia_search` (it is the CLI of `ersilia-os/search-engine`, not on PyPI, and
+already points at the deployed search API):
+
+```bash
+conda create -n ersilia-search python=3.12 -y
+conda run -n ersilia-search pip install git+https://github.com/ersilia-os/search-engine.git
+```
+
 Do not fall back to a partial report when a tool is missing. A coverage number computed from
 half the sources is worse than no number, because it looks authoritative.
 
@@ -132,9 +140,19 @@ to the user — the report will render, but a section will be thin.
 
 ### Step 3 — Compute isaura coverage
 
+First read the Airtable **Precalculations** table (base Ersilia Model Hub) with the Airtable
+connector, following "Reading the table with the connector" in
+`../model-precalculation/references/airtable-schema.md`, and save the JSON. Then:
+
 ```bash
-python3 fetch_coverage.py --out /tmp/coverage.json
+python3 fetch_coverage.py --out /tmp/coverage.json --stats-dir /tmp/isaura_stats \
+  --airtable <saved.json>
 ```
+
+With `AIRTABLE_TOKEN` set, `--airtable` can be left out and the script reads the table
+itself. Without either, it stops before the inventory: the Airtable check is part of
+coverage, not an extra. If the Airtable read fails, stop and tell the user rather than
+building a report without it.
 
 The slowest step, though only about **30 seconds** — it walks the whole remote bucket. It
 joins two sources:
@@ -156,8 +174,10 @@ Coverage is the set difference, and every model lands in exactly one class:
 
 `orphan` is a storage question, not a coverage gap, so it is counted separately and never
 folded into the coverage percentage. A model can also be stored several times (`eos1lb5/v1`
-and `/v2`); the script keeps the **best** version's count, since the question is whether the
-predictions exist at all.
+and `/v2`); only its **current** major version (from the Airtable rows marked Latest) is
+measured, because that is what the Hub serves. Data for an older version alone counts as
+missing and is reported as `old_version_only`. Previously the best version counted, which
+showed 59 models as complete whose current version had nothing stored.
 
 If this step exits complaining about the 500-result ceiling, do not work around it by
 raising the limit — the API rejects anything above 500. Tell the user the search API needs
@@ -300,7 +320,9 @@ Full detail in `references/report-template.md`. In order:
    is the only device that makes ~220 models legible at a glance, and a plate is native
    vernacular for the audience.
 4. **Precalculation coverage** — the full table, searchable and sortable, filterable by
-   class.
+   class, with an Airtable column, and an "Airtable check" at the end listing where the
+   Precalculations table disagrees with isaura (all versions). Report-only: fixes go
+   through `model-precalculation`, which confirms every change.
 5. **Singularity images** — its own figure grid plus a matching searchable table. Kept
    structurally parallel to the isaura section, since both answer the same shape of question
    about a different artefact.
@@ -327,5 +349,7 @@ Full detail in `references/report-template.md`. In order:
 - `failing-models-check` — per-check breakdown for models that failed. This skill tells you
   *which* models are failing; that one tells you *what* failed inside them.
 - `model-fixing` — applies fixes once a failure is diagnosed.
+- `model-precalculation` — owns the Airtable Precalculations table: shows the queue, marks
+  jobs Ongoing, and applies the fixes the Airtable check only reports.
 - `github-digest` — issue and PR activity across the org, the operational sibling of this
   report.
