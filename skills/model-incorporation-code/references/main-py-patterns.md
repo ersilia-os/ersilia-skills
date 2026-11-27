@@ -1,242 +1,262 @@
 # main.py Patterns by Model Type
 
-> **IMPORTANT — new models must use `ersilia_pack_utils` for all CSV I/O.**
-> Do not use manual `csv.reader` / `csv.writer`. The standard read/write pattern is:
+Every pattern below has the shape of the current `eos-template` `main.py`: a `load_tool()` for
+the one-time setup and a `run_tool(model, input_file, output_file)` for each batch. They are
+adapted from the hub models named in the titles, so the model in the hub may differ in detail.
+
+## How Ersilia calls main.py
+
+The template's `main.py` looks like this. Replace the placeholder, keep the structure:
+
+```python
+import os
+import sys
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem.Descriptors import MolWt
+from ersilia_pack_utils.core import read_smiles, write_out
+
+root = os.path.dirname(os.path.abspath(__file__))
+checkpoints = os.path.join(root, "..", "..", "checkpoints")
+
+
+# Load the model once. When served, Ersilia keeps the result in memory between batches.
+def load_tool():
+    return MolWt
+
+
+# Run the model on one batch.
+def run_tool(model, input_file, output_file):
+    _, smiles_list = read_smiles(input_file)
+    outputs = np.array([[model(Chem.MolFromSmiles(smi))] for smi in smiles_list])
+    assert len(smiles_list) == len(outputs)
+    header = [f"feat_{str(i).zfill(3)}" for i in range(outputs.shape[1])]
+    write_out(outputs, header, output_file, np.float32)
+
+
+if __name__ == "__main__":
+    run_tool(load_tool(), sys.argv[1], sys.argv[2])
+```
+
+There are two ways in, and the model has to work with both:
+
+- **As a script.** `run.sh` runs `python $1/code/main.py $2 $3`, and so do `ersilia test` and CI.
+  The `__main__` block calls `run_tool(load_tool(), ...)` once.
+- **Warm serving.** A long-lived worker imports `main.py` as a module called `main` (the
+  `__main__` block does not run, and `sys.argv` holds only the script path), calls `load_tool()`
+  once, then calls `run_tool(model, input, output)` for every batch, one batch after the other.
+  The folder of `main.py` is first on `sys.path`, so helper modules next to it import as usual.
+  Printed output goes to the server log, and a `SystemExit` raised by the model counts as a failed
+  batch.
+
+Warm serving is used only when both of these hold:
+
+1. `main.py` defines `load_tool` and `run_tool` as top-level `def`s (it is parsed, so importing
+   them from another module does not count), and
+2. `run.sh` is the default single line `python $1/code/main.py $2 $3`.
+
+Otherwise the model runs once per batch. If `load_tool()` fails the model also falls back to
+`run.sh`, and if the worker dies during a batch that batch is rerun with `run.sh`.
+`ERSILIA_WARM=0` turns warm serving off.
+
+What follows for the code:
+
+- Do the slow, batch-independent work in `load_tool()`: heavy imports, reading
+  `model/checkpoints/`, building the model. Return everything `run_tool()` needs as one object,
+  a tuple or a dict.
+- Keep nothing between batches: no caches that grow, no accumulated lists, no temp files that
+  outlive the call. Each batch must give the same result whatever ran before it.
+- Do no work at module level: no `sys.argv[1]`, no reading the input, no inference. Constants
+  and cheap imports are fine.
+- Do not call `sys.exit()` or parse arguments inside the functions. `run.sh` passes only the
+  input and output paths, so extra flags (a debug switch, say) cannot reach the model.
+
+## Conventions shared by all patterns
+
+> **New models use `ersilia_pack_utils` for all CSV I/O.** Do not use manual `csv.reader` /
+> `csv.writer` for Ersilia's own input and output.
 >
-> ```python
-> from ersilia_pack_utils.core import read_smiles, write_out
-> import numpy as np
->
-> _, smiles_list = read_smiles(input_file)   # reads the smiles column
-> # ... run inference, build outputs list ...
-> write_out(outputs, headers, output_file, np.float32)
-> ```
->
-> Some older models in this file predate `ersilia_pack_utils` and use manual CSV
-> operations — treat those as historical reference only. **All new incorporations
-> must use `ersilia_pack_utils` regardless of what the source model does.**
+> - `read_smiles(input_file)` returns `(header, smiles_list)` and reads `.csv` and `.bin` inputs.
+> - `write_out(outputs, header, output_file, dtype)` writes `.csv` outputs as they are, and `.bin`
+>   outputs as `np.float32` or `np.int32` only (NaN and inf are clipped, and a `None` becomes
+>   NaN with `np.float32`, but cannot be stored with `np.int32`). The `header` must match the
+>   `name` column of `run_columns.csv` exactly.
 
 > **Prefer the `feat_` prefix for representation/featurisation output columns** (e.g.
 > `feat_000` for 512 dims, `feat_0000` for 2048 dims), zero-padding the index to the width
-> of the total dimension count. Older models in this file use `dim_0000` / `dim_000`. This
-> is a convention, not an enforced rule — nothing in the `ersilia` codebase checks the
-> prefix and `dim_` remains the plurality among existing featurizers. See
-> `references/template-structure.md` and ersilia-os/ersilia#1901.
+> of the total dimension count. Older hub models use `dim_0000` / `dim_000`. This is a
+> convention, not an enforced rule — nothing in the `ersilia` codebase checks the prefix and
+> `dim_` remains the plurality among existing featurizers. See `references/template-structure.md`
+> and ersilia-os/ersilia#1901.
 
-Two things consistent across all patterns:
-- Input/output files come from `sys.argv[1]` and `sys.argv[2]`
-- `root = os.path.dirname(os.path.abspath(__file__))` gives the script location
+Also true of every pattern:
+- `root = os.path.dirname(os.path.abspath(__file__))` gives the script location, and
+  `os.path.join(root, "..", "..", "checkpoints")` the checkpoints folder. Never use an absolute path.
+- An invalid or unparseable SMILES gives an empty row (`None`), never an exception that stops the batch.
+- `assert len(smiles_list) == len(outputs)` before writing.
 
 ---
 
 ## Annotation
 
-### eos3b5e — Molecular Weight (pure algorithmic, no checkpoints)
+### Pure algorithmic, no checkpoints — adapted from eos3b5e (molecular weight)
 
 ```python
-# imports
 import os
-import csv
 import sys
+import numpy as np
 from rdkit import Chem
 from rdkit.Chem.Descriptors import MolWt
+from ersilia_pack_utils.core import read_smiles, write_out
 
-# parse arguments
-input_file = sys.argv[1]
-output_file = sys.argv[2]
-
-# current file directory
 root = os.path.dirname(os.path.abspath(__file__))
 
-# my model
-def my_model(smiles_list):
-    return [MolWt(Chem.MolFromSmiles(smi)) for smi in smiles_list]
 
-# read SMILES from .csv file, assuming one column with header
-with open(input_file, "r") as f:
-    reader = csv.reader(f)
-    next(reader)  # skip header
-    smiles_list = [r[0] for r in reader]
+def load_tool():
+    # nothing to load: the "model" is a function
+    return MolWt
 
-# run model
-outputs = my_model(smiles_list)
 
-# check input and output have the same length
-assert len(smiles_list) == len(outputs)
+def run_tool(model, input_file, output_file):
+    _, smiles_list = read_smiles(input_file)
+    outputs = []
+    for smi in smiles_list:
+        mol = Chem.MolFromSmiles(smi)
+        outputs.append([model(mol) if mol is not None else None])
+    assert len(smiles_list) == len(outputs)
+    write_out(outputs, ["mol_weight"], output_file, np.float32)  # match run_columns.csv
 
-# write output in a .csv file
-with open(output_file, "w") as f:
-    writer = csv.writer(f)
-    writer.writerow(["mol_weight"])  # header — match run_columns.csv name(s)
-    for o in outputs:
-        writer.writerow([o])
+
+if __name__ == "__main__":
+    run_tool(load_tool(), sys.argv[1], sys.argv[2])
 ```
 
 ---
 
-### eos7d58 — ADMET-AI (library-based, DataFrame output)
+### Library-based, DataFrame output — adapted from eos7d58 (ADMET-AI)
 
 ```python
-# imports
 import os
-import csv
 import sys
+import numpy as np
+from ersilia_pack_utils.core import read_smiles, write_out
 
-from admet_ai import ADMETModel
-
-# parse arguments
-input_file = sys.argv[1]
-output_file = sys.argv[2]
-
-# current file directory
 root = os.path.dirname(os.path.abspath(__file__))
 
-# my model
-def my_model(smiles_list):
-    model = ADMETModel()
-    preds = model.predict(smiles=smiles_list)
-    return preds
 
-# read SMILES from .csv file, assuming one column with header
-with open(input_file, "r") as f:
-    reader = csv.reader(f)
-    next(reader)  # skip header
-    smiles_list = [r[0] for r in reader]
+def load_tool():
+    # heavy import and model construction happen once
+    from admet_ai import ADMETModel
 
-# run model
-outputs = my_model(smiles_list)
+    return ADMETModel()
 
-# check input and output have the same length
-assert len(smiles_list) == len(outputs)
 
-rename_map = {c: c.lower().replace("-", "_") for c in outputs.columns}
-outputs = outputs.rename(columns=rename_map)
-outputs.to_csv(output_file, index=False)
+def run_tool(model, input_file, output_file):
+    _, smiles_list = read_smiles(input_file)
+    preds = model.predict(smiles=smiles_list)  # a DataFrame, one row per molecule
+    assert len(smiles_list) == len(preds)
+    header = [c.lower().replace("-", "_") for c in preds.columns]  # match run_columns.csv
+    write_out(preds.to_numpy(), header, output_file, np.float32)
+
+
+if __name__ == "__main__":
+    run_tool(load_tool(), sys.argv[1], sys.argv[2])
 ```
 
 ---
 
-### eos7ike — Property filters (subprocess, temp files, multi-output)
+### Subprocess, temp files, multi-output — adapted from eos7ike (property filters)
+
+The tool is a script run in a subprocess, so there is nothing slow to load. Each batch gets its
+own temp folder, removed at the end. (The original also patches an OpenBabel compatibility
+issue through a generated `sitecustomize.py`; that is left out here.)
 
 ```python
-# imports
-import os
 import csv
-import sys
-import subprocess
-import tempfile
+import os
 import shutil
+import subprocess
+import sys
+import tempfile
+import numpy as np
+from ersilia_pack_utils.core import read_smiles, write_out
 
-# get path of current python executable
-python_executable = sys.executable
-
-# parse arguments
-input_file = sys.argv[1]
-output_file = sys.argv[2]
-
-# current file directory
 root = os.path.dirname(os.path.abspath(__file__))
 
-# read SMILES from .csv file, assuming one column with header
-with open(input_file, "r") as f:
-    reader = csv.reader(f)
-    next(reader)  # skip header
-    smiles_list = [r[0] for r in reader]
 
-tmp_folder = tempfile.mkdtemp()
-os.makedirs(tmp_folder, exist_ok=True)
-input_tmp = os.path.join(tmp_folder, "input.smi")
-with open(input_tmp, "w") as f:
-    for i, smi in enumerate(smiles_list):
-        f.write(f"{smi} mol_{i}\n")
+def load_tool():
+    return {
+        "python": sys.executable,
+        "script": os.path.join(root, "entry-cli", "calc_props.py"),
+    }
 
-output_tmp = os.path.join(tmp_folder, "output.csv")
 
-bash_file = os.path.join(tmp_folder, "run_model.sh")
-bash_content = f"""
-PATCHDIR="{tmp_folder}"
-cat > "$PATCHDIR/sitecustomize.py" <<'PY'
-try:
-    from openbabel import openbabel as ob
-    if not hasattr(ob, "OBForceField_FindType") and hasattr(ob, "OBForceField"):
-        if hasattr(ob.OBForceField, "FindType"):
-            ob.OBForceField_FindType = ob.OBForceField.FindType
-        elif hasattr(ob.OBForceField, "FindForceField"):
-            ob.OBForceField_FindType = ob.OBForceField.FindForceField
-except Exception:
-    pass
-PY
-export PYTHONPATH="$PATCHDIR:$PYTHONPATH"
-{python_executable} {root}/entry-cli/calc_props.py -b {input_tmp} -o {output_tmp}
-"""
+def run_tool(model, input_file, output_file):
+    _, smiles_list = read_smiles(input_file)
+    tmp_folder = tempfile.mkdtemp()
+    try:
+        input_tmp = os.path.join(tmp_folder, "input.smi")
+        output_tmp = os.path.join(tmp_folder, "output.csv")
+        with open(input_tmp, "w") as f:
+            for i, smi in enumerate(smiles_list):
+                f.write(f"{smi} mol_{i}\n")
 
-with open(bash_file, "w") as f:
-    f.write(bash_content.strip())
+        process = subprocess.run(
+            [model["python"], model["script"], "-b", input_tmp, "-o", output_tmp],
+            capture_output=True,
+            text=True,
+        )
+        if process.stdout:
+            print(process.stdout)
+        if process.stderr:
+            print(process.stderr)
 
-process = subprocess.Popen(f"bash {bash_file}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-stdout, stderr = process.communicate()
-if stdout:
-    print("Subprocess output:")
-    print(stdout)
-if stderr:
-    print("Subprocess errors:")
-    print(stderr)
+        outputs = []
+        with open(output_tmp, "r") as f:  # the tool's own file, not Ersilia's I/O
+            reader = csv.reader(f)
+            next(reader)
+            for r in reader:
+                if r[3] is None or str(r[3]) == "":
+                    outputs.append([None, None, None])
+                else:
+                    outputs.append(
+                        [
+                            1 if int(r[3]) <= 5 else 0,
+                            1 if float(r[4]) <= 0.25 else 0,
+                            1 if str(r[6]) == "True" else 0,
+                        ]
+                    )
+    finally:
+        shutil.rmtree(tmp_folder, ignore_errors=True)
 
-rb = []
-glob = []
-primary_amine = []
+    assert len(smiles_list) == len(outputs)
+    # float32, not int32: a None (invalid molecule) cannot be stored as int32
+    write_out(outputs, ["rb", "glob", "primary_amine"], output_file, np.float32)
 
-with open(output_tmp, "r") as f:
-    reader = csv.reader(f)
-    next(reader)
-    for r in reader:
-        if r[3] is None or str(r[3]) == "":
-            rb += [None]
-            glob += [None]
-            primary_amine += [None]
-        else:
-            rb_ = int(r[3])
-            glob_ = float(r[4])
-            pa_ = str(r[6])
-            rb += [1 if rb_ <= 5 else 0]
-            glob += [1 if glob_ <= 0.25 else 0]
-            primary_amine += [1 if pa_ == "True" else 0]
 
-outputs = [[rb[i], glob[i], primary_amine[i]] for i in range(len(smiles_list))]
-
-assert len(smiles_list) == len(outputs)
-
-with open(output_file, "w") as f:
-    writer = csv.writer(f)
-    writer.writerow(["rb", "glob", "primary_amine"])
-    for o in outputs:
-        writer.writerow(o)
-
-shutil.rmtree(tmp_folder)
+if __name__ == "__main__":
+    run_tool(load_tool(), sys.argv[1], sys.argv[2])
 ```
 
 ---
 
 ## Representation
 
-### eos5axz — ECFP Morgan Fingerprints (ersilia_pack_utils)
+### Fingerprint — adapted from eos5axz (ECFP Morgan)
 
 ```python
-import csv, json, os, struct, sys, time
-from pathlib import Path
+import os
+import sys
+import numpy as np
 from rdkit import Chem
 from rdkit.Chem import rdFingerprintGenerator
-import numpy as np
-from ersilia_pack_utils.core import write_out, read_smiles
-
-input_file = sys.argv[1]
-output_file = sys.argv[2]
+from ersilia_pack_utils.core import read_smiles, write_out
 
 root = os.path.dirname(os.path.abspath(__file__))
 
 RADIUS = 3
 NBITS = 2048
-mfpgen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=NBITS)
+
 
 def clip_sparse(vect, nbits):
     l = [0] * nbits
@@ -244,239 +264,217 @@ def clip_sparse(vect, nbits):
         l[i] = v if v < 255 else 255
     return l
 
-def morganfp(mol):
-    v = mfpgen.GetCountFingerprint(mol)
-    return clip_sparse(v, NBITS)
 
-outputs = []
-empty_output = [None] * NBITS
-_, smiles_list = read_smiles(input_file)
-for smiles in smiles_list:
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        outputs += [empty_output]
-        continue
-    fp = morganfp(mol)
-    fp = np.array(fp, dtype=int)
-    outputs += [fp]
+def load_tool():
+    return rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=NBITS)
 
-assert len(smiles_list) == len(outputs)
 
-headers = ["dim_{0}".format(str(i).zfill(4)) for i in range(len(outputs[0]))]
-write_out(outputs, headers, output_file, np.float32)
+def run_tool(model, input_file, output_file):
+    _, smiles_list = read_smiles(input_file)
+    outputs = []
+    empty_output = [None] * NBITS
+    for smi in smiles_list:
+        mol = Chem.MolFromSmiles(smi)
+        if mol is None:
+            outputs.append(empty_output)
+            continue
+        outputs.append(clip_sparse(model.GetCountFingerprint(mol), NBITS))
+    assert len(smiles_list) == len(outputs)
+    header = [f"feat_{str(i).zfill(4)}" for i in range(NBITS)]  # eos5axz itself uses dim_
+    write_out(outputs, header, output_file, np.float32)
+
+
+if __name__ == "__main__":
+    run_tool(load_tool(), sys.argv[1], sys.argv[2])
 ```
 
 ---
 
-### eos9o72 — CheMeleon Fingerprint (ersilia_pack_utils)
+### Pretrained embedding from a library — adapted from eos9o72 (CheMeleon)
 
 ```python
-# imports
 import os
 import sys
 import numpy as np
-from chemeleon_fingerprint import CheMeleonFingerprint
 from ersilia_pack_utils.core import read_smiles, write_out
 
-# parse arguments
-input_file = sys.argv[1]
-output_file = sys.argv[2]
-
-# current file directory
 root = os.path.dirname(os.path.abspath(__file__))
 
-# read input
-_, smiles_list = read_smiles(input_file)
 
-# Run model
-chemeleon_fingerprint = CheMeleonFingerprint()
-outputs = chemeleon_fingerprint(smiles_list)
+def load_tool():
+    from chemeleon_fingerprint import CheMeleonFingerprint
 
-assert len(smiles_list) == len(outputs)
+    return CheMeleonFingerprint()
 
-header = [f"dim_{str(i).zfill(4)}" for i in range(2048)]
 
-write_out(outputs, header, output_file, np.float32)
+def run_tool(model, input_file, output_file):
+    _, smiles_list = read_smiles(input_file)
+    outputs = np.asarray(model(smiles_list))
+    assert len(smiles_list) == len(outputs)
+    header = [f"feat_{str(i).zfill(4)}" for i in range(outputs.shape[1])]
+    write_out(outputs, header, output_file, np.float32)
+
+
+if __name__ == "__main__":
+    run_tool(load_tool(), sys.argv[1], sys.argv[2])
 ```
 
 ---
 
-### eos39co — UniMol Representations (batched, timeout handling, temp dir)
+### Checkpoint copied to a temp folder, batching and timeouts — adapted from eos39co (UniMol)
+
+The library reads its weights from a writable folder, so `load_tool()` copies the checkpoint
+into a temp folder. That folder is removed when the process ends (`atexit`), because a warm
+worker lives across batches. The batching and timeouts stay in `run_tool()`.
 
 ```python
+import atexit
 import os
-import csv
-import sys
 import shutil
+import sys
 import tempfile
-import numpy as np
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
-
-input_file = os.path.abspath(sys.argv[1])
-output_file = os.path.abspath(sys.argv[2])
-
-_tmp_dir = tempfile.mkdtemp()
-os.environ['UNIMOL_WEIGHT_DIR'] = _tmp_dir
-os.environ['HF_HOME'] = _tmp_dir
-
-_orig_dir = os.getcwd()
-os.chdir(_tmp_dir)
-from unimol_tools import UniMolRepr
-for _m in list(sys.modules.values()):
-    if 'unimol_tools' in getattr(_m, '__name__', '') and hasattr(_m, 'WEIGHT_DIR'):
-        _m.WEIGHT_DIR = _tmp_dir
-os.chdir(_orig_dir)
-
-with open(input_file, "r") as f:
-    reader = csv.reader(f)
-    next(reader)
-    smiles_list = [r[0] for r in reader]
+import numpy as np
+from ersilia_pack_utils.core import read_smiles, write_out
 
 root = os.path.dirname(os.path.abspath(__file__))
-_weight_file = 'mol_pre_all_h_220816.pt'
-_weight_src = os.path.join(root, '..', '..', 'checkpoints', _weight_file)
-shutil.copy2(_weight_src, os.path.join(_tmp_dir, _weight_file))
+checkpoints = os.path.join(root, "..", "..", "checkpoints")
 
-clf = UniMolRepr(data_type='molecule', remove_hs=False, use_gpu=False)
-
+WEIGHT_FILE = "mol_pre_all_h_220816.pt"
 BATCH_SIZE = 100
 BATCH_TIMEOUT = 1000
 MOL_TIMEOUT = 10
 N_DIMS = 512
-nan_row = [''] * N_DIMS
 
-def get_repr(smiles):
-    result = clf.get_repr(smiles, return_atomic_reprs=False)
-    return np.array(result['cls_repr'])
 
-rows = []
-for i in range(0, len(smiles_list), BATCH_SIZE):
-    batch = smiles_list[i:i + BATCH_SIZE]
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(get_repr, batch)
-        try:
-            batch_repr = future.result(timeout=BATCH_TIMEOUT)
-            rows.extend(batch_repr.tolist())
-        except TimeoutError:
-            for smi in batch:
-                with ThreadPoolExecutor(max_workers=1) as ex:
-                    f = ex.submit(get_repr, [smi])
-                    try:
-                        mol_repr = f.result(timeout=MOL_TIMEOUT)
-                        rows.append(mol_repr[0].tolist())
-                    except TimeoutError:
-                        rows.append(nan_row)
+def load_tool():
+    tmp_dir = tempfile.mkdtemp()
+    atexit.register(shutil.rmtree, tmp_dir, ignore_errors=True)
+    os.environ["UNIMOL_WEIGHT_DIR"] = tmp_dir
+    os.environ["HF_HOME"] = tmp_dir
 
-X = np.array(rows)
-assert len(smiles_list) == X.shape[0]
+    orig_dir = os.getcwd()
+    os.chdir(tmp_dir)
+    try:
+        from unimol_tools import UniMolRepr
 
-header = ["dim_{0}".format(str(i).zfill(3)) for i in range(X.shape[1])]
+        for m in list(sys.modules.values()):
+            if "unimol_tools" in getattr(m, "__name__", "") and hasattr(m, "WEIGHT_DIR"):
+                m.WEIGHT_DIR = tmp_dir
+    finally:
+        os.chdir(orig_dir)
 
-with open(output_file, "w") as f:
-    writer = csv.writer(f)
-    writer.writerow(header)
-    for row in X:
-        writer.writerow(row.tolist())
+    shutil.copy2(os.path.join(checkpoints, WEIGHT_FILE), os.path.join(tmp_dir, WEIGHT_FILE))
+    return UniMolRepr(data_type="molecule", remove_hs=False, use_gpu=False)
 
-shutil.rmtree(_tmp_dir, ignore_errors=True)
+
+def run_tool(model, input_file, output_file):
+    _, smiles_list = read_smiles(input_file)
+
+    def get_repr(smiles):
+        result = model.get_repr(smiles, return_atomic_reprs=False)
+        return np.array(result["cls_repr"])
+
+    nan_row = [None] * N_DIMS
+    rows = []
+    for i in range(0, len(smiles_list), BATCH_SIZE):
+        batch = smiles_list[i : i + BATCH_SIZE]
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(get_repr, batch)
+            try:
+                rows.extend(future.result(timeout=BATCH_TIMEOUT).tolist())
+            except TimeoutError:
+                for smi in batch:  # retry one molecule at a time
+                    with ThreadPoolExecutor(max_workers=1) as ex:
+                        f = ex.submit(get_repr, [smi])
+                        try:
+                            rows.append(f.result(timeout=MOL_TIMEOUT)[0].tolist())
+                        except TimeoutError:
+                            rows.append(nan_row)
+
+    X = np.array(rows, dtype=float)  # a None becomes NaN
+    assert len(smiles_list) == X.shape[0]
+    header = [f"feat_{str(i).zfill(3)}" for i in range(X.shape[1])]
+    write_out(X, header, output_file, np.float32)
+
+
+if __name__ == "__main__":
+    run_tool(load_tool(), sys.argv[1], sys.argv[2])
 ```
 
 ---
 
 ## Sampling
 
-### eos2hzy — PubChem Sampler (simple, local sampler class)
+Generators write strings (SMILES). `write_out` writes any values to a `.csv` output path, but a
+`.bin` output path accepts only `np.float32` / `np.int32`. `ersilia-pack` can use either format,
+so check with an Ersilia maintainer how a model with string output columns is served before
+relying on `write_out` for it.
+
+### Simple sampler class — adapted from eos2hzy (PubChem sampler)
+
+`sampler.py` is a helper module in `model/framework/code/`.
 
 ```python
-# imports
 import os
-import csv
 import sys
 from tqdm import tqdm
+from ersilia_pack_utils.core import read_smiles, write_out
 from sampler import PubChemSampler
 
-# parse arguments
-input_file = sys.argv[1]
-output_file = sys.argv[2]
-
-# current file directory
 root = os.path.dirname(os.path.abspath(__file__))
 
-# read SMILES from .csv file, assuming one column with header
-with open(input_file, "r") as f:
-    reader = csv.reader(f)
-    next(reader)  # skip header
-    smiles_list = [r[0] for r in reader]
+N_SAMPLES = 100
 
-# run model
-sampler = PubChemSampler()
-outputs = []
-for smi in tqdm(smiles_list, desc="Sampling"):
-    o = sampler.sample(smi)
-    outputs += [o]
 
-# write output in a .csv file
-with open(output_file, "w") as f:
-    writer = csv.writer(f)
-    writer.writerow([f"smiles_{i:02d}" for i in range(100)])  # header
-    for o in outputs:
-        writer.writerow(o)
+def load_tool():
+    return PubChemSampler()
+
+
+def run_tool(model, input_file, output_file):
+    _, smiles_list = read_smiles(input_file)
+    outputs = [model.sample(smi) for smi in tqdm(smiles_list, desc="Sampling")]
+    assert len(smiles_list) == len(outputs)
+    header = [f"smi_{i:02d}" for i in range(N_SAMPLES)]  # eos2hzy itself uses smiles_
+    write_out(outputs, header, output_file)
+
+
+if __name__ == "__main__":
+    run_tool(load_tool(), sys.argv[1], sys.argv[2])
 ```
 
 ---
 
-### eos6ost — LibInvent (batch sampling, debug mode, JSON logging)
+### Batch sampling — adapted from eos6ost (LibInvent)
+
+The original also takes a debug flag as a third argument and writes a JSON log next to the
+output. Neither fits `run_tool(model, input_file, output_file)`, so both are left out.
 
 ```python
-# imports
-import sys
 import os
-import csv
-import json
-
-import click
-from reinvent.config_parse import read_smiles_csv_file
-
+import sys
+from ersilia_pack_utils.core import read_smiles, write_out
 from libinvent_sampler import LibinventSampler
 
-# parse arguments
-input_file = sys.argv[1]
-output_file = sys.argv[2]
+root = os.path.dirname(os.path.abspath(__file__))
 
-is_debug = sys.argv[3] == "True" if len(sys.argv) > 3 else False
-log_file = output_file + ".json"
+BATCH_SIZE = 1000  # molecules sampled per input
 
-batch_size = 1000
-input_smiles = None
 
-if os.path.exists(input_file):
-    input_smiles = read_smiles_csv_file(input_file, columns=0, header=True)
-else:
-    click.echo(click.style(f"[INPUT_FILE]: {input_file} doesn't exist.", fg="red"))
+def load_tool():
+    return LibinventSampler(batch_size=BATCH_SIZE, is_debug=False)
 
-libinvent_sampler = LibinventSampler(batch_size=batch_size, is_debug=is_debug)
 
-outputs, _, log_libinvent = libinvent_sampler.generate(input_smiles=input_smiles)
+def run_tool(model, input_file, output_file):
+    _, input_smiles = read_smiles(input_file)
+    outputs, _, _ = model.generate(input_smiles=input_smiles)
+    assert len(input_smiles) == len(outputs)
+    header = [f"smi_{str(i).zfill(3)}" for i in range(BATCH_SIZE)]
+    write_out(outputs, header, output_file)
 
-assert len(input_smiles) == len(outputs)
 
-HEADER = ["smi_{0}".format(str(x).zfill(3)) for x in range(batch_size)]
-
-with open(output_file, "w", newline="") as fp:
-    csv_writer = csv.writer(fp)
-    csv_writer.writerows([HEADER])
-    csv_writer.writerows(outputs)
-
-if is_debug:
-    log = {
-        "start": log_libinvent["start"],
-        "end": log_libinvent["end"],
-        "input_smiles": log_libinvent["input_smiles"],
-        "total": log_libinvent["total"],
-        "expected": batch_size * len(input_smiles),
-    }
-    with open(os.path.abspath(log_file), "w", newline="\n") as fp:
-        json.dump(log, fp)
+if __name__ == "__main__":
+    run_tool(load_tool(), sys.argv[1], sys.argv[2])
 ```
 
 ---
@@ -485,10 +483,16 @@ if is_debug:
 
 | Pitfall | Fix |
 |---------|-----|
+| `load_tool` / `run_tool` imported from a helper module, or defined inside `if __name__ == "__main__"` | Define both as top-level `def`s in `main.py`; warm serving parses `main.py` for them |
+| Edited `run.sh` | Keep the default single line `python $1/code/main.py $2 $3`; any other `run.sh` runs the model once per batch |
+| Model loaded inside `run_tool()` or inside the per-SMILES loop (reloaded every batch) | Load once in `load_tool()`, return it, reuse it in `run_tool()` |
+| `sys.argv[1]`, reading the input or running inference at module level | Only inside `run_tool()` or the `__main__` block; the warm worker imports `main.py` with `sys.argv` cut down to the script path |
+| State kept between batches (caches, appended lists, temp files left behind) | Build it per batch and clean it up; each batch must give the same result whatever ran before it |
+| `sys.exit()` or argument parsing inside the functions | Remove it; `run.sh` passes only the input and output paths, and a `SystemExit` fails the batch |
 | Hardcoded absolute path to checkpoints | Use `os.path.join(root, "..", "..", "checkpoints")` |
-| Model loaded inside the loop (slow) | Load once at module level, reuse per SMILES |
-| Exception crashes the whole batch | Wrap per-molecule inference in `try/except`, return `None` |
+| Exception crashes the whole batch | Wrap per-molecule inference in `try/except`, return `None` for that row |
 | Output length != input length | Always `assert len(smiles_list) == len(outputs)` |
+| `np.int32` with missing rows | `None` cannot be stored as `int32`; use `np.float32` when rows can be empty |
 | GPU not available in Docker | Default to CPU (`map_location="cpu"`) |
-| Missing helper `.py` from source repo | Copy into `model/framework/code/` and `sys.path.insert(0, root)` |
-| Column names don't match run_columns.csv | Header row in `writerow` must exactly match `name` column |
+| Missing helper `.py` from source repo | Copy into `model/framework/code/`; that folder is first on `sys.path` both as a script and under warm serving |
+| Column names don't match run_columns.csv | The `header` passed to `write_out` must exactly match the `name` column |

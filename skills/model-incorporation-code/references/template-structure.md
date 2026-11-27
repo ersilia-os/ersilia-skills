@@ -11,7 +11,7 @@
     └── framework/
         ├── run.sh          # entry-point shell script (rarely needs editing)
         ├── code/
-        │   ├── main.py     # primary inference script — THIS IS THE MAIN TARGET
+        │   ├── main.py     # load_tool() + run_tool() — THIS IS THE MAIN TARGET
         │   └── *.py        # helper scripts copied from the source model
         ├── columns/
         │   └── run_columns.csv
@@ -221,35 +221,48 @@ the skill for the exact commands.
 
 ## main.py – skeleton reference
 
-The template's `main.py` already contains boilerplate for argument parsing and CSV I/O.
-The only part contributors need to replace is the `my_model` function and its imports.
+The template's `main.py` is split into two top-level functions: `load_tool()` for the slow,
+one-time setup, and `run_tool(model, input_file, output_file)` for one batch. Contributors
+replace the molecular-weight placeholder (the `MolWt` import, the body of `load_tool()`, and the
+prediction and header in `run_tool()`) and keep the structure.
 
 ```python
-# ── imports ────────────────────────────────────────────────────────────────
-import os, sys, csv
-# ... source model imports go here ...
+import os
+import sys
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem.Descriptors import MolWt
+from ersilia_pack_utils.core import read_smiles, write_out
 
-# ── checkpoint path helper ─────────────────────────────────────────────────
-root = os.path.dirname(os.path.abspath(__file__))           # .../framework/code/
-checkpoints_dir = os.path.join(root, "..", "..", "checkpoints")  # .../checkpoints/
+root = os.path.dirname(os.path.abspath(__file__))
+checkpoints = os.path.join(root, "..", "..", "checkpoints")
 
-# ── model loading (done once at import time or inside my_model) ────────────
-# model = load_model(os.path.join(checkpoints_dir, "weights.pt"))
 
-# ── inference function ──────────────────────────────────────────────────────
-def my_model(smiles_list):
-    """
-    Accept a list of SMILES strings.
-    Return a list of predictions in the same order.
-    Invalid / unparseable SMILES should return None (or a list of Nones for
-    multi-output models) rather than raising an exception.
-    """
-    results = []
-    for smi in smiles_list:
-        try:
-            # ... run inference ...
-            results.append(prediction)
-        except Exception:
-            results.append(None)
-    return results
+# Load the model once. When served, Ersilia keeps the result in memory between batches.
+def load_tool():
+    return MolWt
+
+
+# Run the model on one batch.
+def run_tool(model, input_file, output_file):
+    _, smiles_list = read_smiles(input_file)
+    outputs = np.array([[model(Chem.MolFromSmiles(smi))] for smi in smiles_list])
+    assert len(smiles_list) == len(outputs)
+    header = [f"feat_{str(i).zfill(3)}" for i in range(outputs.shape[1])]
+    write_out(outputs, header, output_file, np.float32)
+
+
+if __name__ == "__main__":
+    run_tool(load_tool(), sys.argv[1], sys.argv[2])
 ```
+
+Rules that follow from how Ersilia calls these functions (details, and one pattern per model
+type, in `references/main-py-patterns.md`):
+
+- Define `load_tool` and `run_tool` as top-level `def`s in `main.py` itself, and leave `run.sh`
+  as the default single line `python $1/code/main.py $2 $3`. Warm serving needs both.
+- Heavy imports, reading `model/checkpoints/` and building the model go in `load_tool()`, which
+  returns everything `run_tool()` needs. Nothing is kept between batches.
+- No work at module level (no `sys.argv`, no inference), and no `sys.exit()` in the functions.
+- Invalid or unparseable SMILES give an empty row (`None`), never an exception.
+- The `header` passed to `write_out` must match the `name` column of `run_columns.csv`.

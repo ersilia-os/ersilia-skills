@@ -6,7 +6,7 @@ description: >
   original ML code, (2) an ersilia-model-template repository (already forked/cloned),
   and (3) optionally a PDF of the scientific article — and needs to wire up the
   actual model code. The skill handles all coding steps: copying checkpoints into
-  the repo (eosvc only for a folder with a file of 100 MiB or more; fit/ to eosvc once it holds training code or data), adapting main.py to
+  the repo (eosvc only for a folder with a file of 100 MiB or more; fit/ to eosvc once it holds training code or data), adapting main.py (its load_tool() and run_tool() functions) to
   replace the molecular-weight placeholder with real inference, creating run_columns.csv, updating install.yml with pinned versions,
   and producing run_input.csv and run_output.csv by actually running the model.
   Trigger on phrases like "incorporate model code", "fill in the template", "adapt
@@ -69,7 +69,7 @@ Ask the user whenever something is ambiguous or unclear — better to clarify ea
 than to make wrong assumptions that affect the whole integration.
 
 ### 1c. Read the template repository
-Open the template's `model/framework/code/main.py` to see the placeholder structure.
+Open the template's `model/framework/code/main.py` to see its two functions, `load_tool()` and `run_tool()`, and the placeholder they wrap.
 Also read `install.yml`, `.gitattributes` (if present), and `model/framework/run.sh` so you understand
 the wiring before writing anything.
 
@@ -93,7 +93,7 @@ Google Drive, direct URL) in the README.
 1. Copy checkpoint files into `<template-repo-path>/model/checkpoints/`. If they are linked
    externally, download them now using `wget`, `curl`, or the appropriate Python client
    (e.g. `huggingface_hub`, `gdown`), and pin the exact version (e.g. a Hugging Face
-   revision). The model must never download weights at run time: `main.py` loads them from
+   revision). The model must never download weights at run time: `load_tool()` in `main.py` loads them from
    `model/checkpoints/` (for Hugging Face, `local_files_only=True`). Weights never live in
    `model/framework/code/`; update the paths in the copied code instead.
 2. Store them following the Ersilia storage rule ([Checkpoints and storage](https://ersilia.gitbook.io/ersilia-book/ersilia-model-hub/model-contribution/model-template#checkpoints-and-storage)).
@@ -191,35 +191,75 @@ Do not create any files. Do not proceed to Phase 3.
 
 ## Phase 3 – Adapt main.py
 
-Open `<template-repo-path>/model/framework/code/main.py`. Replace the `my_model`
-placeholder function (which calculates molecular weight) with a function that:
+Open `<template-repo-path>/model/framework/code/main.py`. The template splits it into two
+top-level functions, so that Ersilia can serve the model warm (loaded once and kept in memory
+between batches):
 
-1. Loads the model/checkpoints from the relative path
-   `../../checkpoints/` (relative to the script location — do NOT use absolute paths).
-2. Accepts a list of SMILES strings.
-3. Returns a list of predictions in the same order.
+- **`load_tool()`** does everything slow and independent of the batch: heavy imports, reading
+  the checkpoints from `model/checkpoints/`, building the model. It returns the loaded model.
+  In the template it returns the molecular-weight placeholder `MolWt`.
+- **`run_tool(model, input_file, output_file)`** processes one batch: `read_smiles`, predict,
+  `write_out`. It must not reload anything and must not depend on state left over from an
+  earlier batch.
 
-All new models must use `ersilia_pack_utils` for CSV I/O — do not use manual
-`csv.reader` / `csv.writer`. The standard pattern is:
+Replace the placeholder (the `MolWt` import, the body of `load_tool()`, and the prediction and
+header in `run_tool()`) and keep the rest of the template, including the `__main__` block:
 
 ```python
-from ersilia_pack_utils.core import read_smiles, write_out
-_, smiles_list = read_smiles(input_file)
-# ... run inference ...
-write_out(outputs, headers, output_file, np.float32)
+if __name__ == "__main__":
+    input_file = sys.argv[1]
+    output_file = sys.argv[2]
+    run_tool(load_tool(), input_file, output_file)
 ```
 
-**Keep `main.py` minimal.** It should contain only argument parsing, I/O, and a single call to `my_model()`. Any logic beyond a few lines — model class definitions, preprocessing, postprocessing, custom tokenisation — belongs in dedicated helper modules (e.g. `predict.py`, `preprocess.py`) in `model/framework/code/`, imported by `main.py`. Create these helper files yourself when needed; do not wait for them to exist in the source model.
+`run.sh`, `ersilia test` and CI still run `main.py` as a script, so the model must work both
+ways. `run.sh` passes only the input and output paths, so there is no room for extra
+command-line arguments or flags.
 
-Copy any additional helper `.py` files from the source model that are needed into
-`<template-repo-path>/model/framework/code/`.
+Rules (the reasons are in `references/main-py-patterns.md`, "How Ersilia calls main.py"):
+
+1. **Define both functions at the top level of `main.py` itself.** Warm serving parses
+   `main.py` and looks for top-level `def load_tool` and `def run_tool`; importing them from a
+   helper module is not enough.
+2. **Do not edit `run.sh`.** Warm serving is used only when `run.sh` is the default single line
+   `python $1/code/main.py $2 $3`. With any other `run.sh`, or when `load_tool()` fails, the
+   model runs once per batch.
+3. **No work at module level.** The warm worker imports `main.py` as a module called `main`,
+   with `sys.argv` cut down to the script path and the `__main__` block skipped. Reading
+   `sys.argv[1]`, reading the input or running inference at module level breaks that import.
+   Constants and cheap imports are fine.
+4. **`load_tool()` returns everything `run_tool()` needs**, as one object, a tuple or a dict
+   (for example a network, its tokenizer and a scaler). Keep nothing between batches.
+5. **Load the checkpoints in `load_tool()`**, from `model/checkpoints/`, with a path built from
+   `os.path.dirname(os.path.abspath(__file__))` (`"..", "..", "checkpoints"`). Never use an
+   absolute path and never download weights.
+6. **Use `ersilia_pack_utils` for CSV I/O** — do not use manual `csv.reader` / `csv.writer`:
+
+   ```python
+   from ersilia_pack_utils.core import read_smiles, write_out
+   _, smiles_list = read_smiles(input_file)
+   # ... run inference ...
+   write_out(outputs, header, output_file, np.float32)
+   ```
+
+   `read_smiles` returns `(header, smiles_list)` and reads `.csv` and `.bin` inputs.
+   `write_out` writes `.csv` outputs as they are and `.bin` outputs as `np.float32` or `np.int32`
+   only (NaN and inf are clipped). The `header` must match the `name` column of
+   `run_columns.csv` exactly (Phase 4).
+7. **Keep `main.py` minimal.** Logic beyond a few lines — model class definitions,
+   preprocessing, postprocessing, custom tokenisation — belongs in dedicated helper modules
+   (e.g. `predict.py`, `preprocess.py`) in `model/framework/code/`, imported by `main.py` and
+   called from the two functions. Create these helper files yourself when needed; do not wait for
+   them to exist in the source model, and copy any helper `.py` files from the source model that
+   are needed into `<template-repo-path>/model/framework/code/`.
 
 See `references/main-py-patterns.md` for annotated patterns organised by model type.
 
 **Important checks before finishing main.py:**
 - Test that `main.py` runs without errors on a single SMILES first.
 - Confirm outputs are in the correct order (same order as input SMILES).
-- Handle invalid / unparseable SMILES gracefully (return `None` or a sentinel value).
+- Handle invalid / unparseable SMILES gracefully (return `None` or a sentinel value for that row).
+- Confirm the loaded model can be reused: Phase 6 calls `run_tool()` twice on one loaded model.
 
 ---
 
@@ -395,7 +435,25 @@ To produce `run_output.csv`, actually run the model:
    ```
 4. Inspect the output — verify row count (3), column names match run_columns.csv,
    and values are in the expected range.
-5. Copy the output to `<template-repo-path>/model/framework/examples/run_output.csv`.
+5. Check that one loaded model can be reused, the way warm serving calls it. From the same
+   environment and repo root, call `run_tool()` twice on one `load_tool()` result:
+   ```bash
+   python - <<'EOF'
+   import sys
+   sys.path.insert(0, "model/framework/code")
+   sys.argv = ["main.py"]
+   import main
+   model = main.load_tool()
+   inp = "model/framework/examples/run_input.csv"
+   main.run_tool(model, inp, "/tmp/run_output_1.csv")
+   main.run_tool(model, inp, "/tmp/run_output_2.csv")
+   EOF
+   diff /tmp/run_output_1.csv /tmp/run_output_2.csv && echo identical
+   ```
+   Both runs must succeed and give the same output. A difference means something is kept
+   between batches (or, for a model with `Variable` output consistency, that it is stochastic:
+   then only check that both runs succeed and have 3 rows).
+6. Copy the output of step 3 to `<template-repo-path>/model/framework/examples/run_output.csv`.
 
 If the model fails, debug the environment (missing package, wrong path, CUDA issue)
 before writing the file. DO NOT FABRICATE OUTPUT VALUES.
@@ -408,7 +466,7 @@ Before declaring the work done, verify:
 
 - [ ] `model/checkpoints/` contains all required files, and `main.py` loads them from there (no downloads at run time). It is committed to git unless a file is 100 MiB or larger; then it is gitignored, named in `access.json` and uploaded with eosvc. A populated `model/framework/fit/` is always on eosvc
 - [ ] `mock.txt`, `.gitattributes` and `.eosvc/` deleted from the template root
-- [ ] `model/framework/code/main.py` runs end-to-end without errors
+- [ ] `model/framework/code/main.py` defines top-level `load_tool()` and `run_tool(model, input_file, output_file)`, keeps the template's `__main__` block, does no work at module level, and runs end-to-end without errors; `run.sh` is unchanged (the default single line)
 - [ ] `model/framework/columns/run_columns.csv` has correct headers and follows naming rules
 - [ ] `install.yml` has all dependencies pinned to exact versions
 - [ ] `model/framework/examples/run_input.csv` has 3 SMILES rows

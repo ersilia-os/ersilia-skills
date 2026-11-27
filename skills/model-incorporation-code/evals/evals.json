@@ -4,13 +4,13 @@
     {
       "id": 1,
       "prompt": "Use the model-incorporation-code skill to integrate a new ML model into an Ersilia template.\n\n--template ~/github/external_repos/eos2r5a\n--source ~/github/external_repos/RAscore",
-      "expected_output": "main.py runs without error; run_columns.csv has column ra_score (float, high); checkpoints contain XGB model files; install.yml has all deps pinned; run_output.csv produced by actually running the model",
+      "expected_output": "main.py defines top-level load_tool() and run_tool(model, input_file, output_file), keeps the __main__ block, does no work at module level and runs without error; run.sh is unchanged; run_columns.csv has column ra_score (float, high); checkpoints contain XGB model files; install.yml has all deps pinned; run_output.csv produced by actually running the model",
       "files": []
     },
     {
       "id": 2,
       "prompt": "Use the model-incorporation-code skill to integrate a new ML model into an Ersilia template.\n\n--template ~/github/external_repos/eos6oli\n--source ~/github/external_repos/SolTranNet",
-      "expected_output": "main.py runs without error; run_columns.csv has column solubility (float, low); model/checkpoints/ left empty (no checkpoints needed); install.yml has all deps pinned; run_output.csv produced by actually running the model",
+      "expected_output": "main.py defines top-level load_tool() and run_tool(model, input_file, output_file), keeps the __main__ block, does no work at module level and runs without error; run.sh is unchanged; run_columns.csv has column solubility (float, low); model/checkpoints/ left empty (no checkpoints needed); install.yml has all deps pinned; run_output.csv produced by actually running the model",
       "files": []
     }
   ]
