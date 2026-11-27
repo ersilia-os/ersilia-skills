@@ -4,7 +4,8 @@
   (shallow) into `--workdir`, replacing any earlier copy.
 - Lists every repo in the org (name, archived, default branch).
 - Reads `README.md` and `pyproject.toml` of every non-archived, non-model repo through
-  batched GraphQL (25 repos per query).
+  batched GraphQL (25 repos per query). Workshop repos (name contains `workshop`) are
+  skipped: they are event material, kept as they were on the day.
 - Parses the `ersilia` CLI source (click decorators in `ersilia/cli/commands/`) into
   commands and their options, without installing anything.
 
@@ -33,6 +34,10 @@ from _common import ORG, is_model_repo, run_gh_json, warn, write_json
 
 BATCH = 25
 GLOBAL_FLAGS = ["-v", "--verbose", "--version", "-h", "--help"]
+
+
+def is_workshop(name: str) -> bool:
+    return "workshop" in name.lower()
 
 
 def clone(repo: str, dest: Path, full_history: bool) -> bool:
@@ -185,7 +190,9 @@ def main(argv: list[str] | None = None) -> int:
     readmes, pyprojects, errors = {}, {}, []
     if not args.skip_readmes:
         names = sorted(
-            n for n, r in repos.items() if not r["archived"] and not is_model_repo(n)
+            n
+            for n, r in repos.items()
+            if not r["archived"] and not is_model_repo(n) and not is_workshop(n)
         )
         readmes, pyprojects, errors = fetch_files(names)
     else:

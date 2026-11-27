@@ -38,7 +38,7 @@ only for IDs the user approves in this run, never unattended.
 | Fetch | `scripts/fetch_sources.py` | Clones the Book and the `ersilia` CLI, lists org repos, reads READMEs and `pyproject.toml` files, parses the CLI's click options. |
 | Checks | `scripts/check_drift.py` | Deterministic checks, listed in `references/checks.md`. |
 | Judgement | you | Read a few workflow pages next to their code; flag only statements the code contradicts. |
-| Report | `scripts/render_report.py` | Numbers every finding and writes the report. |
+| Report | `scripts/render_report.py`, `scripts/render_html.py` | Numbers every finding and writes the report, plus a shareable HTML page. |
 | Issues | `scripts/open_drift_issues.py` | One issue per page for approved IDs; updates instead of duplicating. |
 
 Work in `/tmp/docs-drift` (the scripts' default `--workdir`).
@@ -107,6 +107,16 @@ pages: the sidebar title). An empty list is a valid result; say so in the report
 python scripts/render_report.py --findings /tmp/docs-drift/findings.json --judgement /tmp/docs-drift/judgement.json
 ```
 
+To share the findings with the team, also render the page (Ersilia style, from the sibling
+`html-formatting` skill) and publish it as an Artifact, or attach the file:
+
+```bash
+python scripts/render_html.py --input /tmp/docs-drift/findings_final.json --out /tmp/docs-drift/docs-drift.html --artifact
+```
+
+The page lists the same IDs, with filters by severity and source, a search box and a link
+to each line. Drop `--artifact` for a standalone file.
+
 Show the user the summary line and the findings, high severity first. Point out patterns
 rather than repeating them (for example, one repo renamed and linked from 12 places). Then
 ask which IDs to turn into issues. Suggest the high-severity ones; low-severity ones
@@ -138,7 +148,8 @@ became issues. Commit it only if the user asks; the state file is not worth a PR
 - Never edit documentation, close issues or delete anything.
 - Never open an issue without IDs the user approved in this run. No approve-all.
 - Do not report a finding you could not verify; drop it and say why.
-- Model repos' READMEs are generated from their metadata and are out of scope.
+- Model repos' READMEs are generated from their metadata and are out of scope, and so are
+  workshops (workshop repos and the workshops GitBook): they are event material.
 - Relative links inside a single repo's README are `repository-auditing`'s job; this skill
   checks what crosses repos or depends on the live code.
 - The Book and READMEs are public. Findings quote public text only; never paste anything

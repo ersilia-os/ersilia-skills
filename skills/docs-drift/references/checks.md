@@ -27,5 +27,5 @@ changes on the same page.
 - Model repo READMEs: generated from metadata.
 - Relative links inside one repo's README: `repository-auditing` checks those.
 - Prose accuracy: the agent's judgement pass (SKILL.md, Step 4), capped per run.
-- The workshops GitBook (`ersilia.gitbook.io/ersilia-workshops`): its source repo is not
-  confirmed yet. Add it as a second Book once it is.
+- Workshops: neither the workshop repos (name contains `workshop`) nor the workshops
+  GitBook. They are event material, kept as they were on the day.
