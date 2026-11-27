@@ -44,9 +44,9 @@ SECTIONS = [
 
 
 def link(url: str, text: str) -> str:
-    """Slack mrkdwn link. `<`, `>` and `&` must be escaped in the text."""
-    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    return f"<{url}|{text}>"
+    """Markdown link, as the Slack connector expects. Brackets in the text are escaped."""
+    text = text.replace("[", "\\[").replace("]", "\\]")
+    return f"[{text}]({url})"
 
 
 def plural(n: int, one: str, many: str) -> str:
@@ -89,21 +89,21 @@ def fork_line(f: dict) -> str:
 
 def render(bundle: dict) -> str | None:
     """The message for one person, or None if there is nothing to say."""
-    parts = ["*GitHub housekeeping: your weekly to-do*"]
+    parts = ["**GitHub housekeeping: your weekly to-do**"]
     for flag, heading in SECTIONS:
         items = [i for i in bundle["issues"] if i["flag"] == flag]
         if items:
-            parts.append(f"\n*{heading}* ({len(items)})")
+            parts.append(f"\n**{heading}** ({len(items)})")
             parts += capped([issue_line(i) for i in items], len(items))
     branches = bundle["branches"]
     if branches:
         parts.append(
-            f"\n*Your branches that look finished or abandoned* ({len(branches)})"
+            f"\n**Your branches that look finished or abandoned** ({len(branches)})"
         )
         parts += capped([branch_line(b) for b in branches], len(branches))
     forks = bundle["forks"]
     if forks:
-        parts.append(f"\n*Your forks with no push for 6+ months* ({len(forks)})")
+        parts.append(f"\n**Your forks with no push for 6+ months** ({len(forks)})")
         parts += capped([fork_line(f) for f in forks], len(forks))
     if len(parts) == 1:
         return None
