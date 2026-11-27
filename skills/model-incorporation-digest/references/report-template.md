@@ -17,9 +17,6 @@ is about those.
   one `### <Task>` group per task category, each a table:
   Model (identifier + title) · Tag (task emoji + subtask) · Author (first author,
   institution, journal and year) · What it does · Links (paper, code)
-
-## Metadata to fix
-  the defects fetch_month_models.py found, per model
 ```
 
 Models are ordered by task category — Annotation, Representation, Sampling, then anything
@@ -39,8 +36,8 @@ Each model is **one row**. What goes in the cells is as much about what is left 
   "Denovo Sciences". Nothing is shortened into an acronym: an institution's name is part
   of the credit.
 - **The venue is the journal and the year, nothing else.** A record with no journal is
-  labelled a preprint, keyed on the record rather than on `Publication Type`, which the
-  scan itself flags as unreliable.
+  labelled a preprint, keyed on the record rather than on `Publication Type`, which can
+  disagree with what the publication record says.
 - **No fetch command and no licence.** Both were on every row, and neither is what the
   table is for. The licence only ever mattered when it constrained reuse, and by the time
   it does the reader is on the model's own page.
@@ -48,20 +45,14 @@ Each model is **one row**. What goes in the cells is as much about what is left 
   autolink, so a bare URL publishes as unclickable text while the DOI beside it works.
 
 The order is deliberate. The **table** answers "what shipped" for someone skimming before
-a meeting. **The models** answers "what is each of these". **Metadata to fix** is the
-action list, and it closes the digest because it is the only section anyone has to act on.
+a meeting. **The models** answers "what is each of these".
 
 The digest carries no announcement draft and no tagging worksheet.
 
-There are two renders of this one document. The default is **internal**. `--public` emits
-the same file without `## Metadata to fix`, and that copy is published to the digests site
-at `ersilia-os/digests` under `models/`. The defects section is the only difference: it
-lists repairs owed on models that are already live, addressed to whoever can make them, so
-it is written for the team and does not belong on a public page.
-
-Everything above it is the same in both, which is deliberate. The per-model paragraphs
-credit each model's original authors by name and institution, and that is precisely what a
-public page should carry.
+There is one document. The same file is published to the digests site at
+`ersilia-os/digests` under `models/`; `--public` does not change it, it only prints the
+canonical filename for that copy. The per-model paragraphs credit each model's original
+authors by name and institution, and that is precisely what a public page should carry.
 
 ## Writing a per-model paragraph
 
@@ -130,25 +121,3 @@ reader think the authors built the model would be wrong.
   and say so.
 - Do not state a licence. The row links to the model, and its page carries the terms. Raise
   a restrictive one with the user when presenting instead — see `attribution-rules.md`.
-
-## Metadata defects
-
-`fetch_month_models.py` flags these mechanically, each mapping to a rule in
-`/model-incorporation-metadata`:
-
-| Flag | Why it matters |
-|---|---|
-| `Status` not `Ready` | the model is in the month's count but not actually usable |
-| `Interpretation` empty or placeholder | the field users read first says nothing |
-| `Interpretation` contains a colon | breaks `metadata.yml` parsing unless quoted |
-| `Description` empty, placeholder, or outside 200–600 chars | `ersilia test` enforces the range |
-| `Publication` is not a DOI URL | the author list cannot be resolved automatically |
-| `Output Dimension` missing | must equal the row count of `run_columns.csv` |
-
-Do not fix these from inside this skill and do not write around them. List them, so
-whoever reads the digest can go and repair the model.
-
-This section carries what `fetch_month_models.py` flagged, and only that. A problem you
-found by reading the paper is not a scanner defect: if it changes who the model credits,
-it belongs in that model's paragraph; if it is a repair for someone else to make, it
-belongs in an issue against the model, not here.

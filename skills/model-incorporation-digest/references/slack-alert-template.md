@@ -58,14 +58,8 @@ Use it, not the github.com blob URL, which is the raw markdown.
   infrastructure consortium", and Škuta and colleagues built the database that holds it.
   Check what the cited paper is before writing what its authors provided — a database paper,
   a method paper and a model paper each call for different words.
-- **Never mention metadata defects.** Not the count, not the identifiers, not a hint that
-  any exist. They are repairs owed on somebody's model, they belong to
-  `/model-incorporation-metadata` and not to this skill, and a channel post naming models as
-  defective is the wrong place for them however internal the channel is. The alert points at
-  a digest; it does not file work against other people.
 - Where a status is anything other than `Ready`, say so plainly rather than writing "All
-  Ready" — a model that is not fetchable is the most important thing in the alert. That is a
-  fact about whether the models work, which is not the same as a metadata defect.
+  Ready" — a model that is not fetchable is the most important thing in the alert.
 - It is longer than the other digests' alerts on purpose. A month of incorporations is ten
   or so items, and the first version of this alert said only how many there were, which told
   a reader nothing they could act on. Around 1,100 characters for a ten-model month is the

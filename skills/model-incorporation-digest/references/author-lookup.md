@@ -36,7 +36,7 @@ publisher's own deposit) and OpenAlex for *order and affiliation*.
 - **An arXiv URL in `Publication`** — handled automatically. `normalise_doi()` converts an
   `arxiv.org/abs/…` or `/pdf/…` URL to the DOI arXiv mints for it
   (`10.48550/arXiv.<id>`), which OpenAlex then resolves. This is a deterministic mapping,
-  not a guess. Note it as a metadata defect all the same: `Publication` is supposed to
+  not a guess. Mention it to the user all the same: `Publication` is supposed to
   hold a DOI URL, and `/model-incorporation-metadata` should have written one.
 - **No DOI and no arXiv URL in `Publication`** — nothing can be resolved. Ask the user for
   the author list. Do not write a post with no names; see `attribution-rules.md`.

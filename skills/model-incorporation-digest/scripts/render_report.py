@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""render_report.py — turn a month context into the internal model-incorporation digest.
+"""render_report.py — turn a month context into the model-incorporation digest.
 
     python render_report.py month-context.json --out reports/2026-08-digest.md
     python render_report.py month-context.json --out /tmp/26-08-31-models-digest.md --public
@@ -7,8 +7,9 @@
 Rendering is deterministic: everything factual comes straight out of the context JSON, so
 two runs of the same month produce the same document and nothing drifts in the retelling.
 
-The digest is internal and carries no announcement draft: what it reports is what went
-into the Hub, who made it, and what the metadata scan flagged.
+The digest carries no announcement draft: what it reports is what went into the Hub and
+who made it. ``--public`` does not change the document; it only prints the canonical
+filename that ``upload_digest.py`` requires for the copy published to the digests site.
 
 The one part that needs judgement is the per-model paragraph, and that is not invented
 here. Each model record in the JSON may carry a ``"summary"`` string, written by whoever
@@ -149,7 +150,7 @@ def full_credit(credit):
     """Every author for a paper with five or fewer; first, last and a count beyond."""
     authors = [a["name"] for a in credit.get("authors", []) if a.get("name")]
     if not authors:
-        return "*authors unresolved — see the defects section*"
+        return "*authors unresolved*"
     if len(authors) == 1:
         return authors[0]
     if len(authors) <= 5:
@@ -188,14 +189,11 @@ def paper_link(publication):
     return f"[{raw}]({raw})" if raw else "*none*"
 
 
-def render(context, prepared_on, public=False):
+def render(context, prepared_on):
     """Build the whole digest as one markdown string.
 
-    ``public`` drops the metadata-defects section. That section lists repairs owed on
-    models that are already live and is addressed to whoever can make them, so it is
-    written for the team and does not belong on a public page. Everything else — the
-    counts, the table, the per-model paragraphs and their author credit — is the same
-    document either way, rendered from the same context.
+    The counts, the table, the per-model paragraphs and their author credit all come from
+    the context, and the same document serves the team and the public page.
     """
     models = context.get("models", [])
     lines = []
@@ -288,26 +286,6 @@ def render(context, prepared_on, public=False):
             lines.append(f"| {first} | {tag} | {author} | {what} | {joined} |")
         lines.append("")
 
-    # ---- defects (internal only) ----
-    if public:
-        return "\n".join(lines)
-
-    flagged = [r for r in models if r.get("defects")]
-    lines.append("## Metadata to fix")
-    lines.append("")
-    if not flagged:
-        lines.append("Nothing flagged this month.")
-    else:
-        lines.append(
-            "Each of these is a `/model-incorporation-metadata` gap in a model already "
-            "marked live. They are listed here because whoever reads this digest can go "
-            "and fix them."
-        )
-        lines.append("")
-        for record in flagged:
-            lines.append(f"- **`{record['identifier']}`** — " + "; ".join(record["defects"]))
-    lines.append("")
-
     return "\n".join(lines)
 
 
@@ -330,13 +308,16 @@ def main(argv=None):
     parser.add_argument(
         "--public",
         action="store_true",
-        help="omit the metadata-defects section, for the copy published to the digests site",
+        help=(
+            "also print the canonical filename for the copy published to the digests site; "
+            "the document itself is the same either way"
+        ),
     )
     args = parser.parse_args(argv)
 
     context = read_json(args.context)
     prepared = args.date or date.today().isoformat()
-    body = render(context, prepared, public=args.public)
+    body = render(context, prepared)
 
     missing = [r["identifier"] for r in context.get("models", []) if not (r.get("summary") or "").strip()]
     Path(args.out).write_text(body + "\n", encoding="utf-8")

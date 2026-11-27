@@ -8,14 +8,8 @@ metadata), keeps the models whose ``Incorporation Date`` falls in the month, the
 each one's publication against Crossref and OpenAlex for the ordered author list and the
 abstract.
 
-Two things it does beyond fetching:
-
-* It records **who the authors are, in order**. OpenAlex tags first/middle/last, which is
-  what lets the digest credit the right people without guessing.
-* It records **metadata defects** per model — a placeholder Interpretation, a Publication
-  field that is not a DOI, a Description outside the enforced length, and a Publication
-  Type that disagrees with what the publication record actually says. An internal report
-  is the right place for these to surface, because someone reading it can go and fix them.
+It also records **who the authors are, in order**. OpenAlex tags first/middle/last, which is
+what lets the digest credit the right people without guessing.
 
 Deterministic apart from the network, and standard library only.
 """
@@ -48,23 +42,6 @@ CATALOG_URL = "https://ersilia-model-hub.s3.eu-central-1.amazonaws.com/models.js
 
 MONTH_RE = re.compile(r"^(\d{4})-(\d{2})$")
 
-# Text the eos template ships with. A model still carrying it was never filled in.
-PLACEHOLDER_MARKERS = (
-    "should be interpreted like this",
-    "this template model",
-    "interpretation 1",
-    "description 1",
-    "biomedical area 1",
-)
-
-# `ersilia test` enforces this range on Description; see model-incorporation-metadata.
-DESCRIPTION_MIN, DESCRIPTION_MAX = 200, 600
-
-# arXiv mints a DOI under this prefix. A model citing one is citing a preprint, which is
-# fine until the paper is published — and nobody goes back to update the metadata, so the
-# scan says so every month until it is fixed.
-ARXIV_DOI_PREFIX = "10.48550/arxiv"
-
 
 def parse_month(value):
     """Validate a ``YYYY-MM`` string and return ``(year, month, label)``."""
@@ -82,98 +59,6 @@ def previous_month(today=None):
     today = today or date.today()
     year, month = (today.year, today.month - 1) if today.month > 1 else (today.year - 1, 12)
     return f"{year:04d}-{month:02d}"
-
-
-def find_defects(entry, openalex=None):
-    """List the metadata problems worth raising for one model.
-
-    Every check here corresponds to a rule in `/model-incorporation-metadata`, so a defect
-    is a bug in that step rather than a judgement call about this one.
-
-    ``openalex`` is the resolved publication record, when there is one. It carries the
-    publisher's own view of what the paper is, which is the only way to check the
-    `Publication Type` field against anything other than itself.
-    """
-    defects = []
-
-    status = str(entry.get("Status") or "").strip()
-    if status != "Ready":
-        defects.append(f"Status is {status or 'empty'}, not Ready")
-
-    interpretation = str(entry.get("Interpretation") or "").strip()
-    if not interpretation:
-        defects.append("Interpretation is empty")
-    elif any(marker in interpretation.lower() for marker in PLACEHOLDER_MARKERS):
-        defects.append("Interpretation still carries the template placeholder text")
-    elif ":" in interpretation:
-        # A colon breaks metadata.yml parsing unless the value is quoted.
-        defects.append("Interpretation contains a colon, which is a metadata.yml hazard")
-
-    description = str(entry.get("Description") or "").strip()
-    if not description:
-        defects.append("Description is empty")
-    elif any(marker in description.lower() for marker in PLACEHOLDER_MARKERS):
-        defects.append("Description still carries the template placeholder text")
-    elif not DESCRIPTION_MIN <= len(description) <= DESCRIPTION_MAX:
-        defects.append(
-            f"Description is {len(description)} characters, outside the enforced "
-            f"{DESCRIPTION_MIN}–{DESCRIPTION_MAX}"
-        )
-
-    publication = str(entry.get("Publication") or "").strip()
-    if not publication:
-        defects.append("Publication is empty")
-    elif not publication.startswith(("https://doi.org/", "http://doi.org/")):
-        derived = normalise_doi(publication)
-        if derived:
-            defects.append(
-                f"Publication is not a DOI URL ({publication}); it resolves to "
-                f"https://doi.org/{derived}, which is what the field should hold"
-            )
-        else:
-            defects.append(f"Publication is not a DOI URL and no DOI could be derived ({publication})")
-
-    if not entry.get("Output Dimension"):
-        defects.append("Output Dimension is missing")
-
-    defects.extend(_publication_defects(entry, openalex))
-
-    return defects
-
-
-def _publication_defects(entry, openalex):
-    """Check `Publication Type` against what the publication record actually says.
-
-    Both of these were found by hand before they were checks. August 2026 is the worked
-    case: eos5g6m's metadata claimed `Peer reviewed` over an arXiv DOI that OpenAlex
-    reports as a preprint, and a peer-reviewed version had in fact appeared.
-    """
-    defects = []
-    doi = normalise_doi(entry.get("Publication")) or ""
-    declared = str(entry.get("Publication Type") or "").strip()
-    actual = (openalex or {}).get("type")
-
-    if doi.lower().startswith(ARXIV_DOI_PREFIX):
-        defects.append(
-            f"Publication cites an arXiv preprint ({doi}) — check whether a peer-reviewed "
-            f"version has appeared since, and cite that instead"
-        )
-
-    if actual and declared:
-        is_preprint = actual == "preprint"
-        says_preprint = declared.lower() == "preprint"
-        if is_preprint and not says_preprint:
-            defects.append(
-                f"Publication Type is {declared!r} but the publication record reports a "
-                f"preprint — one of the two is wrong"
-            )
-        elif says_preprint and not is_preprint:
-            defects.append(
-                f"Publication Type is 'Preprint' but the publication record reports "
-                f"{actual!r} — the published version is what the field should carry"
-            )
-
-    return defects
 
 
 def resolve_one(entry):
@@ -222,7 +107,6 @@ def resolve_one(entry):
         },
         "publication": publication,
         "credit": build_credit(openalex, crossref),
-        "defects": find_defects(entry, openalex),
     }
 
 
@@ -287,8 +171,7 @@ def main(argv=None):
         record = resolve_one(entry)
         models.append(record)
         print(
-            f"  {record['identifier']}  {record['credit']['n_authors']:>2} authors  "
-            f"{len(record['defects'])} defect(s)",
+            f"  {record['identifier']}  {record['credit']['n_authors']:>2} authors",
             file=sys.stderr,
         )
 
@@ -302,7 +185,6 @@ def main(argv=None):
         "n_models": len(models),
         "by_task": tally(models, "task"),
         "by_status": tally(models, "status"),
-        "n_with_defects": sum(1 for m in models if m["defects"]),
         "n_global_south": sum(1 for m in models if m["credit"]["has_global_south_author"]),
         "models": models,
     }

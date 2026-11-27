@@ -4,8 +4,8 @@
     python selftest_render.py
 
 Everything a reader sees comes out of `render_report.py`, and its riskiest behaviours are
-invisible in a normal run: the public copy silently keeping the defects section, the task
-grouping putting a model under the wrong heading, a licence nobody needed appearing on
+invisible in a normal run: `--public` quietly changing the document it only names a file
+for, the task grouping putting a model under the wrong heading, a licence nobody needed appearing on
 every row, or an unfinished digest rendering clean because a summary was quietly skipped.
 
 So this drives the renderer over a synthetic month covering the cases that have actually
@@ -30,7 +30,7 @@ HERE = Path(__file__).resolve().parent
 
 def model(identifier, task, subtask, *, title=None, licence="MIT", summary="A fixture model.",
           authors=None, institutions=None, journal="Journal of Tests", year=2026,
-          defects=None, source_code="https://example.invalid/code", doi="10.0000/test",
+          source_code="https://example.invalid/code", doi="10.0000/test",
           raw_publication=None):
     return {
         "identifier": identifier,
@@ -49,7 +49,6 @@ def model(identifier, task, subtask, *, title=None, licence="MIT", summary="A fi
             "authors": [{"name": n} for n in (authors or ["Ada Lovelace"])],
             "lead_institutions": institutions if institutions is not None else ["Somewhere"],
         },
-        "defects": defects or [],
         "summary": summary,
     }
 
@@ -58,12 +57,12 @@ CONTEXT = {
     "month": "2026-08", "month_label": "August 2026", "catalog_size": 999,
     "hub_size_at_month_end": 248, "month_last_day": "2026-08-31",
     "n_models": 6, "by_task": {"Representation": 3, "Annotation": 2, "Sampling": 1},
-    "by_status": {"Ready": 5}, "n_with_defects": 1, "n_global_south": 0,
+    "by_status": {"Ready": 5}, "n_global_south": 0,
     "models": [
         # deliberately out of order, and Sampling first, to prove the renderer sorts
         model("eosSAMP", "Sampling", "Generation", licence="Apache-2.0"),
         model("eosANN2", "Annotation", "Property calculation or prediction",
-              licence="GPL-3.0-or-later", defects=["Interpretation is empty"]),
+              licence="GPL-3.0-or-later"),
         model("eosREP1", "Representation", "Featurization",
               authors=["Núria Duran-Frigola", "Second Author"],
               institutions=["Denovo Sciences Inc (Yerevan)"]),
@@ -97,21 +96,21 @@ def main():
         tmp = Path(tmp)
         ctx = tmp / "context.json"
         ctx.write_text(json.dumps(CONTEXT))
-        internal, public = tmp / "internal.md", tmp / "public.md"
+        plain, public = tmp / "plain.md", tmp / "public.md"
 
         print("renderer self-test (synthetic month, no network)")
 
-        r1 = render(ctx, internal)
+        r1 = render(ctx, plain)
         r2 = render(ctx, public, public=True)
-        check("internal render exits 0", r1.returncode == 0, r1.stderr.strip())
-        check("public render exits 0", r2.returncode == 0, r2.stderr.strip())
-        text, pub = internal.read_text(), public.read_text()
+        check("render exits 0", r1.returncode == 0, r1.stderr.strip())
+        check("--public render exits 0", r2.returncode == 0, r2.stderr.strip())
+        text, pub = plain.read_text(), public.read_text()
 
-        # --- the public/internal split -------------------------------------
-        check("internal keeps the defects section", "## Metadata to fix" in text)
-        check("public drops the defects section", "## Metadata to fix" not in pub)
-        check("public keeps everything else",
-              pub.split("## Metadata to fix")[0].strip() == text.split("## Metadata to fix")[0].strip())
+        # --- --public only names the file ---------------------------------
+        check("the digest has no defects section", "Metadata to fix" not in text)
+        check("--public renders the same document", pub.strip() == text.strip())
+        check("--public prints the canonical filename",
+              "26-08-31-models-digest.md" in r2.stderr, r2.stderr.strip())
 
         # --- task grouping and order ---------------------------------------
         order = [ln for ln in text.splitlines() if ln.startswith("### ")]

@@ -4,10 +4,9 @@ Default destination: `ersilia-os/digests` repo, path
 `models/YY-MM-DD-models-digest.md`. Uses the GitHub contents API via `gh` so no
 `git clone` is needed.
 
-Upload the **public** render — `render_report.py --public` — not the internal one. The
-internal digest carries a metadata-defects section that lists repairs owed on models that
-are already live; it is written for the team and does not belong on a public page. This
-script cannot tell the two apart, so passing the wrong file publishes the wrong document.
+Upload the digest under the canonical name that `render_report.py --public` prints. The
+document is the same as the one rendered without that flag; the script only insists on
+the filename.
 
 The date in the filename is the **last day of the month being reported**, matching the
 window-end convention the sibling digests use: August 2026 publishes as

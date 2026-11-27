@@ -4,14 +4,14 @@
     python selftest_publish.py
 
 `upload_digest.py` and `check_remote_digest.py` talk to GitHub through the `gh` CLI, so
-neither can be run for real in a sandbox, and the one mistake they exist to prevent —
-publishing the internal render, with its list of unrepaired defects, to a public page — is
-exactly the kind that is only noticed after the fact.
+neither can be run for real in a sandbox, and the mistakes they exist to prevent —
+overwriting a digest that is already published, or publishing under a name the site does
+not expect — is exactly the kind that is only noticed after the fact.
 
 So this stands up a fake `gh` backed by a temporary directory, implementing just the two
 contents-API calls the scripts make, and drives the whole sequence against it: the
 staleness guard, a first upload, the refusal to overwrite, `--force`, the README index and
-its ordering, and the public/internal split. Everything here is local and deterministic.
+its ordering, and the canonical filename. Everything here is local and deterministic.
 
 Exits 0 if every check passes, 1 on the first failure, naming it.
 """
@@ -63,7 +63,7 @@ sys.stderr.write("gh: Not Found (HTTP 404)\\n"); sys.exit(1)
 CONTEXT = {
     "month": "2026-08", "month_label": "August 2026", "catalog_size": 254,
     "n_models": 1, "by_task": {"Annotation": 1}, "by_status": {"Ready": 1},
-    "n_with_defects": 1, "n_global_south": 0,
+    "n_global_south": 0,
     "models": [{
         "identifier": "eosTEST",
         "model": {"slug": "test-model", "title": "Test Model", "task": "Annotation",
@@ -73,7 +73,6 @@ CONTEXT = {
         "publication": {"doi": "10.0000/test", "doi_url": "https://doi.org/10.0000/test",
                         "journal": "Journal of Tests", "year": 2026},
         "credit": {"authors": [{"name": "Ada Lovelace"}], "lead_institutions": ["Somewhere"]},
-        "defects": ["Interpretation is empty"],
         "summary": "A fixture model used only by the publish self-test.",
     }],
 }
@@ -109,13 +108,13 @@ def main():
 
         print("publish self-test (fake gh, no network)")
 
-        # --- the two renders -------------------------------------------------
-        internal, public = tmp / "internal.md", tmp / "26-08-31-models-digest.md"
-        run(["render_report.py", str(ctx), "--out", str(internal)], env)
+        # --- the render ------------------------------------------------------
+        plain, public = tmp / "plain.md", tmp / "26-08-31-models-digest.md"
+        run(["render_report.py", str(ctx), "--out", str(plain)], env)
         r = run(["render_report.py", str(ctx), "--out", str(public), "--public"], env)
-        check("internal render keeps the defects section", "Metadata to fix" in internal.read_text())
-        check("public render drops the defects section", "Metadata to fix" not in public.read_text())
-        check("public render keeps the credit", "Ada Lovelace" in public.read_text())
+        check("--public renders the same document", plain.read_text() == public.read_text())
+        check("the digest has no defects section", "Metadata to fix" not in public.read_text())
+        check("the render keeps the credit", "Ada Lovelace" in public.read_text())
         check("--public prints the canonical month-end name",
               "26-08-31-models-digest.md" in r.stderr, r.stderr.strip())
 
