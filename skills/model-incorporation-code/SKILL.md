@@ -424,5 +424,6 @@ Before declaring the work done, verify:
 > **Remaining steps:**
 > 1. Run `/ersilia-model-test` to validate the model runs correctly
 > 2. Optional: run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
-> 3. Run `/model-incorporation-pr` to commit, push, open the pull request and, with your approval, merge it once every check is green
-> 4. Run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request
+> 3. Optional: run `/model-optimization` to make the model smaller without changing its outputs; it edits `install.yml` and leaves the change uncommitted, so run it before `/model-incorporation-pr`
+> 4. Run `/model-incorporation-pr` to commit, push, open the pull request and, with your approval, merge it once every check is green
+> 5. Run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request

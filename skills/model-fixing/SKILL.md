@@ -192,7 +192,8 @@ rm -f <model_path>/<model_id>-test.json
 Once the test passes and the example output matches (or the user has accepted an explained mismatch):
 
 > 1. Optional: run `/model-incorporation-reproduce` to verify the model reproduces the metrics reported in its paper
-> 2. For a model that is not yet in the Hub, run `/model-incorporation-pr` to commit the fixes, push, open the pull request and, with your approval, merge it once every check is green. For a model already in the Hub, commit the fixes and open a pull request from your fork to `ersilia-os/<model_id>` by hand
+> 2. Optional, for a model that is not yet in the Hub: run `/model-optimization` to make the model smaller without changing its outputs; it edits `install.yml` and leaves the change uncommitted, so run it before `/model-incorporation-pr`
+> 3. For a model that is not yet in the Hub, run `/model-incorporation-pr` to commit the fixes, push, open the pull request and, with your approval, merge it once every check is green. For a model already in the Hub, commit the fixes and open a pull request from your fork to `ersilia-os/<model_id>` by hand
 
 **Always open the PR from the user's fork, never from a branch pushed to `ersilia-os/<model_id>`.** The shared PR workflow clones `https://github.com/<pr_user>/<model_id>`. A PR from a branch on the organisation repo fails at "Clone repo", and the model is never tested. Pushing, opening the PR and re-running upload workflows are the user's decisions: ask before each one.
-> 3. Run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request
+> 4. Run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request
