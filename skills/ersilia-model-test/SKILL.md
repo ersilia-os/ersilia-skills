@@ -50,7 +50,7 @@ For each failing check, **read the relevant files** to understand the root cause
 | Failing check | Files to read |
 |---------------|--------------|
 | `simple_model_run` | `model/framework/code/main.py`, terminal error output |
-| `model_description` | `metadata.yml` (check Description field length — max 600 characters) |
+| `model_description` | `metadata.yml` (check Description field length — 200 to 600 characters) |
 | `metadata_*` | `metadata.yml` |
 | `columns` / `metadata_dim_and_run_column_file_dim_check` | `model/framework/columns/run_columns.csv`, `metadata.yml` |
 | `install_yaml_check` | `install.yml` |

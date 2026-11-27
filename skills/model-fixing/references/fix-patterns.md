@@ -9,13 +9,13 @@ Correct, idiomatic ways to *apply* the most common fixes. `ersilia-model-test`'s
 A run failure cascades: when the model can't execute, consistency, output, and format checks all fail downstream. Fixing the run usually clears most of them at once.
 
 ### Import paths
-`main.py` is called from the framework root, so package-relative imports break.
+`main.py` runs as a script, so relative imports break. Use none: helper modules in the same folder as `main.py` are imported directly, because Python puts the script's folder on the import path.
 
 ```python
 # Broken
 from ..utils import featurize
-# Fixed — anchor to the code package
-from code.utils import featurize
+# Fixed — import the helper that sits next to main.py
+from utils import featurize
 ```
 
 ### Locating checkpoints and files
@@ -49,7 +49,7 @@ If the import works locally but not in the `ersilia` env, add the package to `in
 
 ## 2. Metadata fixes (`metadata.yml`)
 
-- **Description too long**: the `Description` field must be ≤ 600 characters. Trim wording, keep the key facts — don't drop what the model does or what it predicts.
+- **Description length**: the `Description` field must be 200 to 600 characters. Trim wording (or expand a description under 200 characters), keep the key facts — don't drop what the model does or what it predicts.
 - **Field formats are case-sensitive**: `Local`, `Online`, `Fixed`, `Variable`, `Score`, `Value` must match exactly.
 - **List-vs-string**: fields like `Deployment` and `Output` are YAML lists even with one item:
   ```yaml
@@ -65,14 +65,14 @@ If the import works locally but not in the `ersilia` env, add the package to `in
 
 ## 3. Column file fixes (`run_columns.csv`)
 
-One row per output column, fields: `key`, `type`, `direction`, `description`.
+A header `name,type,direction,description`, then one row per output column.
 
-- `key`: lowercase, underscore-separated (`pIC50_mpro`, `feat_00`)
-- `type`: `Float`, `Integer`, or `String`
-- `direction`: `high`, `low`, or `unknown`
-- `description`: short human-readable label
+- `name`: lowercase letters, digits and underscores only (`pic50_mpro`, `feat_00`)
+- `type`: `float`, `integer`, or `string`
+- `direction`: `high` or `low`, depending on whether a larger value means more of what the column measures (not whether that is desirable); empty when it does not apply, for example for generated molecules
+- `description`: one short sentence, without commas
 
-**The keys must exactly match the column headers `main.py` writes to the output CSV.** When they diverge, prefer editing `run_columns.csv` to match the code's actual output — unless the diagnosis says the code's column names are themselves wrong, in which case fix `main.py`.
+**The names must exactly match the column headers `main.py` writes to the output CSV.** When they diverge, prefer editing `run_columns.csv` to match the code's actual output — unless the diagnosis says the code's column names are themselves wrong, in which case fix `main.py`.
 
 ---
 
@@ -106,7 +106,7 @@ The consistency check requires: same input → same output across runs, CLI run 
   # torch: torch.manual_seed(42); model.eval()
   ```
 - **Column mismatch**: reconcile `main.py` headers and `run_columns.csv` keys (see §3).
-- **NaN / empty rows**: if specific example SMILES yield NaN or empty output, handle them gracefully in `main.py` (sentinel value or documented skip) so all 3 example molecules produce valid rows.
+- **NaN / empty rows**: if specific example SMILES yield NaN or empty output, handle them gracefully in `main.py` so all 3 example molecules produce valid rows. A molecule the model genuinely cannot process (an unreadable SMILES, for example) gets an empty value (`None` or NaN) and keeps its row; never invent a value such as 0 or a sentinel.
 
 ---
 
