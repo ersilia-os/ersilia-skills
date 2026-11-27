@@ -20,7 +20,7 @@ Simple run failed. Exiting test early.
 
 The Python script fails to import a module. Check the error traceback.
 
-- **Relative imports**: If `main.py` uses relative paths like `from ..utils import something`, convert to absolute: `from code.utils import something`. The model is called from the framework root, so paths relative to the package hierarchy break.
+- **Relative imports**: `main.py` runs as a script (`python main.py`), so relative imports such as `from ..utils import something` or `from . import something` fail. Use no relative imports. Helper modules in the same folder as `main.py` are imported directly (`from utils import something`), because Python puts the script's folder on the import path. Build file paths from `os.path.dirname(os.path.abspath(__file__))`, as in (b) below.
 - **Missing package**: The import succeeds locally but not in the ersilia environment. Add the package to `install.yml`.
 
 **b) File path errors**
@@ -82,7 +82,7 @@ Checks for `metadata` or `metadata_compliance` fail.
   Output:
     - Value
   ```
-- **Description too long**: The `Description` field must be 600 characters or fewer. If `model_description` fails, check the length first — trim the text to fit without losing the key information.
+- **Description length**: The `Description` field must be 200 to 600 characters (`BaseInformationValidator.validate_description`). If `model_description` fails, check the length first — trim the text to fit without losing the key information, or expand it if it is shorter than 200 characters.
 - **Missing required fields**: The test checks for presence of fields like `Task`, `Subtask`, `Output`, `Output Dimension`, `Output Consistency`. If any are blank or placeholder text ("Biomedical Area 1"), fill them in.
 - **"not present" fields**: Fields like `S3`, `DockerHub`, `Model Size`, `Incorporation Date` are auto-populated after merge. These showing "not present" is normal — do not try to fill them.
 
@@ -95,13 +95,13 @@ Check named `file_structure` or similar fails.
 
 ### Fixes
 
-- **Missing `columns/run_columns.csv`**: Must exist and have the correct format — one row per output column with fields: `key`, `type`, `direction`, `description`.
-  - `key`: lowercase, underscore-separated (e.g. `pIC50_mpro`, `feat_00`)
-  - `type`: `Float`, `Integer`, or `String`
-  - `direction`: `high` (higher is better), `low` (lower is better), or `unknown`
-  - `description`: short human-readable label
+- **Missing `columns/run_columns.csv`**: Must exist and have the correct format — a header `name,type,direction,description`, and one row per output column.
+  - `name`: lowercase letters, digits and underscores only (e.g. `pic50_mpro`, `feat_00`)
+  - `type`: `float`, `integer`, or `string`
+  - `direction`: `high` or `low`, depending on whether a larger value means more of what the column measures (not whether that is desirable); empty when it does not apply, for example for generated molecules
+  - `description`: one short sentence, without commas
 
-- **`run_columns.csv` column names don't match `main.py` output**: The column keys in `run_columns.csv` must exactly match the headers written to the output CSV by `main.py`. Sync them.
+- **`run_columns.csv` column names don't match `main.py` output**: The names in `run_columns.csv` must exactly match the headers written to the output CSV by `main.py`. Sync them.
 
 - **Missing `examples/run_input.csv`**: Must contain exactly 3 valid SMILES strings with a `smiles` header.
 
@@ -143,7 +143,7 @@ If `main.py` writes columns `['feat_0', 'feat_1']` but `run_columns.csv` says `[
 
 **c) NaN or empty output**
 
-If the model returns NaN or empty rows for any of the 3 example SMILES, the consistency check will fail. Diagnose why those specific molecules fail — they might be edge cases the model can't process. Fix `main.py` to handle them gracefully (e.g., return 0 or a sentinel value, or log and skip).
+If the model returns NaN or empty rows for any of the 3 example SMILES, the consistency check will fail. Diagnose why those specific molecules fail — they might be edge cases the model can't process. Fix `main.py` so that the example molecules are processed. A molecule the model genuinely cannot process (an unreadable SMILES, for example) gets an empty value (`None` or NaN) and keeps its row, so the outputs stay aligned with the inputs. Never invent a value such as 0 or a sentinel.
 
 ---
 
