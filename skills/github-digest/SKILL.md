@@ -3,12 +3,14 @@ name: github-digest
 description: >
   Produce the periodic Ersilia GitHub digest — a curated, publicly-hosted markdown report
   of issue and pull-request activity across the ersilia-os organisation, the items that need
-  attention (stale PRs, long-open issues), and a health check of the Airtable Repositories
-  registry. Use this skill whenever the user asks to prepare, run, or refresh the GitHub
+  attention (stale PRs, long-open issues), a health check of the Airtable Repositories
+  registry, and housekeeping (stale branches, org-owned and idle personal forks). With
+  `--act`, it also opens or updates one housekeeping issue per repo, only for the IDs the
+  user approves. Use this skill whenever the user asks to prepare, run, or refresh the GitHub
   digest, the repo/issue/PR digest, or the "what happened on GitHub this week" report.
   Triggers include: "github digest", "weekly github digest", "/github-digest",
   "issue tracking digest", "what changed in the repos this week", "check the repositories
-  Airtable is up to date". Always use this skill for GitHub-digest requests even if the ask
+  Airtable is up to date", "stale branches", "clean up branches", "which forks can go". Always use this skill for GitHub-digest requests even if the ask
   seems simple.
 ---
 
@@ -44,6 +46,8 @@ The user will invoke this skill with:
   `ersilia-os/digests` at `github/YY-MM-DD-github-digest.md` (Step 7).
 - (optional) `--force` to override the recent-digest guards in Step 0.
 - (optional) `--dry-run` to fetch and reconcile but **not** write or upload the digest file.
+- (optional) `--act` to propose housekeeping issues after the upload and open or update the
+  ones the user approves (Step 10). Without it, housekeeping is report-only.
 
 If anything is unclear, ask one focused question before proceeding. Never invent missing
 inputs.
@@ -121,6 +125,18 @@ Note the printed `connector_status` — it drives the GitHub semaphore. If a sea
 the custom-property read fails the status is `partial`; render 🔴 and disclose the impact in
 the digest only if it materially affects coverage (e.g. the Registry alignment is thin).
 
+### Step 2b — Fetch housekeeping
+
+```bash
+python scripts/fetch_housekeeping.py --out /tmp/housekeeping.json
+```
+
+Stale branches (merged, closed or idle), org-owned forks and idle personal forks of org
+members, across every non-archived repo. Rules and thresholds are in `references/scope.md`
+under *Housekeeping*. It takes about a minute (batched GraphQL). A `partial` status does
+not stop the run: say in the Housekeeping chapter what was not checked. Exit 1 (the sweep
+itself failed) → write *Housekeeping could not run this week.* in that chapter and continue.
+
 ### Step 3 — Read the Airtable registry (you, via the MCP)
 
 The Airtable MCP cannot be called from a Python subprocess, so **you** read the table and
@@ -162,7 +178,7 @@ and normally few (see `airtable-schema.md`).
 
 ### Step 5 — Compose the digest
 
-Read `/tmp/github.json` and `/tmp/health.json`. Compose the
+Read `/tmp/github.json`, `/tmp/health.json` and `/tmp/housekeeping.json`. Compose the
 file following `references/output-template.md` exactly. **Keep it succinct, scannable,
 high-signal** — a 30-second read. **Action-needed items come before completed activity**, and
 emoji section headers are used for readability. Order:
@@ -176,6 +192,8 @@ emoji section headers are used for readability. Order:
   discussions), cap at 5, with a short stand-behind reason each.
 - **🔧 Registry alignment** (ACTION) — verdict line + finding subsections (missing / ghost /
   status·type mismatches / needs curation / possibly out of date), capped.
+- **🧹 Housekeeping** (ACTION) — verdict line, stale branches one line per repo, org forks,
+  idle personal forks; capped. Never list branch names here; they belong in the issues.
 - **📊 Repository overview** (context) — totals · by type · by status from the stratification.
 - **✅ Recent activity** (completed) — itemise non-model issues/PRs (merged/opened/closed),
   then the model-repo summary line from `model_summary`.
@@ -256,11 +274,44 @@ rm -f digests/{YY}-{MM}-{DD}-github-digest.md
   failed (in that case keep the file so the user can re-run just the upload), and never before
   the Slack post. The remote URL from Step 7 is the digest's location to hand back to the user.
 
+### Step 10 — Housekeeping issues (only with `--act`, never unattended)
+
+Opening issues is outward-facing, so it needs the user's approval **in this run**.
+
+1. List the proposals:
+
+   ```bash
+   python scripts/open_housekeeping_issues.py --input /tmp/housekeeping.json --plan
+   ```
+
+   Each line is `ID  repo  summary  assign: … (why)` (H1, H2, …). Assignees follow the
+   rules in `references/scope.md` (*Who is assigned*); assignment is what notifies people. Add `--show-body` to print the bodies, and
+   `--org-forks-repo <owner/repo>` if the user wants a roll-up issue for the org forks.
+2. Show the list to the user and ask which IDs to act on. Point out the repos with the
+   most merged branches: the lasting fix there is the repo setting *Automatically delete
+   head branches*, which the user can turn on.
+3. Run only the approved IDs, on the **same** input file (IDs are stable per file):
+
+   ```bash
+   python scripts/open_housekeeping_issues.py --input /tmp/housekeeping.json --apply --ids H1,H4
+   ```
+
+   An open issue with the same hidden marker is updated, not duplicated. The script creates
+   the `housekeeping` label in a repo if missing. It never deletes branches or forks and
+   never closes issues; neither do you.
+4. Report what was opened or updated, one line each with the URL and assignees. List the
+   unowned ones separately so the user can pick an owner.
+
+Model-repo roll-ups go to `ersilia-os/ersilia-maintenance`. Before the first one is opened,
+check with the user that this fits how that repo is used.
+
 ---
 
 ## Things to avoid
 
 - Do not itemise model-repo (`eosXXXX`) issues/PRs — summarise them in one line.
+- Do not delete branches or forks, close issues, or open any issue without IDs the user
+  approved in this run. There is no approve-all.
 - Do not write to Airtable at all. The registry check is **report-only** — the digest reports
   drift for a human to fix; it never updates records.
 - Do not silently truncate the attention or health lists — always state the totals.
@@ -303,6 +354,8 @@ Two rules for the unattended prompt:
   publish every other week.
 - **Stop at any gate that would ask a question** (stale references, a digest already exists,
   a missing tool) and log the reason. Never pass `--force` unattended.
+- **Never pass `--act` unattended.** Housekeeping stays report-only in the scheduled run; the
+  user runs `/github-digest --act` (or Step 10 alone) by hand to open issues.
 
 Test with `github-digest.sh --dry-run` before activating. If the Mac is asleep at 07:00, the
 job runs when it wakes. If it is powered off, that week is skipped

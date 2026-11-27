@@ -30,6 +30,10 @@
     {
       "date": "2026-09-29",
       "notes": "FULL 90-day re-verification (user-approved) during the 26-09-29 digest run. Airtable: base app1iYv78K6xbHkmL and Repositories table tbluZtI3W9pseCSPH resolved live; all field IDs (Name/Title/Description/URL/Status/Type/Visibility/Projects/Creation Date) match airtable-schema.md; Status and Type still multipleSelects with choices Todo/In progress/Completed/Archived/Discontinued/Idle and Workshop/Package/Analysis/Automation/Template/App/Documentation; no metric columns. GitHub org custom properties (orgs/ersilia-os/properties/schema): status and type are multi_select with identical vocabularies (type adds Model). No drift; reference text unchanged. Table now 181 records; org 446 repos (259 model, 182 trackable)."
+    },
+    {
+      "date": "2026-11-26",
+      "notes": "Added housekeeping (not a references refresh; dates unchanged). New scripts fetch_housekeeping.py (batched GraphQL: stale branches merged/closed/idle, org-owned forks, idle personal forks of org members) and open_housekeeping_issues.py (--plan / --apply --ids, marker-based dedupe, label 'housekeeping'). New digest chapter 'Housekeeping', scope.md section, SKILL Steps 2b and 10 (--act, never unattended). First sweep: 405 non-archived repos, 8 members, 169 stale branches in 26 repos (145 merged, 3 closed, 21 idle), 0 in model repos, 2 live org forks, 3 idle personal forks."
     }
   ]
 }
