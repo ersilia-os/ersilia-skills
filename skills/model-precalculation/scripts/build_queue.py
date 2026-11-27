@@ -123,7 +123,9 @@ def print_summary(result: dict, show: int) -> None:
         )
     print(
         "\n'old version' = pending work on a superseded major version, left out "
-        "of the queue.\nMark it Not required or Deleted, or pass --include-superseded."
+        "of the queue.\nThe 'Close pending work on superseded versions' automation "
+        "sets it to Not required;\na non-zero count means the automation is off or "
+        "failed. Pass --include-superseded to queue it anyway."
     )
     for calc, states in result["queue"].items():
         for state in ("ongoing", "ready"):

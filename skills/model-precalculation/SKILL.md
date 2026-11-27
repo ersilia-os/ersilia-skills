@@ -99,8 +99,10 @@ Report, in this order:
 
 1. A table of ready / blocked / ongoing / old-version counts per calculation. The queue only
    includes rows whose Version is **Latest**. "Old version" counts pending work on superseded
-   rows; offer to list them so the user can mark them Not required or Deleted. Pass
-   `--include-superseded` only if the user really wants to compute an old version.
+   rows. The "Close pending work on superseded versions" automation normally sets that work
+   to Not required, so a non-zero count means the automation is off or failed: say so, check
+   it in Airtable, and offer to set the rows to Not required. Pass `--include-superseded` only
+   if the user really wants to compute an old version.
 2. What is ongoing, so nobody starts it twice.
 3. What is ready, newest snapshots first if the user asks for a short list.
 4. Rows that break the dependency rules, with the proposed fix. For "Blocked but dependency
