@@ -5,6 +5,11 @@ incorporations; the model IDs are there so the evidence can be re-read with
 `gh run list -R ersilia-os/<id>`. **Add a new entry whenever a release teaches something
 new**, in the same shape.
 
+**Since 2026-11-27 the skill only monitors the release.** It never creates, deletes or
+recreates a release. Where an entry below says to make, publish or recreate a release, or
+to re-run or dispatch a workflow, that is what an Ersilia maintainer does by hand: the skill
+reports the situation, shows the command as information, and does not run it.
+
 ## The CI chain, briefly
 
 Every eos repo carries thin wrappers around `ersilia-os/ersilia-model-workflows`:
