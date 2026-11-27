@@ -4,9 +4,14 @@
     python ci_status.py eos88ir
 
 Reads the repo's Actions runs and prints one JSON verdict for the **real HEAD** of
-main: the newest commit that is not an ersilia-bot ``[skip ci]`` commit. Those bot
-commits (metadata and README refreshes) never trigger CI, so judging the literal HEAD
-would always report "missing".
+main: the newest commit without a CI-skip token (``[skip ci]``, ``[ci skip]``,
+``[no ci]``, ``[skip actions]``, ``[actions skip]`` or a ``skip-checks: true``
+trailer). Such commits never trigger CI: the ersilia-bot metadata and README
+refreshes, and maintainers' Hub-wide CI updates (the wrapper and Slack-workflow
+changes pushed to every model repo in November 2026), so judging the literal HEAD
+would report "missing". A person's skipped commit that changes only CI or editor
+files is listed under ``warnings``. One that changes anything else was never tested,
+so the verdict cannot be ``green``: it becomes ``untested``.
 
 How runs are paired, and why:
 
@@ -21,7 +26,7 @@ How runs are paired, and why:
   reported under ``noise``, never as a failure.
 
 Exit code 0 always when the repo could be read; the verdict is in ``overall``:
-``green`` | ``running`` | ``failed`` | ``missing`` | ``not_merged``. Non-blocking
+``green`` | ``running`` | ``failed`` | ``missing`` | ``untested`` | ``not_merged``. Non-blocking
 oddities (an architecture that failed inside a green image run, a PR merged on a red
 test) go to ``warnings``.
 """
@@ -37,6 +42,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _common import (  # noqa: E402
     BOT_COMMITTER,
+    NO_EFFECT_LABEL,
     OWNER,
     WF_IMAGE,
     WF_PR,
@@ -46,10 +52,18 @@ from _common import (  # noqa: E402
     emit,
     gh_api,
     gh_text,
+    model_files_changed,
+    skips_ci,
 )
 
 # GitHub kills a job after 6 h; an image test cancelled near that mark timed out.
 TIMEOUT_SECONDS = 5.75 * 3600
+
+# resolve-release releases a dispatched run only when the repo has no tags yet.
+DISPATCH_NOTE = (
+    "On a model that already has a release, a dispatched run rebuilds and tests the model "
+    "but releases nothing, so the release then has to be made by hand (release_state.py)."
+)
 
 # Log fragments with a known diagnosis. The hint text is what the skill tells the user;
 # references/lessons-learned.md has the full story behind each.
@@ -84,24 +98,44 @@ def parse_time(value):
 
 
 def real_head(model_id):
-    """Return ``(literal_head, real_head)`` commit dicts for main."""
+    """Return ``(literal_head, real_head, skipped_by_people, untested)`` for main.
+
+    ``skipped_by_people`` holds a person's CI-skipped commits that change only CI or
+    editor files; ``untested`` holds those that change anything else.
+    """
     commits = gh_api(f"repos/{OWNER}/{model_id}/commits?sha=main&per_page=30") or []
     if not commits:
-        return None, None
+        return None, None, [], []
 
     def describe(commit):
         message = commit["commit"]["message"].split("\n")[0]
         author = (commit.get("author") or {}).get("login") or commit["commit"]["author"]["name"]
         return {"sha": commit["sha"], "message": message, "author": author}
 
+    # Walk main's first-parent chain, so the commits of a merged PR's branch, which never
+    # ran on main themselves, are not mistaken for main's head (eos8bpb).
+    by_sha = {c["sha"]: c for c in commits}
+    chain, commit = [], commits[0]
+    while commit is not None:
+        chain.append(commit)
+        parents = commit.get("parents") or []
+        commit = by_sha.get(parents[0]["sha"]) if parents else None
+
     literal = describe(commits[0])
-    for commit in commits:
+    skipped_by_people, untested = [], []
+    for commit in chain:
         message = commit["commit"]["message"]
         author_name = commit["commit"]["author"]["name"]
-        if "[skip ci]" in message and author_name == BOT_COMMITTER:
+        if skips_ci(message):
+            if author_name != BOT_COMMITTER:
+                files = model_files_changed(model_id, commit["sha"])
+                if files == []:
+                    skipped_by_people.append(describe(commit))
+                else:
+                    untested.append(dict(describe(commit), files=files or "unknown"))
             continue
-        return literal, describe(commit)
-    return literal, literal
+        return literal, describe(commit), skipped_by_people, untested
+    return literal, literal, skipped_by_people, untested
 
 
 def run_summary(run, jobs=None):
@@ -161,7 +195,7 @@ def diagnose(model_id, run, jobs):
                         "arm64, so a slow model can need ~12 h). Re-run with "
                         f"`gh workflow run upload-model.yml -R {OWNER}/{model_id}` after "
                         "checking that inference on examples/run_input.csv is not "
-                        "pathologically slow.",
+                        "pathologically slow. " + DISPATCH_NOTE,
                     }
                 )
     if run.get("conclusion") == "failure":
@@ -199,10 +233,31 @@ def main():
     args = parser.parse_args()
     model_id = check_model_id(args.model_id)
 
-    literal, head = real_head(model_id)
+    literal, head, skipped_by_people, untested = real_head(model_id)
     if head is None:
         emit({"model_id": model_id, "overall": "missing", "reason": "main has no commits"})
         return
+
+    def finish(result):
+        """Emit the verdict; never report green while a newer model change is untested."""
+        if untested:
+            result["untested_commits"] = untested
+            listed = "; ".join(
+                f"{c['sha'][:7]} by {c['author']} ('{c['message']}')" for c in untested
+            )
+            note = (
+                f"Newer commit(s) skipped CI but change files that reach the model: {listed}. "
+                f"The runs above are for {head['sha'][:7]}, before them. If a commit only moves "
+                "checkpoints between Git and eosvc, check that every file's sha256 is "
+                "unchanged; otherwise the model on main is untested: start the chain with "
+                f"`gh workflow run upload-model.yml -R {OWNER}/{model_id}`. " + DISPATCH_NOTE
+            )
+            if result["overall"] == "green":
+                result["overall"] = "untested"
+                result["reason"] = note
+            else:
+                result["warnings"].append(note)
+        emit(result)
 
     runs = (gh_api(f"repos/{OWNER}/{model_id}/actions/runs?per_page=100") or {}).get(
         "workflow_runs", []
@@ -231,6 +286,14 @@ def main():
         "warnings": [],
         "noise": noise,
     }
+    if skipped_by_people:
+        listed = "; ".join(
+            f"{c['sha'][:7]} by {c['author']} ('{c['message']}')" for c in skipped_by_people
+        )
+        result["warnings"].append(
+            f"Newer commit(s) skipped CI and change only {NO_EFFECT_LABEL}: {listed}. CI is "
+            "judged on the commit before them."
+        )
 
     pr_runs = [r for r in runs if r["name"] == WF_PR]
     if pr_runs:
@@ -247,7 +310,7 @@ def main():
             f"{len(open_prs)}; latest PR test: {pr_state}. The release step starts after "
             "the incorporation PR is merged; a failing PR test goes to ersilia-model-test."
         )
-        emit(result)
+        finish(result)
         return
 
     retag_runs = [r for r in runs if r["name"] == WF_RETAG]
@@ -264,9 +327,9 @@ def main():
         result["reason"] = (
             f"No '{WF_UPLOAD}' run for real HEAD {head['sha'][:7]}. If the PR was just "
             f"merged, wait a minute; otherwise dispatch it with `gh workflow run "
-            f"upload-model.yml -R {OWNER}/{model_id}`."
+            f"upload-model.yml -R {OWNER}/{model_id}`. " + DISPATCH_NOTE
         )
-        emit(result)
+        finish(result)
         return
 
     upload = upload_runs[-1]
@@ -277,14 +340,14 @@ def main():
     if upload_state == "running":
         result["overall"] = "running"
         result["watch"].append(upload["id"])
-        emit(result)
+        finish(result)
         return
     if upload_state == "failed":
         result["overall"] = "failed"
         result["failures"] += [
             dict(f, workflow=WF_UPLOAD, run_id=upload["id"]) for f in diagnose(model_id, upload, upload_jobs)
         ]
-        emit(result)
+        finish(result)
         return
 
     # Pair the image test by time: the first image run created after this upload run and
@@ -298,7 +361,7 @@ def main():
     if not image_runs:
         result["overall"] = "running"
         result["reason"] = "Upload finished; the image test has not been queued yet. Check again in a minute."
-        emit(result)
+        finish(result)
         return
 
     image = image_runs[-1]
@@ -316,7 +379,21 @@ def main():
         ]
     else:
         post = [j for j in image_jobs if j["name"].startswith("post-upload")]
-        if post and post[0]["status"] != "completed":
+        tests = [j for j in image_jobs if j["name"] == "test-image" or j["name"].startswith("test-image /")]
+        if tests and all(j.get("conclusion") == "skipped" for j in tests):
+            # semver:patch and no-release do not rebuild the image, so the image test,
+            # post-upload and the release jobs here are skipped by design.
+            result["overall"] = "green"
+            if any(j["name"].startswith("release-patch") and j.get("conclusion") == "success" for j in upload_jobs):
+                result["reason"] = (
+                    "semver:patch: the image was not rebuilt. The upload run released the "
+                    "model (release-patch) and retagged the existing image."
+                )
+            elif any(j["name"].startswith("test-model-source") and j.get("conclusion") == "skipped" for j in upload_jobs):
+                result["reason"] = "no-release: nothing was tested, rebuilt or released, by design."
+            else:
+                result["reason"] = "The image was not rebuilt (semver:patch or no-release)."
+        elif post and post[0]["status"] != "completed":
             # The run can already read completed/success while post-upload is still
             # writing the release and metadata (eos3pu0).
             result["overall"] = "running"
@@ -356,7 +433,7 @@ def main():
             "above are what count, but say so in the summary."
         )
 
-    emit(result)
+    finish(result)
 
 
 if __name__ == "__main__":
