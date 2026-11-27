@@ -58,6 +58,7 @@ Several of these skills are designed to be chained together as part of a larger 
 | molecule-auditing | Audits small molecules suggested in Ersilia's screening and scores them according to parameters of interest. |
 | paper-to-model-assessment | Summarize a given paper and put it in context of Ersilia’s interests. |
 | peer-reviewing | Emulate a peer review and suggest how to address changes. |
+| ai-text-detection | Builds a graded evidence report on whether an article, grant or review was written with AI: leftover chatbot artefacts, fabricated references, free web detectors run in Chrome on several splits of the text (each first tested on known human and AI texts), calibrated stylometry and a close reading. Never sends confidential manuscripts or grants anywhere, and learns from your feedback on every case. |
 
 ---
 

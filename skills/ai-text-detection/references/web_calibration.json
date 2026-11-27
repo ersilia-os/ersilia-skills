@@ -1,0 +1,874 @@
+{
+  "_about": "Measured on known texts by web_controls.py: human = published scientific prose from 2015-2021 (CC BY / public domain), ai = written by Claude or GPT models, polished = human text rewritten by an AI. human_domain = human prose from the document's own field. fpr, lr_* and auroc pool all human texts (general and domain); fpr_generic and fpr_domain show them apart. fpr = share of human texts scored >= 0.5; tpr = share of AI texts scored >= 0.5. Small samples: the intervals in 'n' matter. Re-run monthly (watch.py) and after any site change.",
+  "tools": {
+    "aidetector_review": {
+      "date": "2026-11-17",
+      "n_human": 28,
+      "n_ai": 10,
+      "n_polished": 3,
+      "fpr": 0.107,
+      "tpr": 0.8,
+      "polished_flagged": 0.333,
+      "auroc": 0.948,
+      "lr_flag": 5.62,
+      "lr_clear": 0.29,
+      "mean_human": 0.111,
+      "mean_ai": 0.828,
+      "n_shuffled": 10,
+      "fpr_shuffled": 0.2,
+      "fpr_generic": 0.1,
+      "n_domain": 18,
+      "fpr_domain": 0.111,
+      "domain_scores": [
+        0.01,
+        0.01,
+        0.01,
+        0.01,
+        0.01,
+        0.01,
+        0.01,
+        0.01,
+        0.01,
+        0.01,
+        0.01,
+        0.02,
+        0.03,
+        0.04,
+        0.05,
+        0.2,
+        0.97,
+        0.97
+      ]
+    },
+    "binoculars": {
+      "date": "2026-11-17",
+      "n_human": 28,
+      "n_ai": 10,
+      "n_polished": 3,
+      "fpr": 0.0,
+      "tpr": 0.4,
+      "polished_flagged": 0.0,
+      "auroc": 0.7,
+      "lr_flag": 12.5,
+      "lr_clear": 0.6,
+      "mean_human": 0.0,
+      "mean_ai": 0.4,
+      "n_shuffled": 10,
+      "fpr_shuffled": 0.0,
+      "fpr_generic": 0.0,
+      "n_domain": 18,
+      "fpr_domain": 0.0,
+      "domain_scores": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "undetectable": {
+      "date": "2026-11-17",
+      "n_human": 28,
+      "n_ai": 10,
+      "n_polished": 3,
+      "fpr": 0.036,
+      "tpr": 0.9,
+      "polished_flagged": 0.0,
+      "auroc": 0.979,
+      "lr_flag": 12.5,
+      "lr_clear": 0.18,
+      "mean_human": 0.172,
+      "mean_ai": 0.762,
+      "n_shuffled": 10,
+      "fpr_shuffled": 0.1,
+      "fpr_generic": 0.1,
+      "n_domain": 18,
+      "fpr_domain": 0.0,
+      "domain_scores": [
+        0.01,
+        0.01,
+        0.01,
+        0.01,
+        0.01,
+        0.02,
+        0.08,
+        0.12,
+        0.13,
+        0.18,
+        0.18,
+        0.19,
+        0.21,
+        0.25,
+        0.27,
+        0.28,
+        0.31,
+        0.44
+      ]
+    },
+    "zerogpt": {
+      "date": "2026-11-17",
+      "n_human": 28,
+      "n_ai": 10,
+      "n_polished": 3,
+      "fpr": 0.0,
+      "tpr": 1.0,
+      "polished_flagged": 0.0,
+      "auroc": 1.0,
+      "lr_flag": 27.5,
+      "lr_clear": 0.09,
+      "mean_human": 0.0,
+      "mean_ai": 1.0,
+      "n_shuffled": 10,
+      "fpr_shuffled": 0.0,
+      "fpr_generic": 0.0,
+      "n_domain": 18,
+      "fpr_domain": 0.0,
+      "domain_scores": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "decopy": {
+      "date": "2026-11-17",
+      "n_human": 4,
+      "n_ai": 0,
+      "n_polished": 0,
+      "fpr": 0.25,
+      "tpr": null,
+      "polished_flagged": null,
+      "auroc": null,
+      "lr_flag": null,
+      "lr_clear": null,
+      "mean_human": 0.128,
+      "mean_ai": null,
+      "n_shuffled": 0,
+      "fpr_shuffled": null,
+      "fpr_generic": 0.25,
+      "n_domain": 0,
+      "fpr_domain": null,
+      "domain_scores": []
+    },
+    "scribbr": {
+      "date": "2026-11-17",
+      "n_human": 28,
+      "n_ai": 10,
+      "n_polished": 3,
+      "fpr": 0.0,
+      "tpr": 0.3,
+      "polished_flagged": 0.0,
+      "auroc": 0.8,
+      "lr_flag": 10.0,
+      "lr_clear": 0.69,
+      "mean_human": 0.0,
+      "mean_ai": 0.357,
+      "n_shuffled": 10,
+      "fpr_shuffled": 0.0,
+      "fpr_generic": 0.0,
+      "n_domain": 18,
+      "fpr_domain": 0.0,
+      "domain_scores": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "plagiarismcheckerx": {
+      "date": "2026-11-17",
+      "n_human": 28,
+      "n_ai": 10,
+      "n_polished": 3,
+      "fpr": 0.0,
+      "tpr": 0.7,
+      "polished_flagged": 0.0,
+      "auroc": 0.893,
+      "lr_flag": 20.0,
+      "lr_clear": 0.34,
+      "mean_human": 0.017,
+      "mean_ai": 0.68,
+      "n_shuffled": 10,
+      "fpr_shuffled": 0.0,
+      "fpr_generic": 0.0,
+      "n_domain": 18,
+      "fpr_domain": 0.0,
+      "domain_scores": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "seoai": {
+      "date": "2026-11-17",
+      "n_human": 28,
+      "n_ai": 10,
+      "n_polished": 3,
+      "fpr": 0.107,
+      "tpr": 0.0,
+      "polished_flagged": 0.0,
+      "auroc": 0.404,
+      "lr_flag": 0.62,
+      "lr_clear": 1.06,
+      "mean_human": 0.158,
+      "mean_ai": 0.064,
+      "n_shuffled": 10,
+      "fpr_shuffled": 0.0,
+      "fpr_generic": 0.2,
+      "n_domain": 18,
+      "fpr_domain": 0.056,
+      "domain_scores": [
+        0.01,
+        0.01,
+        0.01,
+        0.01,
+        0.02,
+        0.02,
+        0.02,
+        0.03,
+        0.06,
+        0.06,
+        0.06,
+        0.07,
+        0.13,
+        0.15,
+        0.15,
+        0.16,
+        0.29,
+        0.63
+      ]
+    }
+  },
+  "known_scores": {
+    "a11": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.98,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.79,
+        "scribbr": 0.0,
+        "seoai": 0.26,
+        "undetectable": 0.33,
+        "zerogpt": 1.0
+      }
+    },
+    "a12": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.43,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 1.0,
+        "scribbr": 0.23,
+        "seoai": 0.04,
+        "undetectable": 0.79,
+        "zerogpt": 1.0
+      }
+    },
+    "a13": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.98,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.59,
+        "scribbr": 0.09,
+        "seoai": 0.06,
+        "undetectable": 0.89,
+        "zerogpt": 1.0
+      }
+    },
+    "a14": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.99,
+        "binoculars": 1.0,
+        "plagiarismcheckerx": 1.0,
+        "scribbr": 1.0,
+        "seoai": 0.04,
+        "undetectable": 0.82,
+        "zerogpt": 1.0
+      }
+    },
+    "a15": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.98,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 1.0,
+        "scribbr": 0.25,
+        "seoai": 0.01,
+        "undetectable": 0.5,
+        "zerogpt": 1.0
+      }
+    },
+    "a16": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.94,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.01,
+        "undetectable": 0.8,
+        "zerogpt": 1.0
+      }
+    },
+    "a17": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.98,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.02,
+        "undetectable": 0.68,
+        "zerogpt": 1.0
+      }
+    },
+    "a18": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.02,
+        "binoculars": 1.0,
+        "plagiarismcheckerx": 0.42,
+        "scribbr": 0.0,
+        "seoai": 0.17,
+        "undetectable": 0.83,
+        "zerogpt": 1.0
+      }
+    },
+    "a19": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.99,
+        "binoculars": 1.0,
+        "plagiarismcheckerx": 1.0,
+        "scribbr": 1.0,
+        "seoai": 0.03,
+        "undetectable": 0.99,
+        "zerogpt": 1.0
+      }
+    },
+    "a20": {
+      "label": "ai",
+      "scores": {
+        "aidetector_review": 0.99,
+        "binoculars": 1.0,
+        "plagiarismcheckerx": 1.0,
+        "scribbr": 1.0,
+        "seoai": 0.0,
+        "undetectable": 0.99,
+        "zerogpt": 1.0
+      }
+    },
+    "d01": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.06,
+        "undetectable": 0.13,
+        "zerogpt": 0.0
+      }
+    },
+    "d02": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.16,
+        "undetectable": 0.18,
+        "zerogpt": 0.0
+      }
+    },
+    "d03": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.06,
+        "undetectable": 0.21,
+        "zerogpt": 0.0
+      }
+    },
+    "d04": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.02,
+        "undetectable": 0.12,
+        "zerogpt": 0.0
+      }
+    },
+    "d05": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.02,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.63,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "d06": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.29,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "d07": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.05,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.02,
+        "undetectable": 0.31,
+        "zerogpt": 0.0
+      }
+    },
+    "d08": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.06,
+        "undetectable": 0.02,
+        "zerogpt": 0.0
+      }
+    },
+    "d09": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.03,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.02,
+        "undetectable": 0.08,
+        "zerogpt": 0.0
+      }
+    },
+    "d10": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.01,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "d11": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.15,
+        "undetectable": 0.19,
+        "zerogpt": 0.0
+      }
+    },
+    "d12": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.2,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.07,
+        "undetectable": 0.44,
+        "zerogpt": 0.0
+      }
+    },
+    "d13": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.15,
+        "undetectable": 0.25,
+        "zerogpt": 0.0
+      }
+    },
+    "d14": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.03,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "d15": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.01,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "d16": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.97,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.01,
+        "undetectable": 0.27,
+        "zerogpt": 0.0
+      }
+    },
+    "d17": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.04,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.01,
+        "undetectable": 0.28,
+        "zerogpt": 0.0
+      }
+    },
+    "d18": {
+      "label": "human_domain",
+      "scores": {
+        "aidetector_review": 0.97,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.13,
+        "undetectable": 0.18,
+        "zerogpt": 0.0
+      }
+    },
+    "h01": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "decopy": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.03,
+        "undetectable": 0.09,
+        "zerogpt": 0.0
+      }
+    },
+    "h02": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "decopy": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.03,
+        "undetectable": 0.37,
+        "zerogpt": 0.0
+      }
+    },
+    "h03": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.02,
+        "binoculars": 0.0,
+        "decopy": 0.51,
+        "plagiarismcheckerx": 0.47,
+        "scribbr": 0.0,
+        "seoai": 0.02,
+        "undetectable": 0.26,
+        "zerogpt": 0.0
+      }
+    },
+    "h04": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.03,
+        "binoculars": 0.0,
+        "decopy": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.26,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "h05": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.02,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.01,
+        "undetectable": 0.44,
+        "zerogpt": 0.0
+      }
+    },
+    "h06": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.6,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.11,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "h07": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 1.0,
+        "undetectable": 0.03,
+        "zerogpt": 0.0
+      }
+    },
+    "h08": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 1.0,
+        "undetectable": 0.01,
+        "zerogpt": 0.0
+      }
+    },
+    "h09": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.01,
+        "undetectable": 0.1,
+        "zerogpt": 0.0
+      }
+    },
+    "h10": {
+      "label": "human",
+      "scores": {
+        "aidetector_review": 0.01,
+        "binoculars": 0.0,
+        "plagiarismcheckerx": 0.0,
+        "scribbr": 0.0,
+        "seoai": 0.06,
+        "undetectable": 0.78,
+        "zerogpt": 0.0
+      }
+    }
+  },
+  "pairs": {
+    "aidetector_review|binoculars": {
+      "rho": 0.0,
+      "n": 10
+    },
+    "aidetector_review|decopy": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "aidetector_review|plagiarismcheckerx": {
+      "rho": 0.0,
+      "n": 38
+    },
+    "aidetector_review|scribbr": {
+      "rho": 0.329,
+      "n": 10
+    },
+    "aidetector_review|seoai": {
+      "rho": 0.0,
+      "n": 38
+    },
+    "aidetector_review|undetectable": {
+      "rho": 0.003,
+      "n": 38
+    },
+    "aidetector_review|zerogpt": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "binoculars|decopy": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "binoculars|plagiarismcheckerx": {
+      "rho": 0.366,
+      "n": 10
+    },
+    "binoculars|scribbr": {
+      "rho": 0.746,
+      "n": 10
+    },
+    "binoculars|seoai": {
+      "rho": 0.0,
+      "n": 10
+    },
+    "binoculars|undetectable": {
+      "rho": 0.6,
+      "n": 10
+    },
+    "binoculars|zerogpt": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "decopy|plagiarismcheckerx": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "decopy|scribbr": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "decopy|seoai": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "decopy|undetectable": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "decopy|zerogpt": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "plagiarismcheckerx|scribbr": {
+      "rho": 0.658,
+      "n": 10
+    },
+    "plagiarismcheckerx|seoai": {
+      "rho": 0.0,
+      "n": 38
+    },
+    "plagiarismcheckerx|undetectable": {
+      "rho": 0.085,
+      "n": 38
+    },
+    "plagiarismcheckerx|zerogpt": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "scribbr|seoai": {
+      "rho": 0.0,
+      "n": 10
+    },
+    "scribbr|undetectable": {
+      "rho": 0.548,
+      "n": 10
+    },
+    "scribbr|zerogpt": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "seoai|undetectable": {
+      "rho": 0.0,
+      "n": 38
+    },
+    "seoai|zerogpt": {
+      "rho": 1.0,
+      "n": 0
+    },
+    "undetectable|zerogpt": {
+      "rho": 1.0,
+      "n": 0
+    }
+  }
+}

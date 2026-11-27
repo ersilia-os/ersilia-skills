@@ -1,0 +1,14 @@
+/* Print adjustments for report_pdf.py. Nothing is sticky, and each close-reading note is
+   printed in full, in a box beside its paragraph: hover does not exist on paper. */
+.side, .doclegend { position: static !important; }
+.card, .psg { break-inside: auto; }
+.hero { break-inside: avoid; }
+.hover-only { display: none; }
+.note { position: static; display: inline; }
+.note::after, .note:hover::after, .note:focus::after {
+  content: attr(data-note); display: block; float: right; position: static;
+  width: 36%; margin: 4px 0 8px 14px; padding: 6px 10px;
+  border: 1px solid var(--accent); border-left: 4px solid var(--accent); border-radius: 6px;
+  background: var(--card); color: var(--ink); box-shadow: none;
+  font: 400 .78rem/1.45 Inter, system-ui, sans-serif;
+}

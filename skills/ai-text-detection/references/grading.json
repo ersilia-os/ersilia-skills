@@ -1,0 +1,73 @@
+{
+  "_about": "How grade.py turns findings into the overall tier. Data, not code: change these values through the Learn step (record_feedback.py logs why). The tier is the highest level whose rule is met. Manipulation (hidden prompts) and paraphraser evidence are reported separately: they are serious, but they are not evidence that an AI wrote the text.",
+  "version": 6,
+  "conclusive": {
+    "_note": "A confirmed artefact (scan_artifacts.py, then confirmed in context in judgements.json) from one of these categories.",
+    "categories": [
+      "citation-artifact",
+      "chatbot-leftover",
+      "placeholder",
+      "reasoning-leak",
+      "ui-leftover"
+    ],
+    "min_confirmed_hits": 1
+  },
+  "strong": {
+    "_note": "Two or more fabricated references; a strong close-reading finding (if reading_strong_ok); a confirmed hit in strong_categories; or the web rule below.",
+    "fabricated_statuses": [
+      "not-found",
+      "doi-not-registered",
+      "doi-points-elsewhere"
+    ],
+    "min_fabricated_refs": 2,
+    "strong_categories": [
+      "markdown-leftover",
+      "unicode-artifact"
+    ],
+    "reading_strong_ok": true
+  },
+  "moderate": {
+    "_note": "The style score counts as moderate evidence only if its validated AUROC (calibration.json) reaches min_style_auroc; otherwise it is weak context at most. One fabricated reference, two close-reading findings, a model-phrasing hit, or a shift from the author's own baseline also count.",
+    "min_fabricated_refs": 1,
+    "style_fraction_over_1pct": 0.5,
+    "style_min_windows": 3,
+    "min_reading_findings": 2,
+    "moderate_categories": [
+      "model-phrasing"
+    ],
+    "min_style_auroc": 0.75,
+    "baseline_min_texts": 5,
+    "baseline_min_features": 2
+  },
+  "weak": {
+    "_note": "Context only: style past its 5% threshold in a share of windows, any single reading observation, any weak marker.",
+    "style_fraction_over_5pct": 0.3,
+    "any_reading_finding": true,
+    "any_weak_hit": true
+  },
+  "web": {
+    "_note": "A web tool flags the document when chunks holding at least flag_share of the words score >= 0.5. Two validated tools flagging, plus one non-statistical line (artefacts, references, reading, baseline), make it strong. A tool counts only if its scanned chunks cover at least min_coverage of the text.",
+    "flag_share": 0.5,
+    "validated_for_strong": 2,
+    "min_coverage": 0.5
+  },
+  "combined": {
+    "_note": "Calibrated combination of web detectors across splits (evidence.py: evidence added, each tool's divided by the overlap the others carry, measured on known texts). Moderate needs the document to be at least moderate_times more likely under AI, with at least min_good_tools tools that reached good_auroc on known texts among those counted. At most counter_times is reported as counter-evidence. Never strong on its own. passage_times: a single passage at or above this (stricter than the document bar, since several passages are tested) also gives moderate, worded as localised evidence. A tool is counted at all only with at least min_known_texts human and min_known_texts AI known texts and an AUROC of at least min_auroc (evidence.py, web_controls.py).",
+    "min_known_texts": 5,
+    "min_auroc": 0.6,
+    "moderate_times": 10,
+    "min_good_tools": 2,
+    "good_auroc": 0.75,
+    "counter_times": 0.1,
+    "passage_times": 20
+  },
+  "separate": {
+    "_note": "Reported apart from the tier: serious, but not evidence that an AI wrote the text.",
+    "prompt-injection": "manipulation",
+    "paraphraser": "paraphraser"
+  },
+  "caveats": {
+    "_note": "Below short_text_words, the report warns that the statistics are unreliable.",
+    "short_text_words": 300
+  }
+}
