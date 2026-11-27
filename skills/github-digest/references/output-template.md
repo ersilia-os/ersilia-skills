@@ -74,11 +74,16 @@ quiet, say so in one sentence.
 Current open state (not window-bound). **Cap the lists** and state totals so nothing is hidden.
 
 ```markdown
+### Waiting for an answer
 ### Stale pull requests
 ### Long-open issues
 ### 💡 Easy wins
 ```
 
+- **Waiting for an answer**: `needs_reply` issues from `nudges.json` (all repos, model repos
+  included), grouped by owner, most-quiet first. One line each, up to 10:
+  `- [{repo} #{number}]({url}) — **{title}** · last reply from @{last_by} {days_quiet}d ago · owner @{owner}`.
+  If zero, write *Nobody is waiting for an answer.*
 - **Stale pull requests**: open non-model PRs with `stale: true`, most-stale first. Up to 10;
   if more, end with `_…and {N} more stale PRs._`
 - **Long-open issues**: open non-model issues by `age_days` descending. Up to 10; append
