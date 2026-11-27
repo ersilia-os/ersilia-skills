@@ -345,5 +345,6 @@ After the issue is opened, print the issue URL, say whether the user was assigne
 4. Run `/model-incorporation-code` to wire up the model code
 5. Run `/ersilia-model-test` to validate the model runs correctly before submitting a PR
 6. Optionally run `/model-incorporation-reproduce` to verify the model performs as reported in the paper
-7. Run `/model-incorporation-pr` to commit, push, open the pull request and, with your approval, merge it once every check is green
-8. Run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request
+7. Optionally run `/model-optimization` to make the model smaller without changing its outputs; it edits `install.yml` and leaves the change uncommitted, so run it before `/model-incorporation-pr`
+8. Run `/model-incorporation-pr` to commit, push, open the pull request and, with your approval, merge it once every check is green
+9. Run `/model-incorporation-release` to confirm CI is green, check the release, deposit the paper and close the request
