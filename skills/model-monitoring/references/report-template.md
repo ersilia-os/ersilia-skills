@@ -23,12 +23,16 @@ The order encodes a priority: **act, then orient, then browse, then review histo
 | 2 | Note box | Unavailable sources — surfaced, not buried | maintenance |
 | 3 | **Needs attention** | The only section that asks the reader to do something | both |
 | 4 | **Coverage plate** | Make ~220 models legible at a glance | coverage |
-| 5 | Precalculation coverage | The full searchable, sortable, filterable table | coverage |
+| 5 | Precalculation coverage | The full searchable, sortable, filterable table, with an Airtable column and a closing "Airtable check" listing where the Precalculations table disagrees with isaura | coverage |
 | 6 | Singularity images | Figure grid + matching searchable table | sif |
 | 7 | This week in maintenance | Weekly test results + upstream-moved-on models | maintenance |
 | 8 | Monthly health | Current snapshot + month-by-month series | maintenance |
 | 9 | Monthly trends | The three published plots (only with `--plots`) | maintenance |
 | 10 | Footer | Provenance: when each source was read, what "full" means | all |
+
+Coverage and the Airtable check share one section because they answer one question
+(what is stored for each model?) against the same isaura inventory. Two sections made
+the reader compare them by hand.
 
 The **Singularity section deliberately mirrors the isaura section**: same figure grid, same
 table controls, same colour roles. The two answer the same shape of question — "does this
@@ -167,9 +171,9 @@ definition, since an orphan is not in the hub listing.
 
 | Class | Label in report | Test |
 |---|---|---|
-| `complete` | Complete | best stored version has ≥ 1,355,109 molecules |
-| `partial` | Incomplete | 0 < best version < 1,355,109 |
-| `missing` | Not started | in the Ready population, nothing in isaura |
+| `complete` | Complete | current version has ≥ 1,355,109 molecules |
+| `partial` | Incomplete | 0 < current version < 1,355,109 |
+| `missing` | Not started | in the Ready population, nothing in isaura for the current version |
 | `orphan` | Not Ready | in isaura, outside the Ready population |
 
 Singularity availability uses the same shape with three classes — `available`, `missing`,
@@ -182,9 +186,11 @@ artefacts we store for models that are no longer served — and they are reporte
 because that is a question about reclaiming storage, never folded into the coverage
 percentage.
 
-Models stored at several versions are folded to their **best** version, because the question
-is whether the predictions exist at all. Every version is still listed in the table's
-Versions column, so a partial newer version behind a complete older one stays visible.
+Only the model's **current** major version is measured (from the Airtable Precalculations
+rows marked Latest), because that is the version the Hub serves. Every stored version is
+still listed in the table's Versions column, with the current one named, so a model whose
+only data is for an old version stays visible. If a model has no Latest row, its best stored
+version is measured instead and `current_version_unknown` counts it.
 
 ---
 
@@ -212,7 +218,13 @@ composed in `build()`. To change a section, edit its function; to reorder, edit 
 - `figures_block` — the eight headline figures, spanning all three data sources.
 - `attention_block` — failing tests + actionable coverage gaps.
 - `plate_block` — the signature grid and its legend.
-- `coverage_table` — the isaura table, via `filterable_block`.
+- `coverage_table` — the isaura table, via `filterable_block`, with an Airtable column
+  (`airtable_status`): the reference library status of each model's Latest
+  snapshot, highlighted when it disagrees with isaura.
+- `airtable_block` — closes the coverage section: only the snapshots where the
+  Precalculations table disagrees with isaura, all versions, with the next step. Fed by
+  the `airtable` block of `coverage.json`, which `fetch_coverage.py` computes with
+  `model-precalculation`'s reconcile logic.
 - `sif_section` — the whole Singularity section: lede, figure grid, table. Renders a
   placeholder when `--sif` was not passed.
 - `weekly_block`, `updated_block`, `monthly_block`, `plots_block` — maintenance sections.

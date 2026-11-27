@@ -11,12 +11,16 @@ Two sources are joined:
   * `ersilia_search` — the hub's own search engine, which is the authoritative
     list of models that exist and their status.
 
-Coverage is the set difference. Output is a single JSON file consumed by
-build_report.py.
+Coverage is the set difference. The same isaura inventory is then checked
+against the Airtable Precalculations table (the to-do list for
+precalculations), using the model-precalculation skill's reconcile logic, so
+the report can show where that table is wrong. Output is a single JSON file
+consumed by build_report.py.
 
 Usage:
-    python fetch_coverage.py --out coverage.json
-    python fetch_coverage.py --out coverage.json --reuse-stats prior_stats.json
+    python fetch_coverage.py --out coverage.json --airtable precalc_table.json
+    python fetch_coverage.py --out coverage.json --reuse-stats prior_stats.json \
+        --airtable precalc_table.json
 """
 
 import argparse
@@ -26,6 +30,7 @@ import os
 import sys
 import tempfile
 from datetime import datetime, timezone
+from pathlib import Path
 
 from _common import (
     FULL_COUNT,
@@ -34,6 +39,41 @@ from _common import (
     resolve_tool,
     run,
 )
+
+# The Airtable check lives in the sibling skill model-precalculation; reuse it
+# rather than keeping a second copy of the reconcile rules here.
+PRECALC_SCRIPTS = Path(__file__).resolve().parents[2] / "model-precalculation" / "scripts"
+
+
+def load_airtable(path):
+    """Read the Precalculations table from a saved connector JSON or the API.
+
+    Done before the slow isaura inventory, so a missing table fails fast.
+    """
+    sys.path.insert(0, str(PRECALC_SCRIPTS))
+    try:
+        from _precalc import load_from_api, load_from_file
+    except ImportError:
+        sys.exit(
+            f"ERROR: could not import model-precalculation from {PRECALC_SCRIPTS}. "
+            "Both skills must sit side by side in ersilia-skills/skills/."
+        )
+    if path:
+        return load_from_file(path)
+    if os.environ.get("AIRTABLE_TOKEN"):
+        return load_from_api()
+    sys.exit(
+        "ERROR: the Airtable check needs the Precalculations table. Read it with "
+        "the Airtable connector and pass the saved JSON with --airtable, or set "
+        "AIRTABLE_TOKEN."
+    )
+
+
+def airtable_check(records, stats, full_count):
+    """Compare the table's reference library statuses with the isaura inventory."""
+    from reconcile_isaura import isaura_counts, reconcile
+
+    return reconcile(records, isaura_counts(stats), full_count)
 
 
 def collect_isaura_stats(bucket, stats_dir, isaura_env=None, isaura_bin=None):
@@ -131,8 +171,29 @@ def fold_versions(stats):
     return folded
 
 
-def classify(hub_rows, folded, full_count):
+def current_versions(airtable_records):
+    """Map model id -> its current MAJOR version (``v3``), from Airtable.
+
+    The Precalculations rows marked Latest follow the Models table's current
+    snapshot, so they say which version the Hub serves today.
+    """
+    out = {}
+    for r in airtable_records:
+        if r.get("version") == "Latest":
+            model_id, _, version = r["snapshot"].partition("_")
+            out[model_id] = version
+    return out
+
+
+def classify(hub_rows, folded, full_count, current=None):
     """Assign every model to exactly one coverage class.
+
+    Hub models are measured on their **current** major version only. Predictions
+    stored for an older version are not what the Hub serves, so a model whose
+    only data is for an old version counts as missing (``old_version_only``
+    keeps that visible). When the current version is unknown (no Latest row in
+    Airtable), the best stored version is measured and ``current_version`` is
+    None.
 
     complete — every reference molecule has a prediction
     partial  — some predictions stored, but fewer than the full collection
@@ -146,12 +207,21 @@ def classify(hub_rows, folded, full_count):
     """
     models = []
     seen_in_hub = set()
+    current = current or {}
 
     for row in hub_rows:
         mid = row["Identifier"]
         seen_in_hub.add(mid)
         stored = folded.get(mid)
-        molecules = stored["molecules"] if stored else 0
+        version = current.get(mid)
+        if stored and version:
+            molecules = max(
+                (v["molecules"] for v in stored["versions"] if v["version"] == version),
+                default=0,
+            )
+        else:
+            molecules = stored["molecules"] if stored else 0
+        old_version_only = bool(stored and stored["molecules"] > 0 and molecules == 0)
         if not stored or molecules == 0:
             coverage = "missing"
         elif molecules >= full_count:
@@ -173,6 +243,8 @@ def classify(hub_rows, folded, full_count):
                 "pct": round(100.0 * molecules / full_count, 2) if full_count else 0.0,
                 "missing_molecules": max(full_count - molecules, 0),
                 "best_version": stored["best_version"] if stored else None,
+                "current_version": version,
+                "old_version_only": old_version_only,
                 "versions": stored["versions"] if stored else [],
                 "total_gb": stored["total_gb"] if stored else 0.0,
                 "n_columns": stored["n_columns"] if stored else None,
@@ -201,6 +273,8 @@ def classify(hub_rows, folded, full_count):
                 else 0.0,
                 "missing_molecules": max(full_count - stored["molecules"], 0),
                 "best_version": stored["best_version"],
+                "current_version": None,
+                "old_version_only": False,
                 "versions": stored["versions"],
                 "total_gb": stored["total_gb"],
                 "n_columns": stored["n_columns"],
@@ -253,6 +327,10 @@ def summarise(models, full_count, stats):
         "stored_gb": stored_gb,
         "status_matrix": status_matrix,
         "multi_version_models": sum(1 for m in models if len(m["versions"]) > 1),
+        "old_version_only": sum(1 for m in models if m.get("old_version_only")),
+        "current_version_unknown": sum(
+            1 for m in models if m["in_hub"] and not m.get("current_version")
+        ),
     }
 
 
@@ -282,14 +360,20 @@ def main():
     ap.add_argument("--reuse-stats",
                     help="Path to an existing isaura_stats_*.json, to skip the "
                          "slow remote inventory while iterating")
+    ap.add_argument("--airtable",
+                    help="Saved Airtable connector JSON of the Precalculations "
+                         "table. Required unless AIRTABLE_TOKEN is set")
     ap.add_argument("--stats-dir",
                     help="Directory to write the isaura stats JSON into "
                          "(default: a temporary directory)")
     args = ap.parse_args()
 
+    airtable_records = load_airtable(args.airtable)
+
     if args.reuse_stats:
         print(f"[coverage] reusing stats from {args.reuse_stats}", file=sys.stderr)
-        stats = json.load(open(args.reuse_stats))
+        with open(args.reuse_stats) as fh:
+            stats = json.load(fh)
     else:
         stats_dir = args.stats_dir or tempfile.mkdtemp(prefix="isaura_stats_")
         os.makedirs(stats_dir, exist_ok=True)
@@ -299,8 +383,11 @@ def main():
 
     hub_rows = collect_hub_models(args.search_env, args.status, args.ersilia_search_bin)
     folded = fold_versions(stats)
-    models = classify(hub_rows, folded, args.full_count)
+    models = classify(
+        hub_rows, folded, args.full_count, current_versions(airtable_records)
+    )
     summary = summarise(models, args.full_count, stats)
+    airtable = airtable_check(airtable_records, stats, args.full_count)
 
     payload = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -308,6 +395,7 @@ def main():
         "bucket": args.bucket,
         "isaura_generated_at_utc": stats.get("generated_at_utc"),
         "summary": summary,
+        "airtable": airtable,
         "models": sorted(
             models,
             key=lambda m: (
@@ -327,8 +415,12 @@ def main():
         f"           hub={summary['hub_models']} "
         f"complete={c.get('complete', 0)} partial={c.get('partial', 0)} "
         f"missing={c.get('missing', 0)} orphan={c.get('orphan', 0)}\n"
+        f"           old version only={summary['old_version_only']} "
+        f"current version unknown={summary['current_version_unknown']}\n"
         f"           actionable Ready gaps={summary['actionable_ready_gaps']} "
-        f"stored={summary['stored_gb']} GB",
+        f"stored={summary['stored_gb']} GB\n"
+        f"           Airtable: {len(airtable['classes']['confirmed'])} confirmed, "
+        f"{len(airtable['proposals'])} rows to fix",
         file=sys.stderr,
     )
 
