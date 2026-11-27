@@ -1,10 +1,9 @@
 ---
 name: model-incorporation-digest
 description: >
-  Produce the monthly Ersilia model-incorporation digest — an internal summary of every
-  model incorporated into the Ersilia Model Hub during a calendar month, with a table, a
-  paragraph per model crediting its original authors, and the metadata defects worth
-  fixing. Use this skill whenever the user asks for the monthly technology report, the
+  Produce the monthly Ersilia model-incorporation digest — a summary of every model
+  incorporated into the Ersilia Model Hub during a calendar month, with a table and a
+  paragraph per model crediting its original authors. Use this skill whenever the user asks for the monthly technology report, the
   model incorporation digest, or a summary of the month's model incorporations, and also
   when they ask to publish that digest to the Ersilia digests site. Triggers include:
   "technology report", "/model-incorporation-digest", "monthly report", "model
@@ -19,13 +18,11 @@ allowed-tools: [Bash, Read, Write, WebFetch, WebSearch, AskUserQuestion, slack_s
 # Ersilia Model Incorporation Digest
 
 Your job is to produce the month's incorporation digest: **what went into the Ersilia
-Model Hub, who made it, and what still needs fixing.**
+Model Hub, and who made it.**
 
-The digest has two audiences and two renders from one context. The **internal** one is the
-default and says whatever is useful to the team. The **public** one, `--public`, is the
-same document minus the metadata-defects section, and it is published to the Ersilia
-digests site alongside the literature and GitHub digests. What both must get right is
-**credit**: a month's
+The digest is one document, for the team and for the public: when the user asks, the same
+file is published to the Ersilia digests site alongside the literature and GitHub digests.
+What it must get right is **credit**: a month's
 incorporations are a month of other people's science that Ersilia packaged, and the
 per-model paragraphs name the authors who did that science. `references/attribution-rules.md`
 governs how — in particular the verb discipline, the honesty rules, the handling of a
@@ -61,16 +58,13 @@ python scripts/fetch_month_models.py 2026-08 --out /tmp/2026-08-context.json
 
 This reads the Hub's own catalogue — one JSON on S3 with every model and its metadata —
 keeps those whose `Incorporation Date` falls in the month, and resolves each publication
-against Crossref and OpenAlex for the ordered author list and the abstract. It also flags
-**metadata defects** per model.
+against Crossref and OpenAlex for the ordered author list and the abstract.
 
 Read the JSON and the stderr warnings. Note in particular:
 
 - `n_models` — if zero, say so and stop; a month with no incorporations is a valid digest.
 - `credit.n_authors == 0` for any model — its publication carries no resolvable DOI. See
   Step 3.
-- `n_with_defects` — these go in the digest's own section, and they are often the most
-  actionable thing in it.
 
 ## Step 2 — Write a paragraph per model
 
@@ -164,20 +158,15 @@ This goes to `ersilia-os/digests` at `models/`, and updates that repo's `README.
 prints the canonical **GitHub Pages URL** on line 1 — that is the link to hand the user,
 not the local path.
 
-**Upload the `--public` render, never the internal one.** The two differ only in the
-defects section, the filename does not record which is which, and the script cannot tell
-them apart. Publishing the internal copy puts a list of unrepaired defects in live models
-on a public page.
-
 **To check the renderer** — synthetic month, no network, no files on disk:
 
 ```bash
 python scripts/selftest_render.py
 ```
 
-It covers the public and internal split, the task grouping and ordering, the licence
-rule, the byline and institution forms, the Hub total, and the two guards: a missing
-summary must exit non-zero, and an empty month must render cleanly. Run it after touching
+It covers `--public` naming the file without changing the document, the task grouping and
+ordering, the licence rule, the byline and institution forms, the Hub total, and the two
+guards: a missing summary must exit non-zero, and an empty month must render cleanly. Run it after touching
 `render_report.py`.
 
 **To check the publish path without publishing** — it needs no network, credentials or
@@ -187,7 +176,7 @@ summary must exit non-zero, and an empty month must render cleanly. Run it after
 python scripts/selftest_publish.py
 ```
 
-It drives the whole sequence: both renders, the staleness guard, a first upload, the
+It drives the whole sequence: the render, the staleness guard, a first upload, the
 refusal to overwrite, `--force`, the README index and its ordering, and the refusal of a
 non-canonical filename. Run it after touching either script.
 
@@ -200,9 +189,7 @@ slack_send_message(channel_id = "C0100L3DRCM", message = <rendered template>)
 
 That is `#technology`. Do not post if the upload exited non-zero, and do not post a digest
 that was rendered but never uploaded — the alert's whole job is to point at a live page.
-The counts come from the context JSON. **The alert never mentions metadata defects** — not
-the count, not the identifiers. Those belong to `/model-incorporation-metadata`, and a
-channel post naming models as defective is not this skill's business.
+The counts come from the context JSON.
 
 **One-time setup (first models digest only).** The `models/` category does not exist on
 the digests site yet, and adding one touches five files in `ersilia-os/digests`, not the
@@ -228,19 +215,16 @@ site layout. Make it a PR to the digests repo.
 
 Show the user:
 
-1. The month's headline numbers — how many models, by task, how many flagged
+1. The month's headline numbers — how many models, by task
 2. The digest path
-3. The metadata defects, as a short list — these are the actionable items
-4. Any model whose authors did not resolve, and what you need from them
-5. If published, the Pages URL — the remote is canonical, not the local file — and
+3. Any model whose authors did not resolve, and what you need from them
+4. If published, the Pages URL — the remote is canonical, not the local file — and
    whether the Slack alert went out
 
 ## What not to do
 
 - Do not publish unless the user asked. Rendering the digest is the job; putting it on a
   public page is a separate decision that is theirs.
-- Do not publish the internal render. The public copy comes from `--public`, and the
-  defects section never goes on a public page.
 - Do not credit the Ersilia contributor who did the incorporation. `Contributor` is in the
   metadata and is deliberately unused: internal credit is handled elsewhere.
 - Do not invent an author name, an institution or a figure.
@@ -248,8 +232,6 @@ Show the user:
   reproduced results it did not.
 - Do not use "we built", "we developed", "our model", or any phrase from the banned list in
   `references/attribution-rules.md`.
-- Do not write around a metadata defect. Report it — and report it in the defects section,
-  which carries what `fetch_month_models.py` flagged, not findings from elsewhere.
 - Do not write commentary into a model's paragraph. It describes the model: what it does,
   what it was trained on, what the authors showed. Not where a name or an affiliation came
   from, not what the metadata says, and not where anything sits in this document.
