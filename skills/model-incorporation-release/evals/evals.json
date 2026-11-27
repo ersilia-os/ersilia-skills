@@ -22,13 +22,13 @@
     {
       "id": 3,
       "prompt": "Put the paper for eos55vx in the models drive folder.",
-      "expected_output": "paper_target.py finds that eos6a1h (Ready) and eos8he2 (In progress) cite the same DOI 10.1038/s42256-026-01229-5. Proposes the canonical name eos55vx_eos6a1h.pdf and asks whether eos8he2 should be included. Searches the folder under all three IDs before depositing. Gets the paper from the user or via fetch_open_paper.py, validates it with check_pdf.py, and deposits it with copy_file when the paper is already in Drive; for a local PDF it stages the file with prepare_paper.py at Downloads/ersilia-model-papers/eos55vx_eos6a1h.pdf, opens the outbox and the Drive folder automatically with --open (no question asked) so the user can drag it in, and never uses create_file. After the user says it is uploaded, it verifies with search_files that the name exists and fileSize equals the staged size_bytes. Once verified, it clears the staged copy with prepare_paper.py --clear --drive-size <fileSize>, which deletes it only when the sizes match, so Downloads/ersilia-model-papers/ is empty for the next incorporation.",
+      "expected_output": "The permission check (gh api repos/ersilia-os/ersilia --jq .permissions.push) prints true, so the paper step applies. paper_target.py finds that eos6a1h (Ready) and eos8he2 (In progress) cite the same DOI 10.1038/s42256-026-01229-5. Proposes the canonical name eos55vx_eos6a1h.pdf and asks whether eos8he2 should be included. Searches the folder under all three IDs before depositing. Gets the paper from the user or via fetch_open_paper.py, validates it with check_pdf.py, and deposits it with copy_file when the paper is already in Drive; for a local PDF it stages the file with prepare_paper.py at Downloads/ersilia-model-papers/eos55vx_eos6a1h.pdf, opens the outbox and the Drive folder automatically with --open (no question asked) so the user can drag it in, and never uses create_file. After the user says it is uploaded, it verifies with search_files that the name exists and fileSize equals the staged size_bytes. Once verified, it clears the staged copy with prepare_paper.py --clear --drive-size <fileSize>, which deletes it only when the sizes match, so Downloads/ersilia-model-papers/ is empty for the next incorporation.",
       "files": []
     },
     {
       "id": 4,
       "prompt": "Finish the incorporation of eos2srx. I don't have the paper handy.",
-      "expected_output": "CI and release are verified. For the paper, fetch_open_paper.py exits 2 with status 'closed' (the JCIM DOI 10.1021/acs.jcim.6c02529 is not open access), so the skill asks the user for the PDF and gives the doi.org landing page. It does not deposit anything without a validated PDF and does not try to work around the paywall. Because no paper is verified, the request issue stays open unless the user explicitly says to close it without the paper; if it is closed, the comment is exactly 'This model has been incorporated. 🚀'.",
+      "expected_output": "The permission check prints true, so the paper step applies. CI and release are verified. For the paper, fetch_open_paper.py exits 2 with status 'closed' (the JCIM DOI 10.1021/acs.jcim.6c02529 is not open access), so the skill asks the user for the PDF and gives the doi.org landing page. It does not deposit anything without a validated PDF and does not try to work around the paywall. Because no paper is verified, the request issue stays open unless the user explicitly says to close it without the paper; if it is closed, the comment is exactly 'This model has been incorporated. 🚀'.",
       "files": []
     },
     {
@@ -40,7 +40,31 @@
     {
       "id": 6,
       "prompt": "eos88ir is released, just close the model request. I'll upload the paper to Drive later.",
-      "expected_output": "Finds that request #1936 is already closed, so there is nothing to close. Still reports eos88ir's paper as not deposited: search_files finds no eos88ir PDF in ersilia_models_articles. Offers to prepare it now; fetch_open_paper.py exits 2 for the Nat Commun DOI because nature.com serves HTML to scripts, so it asks for the PDF and gives the doi.org landing page. The summary marks the paper line ❌ and does not call the incorporation complete. It does not reopen or comment on the closed issue unasked. (Had the issue been open, closing it would wait for a verified paper or an explicit 'close it without the paper'.)",
+      "expected_output": "The permission check prints true. Finds that request #1936 is already closed, so there is nothing to close. Still reports eos88ir's paper as not deposited: search_files finds no eos88ir PDF in ersilia_models_articles. Offers to prepare it now; fetch_open_paper.py exits 2 for the Nat Commun DOI because nature.com serves HTML to scripts, so it asks for the PDF and gives the doi.org landing page. The summary marks the paper line ❌ and does not call the incorporation complete. It does not reopen or comment on the closed issue unasked. (Had the issue been open, closing it would wait for a verified paper or an explicit 'close it without the paper'.)",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "I'm an external contributor and my model eos4abc was merged yesterday. Can you follow it until it's released and close my request when it is? (Hypothetical model: the scenario is the point.)",
+      "expected_output": "gh api repos/ersilia-os/ersilia --jq .permissions.push does not print true, so the skill treats the user as not a maintainer and does not ask which they are. It runs ci_status.py and, while runs are in progress, watches them with gh run watch, which is read-only and open to everyone. When release_state.py returns 'verified' and metadata.yml is Ready with the Release, it asks before closing, posts exactly 'This model has been incorporated. 🚀' and closes the request; if gh refuses, it reports the error and the issue link. It skips the paper step: it never asks for a PDF, never mentions Drive or a deposit, and the summary's paper line reads 'Ersilia maintainers file the paper'. Closing is not gated on the paper.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "CI for eos4abc is all green but there is no release on GitHub. Can you make one? (Hypothetical model: the PR was merged without a version label.)",
+      "expected_output": "ci_status.py returns 'green' and release_state.py returns 'create_release'. The skill does not make the release and does not offer to. It checks the 'resolve' job of the last 'Test and upload model' run, finds a run with no version label, and reports the model as not released and why. It says an Ersilia maintainer must publish the release and choose the version, and may show the script's proposed gh release create command as information for that maintainer only. The request issue stays open: the summary reads '❌ Not released' and '⏳ Request left open'. No gh release or git tag command is run.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "Close the request for eos4abc. I already uploaded the paper to the Drive folder myself. (Hypothetical model; the user is an Ersilia maintainer.)",
+      "expected_output": "The permission check prints true. ci_status.py is green and release_state.py returns 'verified'. The skill accepts the maintainer's word that the paper is uploaded and stages and fetches nothing. When the Drive connector is available it still runs the drive_queries from paper_target.py with search_files: if it finds the file it reports the link; if not, it says so once and goes on. It asks before closing, posts exactly 'This model has been incorporated. 🚀' and closes the request. When the file was not verified in Drive, the summary's paper line reads 'Paper confirmed by the user (not verified in Drive)'. It does not run prepare_paper.py --clear.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "The image test for my model eos4abc failed with 'No space left on device'. Please re-run it. (Hypothetical model; the user is an external contributor.)",
+      "expected_output": "The permission check does not print true. ci_status.py returns 'failed' with the runner_disk_full pattern. The skill shows the hint and the failing run link, does not re-run or dispatch anything, and tells the user to ask an Ersilia maintainer to re-run it, adding that if it recurs the image is too large and needs slimming (hand off to model-fixing). It does not mention Drive or the paper.",
       "files": []
     }
   ]

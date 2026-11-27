@@ -32,18 +32,63 @@ Closing the request is what tells the team "done", and papers left for later get
 forgotten. On 2026-10-07, 6 of the 10 most recent Ready models had no paper in the
 folder. CI and the release are not gated, because they are automated and usually
 finished before the skill runs. The user can override the gate explicitly; the summary
-then shows the missing paper.
+then shows the missing paper. *(Since 2026-11-27 the gate applies to Ersilia maintainers
+only; see the decisions below.)*
 
 ### Never pick a version, never hand-edit CI-owned metadata
 
 These follow the model repos' own `CLAUDE.md`.
 
+## Decisions of 2026-11-27 (agreed with Tiago)
+
+### The skill monitors; it never makes a release
+
+- **Why:** the release is specified in the PR. Since ersilia-model-workflows#22 (25 Nov 2026)
+  the `release` job creates it from the merged PR's version label, and `retag` tags the
+  image. A skill that also released by hand could publish while the image test was still
+  running (eos8gop) or collide with the bot's own tag.
+- **What changed:** the skill follows the whole chain (PR test, source test, S3 upload, pack
+  build, image tests, retag, post-upload, release, SIF) until the release exists and is
+  correct, and closes the request only then. The paths that made or deleted releases
+  (`create_release`, `recreate_release_at_head`, and the creation inside
+  `unreleased_changes`) are gone from `SKILL.md`. Where CI does not release (a PR merged
+  without a label), the skill reports why and what an Ersilia maintainer must do.
+- **Scripts:** `release_state.py` stays read-only. Its action names and its
+  `proposed.command` are unchanged, and `SKILL.md` treats them as information for a
+  maintainer, never something to run. Renaming them was left out to keep this change small.
+
+### The skill is for everyone
+
+- External contributors can follow their model to the final release and close the request
+  themselves, which is encouraged. Closing needs the release verified complete (CI green,
+  release tag, image retagged, `metadata.yml` Ready with the Release; a lagging catalogue
+  is a warning). The skill still asks first, and if `gh` refuses it reports the error.
+- **Who is a maintainer:** `gh api repos/ersilia-os/ersilia --jq .permissions.push` prints
+  `true`, as in `model-incorporation-request`. Re-running or dispatching workflows is offered
+  only to maintainers; anyone else gets the failing run link and is told to ask one.
+
+### The paper is for Ersilia maintainers, and it is mandatory for them
+
+- An external contributor is never asked to upload anything to the shared Drive (they have
+  no access) and is not told about the deposit. The summary says Ersilia maintainers file
+  the paper, and the paper gate in Step 5 does not apply to them.
+- A maintainer must not close the request until the paper is in the folder. The explicit
+  "close it without the paper" override stays.
+- **New:** a maintainer can say they already uploaded it. The skill accepts that, still
+  tries `search_files` when the Drive connector is available, and marks the summary line
+  "confirmed by the user" when it could not verify the file.
+- **Consequence:** a contributor can close the request without a paper, so a missing paper
+  no longer blocks anyone but a maintainer. `--audit-papers` below becomes more important:
+  it is the way to catch what the gate no longer does.
+
 ## Planned improvements (not implemented)
 
-- **`--audit-papers` mode.** List every Ready model with no paper in the folder, counting shared
-  papers under every sibling's ID and skipping `Publication Type: Other`. Then stage the missing
-  ones in batches. A one-off audit and backfill was done by hand on 2026-10-07: 7 models,
-  6 files, all uploaded. This mode would make it repeatable.
+- **`--audit-papers` mode (higher priority since 2026-11-27).** List every Ready model with no
+  paper in the folder, counting shared papers under every sibling's ID and skipping
+  `Publication Type: Other`. Then stage the missing ones in batches. A one-off audit and
+  backfill was done by hand on 2026-10-07: 7 models, 6 files, all uploaded. This mode would
+  make it repeatable, and now that external contributors can close a request without a
+  paper, it is how maintainers catch the papers the closing gate no longer holds back.
 - **Smoke test of the published image.** Pull `ersiliaos/<id>:<tag>`, run it on
   `examples/run_input.csv` and compare with `run_output.csv`. This checks the artifact
   users actually get, not just CI.
