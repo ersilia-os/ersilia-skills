@@ -33,7 +33,10 @@ tag on main HEAD from the merged PR's label (`v1.0.0` when the repo has no tags)
 - **What changed:** every PR to a model's `main` needs exactly one label, `semver:patch`, `semver:minor`, `semver:major` or `no-release`, checked by `Check version label / verdict`. After the merge the workflows release from it. eos935d#16 (`semver:major`) was the first: `v4.0.0` by `github-actions[bot]`, tag on a bot readme commit, then three more bot commits; no "Retag image on release" run.
 - **For an incorporation:** the label is `semver:major` (the template has no output columns, so anything lower fails the check), and the release is still `v1.0.0`.
 - **Merged without a label:** `resolve` warns and nothing is released. `release_state.py` then says `create_release`.
-- **Not unreleased changes:** Hub-wide CI updates pushed by maintainers with `[skip ci]` (the release wrappers and the Slack-workflow removal, 25–26 Nov 2026, on every repo) and PRs labelled `no-release`. `ci_status.py` judges CI on the commit before such commits, and `release_state.py` leaves them out of `unreleased_changes`; both list them under `warnings`.
+- **Not unreleased changes:** Hub-wide CI updates pushed by maintainers with `[skip ci]` (the release wrappers and the Slack-workflow removal, 25–26 Nov 2026, on every repo) and PRs labelled `no-release`. `ci_status.py` judges CI on the commit before such commits, and `release_state.py` leaves them out of `unreleased_changes`; both list them under `warnings`. Only commits that change nothing but `.github/`, `.gitignore`, `.gitattributes`, `CLAUDE.md` or `AGENTS.md` count. `ci_status.py` recognises every CI-skip token GitHub honours (`[skip ci]`, `[ci skip]`, `[no ci]`, `[skip actions]`, `[actions skip]`, a `skip-checks: true` trailer).
+- **`semver:patch` and `no-release` skip the image test:** "Test model image" still runs, but `test-image`, `post-upload`, `release`, `retag` and `build-sif` are skipped. For a PATCH the upload run releases the model (`release-patch`, `retag-patch`, `build-sif-patch`); a `no-release` merge skips the source test too. `ci_status.py` reports `green` with the route in `reason`. A skipped post-upload after an image test that *ran* is still a failure.
+- **A person's CI-skipped commit that changes the model is untested:** for example the storage moves of ersilia#1967 (eos3xhm, eos531m, eos8bpb), which change `model/checkpoints/` and `access.json`. `ci_status.py` judges the commit before it and reports `untested` instead of `green`. For a storage move, check that every file's sha256 is unchanged; for anything else, dispatch "Test and upload model".
+- **The label check is not required yet:** the model repos' rulesets only block deletion and force-pushes, so a PR can be merged with no label or a failed `verdict`. `resolve` then warns and nothing is released.
 
 ## "Initial commit" failure on every new repo
 
@@ -69,7 +72,7 @@ tag on main HEAD from the merged PR's label (`v1.0.0` when the repo has no tags)
 
 - **Symptom:** `test-image-amd64` and/or `test-image-arm64` end `cancelled` after about 360 minutes.
 - **Cause:** GitHub's 6 h job limit. The architectures run one after the other, so a slow model can need about 12 h in total.
-- **What to do:** first check that inference on `examples/run_input.csv` is not pathologically slow (that is a model-fixing problem). Then re-run with `gh workflow run upload-model.yml -R ersilia-os/<id>`, which starts the chain again and does not need an empty commit.
+- **What to do:** first check that inference on `examples/run_input.csv` is not pathologically slow (that is a model-fixing problem). Then re-run with `gh workflow run upload-model.yml -R ersilia-os/<id>`, which starts the chain again and does not need an empty commit. `resolve-release` releases a dispatched run only when the repo has no tags: for a model that already has a release (a re-incorporation, such as eos935d), the dispatch rebuilds and tests but releases nothing, so make the release by hand afterwards (`release_state.py`).
 
 ## The image run reads green while post-upload is still running (eos3pu0)
 

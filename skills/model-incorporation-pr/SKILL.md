@@ -41,10 +41,15 @@ merged incorporation has, and the preflight and merge steps below rely on it.
 ## The version label
 
 Every PR to a model's `main` needs exactly one version label: `semver:patch`,
-`semver:minor`, `semver:major` or `no-release` (ersilia-model-workflows#22). The required
-check `Check version label / check-version-label / verdict` fails when the label is missing
-or lower than the bump it detects from the diff. After the merge, the workflows release the
+`semver:minor`, `semver:major` or `no-release` (ersilia-model-workflows#22). The check
+`Check version label / check-version-label / verdict` fails when the label is missing or
+lower than the bump it detects from the diff. After the merge, the workflows release the
 model from that label, so no one creates the release by hand.
+
+The check is not a required status check yet: the model repos' rulesets only block
+deletion and force-pushes, so GitHub would let a PR merge with no label or a failed
+`verdict`, and nothing would be released. This skill therefore never merges until
+`verdict` is `SUCCESS` (Step 5).
 
 For an incorporation the label is always **`semver:major`**. The template's
 `run_columns.csv` has no columns and its `run_output.csv` is empty, so any real model adds

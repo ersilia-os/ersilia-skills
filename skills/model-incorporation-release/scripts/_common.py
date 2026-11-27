@@ -33,6 +33,19 @@ WF_RETAG = "Retag image on release"
 BOT_COMMITTER = "ersilia-bot"
 BOT_RELEASER = "github-actions[bot]"
 
+# Every token GitHub honours to skip push workflows: the five bracket forms anywhere in
+# the message, or a ``skip-checks: true`` trailer.
+CI_SKIP_RE = re.compile(
+    r"\[(skip ci|ci skip|no ci|skip actions|actions skip)\]|^skip-checks: ?true\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+# Files that never reach the model's image or outputs: the same files the PR label
+# check lets through with ``no-release``.
+NO_EFFECT_PREFIXES = (".github/",)
+NO_EFFECT_FILES = {".gitignore", ".gitattributes", "CLAUDE.md", "AGENTS.md"}
+NO_EFFECT_LABEL = ".github/, .gitignore, .gitattributes, CLAUDE.md, AGENTS.md"
+
 POLITE_MAILTO = "hello@ersilia.io"
 USER_AGENT = f"ersilia-skills/model-incorporation-release (mailto:{POLITE_MAILTO})"
 
@@ -184,3 +197,28 @@ def arxiv_id(value):
     text = str(value or "")
     match = ARXIV_RE.search(text) or ARXIV_DOI_RE.search(text)
     return match.group("id") if match else None
+
+
+def skips_ci(message):
+    """Return True if a commit message stops GitHub from running push workflows."""
+    return bool(CI_SKIP_RE.search(message or ""))
+
+
+def model_files_changed(model_id, sha):
+    """Return the files commit ``sha`` changes outside the no-effect files.
+
+    ``None`` means the commit's file list could not be read.
+    """
+    files = (gh_api(f"repos/{OWNER}/{model_id}/commits/{sha}") or {}).get("files")
+    if not files:
+        return None
+    return [
+        f["filename"]
+        for f in files
+        if f["filename"] not in NO_EFFECT_FILES and not f["filename"].startswith(NO_EFFECT_PREFIXES)
+    ]
+
+
+def touches_only_no_effect_files(model_id, sha):
+    """Return True if commit ``sha`` changes only files that never reach the image."""
+    return model_files_changed(model_id, sha) == []

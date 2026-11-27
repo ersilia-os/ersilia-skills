@@ -89,7 +89,9 @@ Then act on `overall`:
 
 - **`green`**: go to Step 2. Carry every entry of `warnings` into the final summary
   (e.g. an arm64 image test that failed inside a green run means the image is
-  amd64-only).
+  amd64-only). After a `semver:patch` or `no-release` merge the image test, post-upload
+  and the release jobs of "Test model image" are skipped by design; `reason` says which
+  route ran.
 - **`running`**: unless `--check-only`, **watch it in-session**. For each id in
   `watch`, start a background Bash command:
   ```bash
@@ -109,7 +111,15 @@ Then act on `overall`:
   - **Model problem** (install, inference, output columns): stop and hand off to
     `/ersilia-model-test`, then `/model-fixing`. This skill does not fix models.
 - **`missing`**: no run exists for the real HEAD. Show `reason`. Offer
-  `gh workflow run upload-model.yml -R ersilia-os/<id>` (after confirmation).
+  `gh workflow run upload-model.yml -R ersilia-os/<id>` (after confirmation). On a model
+  that already has a release, a dispatched run rebuilds and tests but releases nothing, so
+  Step 2 then reports `create_release` or `unreleased_changes`.
+- **`untested`**: the runs for the real HEAD are green, but a person pushed newer
+  commits that skipped CI and change files that reach the model (listed in
+  `untested_commits`, with their files). Show `reason`. If a commit only moves checkpoints
+  between Git and eosvc, check with the user that every file's sha256 is unchanged; if so,
+  go on as for `green` and say so in the summary. Otherwise offer the dispatch above,
+  after confirmation.
 - **`not_merged`**: main still holds only the template's Initial commit. Report the
   open PRs and the PR-test state, and stop. The release step starts after the merge.
 
@@ -150,7 +160,8 @@ Act on `action`:
   Deleting a release is destructive: show both commands and get an explicit yes first.
 - **`unreleased_changes`**: people committed to main after the latest release, so the
   published image no longer matches main. Commits that change only CI or editor files
-  (`.github/`, `.gitignore`, `CLAUDE.md`) and commits from PRs labelled `no-release` are
+  (`.github/`, `.gitignore`, `.gitattributes`, `CLAUDE.md`, `AGENTS.md`) and commits from
+  PRs labelled `no-release` are
   already left out and listed in `warnings`. Normally a later change is released from
   its own PR's label, so first check whether its PR is still running through CI. If the
   commits reached main without a labelled PR, ask which bump applies, offering

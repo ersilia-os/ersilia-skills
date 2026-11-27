@@ -39,6 +39,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _common import (  # noqa: E402
     BOT_COMMITTER,
     BOT_RELEASER,
+    NO_EFFECT_LABEL,
     OWNER,
     WF_RETAG,
     catalog_entry,
@@ -47,6 +48,8 @@ from _common import (  # noqa: E402
     fetch_json,
     gh_api,
     remote_metadata,
+    skips_ci,
+    touches_only_no_effect_files,
 )
 
 SEMVER_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
@@ -70,7 +73,7 @@ def docker_digest(model_id, tag):
 
 
 def is_bot_commit(commit):
-    return commit["commit"]["author"]["name"] == BOT_COMMITTER and "[skip ci]" in commit["commit"]["message"]
+    return commit["commit"]["author"]["name"] == BOT_COMMITTER and skips_ci(commit["commit"]["message"])
 
 
 def next_versions(tag):
@@ -84,19 +87,6 @@ def next_versions(tag):
         "minor": f"v{major}.{minor + 1}.0",
         "major": f"v{major + 1}.0.0",
     }
-
-
-NO_EFFECT_PREFIXES = (".github/",)
-NO_EFFECT_FILES = {".gitignore", ".gitattributes", "CLAUDE.md", "AGENTS.md"}
-
-
-def touches_only_no_effect_files(model_id, sha):
-    """Return True if commit ``sha`` changes only files that never reach the image."""
-    files = (gh_api(f"repos/{OWNER}/{model_id}/commits/{sha}") or {}).get("files") or []
-    return bool(files) and all(
-        f["filename"] in NO_EFFECT_FILES or f["filename"].startswith(NO_EFFECT_PREFIXES)
-        for f in files
-    )
 
 
 def merged_with_no_release(model_id, sha):
@@ -208,7 +198,7 @@ def main():
     if no_effect:
         result["warnings"].append(
             f"{len(no_effect)} commit(s) after {tag} change only CI or editor files "
-            "(.github/, .gitignore, CLAUDE.md, ...); they need no release."
+            f"({NO_EFFECT_LABEL}); they need no release."
         )
         human_commits = [c for c in human_commits if c not in no_effect]
     # Commits merged through a PR labelled no-release are meant to stay unreleased.
