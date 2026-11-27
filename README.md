@@ -40,6 +40,7 @@ Several of these skills are designed to be chained together as part of a larger 
 | model-incorporation-pr | Commits a finished model incorporation and opens the pull request to `ersilia-os/<model_id>`. Asks for approval before pushing, reports the PR checks and merges once authorized. |
 | model-incorporation-release | Last step of the incorporation pipeline. It runs after the model's PR is merged into ersilia-os/eosXXXX. |
 | repository-auditing | Audits a repository to make sure it abides by Ersilia's standards. |
+| docs-drift | Finds where the Ersilia Book and repo READMEs no longer match the code (CLI commands, repo links, Python versions, Book structure) and opens issues for the findings you approve. |
 | ersilia-model-test | Tests an Ersilia Model Hub model before hub incorporation. |
 | model-monitoring | Track pending models, stored data, etc |
 | model-fixing | When a model fails a test, reviews where it failed and fixes it automatically. |
