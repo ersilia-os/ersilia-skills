@@ -1,0 +1,58 @@
+{
+  "entries": [
+    {
+      "n": 1,
+      "date": "2026-11-12",
+      "feedback": "First live run hit the GitHub rate limit; scripts carried on and built a wrong plan from partial data.",
+      "kind": "process",
+      "change": "_common.run_gh_json stops the run on a rate-limit error; apply_actions.py checks the call budget before writing; SKILL.md pre-flight checks gh api rate_limit (about 1,500 calls per run)."
+    },
+    {
+      "n": 2,
+      "date": "2026-11-15",
+      "feedback": "Issues and PRs in archived repos were proposed for closing, but archived repos are read-only.",
+      "kind": "code",
+      "change": "fetch_mine.py searches with --archived=false. (The fixture covers the planner; the filter itself is in the gh query.)",
+      "fixture": "prs-and-issues"
+    },
+    {
+      "n": 3,
+      "date": "2026-11-15",
+      "feedback": "Notifications marked done came back as read with all=true, so every run would re-propose them.",
+      "kind": "code",
+      "change": "fetch_notifications.py lists unread threads only; a done thread with new activity is unread again and returns by itself.",
+      "fixture": "notifications"
+    },
+    {
+      "n": 4,
+      "date": "2026-11-15",
+      "feedback": "Unsubscribe was reported as failed: GitHub keeps the subscription with ignored=true instead of deleting it, and the follow-up mark-done was skipped.",
+      "kind": "code",
+      "change": "build_actions.py checks unsubscribe with type 'muted'; apply_actions.py accepts ignored=true or no subscription.",
+      "fixture": "notifications"
+    },
+    {
+      "n": 5,
+      "date": "2026-11-15",
+      "feedback": "Self-service Model Inference Run notifications are noise.",
+      "kind": "rule",
+      "change": "rules.json notifications.noise_title_patterns = ['^🚀 Model Inference Run']"
+    },
+    {
+      "n": 6,
+      "date": "2026-11-15",
+      "feedback": "Check branches for unmerged work before proposing deletion.",
+      "kind": "code",
+      "change": "fetch_branches.py records branch and PR head SHAs; plan_cleanup.py flags (never proposes) a branch whose head is in none of its PRs.",
+      "fixture": "branches"
+    },
+    {
+      "n": 7,
+      "date": "2026-11-15",
+      "feedback": "Don't silently clear CI failure notices; flag repos with many (ersilia-stats had 17 failed deploys).",
+      "kind": "code",
+      "change": "plan_cleanup.py adds a ci:<repo> flag when a repo has >= notifications.ci_flag_min_threads (5) CI notices; the threads are still proposed as done.",
+      "fixture": "notifications"
+    }
+  ]
+}
